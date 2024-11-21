@@ -14,7 +14,7 @@ from deep_tensor import (
 
 from deep_tensor.utils import info
 
-torch.manual_seed(0)
+# torch.manual_seed(3)
 
 
 # Set up the OU process
@@ -35,13 +35,13 @@ input_data = InputData(sample_x, debug_x)
 domain = BoundedDomain(bounds=torch.tensor([-5.0, 5.0]))
 
 # bases = ApproxBases(
-#     polys=[Legendre(order=40)], 
+#     polys=[Lagrange1(num_elems=20)], 
 #     in_domains=[domain], 
 #     dim=d
 # )
 
 bases = ApproxBases(
-    polys=[Lagrange1(num_elems=40)],
+    polys=[Legendre(order=40)],
     in_domains=[domain],
     dim=d
 )
@@ -55,7 +55,7 @@ bases = ApproxBases(
 options = TTOptions(
     tt_method="fixed_rank", 
     als_tol=1e-8, 
-    local_tol=1e-8,
+    local_tol=1e-6,
     max_rank=20, 
     max_als=1
 )
@@ -69,7 +69,7 @@ irt = TTSIRT(
 
 from deep_tensor.directions import Direction
 
-irt.marginalise(direction=Direction.BACKWARD)
+irt.marginalise(direction=Direction.FORWARD)
 
 zs = torch.rand((10_000, d))
 xs, fs = irt.eval_irt_nograd(zs)
@@ -78,6 +78,8 @@ z0 = irt.eval_rt(xs)
 transform_error = torch.linalg.norm(zs-z0, ord="fro")
 potential_error = torch.linalg.norm(potential_func(xs) - fs)
 pdf_error = torch.linalg.norm(torch.exp(-potential_func(xs)) - torch.exp(-fs))
+
+print((zs-z0)[:2, :])
 
 info(f"Transform error: {transform_error}")
 info(f"Potential error: {potential_error}")

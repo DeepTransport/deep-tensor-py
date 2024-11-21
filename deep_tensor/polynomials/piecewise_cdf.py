@@ -116,10 +116,7 @@ class PiecewiseCDF(OnedCDF, abc.ABC):
 
         """
 
-        if torch.min(pdf_vals) < -1e-8:  # TODO: move this check to a separate function (probably in oned_cdf)
-            msg = "Negative values of PDF found."
-            warnings.warn(msg)
-        
+        self.check_pdf_positive(pdf_vals)
         data = self.pdf2cdf(pdf_vals)
 
         # num_x = xs_k.numel()
@@ -155,35 +152,6 @@ class PiecewiseCDF(OnedCDF, abc.ABC):
         rs_k[torch.isinf(rs_k)] = 0.5 * (self.domain[0] + self.domain[1])
 
         return rs_k
-    
-    def _check_initial_intervals(
-        self, 
-        f0s: torch.Tensor, 
-        f1s: torch.Tensor 
-    ) -> None:
-        """Checks whether the function values at each side of the 
-        initial interval of a rootfinding method have different signs.
-        """
-
-        if (num_violations := torch.sum((f0s * f1s) > 0)) == 0:
-            return
-            
-        msg = (f"Rootfinding: {num_violations} initial intervals "
-               + "without roots found.")
-        warnings.warn(msg)
-        return
-    
-    def converged(self, fs, dxs):
-        """Returns a boolean that indicates whether a given rootfinding 
-        algorithm has converged.
-        
-        TODO: move this to the OnedCDF?
-        """
-
-        error_f = torch.max(torch.abs(fs))
-        error_dx = torch.max(torch.abs(dxs))
-
-        return torch.min(error_f, error_dx) < self.error_tol
 
     def newton(
         self, 

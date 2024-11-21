@@ -20,6 +20,8 @@ class SpectralCDF(OnedCDF, abc.ABC):
         each basis function and the weighting function, evaluated at 
         each sampling node.
 
+    TODO: finish...
+
     """
 
     def __init__(self, **kwargs):
@@ -138,9 +140,8 @@ class SpectralCDF(OnedCDF, abc.ABC):
         if coef.shape[1] != x.numel():
             raise Exception("Dimension mismatch.")
 
-        # TODO: figure out if the flatten call is needed
         # TODO: check dimension of sum
-        f = torch.sum(basis_vals * coef.T, 1).flatten()
+        f = torch.sum(basis_vals * coef.T, 1)
         return f
     
     def eval_int_search(
@@ -163,21 +164,13 @@ class SpectralCDF(OnedCDF, abc.ABC):
         x: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]: 
         
-        # basis and derivative of basis
-        b, db = self.eval_int_basis_newton(x)
+        basis_vals, deriv_vals = self.eval_int_basis_newton(x)
 
-        if coef.shape[1] > 1:
-            if coef.shape[1] == x.numel():
-                f = torch.sum(b * coef.T, 1)
-                df =  torch.sum(db * coef.T, 1)
-            else:
-                raise Exception("Dimension mismatch.")
-        else:
-            f = b * coef 
-            df = b * coef
+        fs = torch.sum(basis_vals * coef.T, 1)
+        dfs = torch.sum(deriv_vals * coef.T, 1)
 
-        f = f - cdf_poly_base - rhs
-        return f, df
+        fs = fs - cdf_poly_base - rhs
+        return fs, dfs
     
     def eval_cdf(self, pdf: torch.Tensor, r: torch.Tensor):
         """I think pk is the PDF,
@@ -236,6 +229,7 @@ class SpectralCDF(OnedCDF, abc.ABC):
         pk: torch.Tensor, 
         r: torch.Tensor
     ) -> torch.Tensor:
+        """REWRITE"""
         
         coef = self.node2basis @ pk 
         base = self.cdf_basis2node[0] @ coef
@@ -251,265 +245,116 @@ class SpectralCDF(OnedCDF, abc.ABC):
     def invert_cdf(
         self, 
         pdf: torch.Tensor, 
-        xi: torch.Tensor
+        zs_k: torch.Tensor
     ) -> torch.Tensor:
+        """REWRITE"""
 
         self.check_pdf_positive(pdf)
 
         if pdf.dim() == 1:
             pdf = pdf[:, None]
 
-        # data_size = pdf.shape[0]
-
-        if pdf.shape[1] > 1 and pdf.shape[1] != xi.numel():
+        if pdf.shape[1] > 1 and pdf.shape[1] != zs_k.numel():
             raise Exception("Dimension mismatch.")
         
-        coef = self.node2basis @ pdf
-
-        cdf_poly_nodes = self.cdf_basis2node @ coef
+        coefs = self.node2basis @ pdf
+        cdf_poly_nodes = self.cdf_basis2node @ coefs
         cdf_poly_base = cdf_poly_nodes[0]
         cdf_poly_nodes = cdf_poly_nodes - cdf_poly_base
         cdf_poly_norm = cdf_poly_nodes[-1]
 
-        r = torch.zeros_like(xi)
+        rs_k = torch.zeros_like(zs_k)
 
-        if pdf.shape[0] == 1:
-            rhs = xi * cdf_poly_norm 
-            ind = torch.sum(torch.reshape(cdf_poly_nodes, 1, -1) < rhs, 1) # TODO: check this...
-        else:
-            rhs = xi * cdf_poly_norm  # vertical??
-            ind = torch.sum(cdf_poly_nodes < rhs, 1)  # check
+        rhs = zs_k * cdf_poly_norm  # vertical??
+        left_inds = torch.sum(cdf_poly_nodes < rhs, 0).int() - 1
         
-        mask_1 = (ind == 0 | xi < 1e-8)  # TODO: fix eps (below also)
-        mask_3 = (ind == self.sampling_nodes.numel() | xi >= 1.0 - 1e-8)
-        mask_2 = not (mask_1 | mask_3)
+        mask_left = left_inds == -1
+        mask_right = left_inds == self.sampling_nodes.numel() - 1 
 
-        if torch.any(mask_1):
-            r[mask_1] = self.sampling_nodes[0]
+        rs_k[mask_left] = self.domain[0]
+        rs_k[mask_right] = self.domain[-1]
 
-        if torch.any(mask_3):
-            r[mask_3] = self.sampling_nodes[-1]
+        mask_central = ~torch.bitwise_or(mask_left, mask_right)
         
-        if torch.any(mask_2):
-            a = self.sampling_nodes[int(ind[mask_2])]
-            b = self.sampling_nodes[int(ind[mask_2]+1)]
-            if pdf.shape[0] == 1:
-                r[mask_2] = self.newton(coef, cdf_poly_base, rhs[mask_2], a, b)
-            else:
-                r[mask_2] = self.newton(coef[mask_2], cdf_poly_base[mask_2], rhs[mask_2], a, b)
+        x0s = self.sampling_nodes[left_inds[mask_central]]
+        x1s = self.sampling_nodes[left_inds[mask_central]+1]
         
-        # TODO: isnan stuff??
-        return r
+        rs_k[mask_central] = self.newton(
+            coefs[:, mask_central], 
+            cdf_poly_base[mask_central],
+            rhs[mask_central], 
+            x0s, 
+            x1s
+        )
+        
+        rs_k[torch.isnan(rs_k)] = 0.5 * (self.domain[0] + self.domain[1])
+        rs_k[torch.isinf(rs_k)] = 0.5 * (self.domain[0] + self.domain[1])
+        
+        return rs_k
 
     def newton(
         self,
-        coef: torch.Tensor, 
+        coefs: torch.Tensor, 
         cdf_poly_base: torch.Tensor, 
         rhs: torch.Tensor,
-        a: torch.Tensor,
-        b: torch.Tensor
+        x0s: torch.Tensor,
+        x1s: torch.Tensor
     ) -> torch.Tensor:
         
-        fa = self.eval_int_search(self, coef, cdf_poly_base, rhs, a)
-        fb = self.eval_int_search(self, coef, cdf_poly_base, rhs, b)
+        f0s = self.eval_int_search(coefs, cdf_poly_base, rhs, x0s)
+        f1s = self.eval_int_search(coefs, cdf_poly_base, rhs, x1s)
+        self._check_initial_intervals(f0s, f1s)
 
-        raise NotImplementedError()
-        
+        # Carry out the first iteration using the regula falsi method
+        xs = x1s - f1s * (x1s - x0s) / (f1s - f0s)
 
-    """
-    function c = newton(obj, coef, cdf_poly_base, rhs, a, b)
-            %i = 0;
-            fa = eval_int_search(obj,coef,cdf_poly_base,rhs,a);
-            fb = eval_int_search(obj,coef,cdf_poly_base,rhs,b);
-            if any(fb.*fa > 0)
-                disp(['Root finding: initial guesses on one side, # violation: ' num2str(sum(fb.*fa > 0))])
-                %disp([a(fb.*fa > 0), b(fb.*fa > 0)])
-            end
-            c = b - fb.*(b - a)./(fb - fa);  % Regula Falsi
-            rf_flag = true;
-            for iter = 1:obj.num_Newton
-                cold = c;
-                [f,df] = eval_int_newton(obj, coef, cdf_poly_base, rhs, cold);
-                step = f./df;
-                step(isnan(step)) = 0;
-                c = cold - step;
-                I1 = c<a;
-                I2 = c>b;
-                I3 = ~I1 & ~I2;
-                c  = a.*I1 + b.*I2 + c.*I3;
-                if ( norm(f, Inf) < obj.tol ) || ( norm(step, Inf) < obj.tol )
-                    rf_flag = false;
-                    break;
-                end
-            end
-            %norm(f, Inf)
-            if rf_flag
-                disp('newton does not converge, continue with regula falsi')
-                fc = eval_int_search(obj,coef,cdf_poly_base,rhs,c);
-                I1 = (fc < 0);
-                I2 = (fc > 0);
-                I3 = ~I1 & ~I2;
-                a  = I1.*c + I2.*a + I3.*a;
-                b  = I1.*b + I2.*c + I3.*b;
-                c = regula_falsi(obj, coef, cdf_poly_base, rhs, a, b);
-            end
-        end
-    end"""
-
-
-"""
-classdef SpectralCDF < OnedCDF
-    % SpectralCDF class
-    %
-    % For Fourier basis, FourierCDF is used. For other spectral polynomials
-    % in bounded domains, we first transform the polynomial to the 2nd
-    % Chebyshev basis, and then apply the inversion. See Chebyshev2ndCDF.
-    %
-    % Before applying root findings, a grid search based on sampling_nodes
-    % is applied to locate the left and right boundary of root finding.
-    %
-    % See also ChebyshevCDF and FourierCDF.
-    
-    properties
-        sampling_nodes(1,:)
-        cdf_basis2node(:,:)
-    end
-
-    methods (Abstract)
-        grid_measure(obj)
-        eval_int_basis(obj)
-        eval_int_basis_newton(obj)
-    end
-        
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
-        function r = invert_cdf(obj, pk, xi)
-            if (sum(pk(:)<0)>0)
-                disp(['negative pdf ' num2str(sum(pk(:)<0))])
-            end
-            data_size = size(pk,2);
-            coef = obj.node2basis*pk;
-            cdf_poly_nodes = obj.cdf_basis2node*coef;
-            %
-            cdf_poly_base  = cdf_poly_nodes(1,:);
-            cdf_poly_nodes = cdf_poly_nodes - cdf_poly_base;
-            cdf_poly_norm  = cdf_poly_nodes(end,:);
-            if data_size > 1 && data_size ~= length(xi)
-                error('Error: dimenion mismatch')
-            end
-            %
-            xi = reshape(xi,[],1);
-            r = zeros(size(xi));
+        for _ in range(self.num_newton):  
             
-            if data_size == 1
-                rhs = xi.*cdf_poly_norm; % vertical
-                ind = sum(reshape(cdf_poly_nodes,1,[]) < rhs(:),2)';
-            else
-                rhs = xi(:).*cdf_poly_norm(:); % vertical
-                ind = sum(cdf_poly_nodes < reshape(rhs,1,[]), 1);
-            end
-            mask1 = ind==0 | reshape(xi,1,[])<=eps;
-            mask3 = ind==length(obj.sampling_nodes) | reshape(xi,1,[])>=1-eps;
-            mask2 = ~(mask1|mask3);
-            %
-            % left and right tails
-            if sum(mask1) > 0
-                r(mask1) = obj.sampling_nodes(1);
-            end
-            if sum(mask3) > 0
-                r(mask3) = obj.sampling_nodes(end);
-            end
-            %
-            if sum(mask2) > 0
-                a = obj.sampling_nodes(ind(mask2));
-                b = obj.sampling_nodes(ind(mask2)+1);
-                %
-                if data_size == 1
-                    r(mask2) = newton(obj, coef, cdf_poly_base, rhs(mask2), a(:), b(:));
-                else
-                    r(mask2) = newton(obj, coef(:,mask2), reshape(cdf_poly_base(mask2),[],1), rhs(mask2), a(:), b(:));
-                end
-            end
-            %
-            r = reshape(r, size(xi));
-            r(isnan(r)) = 0.5*(obj.domain(1) + obj.domain(2));
-            r(isinf(r)) = 0.5*(obj.domain(1) + obj.domain(2));
-        end
+            fs, dfs = self.eval_int_newton(coefs, cdf_poly_base, rhs, xs)
+            
+            dxs = -fs / dfs 
+            dxs[torch.isnan(dxs)] = 0.0
+            xs += dxs 
+            xs = torch.clamp(xs, x0s, x1s)
+
+            if self.converged(fs, dxs):
+                return xs
         
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
-        function c = regula_falsi(obj, coef, cdf_poly_base, rhs, a, b)
-            fa = eval_int_search(obj,coef,cdf_poly_base,rhs,a);
-            fb = eval_int_search(obj,coef,cdf_poly_base,rhs,b);
-            if any((fb.*fa) > 0)
-                disp(['Root finding: initial guesses on one side, # violation: ' num2str(sum((fb.*fa) > 0))])
-                %disp([a(fb.*fa > 0), b(fb.*fa > 0)])
-            end
-            c = b - fb.*(b - a)./(fb - fa);  % Regula Falsi
-            cold = inf;
-            %i = 2;
-            while ( norm(c-cold, Inf) > obj.tol )
-                cold = c;
-                fc  = eval_int_search(obj,coef,cdf_poly_base,rhs,c);
-                if norm(fc, Inf) < obj.tol
-                    break;
-                end
-                I1  = (fc < 0);
-                I2  = (fc > 0);
-                I3  = ~I1 & ~I2;
-                a   = I1.*c + I2.*a + I3.*c;
-                b   = I1.*b + I2.*c + I3.*c;
-                fa  = I1.*fc + I2.*fa + I3.*fc;
-                fb  = I1.*fb + I2.*fc + I3.*fc;
-                step    = -fb.*(b - a)./(fb - fa);
-                step(isnan(step)) = 0;
-                c = b + step;
-                %norm(fc, inf)
-                %i = i+1;
-                %disp(i)
-            end
-        end
-        
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
-        function c = newton(obj, coef, cdf_poly_base, rhs, a, b)
-            %i = 0;
-            fa = eval_int_search(obj,coef,cdf_poly_base,rhs,a);
-            fb = eval_int_search(obj,coef,cdf_poly_base,rhs,b);
-            if any(fb.*fa > 0)
-                disp(['Root finding: initial guesses on one side, # violation: ' num2str(sum(fb.*fa > 0))])
-                %disp([a(fb.*fa > 0), b(fb.*fa > 0)])
-            end
-            c = b - fb.*(b - a)./(fb - fa);  % Regula Falsi
-            rf_flag = true;
-            for iter = 1:obj.num_Newton
-                cold = c;
-                [f,df] = eval_int_newton(obj, coef, cdf_poly_base, rhs, cold);
-                step = f./df;
-                step(isnan(step)) = 0;
-                c = cold - step;
-                I1 = c<a;
-                I2 = c>b;
-                I3 = ~I1 & ~I2;
-                c  = a.*I1 + b.*I2 + c.*I3;
-                if ( norm(f, Inf) < obj.tol ) || ( norm(step, Inf) < obj.tol )
-                    rf_flag = false;
-                    break;
-                end
-            end
-            %norm(f, Inf)
-            if rf_flag
-                disp('newton does not converge, continue with regula falsi')
-                fc = eval_int_search(obj,coef,cdf_poly_base,rhs,c);
-                I1 = (fc < 0);
-                I2 = (fc > 0);
-                I3 = ~I1 & ~I2;
-                a  = I1.*c + I2.*a + I3.*a;
-                b  = I1.*b + I2.*c + I3.*b;
-                c = regula_falsi(obj, coef, cdf_poly_base, rhs, a, b);
-            end
-        end
-    end
+        msg = "Newton's method did not converge. Trying regula falsi..."
+        warnings.warn(msg)
+        return self.regula_falsi(coefs, cdf_poly_base, rhs, x0s, x1s)
     
-end
-"""
+    def regula_falsi(
+        self, 
+        coefs: torch.Tensor,
+        cdf_poly_base: torch.Tensor,
+        rhs: torch.Tensor, 
+        x0s: torch.Tensor, 
+        x1s: torch.Tensor
+    ) -> torch.Tensor:
+        
+        f0s = self.eval_int_search(coefs, cdf_poly_base, rhs, x0s)
+        f1s = self.eval_int_search(coefs, cdf_poly_base, rhs, x1s)
+        self._check_initial_intervals(f0s, f1s)
+
+        for _ in range(100):  # TODO: make this an attribute
+
+            dxs = -f1s * (x1s - x0s) / (f1s - f0s)
+            dxs[torch.isnan(dxs)] = 0.0
+            xs = x1s + dxs
+
+            fs = self.eval_int_search(coefs, cdf_poly_base, rhs, xs)
+
+            if self.converged(fs, dxs):
+                return xs 
+
+            # Update intervals (note: the CDF is monotone increasing)
+            x0s[fs < 0] = xs[fs < 0]
+            x1s[fs > 0] = xs[fs > 0]
+            f0s[fs < 0] = fs[fs < 0]
+            f1s[fs > 0] = fs[fs > 0]
+            
+        msg = "Regula falsi did not converge in 100 iterations."
+        warnings.warn(msg)
+        return xs
+       

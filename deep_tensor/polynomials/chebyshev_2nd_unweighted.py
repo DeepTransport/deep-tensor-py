@@ -1,0 +1,123 @@
+import torch 
+
+from .spectral import Spectral
+from ..constants import EPS
+
+
+class Chebyshev2ndUnweighted(Spectral):
+
+    def __init__(self, order: int):
+
+        self.order = order
+        self.n = torch.arange(self.order+1)
+
+        self._domain = torch.tensor([-1.0, 1.0])
+
+        self._nodes = torch.cos(torch.pi * (self.n+1) / (self.order+2))
+        self._nodes = torch.sort(self._nodes)[0]
+        self._weights = torch.sin(torch.pi * (self.n+1) / (self.order+2)) ** 2 * 2 / (self.order+2)
+        self._constant_weight = False
+
+        self.normalising = torch.tensor([1.0])
+
+        self.post_construction()
+        return
+    
+    @property
+    def domain(self) -> torch.Tensor:
+        return self._domain
+
+    @property
+    def nodes(self) -> torch.Tensor:
+        return self._nodes 
+    
+    @property
+    def weights(self) -> torch.Tensor:
+        return self._weights
+    
+    @property
+    def constant_weight(self) -> bool:
+        return self._constant_weight
+
+    def sample_measure(self, n: int) -> torch.Tensor:
+        
+        beta = torch.distributions.beta.Beta(1.5, 1.5)
+        rs = beta.sample((n, self.order))
+        rs = 2.0 * rs - 1.0
+        return rs
+    
+    def sample_measure_skip(self, n: int) -> torch.Tensor:
+
+        r0 = 0.5 * (torch.min(self.nodes) - 1.0)
+        r1 = 0.5 * (torch.max(self.nodes) + 1.0)
+        
+        rs = torch.rand(n) * (r1-r0) + r0
+        return rs
+    
+    def eval_measure(self, rs: torch.Tensor) -> torch.Tensor:
+        
+        ts = 1.0 - rs **2
+        ts[ts < EPS] = 0.0
+        ws = 2.0 * torch.sqrt(ts) / torch.pi 
+        return ws
+    
+    def eval_log_measure(self, rs: torch.Tensor) -> torch.Tensor:
+        
+        ts = 1.0 - rs **2
+        ts[ts < EPS] = 0.0
+        ws = 0.5*torch.log(ts) + torch.log(torch.tensor(2.0)/torch.pi)
+        return ws
+    
+    def eval_measure_deriv(self, rs: torch.Tensor) -> torch.Tensor:
+        ts = 1.0 - rs **2
+        ts[ts < EPS] = 0.0
+        ws = -rs * torch.sqrt(ts) * 2.0 / torch.pi
+        return ws
+    
+    def eval_log_measure_deriv(self, rs: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError("Not implemented.")
+
+    def eval_basis(self, rs: torch.Tensor) -> torch.Tensor:
+
+        thetas = self.x2theta(rs)
+        fs = (torch.sin(torch.outer(self.n+1, thetas)) 
+              * (self.normalising / torch.sin(thetas))).T
+        return fs
+
+        # TODO: deal with the endpoints
+        # fs[torch.abs(rs-1) < EPS] = 
+
+        """
+            theta = real(acos(x(:)));
+            % deal with end points
+            f = sin(theta.*(obj.n+1)) ./ (sin(theta)./obj.normalising);
+            
+            mask = abs(x+1) < eps;
+            if sum(mask) > 0
+                f(mask,:) = repmat(((obj.n+1).*(-1).^obj.n).*obj.normalising, sum(mask), 1);
+            end
+            
+            mask = abs(x-1) < eps;
+            if sum(mask) > 0
+                f(mask,:) = repmat((obj.n+1).*obj.normalising, sum(mask), 1);
+            end
+        end"""
+
+    def eval_basis_deriv(self, rs: torch.Tensor) -> torch.Tensor:
+        
+        theta = torch.acos(rs)
+            
+        # deal with end points
+        # mask = abs(x+1) < eps;
+        # if sum(mask) > 0
+        #     theta(mask) = pi;
+        # end
+        # mask = abs(x-1) < eps;
+        # if sum(mask) > 0
+        #     theta(mask) = 0;
+        # end
+            
+        fs = (torch.cos(theta*(self.n+1)) * (self.n+1) - torch.sin(theta * (self.n+1)) * (rs / torch.sin(theta)) ) / (rs**2 - 1)
+        fs = fs * self.normalising
+        
+        return fs

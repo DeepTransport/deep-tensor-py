@@ -34,27 +34,8 @@ class TTSIRT(SIRT):
         # self.order = None 
         return
 
-    def build_approximation(
-        self, 
-        density_func: Callable, 
-        bases: ApproxBases, 
-        options: TTOptions, 
-        input_data: InputData
-    ):
-        
-        approx = TTFunc(
-            density_func, 
-            bases, 
-            options=options, 
-            input_data=input_data
-        )
-
-        if approx.use_amen:
-            approx.round()  # TODO: write this
-
-        return approx
-
-    def _marginalise_forward(self) -> torch.Tensor:
+    def _marginalise_forward(self) -> None:
+        """TODO: write docstring."""
 
         self.order = torch.arange(self.bases.dim)
         self.Rs[self.bases.dim] = torch.tensor([[1.0]])
@@ -78,6 +59,7 @@ class TTSIRT(SIRT):
         return 
     
     def _marginalise_backward(self) -> None:
+        """TODO: write docstring."""
         
         self.order = torch.arange(self.bases.dim-1, -1, -1)
         self.Rs[-1] = torch.tensor([[1.0]])
@@ -99,6 +81,26 @@ class TTSIRT(SIRT):
 
         self._z_func = torch.sum(self.Rs[self.bases.dim-1] ** 2)
         return
+
+    def build_approximation(
+        self, 
+        density_func: Callable, 
+        bases: ApproxBases, 
+        options: TTOptions, 
+        input_data: InputData
+    ):
+        
+        approx = TTFunc(
+            density_func, 
+            bases, 
+            options=options, 
+            input_data=input_data
+        )
+
+        if approx.use_amen:
+            approx.round()  # TODO: write this
+
+        return approx
 
     def marginalise(
         self, 
@@ -454,7 +456,7 @@ class TTSIRT(SIRT):
         -------
         rs:
             An n * d matrix containing the corresponding samples from
-            the reference domain.
+            the reference domain after applying the IRT.
         fs:
             The approximation to the target density in the reference 
             domain, evaluated at each sample.
@@ -495,7 +497,7 @@ class TTSIRT(SIRT):
 
                 ii = torch.arange(num_z).repeat(rank_p)
                 jj = (torch.arange(rank_p * num_z)
-                           .reshape(rank_p, num_z).T
+                           .reshape(num_z, rank_p).T
                            .flatten())
 
                 indices = torch.vstack((ii[None, :], jj[None, :]))
@@ -508,7 +510,7 @@ class TTSIRT(SIRT):
                 frl[torch.isnan(frl)] = 0.0
             
             if dim_z < self.approx.dim:
-                raise NotImplementedError()
+                raise NotImplementedError("TODO")
             else:
                 fs = frl.flatten().square()
 
@@ -559,7 +561,7 @@ class TTSIRT(SIRT):
                 frg[torch.isnan(frg)] = 0.0
 
             if dim_z < self.approx.bases.dim:
-                raise NotImplementedError()
+                raise NotImplementedError("TODO")
             else:
                 fs = frg.flatten().square()
         

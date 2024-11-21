@@ -43,28 +43,6 @@ class Chebyshev1st(Spectral):
     def constant_weight(self) -> bool: 
         return False
 
-    def x2theta(self, x: torch.Tensor) -> torch.Tensor:
-        """Converts a set of x values (on the interval [-1, 1]) to a 
-        set of theta values, adjusting the endpoints in case of 
-        singularities.
-
-        Parameters
-        ----------
-        x: 
-            Set of input points.
-        
-        Returns
-        -------
-        : 
-            The corresponding set of theta values (theta = arccos(x)).
-        
-        """
-
-        theta = torch.acos(x)
-        theta[torch.abs(x+1.0) < EPS] = torch.pi
-        theta[torch.abs(x-1.0) < EPS] = 0.0
-        return theta
-
     def eval_basis(self, x: torch.Tensor) -> torch.Tensor:
         """Evaluates the set of Chebyshev polynomials of the first 
         kind, up to order n, for all inputs x in [-1, 1].

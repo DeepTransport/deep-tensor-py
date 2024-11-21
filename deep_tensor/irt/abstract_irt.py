@@ -300,7 +300,7 @@ class AbstractIRT(abc.ABC):
         """
 
         # TEMP (TODO: remove)
-        self._int_dir = Direction.BACKWARD
+        self._int_dir = Direction.FORWARD
 
         zs = torch.clamp(zs, Z_MIN, Z_MAX)
 

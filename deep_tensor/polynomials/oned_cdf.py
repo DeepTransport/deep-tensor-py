@@ -12,7 +12,7 @@ class OnedCDF(abc.ABC):
     one-dimensional bases.
     """
 
-    def __init__(self, error_tol: float=1e-8, num_newton: int=10):
+    def __init__(self, error_tol: float=1e-10, num_newton: int=10):
         self.error_tol = error_tol
         self.num_newton = num_newton
         return
@@ -84,6 +84,33 @@ class OnedCDF(abc.ABC):
     ) -> torch.Tensor:
         """TODO: write docstring."""
         return
+    
+    def _check_initial_intervals(
+        self, 
+        f0s: torch.Tensor, 
+        f1s: torch.Tensor 
+    ) -> None:
+        """Checks whether the function values at each side of the 
+        initial interval of a rootfinding method have different signs.
+        """
+
+        if (num_violations := torch.sum((f0s * f1s) > 0)) == 0:
+            return
+
+        msg = (f"Rootfinding: {num_violations} initial intervals "
+               + "without roots found.")
+        warnings.warn(msg)
+        return
+    
+    def converged(self, fs, dxs):
+        """Returns a boolean that indicates whether a rootfinding 
+        method has converged.
+        """
+
+        error_f = torch.max(torch.abs(fs))
+        error_dx = torch.max(torch.abs(dxs))
+
+        return torch.min(error_f, error_dx) < self.error_tol
     
     # @abc.abstractmethod
     # def eval_cdf_deriv(self):

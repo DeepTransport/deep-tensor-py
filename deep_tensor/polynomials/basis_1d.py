@@ -33,8 +33,9 @@ class Basis1D(abc.ABC, object):
     @property 
     @abc.abstractmethod
     def mass_R(self) -> torch.Tensor:
-        """Matrix containing the (weighted) inner products of each pair 
-        of basis functions over the domain.
+        """Cholesky factor of the matrix containing the (weighted) 
+        inner products of each pair of basis functions over the 
+        reference domain.
         """
         return 
     
