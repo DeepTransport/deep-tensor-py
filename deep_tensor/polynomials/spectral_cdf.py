@@ -269,10 +269,10 @@ class SpectralCDF(OnedCDF, abc.ABC):
         left_inds = torch.sum(cdf_poly_nodes < rhs, 0).int() - 1
         
         mask_left = left_inds == -1
-        mask_right = left_inds == self.sampling_nodes.numel() - 1 
+        mask_right = left_inds == (self.sampling_nodes.numel() - 1)
 
-        rs_k[mask_left] = self.domain[0]
-        rs_k[mask_right] = self.domain[-1]
+        rs_k[mask_left] = self.sampling_nodes[0]
+        rs_k[mask_right] = self.sampling_nodes[-1]
 
         mask_central = ~torch.bitwise_or(mask_left, mask_right)
         

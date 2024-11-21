@@ -34,17 +34,17 @@ input_data = InputData(sample_x, debug_x)
 
 domain = BoundedDomain(bounds=torch.tensor([-5.0, 5.0]))
 
-# bases = ApproxBases(
-#     polys=[Lagrange1(num_elems=20)], 
-#     in_domains=[domain], 
-#     dim=d
-# )
-
 bases = ApproxBases(
-    polys=[Legendre(order=40)],
-    in_domains=[domain],
+    polys=[Lagrange1(num_elems=20)], 
+    in_domains=[domain], 
     dim=d
 )
+
+# bases = ApproxBases(
+#     polys=[Legendre(order=40)],
+#     in_domains=[domain],
+#     dim=d
+# )
 
 # bases{1} = ApproxBases(Legendre(40), dom, d);
 # bases{2} = ApproxBases(Fourier(20), dom, d);
@@ -79,7 +79,7 @@ transform_error = torch.linalg.norm(zs-z0, ord="fro")
 potential_error = torch.linalg.norm(potential_func(xs) - fs)
 pdf_error = torch.linalg.norm(torch.exp(-potential_func(xs)) - torch.exp(-fs))
 
-print((zs-z0)[:2, :])
+# print((zs-z0)[:2, :])
 
 info(f"Transform error: {transform_error}")
 info(f"Potential error: {potential_error}")

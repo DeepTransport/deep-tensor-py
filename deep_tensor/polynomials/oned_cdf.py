@@ -97,6 +97,13 @@ class OnedCDF(abc.ABC):
         if (num_violations := torch.sum((f0s * f1s) > 0)) == 0:
             return
 
+        print(torch.min(f1s-f0s))
+
+        print(torch.min(f0s))
+        print(torch.max(f0s))
+        print(torch.min(f1s))
+        print(torch.max(f1s))
+
         msg = (f"Rootfinding: {num_violations} initial intervals "
                + "without roots found.")
         warnings.warn(msg)

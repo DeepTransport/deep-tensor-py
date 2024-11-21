@@ -354,13 +354,12 @@ class ApproxBases():
             indices = torch.arange(self.dim)
 
         if len(indices) != rs.shape[1]:
-            msg = "zs does not have the correct dimension."
+            msg = "rs does not have the correct dimension."
             raise Exception(msg)
         
         gs = torch.empty_like(rs)
-
-        for i, z in enumerate(rs.T):
-            gs[:, i] = -self.polys[indices[i]].eval_log_measure_deriv(z)
+        for i, r in enumerate(rs.T):
+            gs[:, i] = -self.polys[indices[i]].eval_log_measure_deriv(r)
 
         return gs
 

@@ -82,40 +82,13 @@ class Chebyshev2ndUnweighted(Spectral):
         thetas = self.x2theta(rs)
         fs = (torch.sin(torch.outer(self.n+1, thetas)) 
               * (self.normalising / torch.sin(thetas))).T
-        return fs
-
+        
         # TODO: deal with the endpoints
-        # fs[torch.abs(rs-1) < EPS] = 
-
-        """
-            theta = real(acos(x(:)));
-            % deal with end points
-            f = sin(theta.*(obj.n+1)) ./ (sin(theta)./obj.normalising);
-            
-            mask = abs(x+1) < eps;
-            if sum(mask) > 0
-                f(mask,:) = repmat(((obj.n+1).*(-1).^obj.n).*obj.normalising, sum(mask), 1);
-            end
-            
-            mask = abs(x-1) < eps;
-            if sum(mask) > 0
-                f(mask,:) = repmat((obj.n+1).*obj.normalising, sum(mask), 1);
-            end
-        end"""
+        return fs
 
     def eval_basis_deriv(self, rs: torch.Tensor) -> torch.Tensor:
         
-        theta = torch.acos(rs)
-            
-        # deal with end points
-        # mask = abs(x+1) < eps;
-        # if sum(mask) > 0
-        #     theta(mask) = pi;
-        # end
-        # mask = abs(x-1) < eps;
-        # if sum(mask) > 0
-        #     theta(mask) = 0;
-        # end
+        theta = self.x2theta(rs)
             
         fs = (torch.cos(theta*(self.n+1)) * (self.n+1) - torch.sin(theta * (self.n+1)) * (rs / torch.sin(theta)) ) / (rs**2 - 1)
         fs = fs * self.normalising
