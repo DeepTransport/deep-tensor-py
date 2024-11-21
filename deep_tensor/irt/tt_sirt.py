@@ -54,6 +54,52 @@ class TTSIRT(SIRT):
 
         return approx
 
+    def _marginalise_forward(self) -> torch.Tensor:
+
+        self.order = torch.arange(self.bases.dim)
+        self.Rs[self.bases.dim] = torch.tensor([[1.0]])
+
+        for k in range(self.bases.dim-1, -1, -1):
+            
+            poly_k = self.approx.bases.polys[k]
+            A_k = self.approx.data.cores[k]
+            rank_p, num_nodes, rank_k = A_k.shape
+
+            B_k = reshape_matlab(A_k, (rank_p * num_nodes, rank_k)) @ self.Rs[k+1].T
+            self.Bs[k] = reshape_matlab(B_k, (rank_p, num_nodes, rank_k))
+
+            B_k = self.Bs[k].permute(1, 2, 0)
+            B_k = reshape_matlab(B_k, (num_nodes, rank_k * rank_p)) 
+            C_k = reshape_matlab(poly_k.mass_r(B_k), (num_nodes * rank_k, rank_p))
+            
+            _, self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")
+
+        self._z_func = torch.sum(self.Rs[0] ** 2)
+        return 
+    
+    def _marginalise_backward(self) -> None:
+        
+        self.order = torch.arange(self.bases.dim-1, -1, -1)
+        self.Rs[-1] = torch.tensor([[1.0]])
+
+        for k in range(self.bases.dim):
+            
+            poly_k = self.approx.bases.polys[k]
+            A_k = self.approx.data.cores[k]
+            rank_p, num_nodes, rank_k = A_k.shape
+
+            B_k = self.Rs[k-1] @ reshape_matlab(A_k, (rank_p, num_nodes * rank_k))
+            self.Bs[k] = reshape_matlab(B_k, (rank_p, num_nodes, rank_k))
+
+            B_k = self.Bs[k].permute(1, 0, 2)
+            B_k = reshape_matlab(B_k, (num_nodes, rank_p * rank_k))
+            C_k = reshape_matlab(poly_k.mass_r(B_k), (num_nodes * rank_p, rank_k))
+
+            _, self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")
+
+        self._z_func = torch.sum(self.Rs[self.bases.dim-1] ** 2)
+        return
+
     def marginalise(
         self, 
         direction: Direction=Direction.FORWARD  # TODO: make this a property??
@@ -64,6 +110,7 @@ class TTSIRT(SIRT):
 
         Parameters
         ----------
+        TODO
 
         Returns
         -------
@@ -74,55 +121,13 @@ class TTSIRT(SIRT):
         Updates self.Bs, self.z_func, self.z.
 
         """
-
-        self.order = torch.arange(self.bases.dim)
-        if direction == Direction.BACKWARD:
-            self.order = torch.flip(self.order, dims=(0, ))
         
         if direction == Direction.FORWARD:
-            
-            self.Rs[self.bases.dim] = torch.tensor([[1.0]])
-
-            for k in range(self.bases.dim-1, -1, -1):
-                
-                poly_k = self.approx.bases.polys[k]
-                A_k = self.approx.data.cores[k]  # TODO: I think the cores are the As in Cui and Dolgov
-                rank_p, num_nodes, rank_k = A_k.shape
-
-                B_k = reshape_matlab(A_k, (rank_p * num_nodes, rank_k)) @ self.Rs[k+1].T
-                self.Bs[k] = reshape_matlab(B_k, (rank_p, num_nodes, rank_k))
-
-                B_k = self.Bs[k].permute(1, 2, 0)
-                B_k = reshape_matlab(B_k, (num_nodes, rank_k * rank_p)) 
-                C_k = reshape_matlab(poly_k.mass_r(B_k), (num_nodes * rank_k, rank_p))
-                
-                _, self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")
-
-            self._z_func = torch.sum(self.Rs[0] ** 2)
-        
+            self._marginalise_forward()
         else:
-
-            self.Rs[-1] = torch.tensor([[1.0]])
-
-            for k in range(self.bases.dim):
-                
-                poly_k = self.approx.bases.polys[k]
-                core_k = self.approx.data.cores[k]
-                rank_p, num_nodes, rank_k = core_k.shape
-
-                core = self.Rs[k-1] @ reshape_matlab(core_k, (rank_p, num_nodes * rank_k))
-                self.Bs[k] = reshape_matlab(core, (rank_p, num_nodes, rank_k))
-
-                B_k = self.Bs[k].permute(1, 0, 2)
-                B_k = reshape_matlab(B_k, (num_nodes, rank_p * rank_k))
-                C_k = reshape_matlab(poly_k.mass_r(B_k), (num_nodes * rank_p, rank_k))
-
-                _, self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")
-
-            self._z_func = torch.sum(self.Rs[self.bases.dim-1] ** 2)
+            self._marginalise_backward()
         
         self._z = self.z_func + self.tau
-
         return
     
     def eval_oned_core_213(

@@ -72,7 +72,7 @@ from deep_tensor.directions import Direction
 irt.marginalise(direction=Direction.BACKWARD)
 
 zs = torch.rand((10_000, d))
-xs, fs = irt.eval_irt_nograd(zs)  # I assume that the marginal/PDF/CDF stuff is wrong somewhere. Probably the CDF stuff..? The PDF stuff is tested with the debug samples.
+xs, fs = irt.eval_irt_nograd(zs)
 z0 = irt.eval_rt(xs)
 
 transform_error = torch.linalg.norm(zs-z0, ord="fro")

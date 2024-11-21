@@ -312,8 +312,6 @@ class AbstractIRT(abc.ABC):
         xs, dxdrs = self.approx.bases.reference2domain(rs, indices)
         fs += torch.sum(torch.log(dxdrs), dim=1)
 
-        print(fs[:10])
-
         return xs, fs
     
     def eval_cirt(
