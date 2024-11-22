@@ -1,5 +1,4 @@
 from typing import Tuple
-import warnings
 
 import torch
 
@@ -20,16 +19,17 @@ def compute_ess_ratio(log_weights: torch.Tensor) -> torch.Tensor:
 
     References
     ----------
-    Owen, AB (2013). Monte Carlo theory, methods and examples. Chapter 9.
+    Owen, AB (2013). Monte Carlo theory, methods and examples. Chapter 
+    9.
 
     """
 
     sample_size = log_weights.numel()
-    log_weights = log_weights - torch.max(log_weights)
+    log_weights = log_weights - log_weights.max()
 
-    ess = torch.sum(torch.exp(log_weights))**2 / torch.sum(torch.exp(2*log_weights))
+    ess = (log_weights.exp().sum().square() 
+           / (2.0*log_weights).exp().sum())
     ess_ratio = ess / sample_size
-
     return ess_ratio
 
 
