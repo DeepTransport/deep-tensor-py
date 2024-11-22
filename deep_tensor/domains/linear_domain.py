@@ -11,45 +11,49 @@ class LinearDomain(Domain, abc.ABC):
     @property 
     @abc.abstractmethod
     def mean(self):
+        """The midpoint of the reference domain."""
         return
     
     @property 
     @abc.abstractmethod
-    def dxdz(self):
+    def dxdr(self):
+        """The gradient of the mapping from the approximation domain to 
+        the reference domain.
+        """
         return
 
     def reference2domain(
         self, 
-        z: torch.Tensor
+        rs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         
-        x = z * self.dxdz + self.mean
-        dxdz = torch.full(z.shape, self.dxdz)
-        return x, dxdz
+        xs = rs * self.dxdr + self.mean
+        dxdrs = torch.full(rs.shape, self.dxdr)
+        return xs, dxdrs
     
     def domain2reference(
         self, 
-        x: torch.Tensor
+        xs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
 
-        z = (x-self.mean) / self.dxdz
-        dzdx = torch.full(x.shape, 1.0 / self.dxdz)
-        return z, dzdx
+        rs = (xs - self.mean) / self.dxdr
+        drdxs = torch.full(xs.shape, 1.0 / self.dxdr)
+        return rs, drdxs
     
     def reference2domain_log_density(
         self, 
-        z: torch.Tensor
+        rs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         
-        logdxdz = torch.full(z.shape, torch.log(self.dxdz))
-        logdxdz2 = torch.zeros_like(z)
-        return logdxdz, logdxdz2
+        logdxdrs = torch.full(rs.shape, torch.log(self.dxdr))
+        logdxdr2s = torch.zeros_like(rs)
+        return logdxdrs, logdxdr2s
     
     def domain2reference_log_density(
         self, 
-        x: torch.Tensor
+        xs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         
-        logdzdx = torch.full(x.shape, -torch.log(self.dxdz))
-        logdzdx2 = torch.zeros_like(x)
-        return logdzdx, logdzdx2
+        logdrdxs = torch.full(xs.shape, -torch.log(self.dxdr))
+        logdrdx2s = torch.zeros_like(xs)
+        return logdrdxs, logdrdx2s

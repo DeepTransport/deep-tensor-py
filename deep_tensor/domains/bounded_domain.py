@@ -3,35 +3,42 @@ import torch
 from .linear_domain import LinearDomain
 
 
+DEFAULT_BOUNDS = torch.tensor([-1.0, 1.0])
+
+
 class BoundedDomain(LinearDomain):
 
-    def __init__(
-        self, 
-        bounds: torch.Tensor=torch.tensor([-1.0, 1.0])
-    ):
+    def __init__(self, bounds: torch.Tensor=DEFAULT_BOUNDS):
 
         if bounds[0] >= bounds[1]:
-            msg = ("Left-hand boundary must be less " 
-                   + "than right-hand boundary.")
+            msg = "Left-hand bound must be less than right-hand bound."
             raise Exception(msg)
 
         self._bounds = bounds
         self._mean = torch.mean(self._bounds)
-        self._dxdz = 0.5 * (self._bounds[1]-self._bounds[0])
+        self._dxdr = 0.5 * (self._bounds[1] - self._bounds[0])
         
-        self.left = self.bounds[0]
-        self.right = self.bounds[1]
+        self._left = self.bounds[0]
+        self._right = self.bounds[1]
 
         return
     
     @property
     def bounds(self):
         return self._bounds
+    
+    @property 
+    def left(self):
+        return self._left
+    
+    @property
+    def right(self):
+        return self._right
 
     @property
     def mean(self):
         return self._mean
     
     @property
-    def dxdz(self):
-        return self._dxdz
+    def dxdr(self):
+        return self._dxdr
