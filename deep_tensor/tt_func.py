@@ -58,7 +58,7 @@ class TTFunc(ApproxFunc):
         """
         n = (self.options.init_rank 
              + self.options.kick_rank * (1+self.options.max_als))
-        n *= self.bases.dim
+        n *= self.dim
         return n
 
     def _print_info_header(self) -> None:
@@ -154,7 +154,7 @@ class TTFunc(ApproxFunc):
     def _compute_final_block(self, func: Callable) -> None:
 
         if self.data.direction == Direction.FORWARD:
-            k = self.bases.dim-1 
+            k = self.dim-1 
         else:
             k = 0
 
@@ -218,12 +218,12 @@ class TTFunc(ApproxFunc):
         dimension.
         """
 
-        for k in range(self.bases.dim):
+        for k in range(self.dim):
 
             core_shape = [
                 1 if k == 0 else self.options.init_rank, 
                 self.bases.polys[k].cardinality,
-                self.options.init_rank if k != self.bases.dim-1 else 1
+                self.options.init_rank if k != self.dim-1 else 1
             ]
 
             self.data.cores[k] = torch.rand(core_shape)
@@ -232,7 +232,7 @@ class TTFunc(ApproxFunc):
             self.data.interp_x[k] = samples[:, k:]
 
         self.data.interp_x[-1] = torch.tensor([])
-        self.data.interp_x[self.bases.dim] = torch.tensor([])
+        self.data.interp_x[self.dim] = torch.tensor([])
 
         return
 
@@ -252,15 +252,15 @@ class TTFunc(ApproxFunc):
         if self.data.res_w == {}:
             if self.data.direction == Direction.FORWARD:
                 self.data.res_w[0] = torch.ones((self.options.kick_rank, self.data.cores[k].shape[-1]))
-                for k in range(1, self.bases.dim):
+                for k in range(1, self.dim):
                     res_shape = (self.data.cores[k].shape[0], self.options.kick_rank)
                     self.data.res_w[k] = torch.ones(res_shape)
 
             else:
-                for k in range(self.bases.dim-1):
+                for k in range(self.dim-1):
                     res_shape = (self.options.kick_rank, self.data.cores[k].shape[-1])
                     self.data.res_w[k] = torch.ones(res_shape)
-                self.data.res_x[self.bases.dim-1] = torch.ones((self.data.cores[k].shape[0], self.options.kick_rank))
+                self.data.res_x[self.dim-1] = torch.ones((self.data.cores[k].shape[0], self.options.kick_rank))
         
         return
 
@@ -539,7 +539,7 @@ class TTFunc(ApproxFunc):
 
         if self.data.direction == Direction.FORWARD:
 
-            for k in range(min(dim_x, self.bases.dim)):
+            for k in range(min(dim_x, self.dim)):
 
                 rank_p, num_nodes, rank_k = self.data.cores[k].shape
 
@@ -665,9 +665,9 @@ class TTFunc(ApproxFunc):
         while True:
 
             if self.data.direction == Direction.FORWARD:
-                indices = torch.arange(self.bases.dim-1)
+                indices = torch.arange(self.dim-1)
             else:
-                indices = torch.arange(self.bases.dim-1, 0, -1)
+                indices = torch.arange(self.dim-1, 0, -1)
             
             if self.options.tt_method == "fixed_rank":
                 self._compute_cross_iter_fixed_rank(func, indices)
