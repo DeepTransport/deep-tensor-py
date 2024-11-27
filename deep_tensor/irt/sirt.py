@@ -30,12 +30,18 @@ class SIRT(AbstractIRT, abc.ABC):
         self.input_data = input_data 
         
         self._int_dir = Direction.FORWARD
+        self._order = None
         self._tau = tau
 
         def func(z: torch.Tensor) -> torch.Tensor:
             return self.potential2density(potential, z)
 
-        self._approx = self.build_approximation(func, bases, options, input_data)
+        self._approx = self.build_approximation(
+            func, 
+            bases, 
+            options, 
+            input_data
+        )
 
         self._oned_cdfs = {}
         for k in range(self.bases.dim):
@@ -43,8 +49,6 @@ class SIRT(AbstractIRT, abc.ABC):
                 poly=self.approx.bases.polys[k], 
                 error_tol=self.approx.options.cdf_tol
             )
-
-        self._order = None
 
         self.marginalise()
         return

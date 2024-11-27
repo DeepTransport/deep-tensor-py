@@ -22,7 +22,7 @@ class TTFunc(ApproxFunc):
         options: TTOptions, 
         input_data: InputData
     ):
-        """A functional tensor-train approximation for a function 
+        r"""A functional tensor-train approximation for a function 
         mapping from $\mathbb{R}^{d}$ to $\mathbb{R}$.
 
         Parameters
@@ -155,8 +155,6 @@ class TTFunc(ApproxFunc):
             f = f.permute(1, 0, 2)
 
         self.num_eval += params.shape[0]
-        self.errors[k] = self.get_error_local(f, k)
-
         return f
 
     def truncate_local(
@@ -555,6 +553,7 @@ class TTFunc(ApproxFunc):
             x_right = self.data.interp_x[int(k+1)]
             
             F = self.build_block_local(func, x_left, x_right, k) 
+            self.errors[k] = self.get_error_local(F, k)
             self.build_basis_svd(F, k)
 
         return
@@ -581,8 +580,9 @@ class TTFunc(ApproxFunc):
                 enrich = enrich[:, :k]
 
             F = self.build_block_local(func, x_left, x_right, k)
+            self.errors[k] = self.get_error_local(F, k)
+
             F_enrich = self.build_block_local(func, x_left, enrich, k)
-            # TODO: check whether the concatenation here is correct.
             F_full = torch.concatenate((F, F_enrich), dim=2)
 
             self.build_basis_svd(F_full, k)

@@ -21,7 +21,11 @@ class TTOptions(ApproxOptions):
         verbose: bool=True
     ):
 
-        # TODO: verify methods
+        tt_method = tt_method.lower()
+        int_method = int_method.lower()
+
+        self._verify_method(tt_method, TT_METHODS)
+        self._verify_method(int_method, INT_METHODS)
         
         self.max_als = max_als
         self.als_tol = als_tol
@@ -30,11 +34,8 @@ class TTOptions(ApproxOptions):
         self.max_rank = max_rank
         self.local_tol = local_tol
         self.cdf_tol = cdf_tol
-        self.tt_method = tt_method.lower()
-        self.int_method = int_method.lower()
+        self.tt_method = "fixed_rank" if kick_rank == 0 else tt_method
+        self.int_method = int_method
         self.verbose = verbose
-
-        if self.kick_rank == 0:
-            self.tt_method = "fixed_rank"
-
+        
         return
