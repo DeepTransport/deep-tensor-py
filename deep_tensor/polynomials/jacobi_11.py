@@ -18,7 +18,7 @@ class Jacobi11(Recurr):
         
         self._domain = torch.tensor([-1.0, 1.0])
         self._constant_weight = False
-
+        
         return
 
     @property 
@@ -30,4 +30,28 @@ class Jacobi11(Recurr):
         return self._constant_weight
     
     def sample_measure(self, n: int) -> torch.Tensor:
-        return 
+        beta = torch.distributions.beta.Beta(2.0, 2.0)
+        xs = beta.sample(n)
+        xs = (2.0 * xs) - 1
+        return xs
+    
+    def sample_measure_skip(self, n: int) -> torch.Tensor:
+        x0 = 0.5 * (self.nodes.min() - 1.0)
+        x1 = 0.5 * (self.nodes.max() + 1.0)
+        xs = torch.rand(n) * (x1-x0) + x0
+        return xs
+    
+    def eval_measure(self, xs: torch.Tensor) -> torch.Tensor:
+        ws = 0.75 * (1.0 - xs**2)
+        return ws
+    
+    def eval_log_measure(self, xs: torch.Tensor) -> torch.Tensor:
+        ws = torch.log(1.0 - xs**2) + torch.log(0.75)
+        return ws
+    
+    def eval_measure_deriv(self, xs: torch.Tensor) -> torch.Tensor:
+        ws = -0.75 * xs
+        return ws
+    
+    def eval_log_measure_deriv(self, xs: torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError("Not implemented.")
