@@ -61,6 +61,158 @@ class TTFunc(ApproxFunc):
         n *= self.bases.dim
         return n
 
+    def _print_info_header(self) -> None:
+
+        info_headers = [
+            "ALS", 
+            "Max Local Error", 
+            "Mean Local Error", 
+            "Max Rank", 
+            "Func Evals"
+        ]
+        
+        if self.input_data.is_debug:
+            info_headers += [
+                "Max Debug Error", 
+                "Mean Debug Error"
+            ]
+
+        info(" | ".join(info_headers))
+        return
+
+    def _print_info(
+        self,
+        als_iter: int,
+        indices: torch.Tensor
+    ) -> None:
+
+        diagnostics = [
+            f"{als_iter:=3}", 
+            f"{torch.max(self.errors[indices]):=15.5e}",
+            f"{torch.mean(self.errors[indices]):=16.5e}",
+            f"{torch.max(self.rank):=8}",
+            f"{self.num_eval:=10}"
+        ]
+
+        if self.input_data.is_debug:
+            diagnostics += [
+                f"{self.linf_err:=15.5e}",
+                f"{self.l2_err:=16.5e}"
+            ]
+
+        info(" | ".join(diagnostics))
+        return
+
+    def _compute_cross_iter_fixed_rank(
+        self, 
+        func: Callable,
+        indices: torch.Tensor
+    ) -> None:
+
+        for k in indices:
+                    
+            x_left = self.data.interp_x[int(k-1)]
+            x_right = self.data.interp_x[int(k+1)]
+            
+            F = self.build_block_local(func, x_left, x_right, k) 
+            self.errors[k] = self.get_error_local(F, k)
+            self.build_basis_svd(F, k)
+
+        return
+    
+    def _compute_cross_iter_random(
+        self,
+        func: Callable,
+        indices: torch.Tensor
+    ) -> None:
+        
+        for k in indices:
+                
+            enrich = self.input_data.get_samples(self.options.kick_rank)
+            x_left = self.data.interp_x[int(k-1)]
+            x_right = self.data.interp_x[int(k+1)]
+            
+            # TODO: figure out why enrich seems to use a different set 
+            # of samples each time despite the original blocks using 
+            # the same sets
+
+            if self.data.direction == Direction.FORWARD:
+                enrich = enrich[:, k+1:]
+            else:
+                enrich = enrich[:, :k]
+
+            F = self.build_block_local(func, x_left, x_right, k)
+            self.errors[k] = self.get_error_local(F, k)
+
+            F_enrich = self.build_block_local(func, x_left, enrich, k)
+            F_full = torch.concatenate((F, F_enrich), dim=2)
+
+            self.build_basis_svd(F_full, k)
+
+        return None
+    
+    def _compute_final_block(self, func: Callable) -> None:
+
+        if self.data.direction == Direction.FORWARD:
+            k = self.bases.dim-1 
+        else:
+            k = 0
+
+        x_left = self.data.interp_x[int(k-1)]
+        x_right = self.data.interp_x[int(k+1)]
+        self.data.cores[k] = self.build_block_local(func, x_left, x_right, k)
+
+        return
+
+    def _select_points_piecewise(
+        self,
+        H: torch.Tensor,
+        poly: Piecewise
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+
+        if self.options.int_method == "qdeim":
+            raise NotImplementedError()
+
+        elif self.options.int_method == "deim":
+            raise NotImplementedError()
+
+        elif self.options.int_method == "maxvol":
+            indices, core = maxvol(H)
+            interp_atx = H[indices]
+        
+        if (cond := torch.linalg.cond(interp_atx)) > 1e+5:
+            msg = f"Poor condition number in interpolation: {cond}."
+            warnings.warn(msg)
+
+        return indices, core, interp_atx
+    
+    def _select_points_spectral(
+        self,
+        H: torch.Tensor,
+        poly: Spectral
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+
+        # TODO: this is probably available somewhere else.
+        rank_prev = torch.tensor(H.shape[0] / poly.cardinality)
+        rank_prev = rank_prev.round().int()
+        
+        nodes = poly.basis2node @ reshape_matlab(H, (poly.cardinality, -1))
+        nodes = reshape_matlab(nodes, (poly.cardinality * rank_prev, -1))
+
+        if self.options.int_method == "qdeim":
+            raise NotImplementedError()  # TODO: learn what this is
+
+        elif self.options.int_method == "maxvol":
+            indices, _ = maxvol(nodes)
+            interp_atx = nodes[indices]
+            core = H @ torch.linalg.inv(interp_atx)
+        
+        if (cond := torch.linalg.cond(interp_atx)) > 1e+5:
+            msg = f"Poor condition number in interpolation ({cond})."
+            warnings.warn(msg)
+
+        return indices, core, interp_atx
+
     def initialise_cores(self) -> None:
         """Initialises the cores and interpolation points in each 
         dimension.
@@ -82,6 +234,34 @@ class TTFunc(ApproxFunc):
         self.data.interp_x[-1] = torch.tensor([])
         self.data.interp_x[self.bases.dim] = torch.tensor([])
 
+        return
+
+    def initialise_amen(self) -> None:
+        """TODO: figure out how AMEN works and tidy this up."""
+
+        if self.data.res_x == {}:
+            # Define set of nested interpolation points for the residual
+            for k in range(self.dim-1, -1, -1):
+                samples = self.input_data.get_samples(self.options.kick_rank)
+                if self.data.direction == Direction.FORWARD:
+                    self.data.res_x[k] = samples[:, k:]
+                else:
+                    self.data.res_x[k] = samples[:, :(k+1)]
+
+        # TODO: tidy up the below
+        if self.data.res_w == {}:
+            if self.data.direction == Direction.FORWARD:
+                self.data.res_w[0] = torch.ones((self.options.kick_rank, self.data.cores[k].shape[-1]))
+                for k in range(1, self.bases.dim):
+                    res_shape = (self.data.cores[k].shape[0], self.options.kick_rank)
+                    self.data.res_w[k] = torch.ones(res_shape)
+
+            else:
+                for k in range(self.bases.dim-1):
+                    res_shape = (self.options.kick_rank, self.data.cores[k].shape[-1])
+                    self.data.res_w[k] = torch.ones(res_shape)
+                self.data.res_x[self.bases.dim-1] = torch.ones((self.data.cores[k].shape[0], self.options.kick_rank))
+        
         return
 
     def build_block_local(
@@ -434,97 +614,6 @@ class TTFunc(ApproxFunc):
     
         raise Exception("Unknown polynomial encountered.")
 
-    def _select_points_piecewise(
-        self,
-        H: torch.Tensor,
-        poly: Piecewise
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-
-        if self.options.int_method == "qdeim":
-            raise NotImplementedError()
-
-        elif self.options.int_method == "deim":
-            raise NotImplementedError()
-
-        elif self.options.int_method == "maxvol":
-            indices, core = maxvol(H)
-            interp_atx = H[indices]
-        
-        if (cond := torch.linalg.cond(interp_atx)) > 1e+5:
-            msg = f"Poor condition number in interpolation: {cond}."
-            warnings.warn(msg)
-
-        return indices, core, interp_atx
-    
-    def _select_points_spectral(
-        self,
-        H: torch.Tensor,
-        poly: Spectral
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-
-        # TODO: this is probably available somewhere else.
-        rank_prev = torch.tensor(H.shape[0] / poly.cardinality)
-        rank_prev = rank_prev.round().int()
-        
-        nodes = poly.basis2node @ reshape_matlab(H, (poly.cardinality, -1))
-        nodes = reshape_matlab(nodes, (poly.cardinality * rank_prev, -1))
-
-        if self.options.int_method == "qdeim":
-            raise NotImplementedError()  # TODO: learn what this is
-
-        elif self.options.int_method == "maxvol":
-            indices, _ = maxvol(nodes)
-            interp_atx = nodes[indices]
-            core = H @ torch.linalg.inv(interp_atx)
-        
-        if (cond := torch.linalg.cond(interp_atx)) > 1e+5:
-            msg = f"Poor condition number in interpolation ({cond})."
-            warnings.warn(msg)
-
-        return indices, core, interp_atx
-
-    def _print_info_header(self) -> None:
-
-        info_headers = [
-            "ALS", 
-            "Max Local Error", 
-            "Mean Local Error", 
-            "Max Rank", 
-            "Func Evals"
-        ]
-        
-        if self.input_data.is_debug:
-            info_headers += [
-                "Max Debug Error", 
-                "Mean Debug Error"
-            ]
-
-        info(" | ".join(info_headers))
-        return
-
-    def _print_info(
-        self,
-        als_iter: int,
-        indices: torch.Tensor
-    ) -> None:
-
-        diagnostics = [
-            f"{als_iter:=3}", 
-            f"{torch.max(self.errors[indices]):=15.5e}",
-            f"{torch.mean(self.errors[indices]):=16.5e}",
-            f"{torch.max(self.rank):=8}",
-            f"{self.num_eval:=10}"
-        ]
-
-        if self.input_data.is_debug:
-            diagnostics += [
-                f"{self.linf_err:=15.5e}",
-                f"{self.l2_err:=16.5e}"
-            ]
-
-        info(" | ".join(diagnostics))
-        return
-
     def is_finished(
         self, 
         als_iter: int,
@@ -540,101 +629,6 @@ class TTFunc(ApproxFunc):
         l2_error_tol = self.l2_err < self.options.als_tol # TODO: check where l2_err actually gets updated.
 
         return max_iters or max_error_tol or l2_error_tol
-
-    def _compute_cross_iter_fixed_rank(
-        self, 
-        func: Callable,
-        indices: torch.Tensor
-    ) -> None:
-
-        for k in indices:
-                    
-            x_left = self.data.interp_x[int(k-1)]
-            x_right = self.data.interp_x[int(k+1)]
-            
-            F = self.build_block_local(func, x_left, x_right, k) 
-            self.errors[k] = self.get_error_local(F, k)
-            self.build_basis_svd(F, k)
-
-        return
-    
-    def _compute_cross_iter_random(
-        self,
-        func: Callable,
-        indices: torch.Tensor
-    ) -> None:
-        
-        for k in indices:
-                
-            enrich = self.input_data.get_samples(self.options.kick_rank)
-            x_left = self.data.interp_x[int(k-1)]
-            x_right = self.data.interp_x[int(k+1)]
-            
-            # TODO: figure out why enrich seems to use a different set 
-            # of samples each time despite the original blocks using 
-            # the same sets
-
-            if self.data.direction == Direction.FORWARD:
-                enrich = enrich[:, k+1:]
-            else:
-                enrich = enrich[:, :k]
-
-            F = self.build_block_local(func, x_left, x_right, k)
-            self.errors[k] = self.get_error_local(F, k)
-
-            F_enrich = self.build_block_local(func, x_left, enrich, k)
-            F_full = torch.concatenate((F, F_enrich), dim=2)
-
-            self.build_basis_svd(F_full, k)
-
-        return None
-    
-    def _compute_final_block(self, func: Callable) -> None:
-
-        if self.data.direction == Direction.FORWARD:
-            k = self.bases.dim-1 
-        else:
-            k = 0
-
-        x_left = self.data.interp_x[int(k-1)]
-        x_right = self.data.interp_x[int(k+1)]
-        self.data.cores[k] = self.build_block_local(func, x_left, x_right, k)
-
-        return
-
-    def initialise_amen(self):
-        """TODO: figure out how AMEN works and tidy this up."""
-
-        num_dims = self.bases.dim
-
-        # Initialise the residual coordinates for AMEN
-        if self.data.res_x == {}:  # TODO: check what res_x is doing
-            # Nested interpolation points for res
-            # TODO: the below conditional could probably be tidied up (only the indexing differs in the branches)
-            if self.data.direction > 0: # direction has already been fipped
-                for k in range(num_dims-1, -1, -1):
-                    tmp = self.input_data.get_samples(self.options.kick_rank)
-                    self.data.res_x[k] = tmp[:, k:] # TODO: check whether the indexing here is correct
-            else:
-                for k in range(num_dims-1, -1, -1):
-                    tmp = self.input_data.get_samples(self.options.kick_rank)
-                    self.data.res_x[k] = tmp[:, :k]
-
-        # TODO: figure out what AMEN is 
-        if self.data.res_w == {}:
-            if self.data.direction < 0:
-                for k in range(num_dims-1):
-                    res_shape = (self.options.kick_rank, self.data.cores[k].shape[2])
-                    self.data.res_w[k] = torch.ones(res_shape)
-            else:
-                for k in range(1, num_dims):
-                    res_shape = (self.data.cores[k].shape[0], self.options.kick_rank)
-                    self.data.res_w[k] = torch.ones(res_shape)
-
-        if self.data.res_w == {}:
-            raise NotImplementedError()
-        
-        return
 
     def cross(
         self, 
@@ -682,7 +676,7 @@ class TTFunc(ApproxFunc):
                 self._compute_cross_iter_random(func, indices)
 
             elif self.options.tt_method == "amen":
-                raise NotImplementedError("AMEN has not been implemented yet.")
+                self._compute_cross_iter_amen(func, indices)  # TODO: implement this. 
             
             else: 
                 raise Exception("Unknown TT method.")

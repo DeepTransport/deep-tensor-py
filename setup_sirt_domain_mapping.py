@@ -53,7 +53,7 @@ bases = ApproxBases(
 # bases{5} = ApproxBases(Hermite(10), UnboundedDomain(), d);
 
 options = TTOptions(
-    tt_method="random", 
+    tt_method="amen", 
     als_tol=1e-8, 
     local_tol=1e-6,
     max_rank=20, 

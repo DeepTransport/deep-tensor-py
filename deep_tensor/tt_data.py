@@ -12,8 +12,8 @@ class TTData():
         self.cores: dict[int, torch.Tensor] = {}
         self.interp_x: dict[int, torch.Tensor] = {}
         
-        self.res_x = {}
-        self.res_w = {}
+        self.res_x = {}  # Residual coordinates for AMEN
+        self.res_w = {}  # Residual blocks for AMEN
         
         return
     
