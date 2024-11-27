@@ -9,7 +9,7 @@ from ..approx_func import ApproxFunc
 from ..directions import Direction
 from ..input_data import InputData
 from ..options import ApproxOptions
-from ..polynomials import OnedCDF, construct_cdf
+from ..polynomials import CDF1D, construct_cdf
 
 
 class SIRT(AbstractIRT, abc.ABC):
@@ -50,7 +50,7 @@ class SIRT(AbstractIRT, abc.ABC):
         return
 
     @property 
-    def oned_cdfs(self) -> dict[int, OnedCDF]:
+    def oned_cdfs(self) -> dict[int, CDF1D]:
         return self._oned_cdfs
 
     @property

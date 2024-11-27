@@ -8,39 +8,24 @@ from .utils import info
 
 
 class InputData():
-    """A class containing sampling data used for initialising TT and 
-    constructing various approximations.
-
-    Properties
-    ----------
-    sample_x:
-        Samples for initialising and enriching a TT approximation, 
-        drawn from the approximation domain.
-    sample_z: 
-        The corresponding samples from the reference domain.
-    debug_x:
-        Samples used to estimate the approximation error, drawn from 
-        the approximation domain.
-    debug_z:
-        The corresponding samples from the reference domain.
-    debug_f: 
-        Function evaluations at debug_z (??).
-
+    """A class containing sampling data used for building and 
+    evaluating the quality of the approximation to a given target 
+    function.
     """
 
     def __init__(
         self, 
-        sample_x: torch.Tensor=torch.tensor([]), 
-        debug_x: torch.Tensor=torch.tensor([]), 
-        debug_f: torch.Tensor=torch.tensor([])
+        xs_samp: torch.Tensor=torch.tensor([]), 
+        xs_debug: torch.Tensor=torch.tensor([]), 
+        fxs_debug: torch.Tensor=torch.tensor([])
     ):
         
-        self.sample_x = sample_x
-        self.debug_x = debug_x
-        self.debug_f = debug_f
+        self.xs_samp = xs_samp
+        self.xs_debug = xs_debug
+        self.fxs_debug = fxs_debug
 
-        self.sample_z = torch.tensor([])
-        self.debug_z = torch.tensor([])
+        self.rs_samp = torch.tensor([])
+        self.rs_debug = torch.tensor([])
         self.count = 0
 
         return
@@ -50,19 +35,19 @@ class InputData():
         """Flag that indicates whether debugging samples are available.
         """
 
-        if self.debug_z.numel() == 0 and self.debug_x.numel() > 0:
+        if self.xs_debug.numel() > 0 and self.rs_debug.numel() == 0:
             msg = "Debug samples must be transformed to the reference domain."
             warnings.warn(msg)
         
-        flag = not self.debug_z.numel() == 0
+        flag = not self.rs_debug.numel() == 0
         return flag
     
     @property 
-    def is_evaluated(self):
+    def is_evaluated(self) -> bool:
         """Flag that indicates whether the approximation to the target 
         function has been evaluated for all samples.
         """
-        return not self.debug_f.numel() == 0
+        return not self.fxs_debug.numel() == 0
 
     def set_samples(
         self, 
@@ -73,19 +58,19 @@ class InputData():
         approximation basis.
         """
             
-        if self.sample_x.numel() == 0:
+        if self.xs_samp.numel() == 0:
             if n is not None:
                 msg = ("Generating initialization samples from the " 
                        + "base measure.")
                 info(msg)
-                self.sample_z, _ = base.sample_measure_reference(n)
+                self.rs_samp, _ = base.sample_measure_reference(n)
             else:
                 msg = ("There are no initialization samples available. "
                        + "Please provide a sample set "
                        + "or specify a sample size.")
                 raise Exception(msg)
         else:
-            if n is not None and self.sample_x.shape[0] < n:
+            if n is not None and self.xs_samp.shape[0] < n:
                 # TODO: figure out what is going on in here -- do I 
                 # need to adjust the x samples as well?
                 msg = ("Not enough number of samples to initialise " 
@@ -93,7 +78,7 @@ class InputData():
                 warnings.warn(msg)
                 self.sample_z, _ = base.sample_measure_reference(n)
             else:
-                self.sample_z, _ = base.domain2reference(self.sample_x)
+                self.sample_z, _ = base.domain2reference(self.xs_samp)
 
         self.count = 0
         return
@@ -108,8 +93,8 @@ class InputData():
         
         Returns
         -------
-        :
-            A set of samples of the requested size.
+        rs:
+            An n * d matrix containing the requested samples.
         
         """
         
@@ -134,10 +119,6 @@ class InputData():
         
         return self.sample_z[indices]
         
-    def reset_counter(self) -> None:
-        self.count = 0
-        return
-        
     def set_debug(
         self, 
         func: Callable, 
@@ -153,7 +134,7 @@ class InputData():
             a given set of parameters from the reference domain.
         bases:
             The set of bases used to construct the approximation to the
-            target density.
+            target function.
 
         Returns
         -------
@@ -161,18 +142,18 @@ class InputData():
 
         """
 
-        if self.debug_x.numel() == 0:
+        if self.xs_debug.numel() == 0:
             msg = ("Debug samples are not provided. " + 
                    "Turn off evaluation-based cross validation.")
             warnings.warn(msg)
             return
     
-        self.debug_z, _ = bases.domain2reference(self.debug_x)
-        if self.debug_f.numel() == 0:
-            self.debug_f = func(self.debug_z)
+        self.rs_debug, _ = bases.domain2reference(self.xs_debug)
+        if self.fxs_debug.numel() == 0:
+            self.fxs_debug = func(self.rs_debug)
 
         return
-        
+    
     def relative_error(
         self, 
         approx: torch.Tensor
@@ -183,7 +164,14 @@ class InputData():
         if not self.is_debug:
             return torch.inf, torch.inf 
         
-        error_l2 = torch.mean((self.debug_f - approx) ** 2) ** 0.5 / torch.mean(self.debug_f ** 2) ** 0.5
-        error_linf = torch.max(torch.abs(self.debug_f - approx)) / torch.max(torch.abs(self.debug_f))
+        error_l2 = ((self.fxs_debug - approx).square().mean().sqrt()
+                    / self.fxs_debug.square().mean().sqrt())
+        
+        error_linf = ((self.fxs_debug - approx).abs().max()
+                      / self.fxs_debug.abs().max())
 
         return error_l2, error_linf
+    
+    def reset_counter(self) -> None:
+        self.count = 0
+        return

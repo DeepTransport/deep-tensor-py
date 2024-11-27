@@ -4,13 +4,13 @@ import warnings
 
 import torch
 
-from .oned_cdf import OnedCDF
+from .cdf_1d import CDF1D
 from .cdf_data import CDFData
 from ..constants import EPS
 from ..tools import reshape_matlab
 
 
-class PiecewiseCDF(OnedCDF, abc.ABC):
+class PiecewiseCDF(CDF1D, abc.ABC):
     """TODO: write."""
     
     def __init__(self, **kwargs):
@@ -64,7 +64,33 @@ class PiecewiseCDF(OnedCDF, abc.ABC):
         zs[in_domain] = self.eval_int_lag_local(data, e_ks[in_domain], in_domain, rs[in_domain])
 
         return zs
+
+    def eval_int_lag_local_search(
+        self, 
+        data: CDFData,
+        inds_left: torch.Tensor, 
+        mask: torch.Tensor, 
+        cdf_zs: torch.Tensor, 
+        rs: torch.Tensor 
+    ) -> torch.Tensor:
+        """TODO: write docstring."""
+
+        cdf_rs = self.eval_int_lag_local(data, inds_left, mask, rs)
+        return cdf_rs - cdf_zs
+    
+    def eval_int_lag_local_newton(
+        self, 
+        data: CDFData,
+        e_ks: torch.Tensor, 
+        mask: torch.Tensor, 
+        rhs: torch.Tensor, 
+        xs: torch.Tensor 
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         
+        fs, dfs = self.eval_int_lag_local_deriv(data, e_ks, mask, xs)
+        fs -= rhs 
+        return fs, dfs
+
     def eval_cdf(self, pdf_vals: torch.Tensor, rs: torch.Tensor):
         """"""
 
@@ -97,18 +123,18 @@ class PiecewiseCDF(OnedCDF, abc.ABC):
     
     def invert_cdf(
         self, 
-        pdf_vals: torch.Tensor, 
-        xs_k: torch.Tensor
+        pi_rs: torch.Tensor, 
+        zs_k: torch.Tensor
     ) -> torch.Tensor:
         """TODO: write
 
         Parameters
         ----------
-        pdf_vals: 
-            TODO
-        xi:
-            The values of a set of samples from the reference domain 
-            associated with the current coordinate.
+        pi_vals: 
+            TODO: figure out what is going on here. 
+            The values of the target density at...
+        zs_k:
+            An n-dimensional vector containing 
 
         Returns
         -------
@@ -116,35 +142,24 @@ class PiecewiseCDF(OnedCDF, abc.ABC):
 
         """
 
-        self.check_pdf_positive(pdf_vals)
-        data = self.pdf2cdf(pdf_vals)
+        self.check_pdf_positive(pi_rs)
+        cdf_data = self.pdf2cdf(pi_rs)
+        rs_k = torch.zeros_like(zs_k)
 
-        # num_x = xs_k.numel()
+        cdf_zs = zs_k * cdf_data.poly_norm
+        inds_left = (cdf_data.cdf_poly_grid <= cdf_zs).sum(dim=0) - 1
 
-        rs_k = torch.zeros_like(xs_k)
-
-        if data.num_samples == 1:
-            raise Exception("Check this")
-            rhs = xs_k * data.poly_norm
-            ei = torch.sum((data.cdf_poly_grid < rhs).flatten(), 1).T
-
-        else: 
-            rhs = xs_k * data.poly_norm
-            ei = torch.sum(data.cdf_poly_grid <= rhs.flatten(), 0) - 1
-
-        mask_left = ei == -1
-        mask_right = ei == self.num_elems - 1 # TODO: I'm not sure if this is right in the MATLAB code
+        mask_left = inds_left == -1
+        mask_right = inds_left == self.num_elems
+        mask_centre = ~torch.bitwise_or(mask_left, mask_right)
 
         rs_k[mask_left] = self.domain[0]
         rs_k[mask_right] = self.domain[-1]
-
-        mask_central = ~torch.bitwise_or(mask_left, mask_right)
-
-        rs_k[mask_central] = self.invert_cdf_local(
-            data, 
-            ei[mask_central], 
-            mask_central,  # Not sure why this is going in here.
-            rhs[mask_central]
+        rs_k[mask_centre] = self.invert_cdf_local(
+            cdf_data, 
+            inds_left[mask_centre], 
+            mask_centre,
+            cdf_zs[mask_centre]
         )
 
         # TODO: figure out what this is doing.
@@ -156,35 +171,36 @@ class PiecewiseCDF(OnedCDF, abc.ABC):
     def newton(
         self, 
         data: CDFData, 
-        e_ks: torch.Tensor, 
+        inds_left: torch.Tensor, 
         mask: torch.Tensor, 
-        rhs: torch.Tensor, 
-        x0s: torch.Tensor, 
-        x1s: torch.Tensor
+        cdf_zs: torch.Tensor, 
+        r0s: torch.Tensor, 
+        r1s: torch.Tensor
     ) -> torch.Tensor:
+        """TODO: write docstring."""
 
-        f0s = self.eval_int_lag_local_search(data, e_ks, mask, rhs, x0s)
-        f1s = self.eval_int_lag_local_search(data, e_ks, mask, rhs, x1s)
+        f0s = self.eval_int_lag_local_search(data, inds_left, mask, cdf_zs, r0s)
+        f1s = self.eval_int_lag_local_search(data, inds_left, mask, cdf_zs, r1s)
         self._check_initial_intervals(f0s, f1s)
 
         # Carry out the first iteration using the regula falsi method
-        xs = x1s - f1s * (x1s - x0s) / (f1s - f0s)
+        rs = r1s - f1s * (r1s - r0s) / (f1s - f0s)
 
         for _ in range(self.num_newton):  
             
-            fs, dfs = self.eval_int_lag_local_newton(data, e_ks, mask, rhs, xs)
+            fs, dfs = self.eval_int_lag_local_newton(data, inds_left, mask, cdf_zs, rs)
             
-            dxs = -fs / dfs 
-            dxs[torch.isnan(dxs)] = 0.0
-            xs += dxs 
-            xs = torch.clamp(xs, x0s, x1s)
+            drs = -fs / dfs 
+            drs[torch.isnan(drs)] = 0.0
+            rs += drs 
+            rs = torch.clamp(rs, r0s, r1s)
 
-            if self.converged(fs, dxs):
-                return xs
+            if self.converged(fs, drs):
+                return rs
         
         msg = "Newton's method did not converge. Trying regula falsi..."
         warnings.warn(msg)
-        return self.regula_falsi(data, e_ks, mask, rhs, x0s, x1s)
+        return self.regula_falsi(data, inds_left, mask, cdf_zs, r0s, r1s)
     
     def regula_falsi(
         self, 
@@ -220,29 +236,3 @@ class PiecewiseCDF(OnedCDF, abc.ABC):
         msg = "Regula falsi did not converge in 100 iterations."
         warnings.warn(msg)
         return xs
-
-    def eval_int_lag_local_search(
-        self, 
-        data: CDFData,
-        e_ks: torch.Tensor, 
-        mask: torch.Tensor, 
-        rhs: torch.Tensor, 
-        xs: torch.Tensor 
-    ) -> torch.Tensor:
-        """TODO: write docstring."""
-
-        fs = self.eval_int_lag_local(data, e_ks, mask, xs)
-        return fs - rhs
-    
-    def eval_int_lag_local_newton(
-        self, 
-        data: CDFData,
-        e_ks: torch.Tensor, 
-        mask: torch.Tensor, 
-        rhs: torch.Tensor, 
-        xs: torch.Tensor 
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        
-        fs, dfs = self.eval_int_lag_local_deriv(data, e_ks, mask, xs)
-        fs -= rhs 
-        return fs, dfs

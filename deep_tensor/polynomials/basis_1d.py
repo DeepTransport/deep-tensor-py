@@ -1,5 +1,4 @@
 import abc
-from typing import Tuple
 
 import torch
 
@@ -320,7 +319,7 @@ class Basis1D(abc.ABC, object):
 
         Returns
         -------
-        :
+        deriv:
             The values of the derivative of the function at each point.
         
         """

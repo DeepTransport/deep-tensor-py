@@ -13,7 +13,7 @@ from .legendre import Legendre
 
 ## CDFs
 from .cdf_constructor import construct_cdf
-from .oned_cdf import OnedCDF
+from .cdf_1d import CDF1D
 
 # Piecewise polynomials 
 from .piecewise_cdf import PiecewiseCDF

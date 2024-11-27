@@ -4,35 +4,34 @@ import torch
 
 from .chebyshev_1st import Chebyshev1st
 from .spectral_cdf import SpectralCDF
+from ..constants import EPS
 
 
 class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
 
-    def __init__(self, poly: Chebyshev1st, **kwargs):  
-        # Order is doubled as a result of squaring the square root 
-        # of the approximation to the density 
+    def __init__(self, poly: Chebyshev1st, **kwargs):
         Chebyshev1st.__init__(self, order=2*poly.order)
         SpectralCDF.__init__(self, **kwargs)
         return
     
     def grid_measure(self, n: int) -> torch.Tensor:
         x = torch.linspace(*self.domain, n)
-        # x[0] = self.domain[0] - EPS
-        # x[-1] = self.domain[1] + EPS
+        x[0] = self.domain[0] - EPS
+        x[-1] = self.domain[1] + EPS
         return x
 
     def eval_int_basis(self, xs: torch.Tensor) -> torch.Tensor:
         
-        theta = self.x2theta(xs)
+        thetas = self.x2theta(xs)
 
         if self.order == 0:
-            basis_vals = -(theta / torch.pi).reshape(-1, 1)
+            basis_vals = -(thetas / torch.pi).reshape(-1, 1)
             return basis_vals
 
         basis_vals = -torch.hstack((
-            (theta / torch.pi).reshape(-1, 1), 
-            ((torch.sqrt(torch.tensor(2)) / torch.pi) 
-                * torch.sin(torch.outer(theta, self.n[1:])) 
+            (thetas / torch.pi).reshape(-1, 1), 
+            ((torch.tensor(2).sqrt() / torch.pi) 
+                * torch.sin(torch.outer(thetas, self.n[1:])) 
                 / self.n[1:])
         ))
 

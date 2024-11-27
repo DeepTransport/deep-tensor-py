@@ -14,19 +14,6 @@ from .utils import info
 
 
 class TTFunc(ApproxFunc):
-    r"""A functional tensor-train approximation for a function mapping 
-    from $\mathbb{R}^{d}$ to $\mathbb{R}$.
-
-    Properties
-    ----------
-    func:
-        A function ($\mathbb{R}^{d} \rightarrow \mathbb{R}$) that 
-        takes as input a $n \times d$ matrix and returns an 
-        $n$-dimensional vector.
-    
-    TODO: finish
-
-    """
 
     def __init__(
         self, 
@@ -35,14 +22,22 @@ class TTFunc(ApproxFunc):
         options: TTOptions, 
         input_data: InputData
     ):
+        """A functional tensor-train approximation for a function 
+        mapping from $\mathbb{R}^{d}$ to $\mathbb{R}$.
+
+        Parameters
+        ----------
+        func:
+            A function ($\mathbb{R}^{d} \rightarrow \mathbb{R}$) that 
+            takes as input a $n \times d$ matrix and returns an 
+            $n$-dimensional vector.
+        
+        TODO: finish
+
+        """
         
         super().__init__(func, bases, options, input_data)
-        
         self.input_data.set_samples(self.bases, self.sample_size)
-
-        if self.options.kick_rank == 0:
-            self.options.tt_method = "fixed_rank"
-        
         self.cross(func)
         return
         
@@ -79,7 +74,6 @@ class TTFunc(ApproxFunc):
                 self.options.init_rank if k != self.bases.dim-1 else 1
             ]
 
-            # TODO: change this to a call to torch.empty()?
             self.data.cores[k] = torch.rand(core_shape)
 
             samples = self.input_data.get_samples(self.options.init_rank)
@@ -118,11 +112,6 @@ class TTFunc(ApproxFunc):
         ----------
         Cui and Dolgov (2022). Deep composition of tensor-trains using 
         squared inverse Rosenblatt transports.
-
-        TODO: this would be a good function to test (just use a very 
-        simple func and verify that the output tensors are as expected.)
-
-        TODO: I think these are A1/A2 in the two-dimensional case... (or maybe B1/B2)
         
         """
 
@@ -138,32 +127,32 @@ class TTFunc(ApproxFunc):
 
             params = torch.hstack((
                 nodes.repeat(num_right, 1),
-                torch.repeat_interleave(x_right, poly.cardinality, dim=0)
+                x_right.repeat_interleave(poly.cardinality, dim=0)
             ))
 
         elif x_right.numel() == 0:
 
             params = torch.hstack((
                 x_left.repeat(poly.cardinality, 1),
-                torch.repeat_interleave(nodes, num_left, dim=0)
+                nodes.repeat_interleave(num_left, dim=0)
             ))
 
         else:
 
             params = torch.hstack((
                 x_left.repeat(poly.cardinality*num_right, 1),
-                torch.repeat_interleave(nodes, num_left, dim=0).repeat(num_right, 1), # TODO: is this correct?
-                torch.repeat_interleave(x_right, num_left * poly.cardinality, dim=0)
+                nodes.repeat_interleave(num_left, dim=0).repeat(num_right, 1),
+                x_right.repeat_interleave(num_left * poly.cardinality, dim=0)
             ))
         
         f = func(params)
         f = reshape_matlab(f, (num_left, poly.cardinality, num_right))
 
         if isinstance(poly, Spectral):
-            f = torch.permute(f, dims=(1, 0, 2))
+            f = f.permute(1, 0, 2)
             f = poly.node2basis @ reshape_matlab(f, (poly.cardinality, -1))
             f = reshape_matlab(f, (poly.cardinality, num_left, num_right))
-            f = torch.permute(f, dims=(1, 0, 2))
+            f = f.permute(1, 0, 2)
 
         self.num_eval += params.shape[0]
         self.errors[k] = self.get_error_local(f, k)
@@ -239,7 +228,7 @@ class TTFunc(ApproxFunc):
         interp_x_prev = self.data.interp_x[k_prev]
         core_next = self.data.cores[k_next]
 
-        num_b_left, num_nodes, num_b_right = F.shape # TODO: figure out what b is
+        num_b_left, num_nodes, num_b_right = F.shape 
         rank_0_next, num_nodes_next, rank_1_next = core_next.shape
 
         # F = reshape_matlab(torch.arange(1, 41*20+1, dtype=torch.float32), (1, 41, 20))
@@ -286,9 +275,9 @@ class TTFunc(ApproxFunc):
         F: torch.Tensor,
         k: torch.Tensor
     ) -> torch.Tensor:
-        """Returns the """
+        """Returns the ..."""
         core = self.data.cores[int(k)]
-        return torch.max(torch.abs(core-F)) / torch.max(torch.abs(F))
+        return (core-F).abs().max() / F.abs().max()
 
     def get_local_index(
         self,
@@ -309,7 +298,7 @@ class TTFunc(ApproxFunc):
 
         # Form the full Cartesian product of something...
         i_pair = torch.vstack((
-            torch.repeat_interleave(torch.arange(rank_prev), poly.cardinality),
+            torch.arange(rank_prev).repeat_interleave(poly.cardinality),
             torch.arange(poly.cardinality).repeat(rank_prev)
         ))
         i_select = i_pair[:, indices]

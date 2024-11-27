@@ -9,7 +9,7 @@ from ..constants import EPS
 from ..directions import Direction
 from ..input_data import InputData
 from ..options import ApproxOptions
-from ..polynomials import OnedCDF
+from ..polynomials import CDF1D
 
 
 Z_MIN = torch.tensor(EPS)
@@ -52,7 +52,7 @@ class AbstractIRT(abc.ABC):
     
     @property
     @abc.abstractmethod  
-    def oned_cdfs(self) -> dict[int, OnedCDF]:
+    def oned_cdfs(self) -> dict[int, CDF1D]:
         """One-dimensional polynomial bases for building the CDF of the
         approximation to the target distribution.
         """
@@ -278,9 +278,10 @@ class AbstractIRT(abc.ABC):
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Evaluates the inverse of the squared Rosenblatt transport,
-        X = R^{-1}(Z), where X is the target random variable and Z is 
-        uniformly distributed.
+        """Given a set of samples of a standard uniform random 
+        variable, Z, computes the corresponding samples from the 
+        approximation to the target PDF by applying the inverse 
+        Rosenblatt transport.
         
         Parameters
         ----------
@@ -292,7 +293,7 @@ class AbstractIRT(abc.ABC):
         xs: 
             An n * d matrix containing the corresponding samples from 
             the PDF defined by SIRT.
-        fs: 
+        potential_xs: 
             An n-dimensional vector containing the potential function
             associated with the target density evaluated at each sample
             in xs.
@@ -303,16 +304,13 @@ class AbstractIRT(abc.ABC):
         self._int_dir = Direction.FORWARD
 
         zs = torch.clamp(zs, Z_MIN, Z_MAX)
-
-        # Apply the IRT to transform zs to the reference domain 
-        rs, fs = self.eval_irt_reference_nograd(zs)
-
-        # Transform the reference samples to the approximation domain
         indices = self.get_transform_indices(zs.shape[1])
-        xs, dxdrs = self.approx.bases.reference2domain(rs, indices)
-        fs += torch.sum(torch.log(dxdrs), dim=1)
 
-        return xs, fs
+        rs, potential_rs = self.eval_irt_reference_nograd(zs)
+        xs, dxdrs = self.approx.bases.reference2domain(rs, indices)
+        potential_xs = potential_rs + dxdrs.log().sum(dim=1)
+
+        return xs, potential_xs
     
     def eval_cirt(
         self, 

@@ -3,16 +3,15 @@ import warnings
 
 import torch
 
-from .cdf_data import CDFData
 from ..constants import EPS
 
 
-class OnedCDF(abc.ABC):
-    """Parent class used for evaluating the CDF and inverse CDF of all
-    one-dimensional bases.
-    """
+class CDF1D(abc.ABC):
 
     def __init__(self, error_tol: float=1e-10, num_newton: int=10):
+        """Parent class used for evaluating the CDF and inverse CDF of 
+        all one-dimensional bases.
+        """
         self.error_tol = error_tol
         self.num_newton = num_newton
         return
@@ -20,7 +19,7 @@ class OnedCDF(abc.ABC):
     @property 
     @abc.abstractmethod 
     def nodes(self) -> torch.Tensor: 
-        """TODO: write description."""
+        """TODO"""
         return 
     
     @property 
@@ -34,8 +33,15 @@ class OnedCDF(abc.ABC):
     @property
     @abc.abstractmethod
     def domain(self) -> torch.Tensor:
-        """TODO: write description."""
+        """The domain on which polynomials used to form the CDF are 
+        defined.
+        """
         return 
+
+    # @abc.abstractmethod 
+    # def invert_cdf_local(self):
+    #     """TODO: write docstring"""
+    #     return
 
     @abc.abstractmethod
     def invert_cdf(self):
@@ -59,32 +65,6 @@ class OnedCDF(abc.ABC):
         """??"""
         return
     
-    @abc.abstractmethod
-    def newton(
-        self,
-        data: CDFData, 
-        e_ks: torch.Tensor, 
-        mask: torch.Tensor, 
-        rhs: torch.Tensor, 
-        x0s: torch.Tensor, 
-        x1s: torch.Tensor
-    ) -> torch.Tensor:
-        """TODO: write docstring."""
-        return
-    
-    @abc.abstractmethod
-    def regula_falsi(
-        self,
-        data: CDFData, 
-        e_ks: torch.Tensor, 
-        mask: torch.Tensor, 
-        rhs: torch.Tensor, 
-        x0s: torch.Tensor, 
-        x1s: torch.Tensor
-    ) -> torch.Tensor:
-        """TODO: write docstring."""
-        return
-    
     def _check_initial_intervals(
         self, 
         f0s: torch.Tensor, 
@@ -93,43 +73,25 @@ class OnedCDF(abc.ABC):
         """Checks whether the function values at each side of the 
         initial interval of a rootfinding method have different signs.
         """
-
-        if (num_violations := torch.sum((f0s * f1s) > 0)) == 0:
-            return
-
-        print(torch.min(f1s-f0s))
-
-        print(torch.min(f0s))
-        print(torch.max(f0s))
-        print(torch.min(f1s))
-        print(torch.max(f1s))
-
-        msg = (f"Rootfinding: {num_violations} initial intervals "
-               + "without roots found.")
-        warnings.warn(msg)
+        if (num_violations := torch.sum((f0s * f1s) > 0)) > 0:
+            msg = (f"Rootfinding: {num_violations} initial intervals "
+                   + "without roots found.")
+            warnings.warn(msg)
         return
     
-    def converged(self, fs, dxs):
+    def converged(self, fs: torch.Tensor, dxs: torch.Tensor) -> bool:
         """Returns a boolean that indicates whether a rootfinding 
         method has converged.
         """
-
-        error_f = torch.max(torch.abs(fs))
-        error_dx = torch.max(torch.abs(dxs))
-
+        error_f = fs.abs().max()
+        error_dx = dxs.abs().max()
         return torch.min(error_f, error_dx) < self.error_tol
-    
-    # @abc.abstractmethod
-    # def eval_cdf_deriv(self):
-    #     """Evaluates the derivative of the conditional CDF. This 
-    #     function is used to compute the Jacobian of the inverse 
-    #     Rosenblatt transport.
-    #     """
-    #     return
-    # TODO: figure out whether this should be here or not.
 
     def check_pdf_positive(self, pdf: torch.Tensor) -> None:
-        
+        """Verifies whether a set of evaluations of the target PDF are 
+        positive.
+        """
         if (num_neg_pdfs := torch.sum(pdf < -EPS)) > 0:
             msg = f"{num_neg_pdfs} negative PDF values found."
             warnings.warn(msg)
+        return

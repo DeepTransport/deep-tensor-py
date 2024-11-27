@@ -1,6 +1,5 @@
 import warnings
 
-import numpy as np  # TODO: get rid of this import 
 import torch
 
 from .piecewise import Piecewise
@@ -19,19 +18,19 @@ class Lagrange1(Piecewise):
         self._nodes = self.grid
         self.jac = self.elem_size
         
-        self.unweighted_mass = torch.zeros((self.cardinality, self.cardinality))
-        self.unweighted_weights = torch.zeros(self.cardinality)
+        unweighted_mass = torch.zeros((self.cardinality, self.cardinality))
+        unweighted_weights = torch.zeros(self.cardinality)
 
         for i in range(self.num_elems):
-            ind = [i, i+1]
-            self.unweighted_mass[np.ix_(ind, ind)] += self.local_mass * self.jac
-            self.unweighted_weights[ind] += self.local_weights * self.jac
+            ind = torch.tensor([i, i+1])
+            unweighted_mass[ind[:, None], ind[None, :]] += self.local_mass * self.jac
+            unweighted_weights[ind] += self.local_weights * self.jac
 
-        self.unweighted_mass_R = torch.linalg.cholesky(self.unweighted_mass).T
+        unweighted_mass_R = torch.linalg.cholesky(unweighted_mass).T
         
-        self.mass = self.unweighted_mass / self.elem_size
-        self._mass_R = self.unweighted_mass_R / torch.sqrt(self.domain[1] - self.domain[0])
-        self._int_W = self.unweighted_weights / (self.domain[1] - self.domain[0])
+        self.mass = unweighted_mass / self.elem_size
+        self._mass_R = unweighted_mass_R / self.domain_size.sqrt()
+        self._int_W = unweighted_weights / self.domain_size
 
         return
     
@@ -97,11 +96,12 @@ class Lagrange1(Piecewise):
             return deriv_vals
         
         inside_points = x[points_in_domain]
-        inds = torch.floor((inside_points-self.domain[0]) / self.elem_size) 
+        inds = ((inside_points-self.domain[0]) / self.elem_size).floor()
 
         row_inds = torch.concatenate((inds_in_domain, inds_in_domain))
         col_inds = torch.concatenate((inds, inds+1))
-        vals = torch.concatenate((-torch.ones_like(x), torch.ones_like(x))) / self.elem_size
+        vals = torch.concatenate((-torch.ones_like(x), torch.ones_like(x)))
+        vals /= self.elem_size
         
         deriv_vals = torch.sparse_coo_tensor(
             indices=(row_inds, col_inds), 

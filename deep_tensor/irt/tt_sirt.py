@@ -82,6 +82,124 @@ class TTSIRT(SIRT):
         self._z_func = torch.sum(self.Rs[self.bases.dim-1] ** 2)
         return
 
+    def _eval_irt_reference_nograd_forward(
+        self, 
+        zs: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """TODO: write docstring."""
+
+        num_z, dim_z = zs.shape
+        rs = torch.zeros_like(zs)
+        frl = torch.ones((num_z, 1))
+
+        for k in range(dim_z):
+
+            rank_p = self.approx.data.cores[k].shape[0]
+            rank_k = self.approx.data.cores[k].shape[-1]
+            num_nodes = self.oned_cdfs[k].cardinality
+
+            # Evaluate the current core at the nodes of the current CDF
+            T1 = self.eval_oned_core_213(
+                self.approx.bases.polys[k], 
+                self.Bs[k], 
+                self.oned_cdfs[k].nodes
+            ).T.reshape(rank_k * num_nodes, rank_p).T
+
+            gsq_rs = ((frl @ T1).T.reshape(-1, num_z * num_nodes).T
+                                .square()
+                                .sum(dim=1)
+                                .reshape(num_nodes, num_z))
+
+            rs[:, k] = self.oned_cdfs[k].invert_cdf(
+                gsq_rs + self.tau, 
+                zs[:, k]
+            )
+
+            T2 = self.eval_oned_core_213(
+                self.approx.bases.polys[k], 
+                self.approx.data.cores[k], 
+                rs[:, k]
+            )
+
+            ii = torch.arange(num_z).repeat(rank_p)
+            jj = (torch.arange(rank_p * num_z)
+                       .reshape(num_z, rank_p).T
+                       .flatten())
+
+            indices = torch.vstack((ii[None, :], jj[None, :]))
+            values = frl.T.flatten()
+            size = (num_z, rank_p * num_z)
+            
+            B = torch.sparse_coo_tensor(indices, values, size)
+            frl = B @ T2
+            frl[torch.isnan(frl)] = 0.0
+        
+        if dim_z < self.approx.dim:
+            raise NotImplementedError("TODO")
+        else:
+            pi_rs = frl.flatten().square()
+
+        return rs, pi_rs
+    
+    def _eval_irt_reference_nograd_backward(
+        self, 
+        zs: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """TODO: write docstring"""
+        
+        num_z, dim_z = zs.shape
+        rs = torch.zeros_like(zs)
+
+        frg = torch.ones((1, num_z))
+        i_min = self.bases.dim - dim_z
+        
+        for k in range(self.bases.dim-1, i_min-1, -1):
+            
+            k_ind = k - i_min
+            rank_p = self.approx.data.cores[k].shape[0]
+            rank_k = self.approx.data.cores[k].shape[-1]
+            num_nodes = self.oned_cdfs[k].cardinality
+
+            T1 = self.eval_oned_core_213(
+                self.approx.bases.polys[k], 
+                self.Bs[k],
+                self.oned_cdfs[k].nodes
+            ).T.reshape(rank_k, rank_p * num_nodes).T
+
+            # Compute the value of the conditional pdf at each sample
+            pdf_vals = ((T1 @ frg).T.reshape(num_nodes * num_z, -1).T
+                                    .square()
+                                    .sum(dim=0)
+                                    .reshape(num_z, num_nodes).T)
+
+            rs[:, k_ind] = self.oned_cdfs[k].invert_cdf(
+                pdf_vals + self.tau, 
+                zs[:, k_ind]
+            )
+
+            T2 = self.eval_oned_core_231(
+                self.approx.bases.polys[k], 
+                self.approx.data.cores[k],
+                rs[:, k_ind]
+            )
+
+            ii = torch.arange(rank_k * num_z)
+            jj = torch.arange(num_z).repeat_interleave(rank_k)
+            indices = torch.vstack((ii[None, :], jj[None, :]))
+            values = frg.T.flatten()
+            size = (rank_k * num_z, num_z)
+            
+            B = torch.sparse_coo_tensor(indices, values, size)
+            frg = T2.T @ B 
+            frg[torch.isnan(frg)] = 0.0
+
+        if dim_z < self.approx.bases.dim:
+            raise NotImplementedError("TODO")
+        else:
+            frs = frg.flatten().square()
+
+        return rs, frs
+
     def build_approximation(
         self, 
         density_func: Callable, 
@@ -436,7 +554,7 @@ class TTSIRT(SIRT):
 
         else:  # from right to left
             raise NotImplementedError()
-        
+    
     def eval_irt_reference_nograd(
         self, 
         zs: torch.Tensor
@@ -457,119 +575,23 @@ class TTSIRT(SIRT):
         rs:
             An n * d matrix containing the corresponding samples from
             the reference domain after applying the IRT.
-        fs:
-            The approximation to the target density in the reference 
-            domain, evaluated at each sample.
+        potential_rs:
+            The approximation to the potential function associated with 
+            the target density in the reference domain, evaluated at 
+            each sample.
 
         """
 
-        num_z, dim_z = zs.shape
-        rs = torch.zeros_like(zs)
-
         if self.int_dir == Direction.FORWARD:
-            
-            frl = torch.ones((num_z, 1))
-
-            for k in range(dim_z):
-
-                rank_p = self.approx.data.cores[k].shape[0]
-                rank_k = self.approx.data.cores[k].shape[-1]
-                num_nodes = self.oned_cdfs[k].cardinality
-
-                T1 = self.eval_oned_core_213(
-                    self.approx.bases.polys[k], 
-                    self.Bs[k], 
-                    self.oned_cdfs[k].nodes
-                ).T.reshape(-1, rank_p).T
-
-                pdf_vals = ((frl @ T1).T.reshape(-1, num_z * num_nodes).T
-                                      .square()
-                                      .sum(dim=1)
-                                      .reshape(num_nodes, num_z))
-
-                rs[:, k] = self.oned_cdfs[k].invert_cdf(pdf_vals + self.tau, zs[:, k])
-
-                T2 = self.eval_oned_core_213(
-                    self.approx.bases.polys[k], 
-                    self.approx.data.cores[k], 
-                    rs[:, k]
-                )
-
-                ii = torch.arange(num_z).repeat(rank_p)
-                jj = (torch.arange(rank_p * num_z)
-                           .reshape(num_z, rank_p).T
-                           .flatten())
-
-                indices = torch.vstack((ii[None, :], jj[None, :]))
-                values = frl.T.flatten()
-                size = (num_z, rank_p * num_z)
-                
-                B = torch.sparse_coo_tensor(indices, values, size)
-
-                frl = B @ T2
-                frl[torch.isnan(frl)] = 0.0
-            
-            if dim_z < self.approx.dim:
-                raise NotImplementedError("TODO")
-            else:
-                fs = frl.flatten().square()
-
-        else:  # from right to left
-            
-            frg = torch.ones((1, num_z))
-            i_min = self.bases.dim - dim_z
-            
-            for k in range(self.bases.dim-1, i_min-1, -1):
-                
-                k_ind = k - i_min
-                rank_p = self.approx.data.cores[k].shape[0]
-                rank_k = self.approx.data.cores[k].shape[-1]
-                num_nodes = self.oned_cdfs[k].cardinality
-
-                T1 = self.eval_oned_core_213(
-                    self.approx.bases.polys[k], 
-                    self.Bs[k],
-                    self.oned_cdfs[k].nodes
-                ).T.reshape(rank_k, rank_p * num_nodes).T
-
-                # Compute the value of the conditional pdf at each sample
-                pdf_vals = ((T1 @ frg).T.reshape(num_nodes * num_z, -1).T
-                                      .square()
-                                      .sum(dim=0)
-                                      .reshape(num_z, num_nodes).T)
-
-                rs[:, k_ind] = self.oned_cdfs[k].invert_cdf(
-                    pdf_vals + self.tau, 
-                    zs[:, k_ind]
-                )
-
-                T2 = self.eval_oned_core_231(
-                    self.approx.bases.polys[k], 
-                    self.approx.data.cores[k],
-                    rs[:, k_ind]
-                )
-
-                ii = torch.arange(rank_k * num_z)
-                jj = torch.arange(num_z).repeat_interleave(rank_k)
-                indices = torch.vstack((ii[None, :], jj[None, :]))
-                values = frg.T.flatten()
-                size = (rank_k * num_z, num_z)
-                
-                B = torch.sparse_coo_tensor(indices, values, size)
-
-                frg = T2.T @ B 
-                frg[torch.isnan(frg)] = 0.0
-
-            if dim_z < self.approx.bases.dim:
-                raise NotImplementedError("TODO")
-            else:
-                fs = frg.flatten().square()
+            rs, pi_rs = self._eval_irt_reference_nograd_forward(zs)
+        else:
+            rs, pi_rs = self._eval_irt_reference_nograd_backward(zs)
         
-        indices = self.get_transform_indices(dim_z)
+        indices = self.get_transform_indices(zs.shape[1])
         neglogref = self.bases.eval_measure_potential_reference(rs, indices)
-        fs = torch.log(self.z) - torch.log(fs + self.tau) + neglogref
+        potential_rs = self.z.log() - (pi_rs + self.tau).log() + neglogref
 
-        return rs, fs
+        return rs, potential_rs
 
     def eval_cirt_reference(self) -> None:
         raise NotImplementedError()

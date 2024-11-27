@@ -4,32 +4,23 @@ import warnings
 
 import torch
 
-from .oned_cdf import OnedCDF
+from .cdf_1d import CDF1D
 from ..constants import EPS
 
 
-class SpectralCDF(OnedCDF, abc.ABC):
-    """CDF class for spectral polynomials.
-
-    Properties
-    ----------
-    sampling_nodes:
-        A set of locations at which the basis function are evaluated.
-    cdf_basis2node:
-        A matrix containing the indefinite integrals of the product of 
-        each basis function and the weighting function, evaluated at 
-        each sampling node.
-
-    TODO: finish...
-
-    """
+class SpectralCDF(CDF1D, abc.ABC):
 
     def __init__(self, **kwargs):
+        """CDF class for spectral polynomials.
+
+        Parameters
+        ----------
+        TODO (??)
         
-        OnedCDF.__init__(self, **kwargs)
+        """
 
+        CDF1D.__init__(self, **kwargs)
         num_sampling_nodes = max(2*self.cardinality, 200)
-
         self.sampling_nodes = self.grid_measure(num_sampling_nodes)
         self.cdf_basis2node = self.eval_int_basis(self.sampling_nodes)
         return

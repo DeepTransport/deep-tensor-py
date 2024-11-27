@@ -90,7 +90,7 @@ class ApproxFunc(abc.ABC):
         if not self.input_data.is_debug:
             return
         
-        approx = self.eval_reference(self.input_data.debug_z)
+        approx = self.eval_reference(self.input_data.rs_debug)
         self.l2_err, self.linf_err = self.input_data.relative_error(approx)
         return
 
