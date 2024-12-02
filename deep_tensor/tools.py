@@ -31,6 +31,59 @@ def compute_ess_ratio(log_weights: torch.Tensor) -> torch.Tensor:
     return ess_ratio
 
 
+def deim(U: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Computes a submatrix of a matrix of left singular vectors using
+    the discrete empirical interpolation method (DEIM).
+    
+    Parameters
+    ----------
+    U: 
+        An n * r matrix of left singular vectors, where n > r. The 
+        vectors should be in order of decreasing singular value.
+        
+    Returns
+    -------
+    indices:
+        The indices of the submatrix found using the DEIM.
+    B: 
+        The product of U and the inverse of the submatrix found using 
+        the DEIM.
+    
+    References
+    ----------
+    Chaturantabut, S and Sorensen, DC (2010). Nonlinear model reduction 
+    via discrete empirical interpolation.
+
+    """
+
+    n, r = U.shape 
+
+    if r > n:
+        msg = ("The number of rows of the input matrix "
+               + "must be greater than or equal to the "
+               + f"number of columns ({n} vs {r}).")
+        raise Exception(msg)
+
+    indices = torch.zeros(r, dtype=torch.int32)
+    P = torch.zeros((n, r))
+
+    indices[0] = U[:, 0].abs().argmax()
+    P[indices[0], 0] = 1.0
+
+    for i in range(1, r):
+
+        P_i = P[:, :i]
+        U_i = U[:, :i]
+
+        c = torch.linalg.solve(P_i.T @ U_i, P_i.T @ U[:, i])
+        r = U[:, i] - U[:, :i] @ c
+        indices[i] = r.abs().argmax()
+        P[indices[i], i] = 1.0
+
+    B = U @ torch.linalg.inv(U[indices])
+    return indices, B
+
+
 def maxvol(
     A: torch.Tensor, 
     tol: float=1e-6,
@@ -51,9 +104,11 @@ def maxvol(
 
     Returns
     -------
-    :
-        The row indices of the dominant submatrix, and the product of 
-        the original matrix and the inverse of the submatrix.
+    indices:
+        The row indices of the dominant submatrix. 
+    B:
+        The product of the original matrix and the inverse of the 
+        submatrix.
 
     References
     ----------

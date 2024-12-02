@@ -9,7 +9,7 @@ from .input_data import InputData
 from .options import TTOptions
 from .polynomials import Basis1D, Piecewise, Spectral
 from .directions import Direction
-from .tools import maxvol, reshape_matlab
+from .tools import deim, maxvol, reshape_matlab
 from .utils import info
 
 
@@ -151,6 +151,42 @@ class TTFunc(ApproxFunc):
 
         return None
     
+    def _compute_cross_iter_amen(
+        self, 
+        func: Callable, 
+        indices: torch.Tensor
+    ):
+        
+        for k in indices:
+            
+            if self.data.direction == Direction.FORWARD:
+
+                x_left = self.data.interp_x[int(k-1)]
+                x_right = self.data.interp_x[int(k+1)]
+                r_left = self.data.res_x[int(k-1)] # TODO: add the left-most and right-most versions of these to make this well-defined 
+                r_right = self.data.res_x[int(k+1)]
+                w_left = self.data.res_w[int(k-1)]
+
+                # Evaluate the interpolant function at x_k nodes
+                F = self.build_block_local(func, x_left, x_right, k)
+                self.errors[k] = self.get_error_local(F, k)
+
+                # Evaluate residual function at x_k nodes
+                F_res = self.build_block_local(func, r_left, r_right, k)
+
+                # Evaluate update function at x_k nodes
+                if k > 0:
+                    F_up = self.build_block_local(func, x_left, r_right, k)
+                else:
+                    F_up = F_res
+
+                raise NotImplementedError("TODO: finish")
+
+            else:
+                raise NotImplementedError()
+
+        return 
+
     def _compute_final_block(self, func: Callable) -> None:
 
         if self.data.direction == Direction.FORWARD:
@@ -174,7 +210,8 @@ class TTFunc(ApproxFunc):
             raise NotImplementedError()
 
         elif self.options.int_method == "deim":
-            raise NotImplementedError()
+            indices, core = deim(H)
+            interp_atx = H[indices]
 
         elif self.options.int_method == "maxvol":
             indices, core = maxvol(H)
@@ -200,7 +237,11 @@ class TTFunc(ApproxFunc):
         nodes = reshape_matlab(nodes, (poly.cardinality * rank_prev, -1))
 
         if self.options.int_method == "qdeim":
-            raise NotImplementedError()  # TODO: learn what this is
+            raise NotImplementedError()
+        
+        elif self.options.int_method == "deim":
+            msg = "DEIM is not supported for spectral polynomials."
+            raise Exception(msg)
 
         elif self.options.int_method == "maxvol":
             indices, _ = maxvol(nodes)
@@ -412,11 +453,11 @@ class TTFunc(ApproxFunc):
         # F = reshape_matlab(torch.arange(1, 41*20+1, dtype=torch.float32), (1, 41, 20))
 
         if self.data.direction == Direction.FORWARD:
-            F = torch.permute(F, dims=(1, 0, 2))
+            F = F.permute(1, 0, 2)
             F = reshape_matlab(F, (num_b_left*num_nodes, num_b_right))
             rank_prev = num_b_left
         else: 
-            F = torch.permute(F, dims=(1, 2, 0))
+            F = F.permute(1, 2, 0)
             F = reshape_matlab(F, (num_nodes*num_b_right, num_b_left))
             rank_prev = num_b_right
 
@@ -430,9 +471,9 @@ class TTFunc(ApproxFunc):
         if self.data.direction == Direction.FORWARD:
             
             core = reshape_matlab(core, (num_nodes, rank_prev, rank))
-            core = torch.permute(core, (1, 0, 2))
+            core = core.permute(1, 0, 2)
 
-            couple = torch.permute(couple[:, :rank_0_next], (0, 1))
+            couple = couple[:, :rank_0_next].permute(0, 1)
             couple = reshape_matlab(couple, (-1, rank_0_next))
             
             core_next = reshape_matlab(core_next, (rank_0_next, -1))
@@ -445,6 +486,51 @@ class TTFunc(ApproxFunc):
         self.data.cores[k] = core
         self.data.interp_x[k] = interp_x 
         self.data.cores[k_next] = core_next
+
+        return
+    
+    def build_basis_amen(
+        self, 
+        F: torch.Tensor,
+        F_res: torch.Tensor,
+        F_up: torch.Tensor,
+        k: torch.Tensor|int
+    ) -> None:
+        
+        k = int(k)
+        k_prev = int(k - self.data.direction.value)
+        k_next = int(k + self.data.direction.value)
+        
+        poly = self.bases.polys[k]
+        interp_x_prev = self.data.interp_x[k_prev]
+        core_next = self.data.cores[k_next]
+
+        num_b_left, num_nodes, num_b_right = F.shape
+        num_r_left, _, num_r_right = F_res.shape
+        rank_0_next, num_nodes_next, rank_1_next = core_next.shape
+
+        if self.data.direction == Direction.FORWARD:
+            F = F.permute(1, 0, 2)
+            F = reshape_matlab(F, (num_b_left * num_nodes, num_b_right))
+            F_up = F_up.permute(1, 0, 2)
+            F_up = reshape_matlab(F_up, (num_b_left * num_nodes, num_b_right))
+            rank_prev = num_b_left 
+            rank_next = rank_0_next
+
+        else:
+            F = F.permute(1, 2, 0)
+            F = reshape_matlab(F, (num_nodes * num_b_right, num_b_left))
+            F_up = F_up.permute(1, 2, 0)
+            F_up = reshape_matlab(F_up, (num_nodes * num_b_right, num_b_left))
+            rank_prev = num_b_right 
+            rank_next = rank_1_next
+
+        B, A, r = self.truncate_local(F, k)
+
+        if self.data.direction == Direction.FORWARD:
+
+            raise NotImplementedError("TODO: finish")
+            temp_r = 0.0
 
         return
 
