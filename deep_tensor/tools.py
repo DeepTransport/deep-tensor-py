@@ -80,7 +80,7 @@ def deim(U: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         indices[i] = r.abs().argmax()
         P[indices[i], i] = 1.0
 
-    B = U @ torch.linalg.inv(U[indices])
+    B = torch.linalg.solve(U[indices].T, U.T).T
     return indices, B
 
 
