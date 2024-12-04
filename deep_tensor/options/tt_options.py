@@ -2,7 +2,7 @@ from .approx_options import ApproxOptions
 
 
 TT_METHODS = ["random", "amen", "fixed_rank"]
-INT_METHODS = ["qdeim", "wdeim", "maxvol"]
+INT_METHODS = ["qdeim", "deim", "maxvol"]
 
 
 class TTOptions(ApproxOptions):

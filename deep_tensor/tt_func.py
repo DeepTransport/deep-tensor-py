@@ -208,6 +208,8 @@ class TTFunc(ApproxFunc):
 
         if self.options.int_method == "qdeim":
             raise NotImplementedError()
+            # indices, core = qdeim(H)
+            # interp_atx = H[indices]
 
         elif self.options.int_method == "deim":
             indices, core = deim(H)

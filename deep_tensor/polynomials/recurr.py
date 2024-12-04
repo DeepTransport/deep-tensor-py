@@ -34,7 +34,7 @@ class Recurr(Spectral, abc.ABC):
         return
 
     @property 
-    def nodes(self) -> bool:
+    def nodes(self) -> torch.Tensor:
         return self._nodes
 
     @property

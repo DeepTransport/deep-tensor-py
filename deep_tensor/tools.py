@@ -1,4 +1,5 @@
 from typing import Tuple
+import warnings
 
 import torch
 
@@ -84,9 +85,30 @@ def deim(U: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     return indices, B
 
 
+def lu_deim(A):
+    """TODO: tidy this up. Also test to see whether this is the same as 
+    DEIM when applied with spectral polynomials."""
+
+    n, r = A.shape
+
+    if r > n:
+        msg = ("The number of rows of the input matrix "
+               + "must be greater than or equal to the "
+               + f"number of columns ({n} vs {r}).")
+        raise Exception(msg)
+
+    indices = torch.arange(n)
+
+    pivots = torch.linalg.lu_factor_ex(A)[1] - 1
+    for i, p in enumerate(pivots):
+        indices[[i, p.item()]] = indices[[p.item(), i]]
+
+    return indices
+
+
 def maxvol(
     A: torch.Tensor, 
-    tol: float=1e-6,
+    tol: float=1e-2,
     max_iter: int=200
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Returns a dominant r*r submatrix within an n*r matrix.
@@ -116,52 +138,28 @@ def maxvol(
 
     """
 
-    # TODO: implement initial guess using QDEIM.
+    _, r = A.shape
+    indices = lu_deim(A)[:r]
 
-    n, r = A.shape
-    indices = torch.arange(n)
-
-    pivots = torch.linalg.lu_factor_ex(A)[1] - 1
-    for i, p in enumerate(pivots):  # Swap rows (why -1)?
-        indices[i], indices[p] = indices[p].clone(), indices[i].clone()
-
-    if r > n:
-        msg = ("The number of rows of the input matrix "
-               + "must be greater than or equal to the "
-               + f"number of columns ({n} vs {r}).")
-        raise Exception(msg)
-
-    if (rank := torch.linalg.matrix_rank(A[indices[:r]])) < r:
+    if (rank := torch.linalg.matrix_rank(A[indices])) < r:
         msg = f"Initial submatrix is singular (rank {rank} < {r})."
         raise Exception(msg)
 
-    B = A @ torch.linalg.inv(A[indices[:r]])
-    I = torch.eye(n)
-
-    # indices = torch.arange(n)
+    B = torch.linalg.solve(A[indices].T, A.T).T
 
     for _ in range(max_iter):
 
-        # Find entry of B with greatest absolute value
         ij_max = torch.argmax(torch.abs(B), axis=None)
-        i_max, j_max = torch.unravel_index(ij_max, B.shape)
-        b_ij = B[i_max, j_max]
+        i, j = torch.unravel_index(ij_max, B.shape)
+        i_old = indices[j]
 
-        # Check for convergence
-        if torch.abs(b_ij) < 1.0 + tol:
+        if torch.abs(B[i, j]) < 1.0 + tol:
             # print(torch.max(A @ torch.linalg.inv(A[indices[:r]])))
-            return indices[:r], B
-        
-        # Update indices of maxvol matrix
-        indices[i_max], indices[j_max] = indices[j_max].clone(), indices[i_max].clone()
+            return indices, B
 
-        # # Make rank 1 update to B matrix
-        # B1 = (B[r:][:, j_max] + I[r:][:, i_max])[:, None]
-        # B2 = (B[i_max, :] - I[j_max, :r])[None, :]
-
-        # B[r:] -= B1 @ B2 / b_ij
-        B = A @ torch.linalg.inv(A[indices[:r]])
+        B -= torch.outer(B[:, j], (B[i, :] - B[i_old, :]) / B[i, j])
+        indices[j] = i
 
     msg = f"maxvol failed to converge in {max_iter} iterations."
-    # warnings.warn(msg)
-    return indices[:r], B
+    warnings.warn(msg)
+    return indices, B
