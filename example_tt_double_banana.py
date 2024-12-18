@@ -1,3 +1,4 @@
+from matplotlib import pyplot as plt
 import torch
 
 from deep_tensor.domains import BoundedDomain
@@ -8,6 +9,7 @@ from deep_tensor.irt.tt_dirt import TTDIRT
 
 from double_banana import DoubleBanana
 
+plt.rcParams.update({"text.usetex": True})
 torch.manual_seed(64)
 
 
@@ -23,7 +25,7 @@ def reference_dist(u):
 n = 100
 xs = torch.linspace(-4.0, 4.0, n)
 ys = torch.linspace(-4.0, 4.0, n)
-xx, yy = torch.meshgrid(xs, ys, indexing=None)
+xx, yy = torch.meshgrid(xs, ys, indexing="ij")
 
 xx = torch.reshape(xx, (-1, 1))
 yy = torch.reshape(yy, (-1, 1))
@@ -50,4 +52,60 @@ bases = ApproxBases(poly, domain, dim)
 bridge = Tempering1()
 airt = TTDIRT(model.potential_dirt, bases, bridge=bridge)
 
-print("Done")
+n = 100
+
+rxs = torch.linspace(*domain.bounds, n)
+rys = torch.linspace(*domain.bounds, n)
+
+xx, yy = torch.meshgrid((rxs, rys), indexing="ij")
+xx = torch.reshape(xx, (-1, 1))
+yy = torch.reshape(yy, (-1, 1))
+
+rts = torch.concatenate([xx, yy], axis=1)
+
+for k in range(airt.num_layers+1):
+
+    fig, axes = plt.subplots(2, 2)
+
+    # Evaluate density
+    rf = airt.eval_potential(xts, k)
+    rf = torch.exp(-rf)
+
+    neglogliks, neglogpris = model.potential_dirt(xts)
+
+    bf = torch.exp(-neglogliks*airt.bridge.betas[k]-neglogpris)
+    bf = bf / (torch.sum(bf) * const)
+
+    axes[0][0].contourf(xs, ys, rf.reshape(n, n))
+    axes[0][0].set_xlabel("$x_{1}$")
+    axes[0][0].set_ylabel("$x_{2}$")
+    axes[0][0].set_title(r"$\hat{\pi}$")
+
+    axes[0][1].contourf(xs, ys, bf.reshape(n, n))
+    axes[0][1].set_xlabel("$x_{1}$")
+    axes[0][1].set_ylabel("$x_{2}$")
+    axes[0][1].set_title(r"$\pi$")
+
+    fk = airt.irts[k].eval_pdf(rts)
+    axes[1][0].contourf(rxs, rys, fk.reshape(n, n))
+    axes[1][0].set_xlabel("$u_{1}$")
+    axes[1][0].set_ylabel("$u_{2}$")
+
+    if k > 0:
+        
+        xs_, logfxs = airt.eval_irt(rts, k-1)
+        neglogliks, neglogpris = model.potential_dirt(xs_)
+        logfzs = airt.reference.log_joint_pdf(rts)[0]
+        
+        bf = torch.exp(-neglogliks*(airt.bridge.betas[k]-airt.bridge.betas[k-1])+logfzs)
+        
+        axes[1][1].contourf(rxs, rys, bf.reshape(n, n))
+        axes[1][1].set_xlabel("$u_{1}$")
+        axes[1][1].set_ylabel("$u_{2}$")
+        axes[1][1].set_title("a. ratio fun")
+
+    plt.tight_layout()
+    plt.show()
+
+
+

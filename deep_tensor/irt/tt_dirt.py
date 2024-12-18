@@ -23,8 +23,7 @@ class TTDIRT(DIRT):
         xs: torch.Tensor, 
         neglogratio: torch.Tensor
     ) -> TTSIRT:
-        """Func is the one that returns neglogpdf/negloglik.
-        TODO: write docstring.
+        """TODO: write docstring.
 
         Parameters
         ----------

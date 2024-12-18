@@ -152,6 +152,33 @@ class DIRT(abc.ABC):
 
         return xs, neglogliks, neglogpris, neglogfxs
 
+    def eval_rt(
+        self,
+        xs: torch.Tensor,
+        num_layers: torch.Tensor=torch.inf
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """TODO: write docstring."""
+        
+        num_layers = min(num_layers, self.num_layers)
+        zs = xs.clone()
+
+        neglogfxs = torch.zeros(zs.shape[0])
+
+        for l in range(num_layers+1):  # TODO: figure out what this should be..?
+            
+            us = self.irts[l].eval_rt(zs)
+            neglogts = self.irts[l].eval_potential(zs)
+
+            zs = self.reference.invert_cdf(us)
+            neglogds = -self.reference.log_joint_pdf(zs)[0]
+
+            neglogfxs += neglogts - neglogds
+
+        neglogfs = -self.reference.log_joint_pdf(zs)[0]
+        neglogfxs += neglogfs # TODO: figure out what these things are
+
+        return zs, neglogfxs
+
     def eval_irt(
         self, 
         rs: torch.Tensor, 
@@ -256,6 +283,18 @@ class DIRT(abc.ABC):
 
         return InputData(xs[indices], xs[indices_debug], fxs_debug)
 
+    def eval_potential(
+        self, 
+        xs: torch.Tensor,
+        num_layers: torch.Tensor=torch.inf
+    ) -> torch.Tensor:
+        """TODO: write docstring."""
+
+        num_layers = min(num_layers, self.num_layers)
+        _, f = self.eval_rt(xs, num_layers)
+
+        return f
+
     def build_bases(self, bases, reference: Reference):
         """TODO: need to do the cases where we have, e.g., a list of 
         approximation bases rather than just one."""
@@ -357,6 +396,7 @@ class DIRT(abc.ABC):
                 return
             self.num_layers += 1
 
+        # Finish off the last layer
         xs, neglogfxs = self.eval_irt(rs)
         neglogliks, neglogpris = func(xs)
 

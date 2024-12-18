@@ -399,9 +399,35 @@ class TTSIRT(SIRT):
     
     def eval_potential_reference(
         self, 
-        zs: torch.Tensor
+        xs: torch.Tensor
     ) -> torch.Tensor:
-        raise NotImplementedError()
+        """Evaluates the normalised (marginal) PDF represented by the 
+        squared FTT.
+        
+        TODO: finish docstring.
+        
+        """
+
+        dim_z = xs.shape[1]
+
+        # d = self.approx.dim
+        if self.int_dir == Direction.FORWARD:
+
+            fxl = self.approx.eval_block(xs)#, self.int_dir) # TODO: eval_block currently uses data.direction---seems like a possible issue
+
+            if dim_z < self.approx.dim:
+                raise NotImplementedError()
+            else: 
+                fx = fxl.square()
+
+            indices = torch.arange(dim_z)
+            neglogws = self.approx.bases.eval_measure_potential_reference(xs, indices)
+            fxs = self.z.log() - (fx + self.tau).log() + neglogws
+            
+        else:
+            raise NotImplementedError()
+
+        return fxs
 
     def eval_rt_jac_reference(
         self, 

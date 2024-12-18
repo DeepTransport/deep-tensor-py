@@ -604,7 +604,7 @@ class TTFunc(ApproxFunc):
         variables, depending on the current direction the cores are 
         being evaluated in.
 
-        TODO: finish
+        TODO: finish docstring
         """
 
         fx = self.eval_block(x)
