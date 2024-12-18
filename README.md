@@ -4,4 +4,4 @@
  - Remove calls to `torch.linalg.inv` (solve linear systems instead).
 
 ## Some notation
- - `xs` refers to samples in the approximation domain. `zs` refers to samples in [0, 1] (generally evaluations of the CDF).
+ - `xs` refers to samples in the approximation domain. `zs` refers to samples in [0, 1] (generally evaluations of the CDF). `us` refers to samples from [-1, 1].

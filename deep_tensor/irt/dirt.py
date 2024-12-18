@@ -42,16 +42,16 @@ class DIRT(abc.ABC):
         reference:
             The reference distribution.
         sirt_options:
-            Options for constructing the SIRT approximation to the bridging 
-            density at each iteration.
+            Options for constructing the SIRT approximation to the 
+            bridging density at each iteration.
         dirt_options:
-            Options for constructing the DIRT approximation to the target 
-            density.
+            Options for constructing the DIRT approximation to the 
+            target density.
         init_samples: 
-            A set of samples, drawn from the prior, to intialise the FTT 
-            with. If these are not passed in, a set of samples will instead 
-            be drawn from the reference measure and transformed into the 
-            approximation domain.
+            A set of samples, drawn from the prior, to intialise the 
+            FTT with. If these are not passed in, a set of samples will 
+            instead be drawn from the reference measure and transformed 
+            into the approximation domain.
         prev_approx:
             ...?
         
@@ -78,7 +78,6 @@ class DIRT(abc.ABC):
         self.sirt_options = sirt_options
         self.dirt_options = dirt_options
         self.init_samples = init_samples
-        
         self.prev_approx = prev_approx
 
         self.irts: dict[int, AbstractIRT] = {}
@@ -194,6 +193,12 @@ class DIRT(abc.ABC):
 
         """
 
+        # if num_layers > self.num_layers:
+        #     msg = ("Number of layers requested for IRT is greater "
+        #            + "than the number of layers that have been "
+        #            + "constructed.")
+        #     raise Exception(msg)
+
         num_layers = min(num_layers, self.num_layers)
         xs = rs.clone()  # reference domain == approximation domain
 
@@ -233,6 +238,7 @@ class DIRT(abc.ABC):
         xs: torch.Tensor, 
         neglogratio: torch.Tensor 
     ) -> InputData:
+        """TODO: write docstring."""
             
         indices = torch.arange(self.dirt_options.num_samples)
 
@@ -292,7 +298,8 @@ class DIRT(abc.ABC):
                 (xs, neglogliks, 
                  neglogpris, neglogfxs) = self.initialise(bases[0])
             else:
-                # Push forward a set of reference samples to the approximation domain
+                # Push forward a set of reference samples to the 
+                # approximation domain
                 xs, neglogfxs = self.eval_irt(rs)
                 neglogliks, neglogpris = func(xs)
         

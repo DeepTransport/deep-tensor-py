@@ -7,6 +7,8 @@ from .tt_sirt import TTSIRT
 from ..approx_bases import ApproxBases
 from ..options import ApproxOptions
 
+from copy import deepcopy
+
 
 class TTDIRT(DIRT):
 
@@ -21,7 +23,33 @@ class TTDIRT(DIRT):
         xs: torch.Tensor, 
         neglogratio: torch.Tensor
     ) -> TTSIRT:
-        """Func is the one that returns neglogpdf/negloglik."""
+        """Func is the one that returns neglogpdf/negloglik.
+        TODO: write docstring.
+
+        Parameters
+        ----------
+        func:
+            Function that returns the negative log-likelihood and 
+            negative log-prior density of a sample.
+        bases:
+            List of approximation bases in each dimension.
+        sirt_options:
+            Options used when constructing the SIRT associated with the 
+            layer.
+        xs:
+            An n * d matrix containing samples from the current 
+            bridging density. 
+        neglogratio:
+            An n-dimensional vector containing the negative log-ratio 
+            function evaluated at each element in xs.
+
+        Returns
+        -------
+        sirt:
+            The squared inverse Rosenblatt transport approximation to 
+            the next bridging density.
+        
+        """
 
         def updated_func(zs: torch.Tensor) -> torch.Tensor:
 
@@ -44,7 +72,7 @@ class TTDIRT(DIRT):
                     neglogratio
                 )
 
-                irt = TTSIRT(
+                sirt = TTSIRT(
                     updated_func, 
                     bases=bases[self.num_layers], 
                     options=sirt_options, 
@@ -61,17 +89,17 @@ class TTDIRT(DIRT):
                     neglogratio
                 )
 
-                irt = TTSIRT(
+                sirt = TTSIRT(
                     updated_func, 
                     bases=self.irts[self.num_layers-1].approx.bases,
-                    approx=self.irts[self.num_layers-1].approx, 
+                    approx=deepcopy(self.irts[self.num_layers-1].approx), 
                     options=sirt_options,
                     input_data=input_data,
-                    tt_data=self.irts[self.num_layers-1].approx.data,
+                    tt_data=deepcopy(self.irts[self.num_layers-1].approx.data),
                     tau=self.dirt_options.defensive
                 )
         
         else:
             raise NotImplementedError()
         
-        return irt
+        return sirt

@@ -275,7 +275,7 @@ class TTFunc(ApproxFunc):
             self.data.cores[k] = torch.rand(core_shape)
 
             samples = self.input_data.get_samples(self.options.init_rank)
-            self.data.interp_x[k] = samples[:, k:]
+            self.data.interp_x[k] = samples[:, k:]  # TODO: check this this is working correctly
 
         self.data.interp_x[-1] = torch.tensor([])
         self.data.interp_x[self.dim] = torch.tensor([])
@@ -459,7 +459,7 @@ class TTFunc(ApproxFunc):
 
         if self.data.direction == Direction.FORWARD:
             F = F.permute(1, 0, 2)
-            F = reshape_matlab(F, (num_b_left * num_nodes, num_b_right))
+            F = reshape_matlab(F, (num_nodes * num_b_left, num_b_right))
             rank_prev = num_b_left
         else: 
             F = F.permute(1, 2, 0)
@@ -478,7 +478,7 @@ class TTFunc(ApproxFunc):
             core = reshape_matlab(core, (num_nodes, rank_prev, rank))
             core = core.permute(1, 0, 2)
 
-            couple = couple[:, :rank_0_next].permute(0, 1)
+            couple = couple[:, :rank_0_next].permute(0, 1)  # TODO: remove permuate thing
             couple = reshape_matlab(couple, (-1, rank_0_next))
             
             core_next = reshape_matlab(core_next, (rank_0_next, -1))
@@ -490,7 +490,7 @@ class TTFunc(ApproxFunc):
             core = reshape_matlab(core, (num_nodes, rank_prev, rank))
             core = core.permute(2, 0, 1)
 
-            couple = couple[:, :rank_1_next].permute(0, 1)
+            couple = couple[:, :rank_1_next].permute(1, 0)
             couple = reshape_matlab(couple, (rank_1_next, -1))
 
             core_next = reshape_matlab(core_next, (-1, rank_1_next))
@@ -779,6 +779,7 @@ class TTFunc(ApproxFunc):
         als_iter = 0
 
         if self.data.cores == {}:
+            self.data.direction = Direction.FORWARD 
             self.initialise_cores()
         else:
             # Prepare for the next iteration (DIRT-related)

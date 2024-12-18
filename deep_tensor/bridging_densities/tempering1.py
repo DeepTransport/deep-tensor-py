@@ -148,13 +148,14 @@ class Tempering1(SingleBeta):
             return neglogratio
         
         # Compute the reference density at each value of xs
-        logfrs = reference.log_joint_pdf(xs)[0]
+        neglogfrs = -reference.log_joint_pdf(xs)[0]
         beta_prev = self.betas[self.num_layers-1]
 
         if method == "eratio":  # TODO: match these to the paper
-            neglogratio = beta*neglogliks + neglogpris - neglogfxs - logfrs
+            neglogratio = (beta*neglogliks + neglogpris + neglogfrs
+                           - neglogfxs)
         elif method == "aratio":
-            neglogratio = (beta-beta_prev)*neglogliks - logfrs
+            neglogratio = (beta-beta_prev)*neglogliks + neglogfrs
         
         return neglogratio
     

@@ -36,7 +36,7 @@ class SIRT(AbstractIRT, abc.ABC):
             approx_data
         )
         
-        self._int_dir = Direction.FORWARD
+        self._int_dir = Direction.FORWARD # TEMP??
         self._order = None
         self._tau = tau
 

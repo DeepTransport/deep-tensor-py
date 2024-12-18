@@ -1,6 +1,6 @@
 import torch
 
-from .directions import Direction, REVERSE_DIRECTIONS
+from .directions import REVERSE_DIRECTIONS
 
 
 class TTData():
@@ -8,7 +8,7 @@ class TTData():
     def __init__(self):
         """Data associated with a functional TT approximation."""
 
-        self.direction = Direction.FORWARD 
+        self.direction = None
         self.cores: dict[int, torch.Tensor] = {}
         self.interp_x: dict[int, torch.Tensor] = {}
         

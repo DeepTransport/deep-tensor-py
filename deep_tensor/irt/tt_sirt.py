@@ -4,7 +4,6 @@ import torch
 
 from .sirt import SIRT
 from ..approx_bases import ApproxBases
-from ..approx_func import ApproxFunc
 from ..directions import Direction
 from ..input_data import InputData
 from ..options import TTOptions
@@ -49,7 +48,7 @@ class TTSIRT(SIRT):
 
         # TODO: figure out what this is for. I think this is set in the 
         # marginalise() function--so I'm not sure what's going on here.
-        # self.order = None 
+        self.order = None 
         return
 
     def _marginalise_forward(self) -> None:
@@ -64,14 +63,14 @@ class TTSIRT(SIRT):
             A_k = self.approx.data.cores[k]
             rank_p, num_nodes, rank_k = A_k.shape
 
-            B_k = reshape_matlab(A_k, (rank_p * num_nodes, rank_k)) @ self.Rs[k+1].T
+            B_k = reshape_matlab(A_k, (rank_p * num_nodes, rank_k)) @ self.Rs[k+1]
             self.Bs[k] = reshape_matlab(B_k, (rank_p, num_nodes, rank_k))
 
             B_k = self.Bs[k].permute(1, 2, 0)
             B_k = reshape_matlab(B_k, (num_nodes, rank_k * rank_p)) 
             C_k = reshape_matlab(poly_k.mass_r(B_k), (num_nodes * rank_k, rank_p))
             
-            _, self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")
+            self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
         self._z_func = self.Rs[0].square().sum()
         return 
@@ -242,7 +241,7 @@ class TTSIRT(SIRT):
 
     def marginalise(
         self, 
-        direction: Direction=Direction.FORWARD  # TODO: make this a property??
+        direction: Direction=Direction.FORWARD
     ) -> None:
         """Computes each coefficient tensor (B_k) required to evaluate 
         the marginal functions in each dimension, as well as the 

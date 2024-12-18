@@ -84,8 +84,8 @@ class Reference(abc.ABC):
         self, 
         xs: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        """Returns the log-PDF and gradient of the log-PDF of the 
-        vector x under the approximation distribution.
+        """Returns the log-PDF and gradient of the log-PDF of each 
+        elements of xs for the reference distribution.
 
         Parameters
         ----------
@@ -96,7 +96,7 @@ class Reference(abc.ABC):
         Returns
         -------
         :
-            The value of the log-PDF and gradient of the log-PDF of u.
+            The value of the log-PDF and gradient of the log-PDF of xs.
 
         """
         return

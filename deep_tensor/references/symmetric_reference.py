@@ -106,7 +106,7 @@ class SymmetricReference(Reference, abc.ABC):
         return
     
     @abc.abstractmethod
-    def log_joint_ref_pdf(
+    def log_joint_unit_pdf(
         self, 
         z: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -128,13 +128,13 @@ class SymmetricReference(Reference, abc.ABC):
         """
         return
 
-    def map_to_ref(self, x: torch.Tensor) -> torch.Tensor:
+    def map_to_unit(self, x: torch.Tensor) -> torch.Tensor:
         return (x-self.mu) / self.sigma
 
     def eval_cdf(self, xs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         # TODO: might need to do some epsilon stuff in here.. 
 
-        rs = self.map_to_ref(xs)
+        rs = self.map_to_unit(xs)
         zs, dzdrs = self.eval_ref_cdf(rs)
 
         zs = (zs - self.left) / (self.right - self.left)
@@ -160,7 +160,7 @@ class SymmetricReference(Reference, abc.ABC):
         x: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         
-        z = self.map_to_ref(x)
+        z = self.map_to_unit(x)
         f, g = self.eval_ref_pdf(z)
         
         # TODO: figure out what's going on here.
@@ -174,11 +174,11 @@ class SymmetricReference(Reference, abc.ABC):
         xs: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
         
-        zs = self.map_to_ref(xs)
-        log_fzs, log_gzs = self.log_joint_ref_pdf(zs)
+        us = self.map_to_unit(xs)
+        log_fus, log_gus = self.log_joint_unit_pdf(us)  # TODO: I think this (and some of the other functions) would be better as unit.
 
-        log_fxs = log_fzs - xs.numel() * (self.sigma * (self.right - self.left)).log()
-        log_gxs = log_gzs / self.sigma
+        log_fxs = log_fus - xs.shape[1] * (self.sigma * (self.right - self.left)).log()
+        log_gxs = log_gus / self.sigma
     
         return log_fxs, log_gxs
     

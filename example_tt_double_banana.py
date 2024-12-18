@@ -8,6 +8,8 @@ from deep_tensor.irt.tt_dirt import TTDIRT
 
 from double_banana import DoubleBanana
 
+torch.manual_seed(64)
+
 
 sigma = 0.3
 data = torch.tensor([3.0, 5.0])
