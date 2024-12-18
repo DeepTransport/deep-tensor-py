@@ -5,12 +5,15 @@ import torch
 
 from .approx_bases import ApproxBases
 from .approx_func import ApproxFunc
+from .directions import Direction
 from .input_data import InputData
 from .options import TTOptions
 from .polynomials import Basis1D, Piecewise, Spectral
-from .directions import Direction
 from .tools import deim, maxvol, reshape_matlab
+from .tt_data import TTData
 from .utils import info
+
+MAX_COND = 1.0e+5
 
 
 class TTFunc(ApproxFunc):
@@ -20,7 +23,8 @@ class TTFunc(ApproxFunc):
         func: Callable, 
         bases: ApproxBases, 
         options: TTOptions, 
-        input_data: InputData
+        input_data: InputData,
+        tt_data: TTData|None
     ):
         r"""A functional tensor-train approximation for a function 
         mapping from $\mathbb{R}^{d}$ to $\mathbb{R}$.
@@ -36,7 +40,7 @@ class TTFunc(ApproxFunc):
 
         """
         
-        super().__init__(func, bases, options, input_data)
+        super().__init__(func, bases, options, input_data, tt_data)
         self.input_data.set_samples(self.bases, self.sample_size)
         self.cross(func)
         return
@@ -127,25 +131,24 @@ class TTFunc(ApproxFunc):
     ) -> None:
         
         for k in indices:
-                
+            
+            x_left = self.data.interp_x[int(k-1)].clone()
+            x_right = self.data.interp_x[int(k+1)].clone()
             enrich = self.input_data.get_samples(self.options.kick_rank)
-            x_left = self.data.interp_x[int(k-1)]
-            x_right = self.data.interp_x[int(k+1)]
             
             # TODO: figure out why enrich seems to use a different set 
             # of samples each time despite the original blocks using 
             # the same sets
 
-            if self.data.direction == Direction.FORWARD:
-                enrich = enrich[:, k+1:]
-            else:
-                enrich = enrich[:, :k]
-
             F = self.build_block_local(func, x_left, x_right, k)
             self.errors[k] = self.get_error_local(F, k)
 
-            F_enrich = self.build_block_local(func, x_left, enrich, k)
-            F_full = torch.concatenate((F, F_enrich), dim=2)
+            if self.data.direction == Direction.FORWARD:
+                F_enrich = self.build_block_local(func, x_left, enrich[:, k+1:], k)
+                F_full = torch.concatenate((F, F_enrich), dim=2)
+            else:
+                F_enrich = self.build_block_local(func, enrich[:, :k], x_right, k)
+                F_full = torch.concatenate((F, F_enrich), dim=0)
 
             self.build_basis_svd(F_full, k)
 
@@ -212,18 +215,18 @@ class TTFunc(ApproxFunc):
             # interp_atx = H[indices]
 
         elif self.options.int_method == "deim":
-            indices, core = deim(H)
+            indices, A = deim(H)
             interp_atx = H[indices]
 
         elif self.options.int_method == "maxvol":
-            indices, core = maxvol(H)
+            indices, A = maxvol(H)
             interp_atx = H[indices]
         
-        if (cond := torch.linalg.cond(interp_atx)) > 1e+5:
+        if (cond := torch.linalg.cond(interp_atx)) > MAX_COND:
             msg = f"Poor condition number in interpolation: {cond}."
             warnings.warn(msg)
 
-        return indices, core, interp_atx
+        return indices, A, interp_atx
     
     def _select_points_spectral(
         self,
@@ -232,7 +235,7 @@ class TTFunc(ApproxFunc):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
         # TODO: this is probably available somewhere else.
-        rank_prev = torch.tensor(H.shape[0] / poly.cardinality)
+        rank_prev = torch.tensor(H.shape[0] / poly.cardinality)  # TODO: should the 0 change when going backwards?
         rank_prev = rank_prev.round().int()
         
         nodes = poly.basis2node @ reshape_matlab(H, (poly.cardinality, -1))
@@ -363,7 +366,7 @@ class TTFunc(ApproxFunc):
         else:
 
             params = torch.hstack((
-                x_left.repeat(poly.cardinality*num_right, 1),
+                x_left.repeat(poly.cardinality * num_right, 1),
                 nodes.repeat_interleave(num_left, dim=0).repeat(num_right, 1),
                 x_right.repeat_interleave(num_left * poly.cardinality, dim=0)
             ))
@@ -371,7 +374,7 @@ class TTFunc(ApproxFunc):
         f = func(params)
         f = reshape_matlab(f, (num_left, poly.cardinality, num_right))
 
-        if isinstance(poly, Spectral):
+        if isinstance(poly, Spectral):  # TODO: I think this could be a separate method eventually
             f = f.permute(1, 0, 2)
             f = poly.node2basis @ reshape_matlab(f, (poly.cardinality, -1))
             f = reshape_matlab(f, (poly.cardinality, num_left, num_right))
@@ -456,11 +459,11 @@ class TTFunc(ApproxFunc):
 
         if self.data.direction == Direction.FORWARD:
             F = F.permute(1, 0, 2)
-            F = reshape_matlab(F, (num_b_left*num_nodes, num_b_right))
+            F = reshape_matlab(F, (num_b_left * num_nodes, num_b_right))
             rank_prev = num_b_left
         else: 
             F = F.permute(1, 2, 0)
-            F = reshape_matlab(F, (num_nodes*num_b_right, num_b_left))
+            F = reshape_matlab(F, (num_nodes * num_b_right, num_b_left))
             rank_prev = num_b_right
 
         B, A, rank = self.truncate_local(F, k)
@@ -483,7 +486,16 @@ class TTFunc(ApproxFunc):
             core_next = reshape_matlab(core_next, (rank, num_nodes_next, rank_1_next))
 
         else:
-            raise NotImplementedError()
+            
+            core = reshape_matlab(core, (num_nodes, rank_prev, rank))
+            core = core.permute(2, 0, 1)
+
+            couple = couple[:, :rank_1_next].permute(0, 1)
+            couple = reshape_matlab(couple, (rank_1_next, -1))
+
+            core_next = reshape_matlab(core_next, (-1, rank_1_next))
+            core_next = core_next @ couple 
+            core_next = reshape_matlab(core_next, (rank_0_next, num_nodes_next, rank))
 
         self.data.cores[k] = core
         self.data.interp_x[k] = interp_x 
@@ -498,6 +510,7 @@ class TTFunc(ApproxFunc):
         F_up: torch.Tensor,
         k: torch.Tensor|int
     ) -> None:
+        """TODO: finish"""
         
         k = int(k)
         k_prev = int(k - self.data.direction.value)
@@ -527,12 +540,13 @@ class TTFunc(ApproxFunc):
             rank_prev = num_b_right 
             rank_next = rank_1_next
 
-        B, A, r = self.truncate_local(F, k)
+        B, A, rank = self.truncate_local(F, k)
 
         if self.data.direction == Direction.FORWARD:
 
-            raise NotImplementedError("TODO: finish")
-            temp_r = 0.0
+            raise NotImplementedError()
+            # temp_r = reshape_matlab(A, (rank, rank_0_next)) @ res_w_r
+            # temp_r = reshape_matlab(temp_r, (-1, ))
 
         return
 
@@ -652,7 +666,32 @@ class TTFunc(ApproxFunc):
                 fxs = B @ G_k
 
         else:
-            raise NotImplementedError()
+            
+            x_inds = torch.arange(dim_x-1, -1, -1)
+            t_inds = torch.arange(self.bases.dim-1, -1, -1)
+            
+            for i in range(min(dim_x, self.bases.dim)):
+                
+                j = int(t_inds[i])
+                
+                rank_p, num_nodes, rank_j = self.data.cores[j].shape
+
+                A_k = self.data.cores[j].permute(1, 2, 0)
+                A_k = reshape_matlab(self.data.cores[j], (num_nodes, -1))
+
+                G_k = self.bases.polys[j].eval_radon(A_k, xs[:, x_inds[i]])
+                G_k = reshape_matlab(G_k, (num_x, rank_j, rank_p))
+                G_k = G_k.permute(1, 0, 2)
+                G_k = reshape_matlab(G_k, (rank_j * num_x, rank_p))
+
+                ii = torch.arange(num_x * rank_j)
+                jj = torch.arange(num_x).repeat_interleave(rank_j)
+                
+                indices = torch.vstack((ii[None, :], jj[None, :]))
+                size = (rank_j * num_x, num_x)
+
+                B = torch.sparse_coo_tensor(indices, fxs.T.flatten(), size)
+                fxs = G_k.T @ B
 
         return fxs.squeeze()
 
@@ -742,9 +781,7 @@ class TTFunc(ApproxFunc):
         if self.data.cores == {}:
             self.initialise_cores()
         else:
-            # Prepare for the next iteration
-            # TODO: figure out why this is here--I think arg (in the 
-            # constructor) can be an existing TTFunc to refine.
+            # Prepare for the next iteration (DIRT-related)
             self.data.reverse_direction()
         
         if self.use_amen:

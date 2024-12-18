@@ -174,7 +174,7 @@ class Basis1D(abc.ABC, object):
         return not torch.any(torch.isinf(self.domain))
 
     @property
-    def cardinality(self) -> torch.Tensor:
+    def cardinality(self) -> int:
         """The number of nodes associated with the basis."""
         return self.nodes.numel()
 

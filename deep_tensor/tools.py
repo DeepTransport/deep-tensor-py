@@ -32,6 +32,41 @@ def compute_ess_ratio(log_weights: torch.Tensor) -> torch.Tensor:
     return ess_ratio
 
 
+def compute_f_divergence(
+    lp_ref: torch.Tensor, 
+    lp: torch.Tensor
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """TODO: write this.
+    
+    KL divergence, (squared) Hellinger distance, TV distance."""
+
+    lp = torch.atleast_2d(lp)
+    m, n = lp.shape
+    lp_ref = lp_ref.tile((m, 1))
+
+    t = lp - lp_ref
+    log_ratio = log_avr_exp(t)  # ratio of normalising constant p over p_ref
+
+    div_kl = torch.sum(t, dim=1) / n + log_ratio
+    div_h2 = 1.0 - (log_avr_exp(0.5*t) - 0.5 * log_ratio).exp()
+    div_tv = 0.5 * (torch.exp(t + log_ratio) - 1.0).abs().sum(dim=1) / n
+
+    return div_kl, div_h2, div_tv
+
+
+def log_avr_exp(t: torch.Tensor) -> torch.Tensor:
+    """TODO: write this."""
+
+    m, n = t.shape
+    a = torch.zeros(m)
+
+    for i in range(m):
+        mt = torch.max(t[i])
+        a[i] = mt + (t[i] - mt).exp().sum().log() - torch.log(torch.tensor(n))
+    
+    return a
+
+
 def deim(U: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """Computes a submatrix of a matrix of left singular vectors using
     the discrete empirical interpolation method (DEIM).
@@ -107,7 +142,7 @@ def lu_deim(A):
 
 
 def maxvol(
-    A: torch.Tensor, 
+    H: torch.Tensor, 
     tol: float=1e-2,
     max_iter: int=200
 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -115,7 +150,7 @@ def maxvol(
     
     Parameters
     ----------
-    A:
+    H:
         n*r matrix, where n > r.
     tol:
         Convergence tolerance. The algorithm is considered converged if
@@ -128,7 +163,7 @@ def maxvol(
     -------
     indices:
         The row indices of the dominant submatrix. 
-    B:
+    A:
         The product of the original matrix and the inverse of the 
         submatrix.
 
@@ -138,28 +173,28 @@ def maxvol(
 
     """
 
-    _, r = A.shape
-    indices = lu_deim(A)[:r]
+    _, r = H.shape
+    indices = lu_deim(H)[:r]
 
-    if (rank := torch.linalg.matrix_rank(A[indices])) < r:
+    if (rank := torch.linalg.matrix_rank(H[indices])) < r:
         msg = f"Initial submatrix is singular (rank {rank} < {r})."
         raise Exception(msg)
 
-    B = torch.linalg.solve(A[indices].T, A.T).T
+    A = torch.linalg.solve(H[indices].T, H.T).T
 
     for _ in range(max_iter):
 
-        ij_max = torch.argmax(torch.abs(B), axis=None)
-        i, j = torch.unravel_index(ij_max, B.shape)
+        ij_max = A.abs().argmax(axis=None)
+        i, j = torch.unravel_index(ij_max, A.shape)
         i_old = indices[j]
 
-        if torch.abs(B[i, j]) < 1.0 + tol:
+        if A[i, j].abs() < 1.0 + tol:
             # print(torch.max(A @ torch.linalg.inv(A[indices[:r]])))
-            return indices, B
+            return indices, A
 
-        B -= torch.outer(B[:, j], (B[i, :] - B[i_old, :]) / B[i, j])
+        A -= torch.outer(A[:, j], (A[i, :] - A[i_old, :]) / A[i, j])
         indices[j] = i
 
     msg = f"maxvol failed to converge in {max_iter} iterations."
     warnings.warn(msg)
-    return indices, B
+    return indices, A

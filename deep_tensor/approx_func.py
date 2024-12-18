@@ -5,11 +5,8 @@ import torch
 
 from .approx_bases import ApproxBases
 from .input_data import InputData
-from .options import TTOptions
+from .options import ApproxOptions
 from .tt_data import TTData
-
-
-DEFAULT_TT_DATA = TTData()
 
 
 class ApproxFunc(abc.ABC):
@@ -17,32 +14,20 @@ class ApproxFunc(abc.ABC):
     def __init__(
         self, 
         func: Callable, 
-        arg, # TODO: make a type annotation for this?
-        options: TTOptions, 
-        input_data: InputData
+        bases: ApproxBases,
+        options: ApproxOptions,
+        input_data: InputData,
+        data: TTData|None=None
     ):
 
+        self.bases = bases 
+        self.dim = bases.dim
         self.options = options
         self.input_data = input_data
-        self.data: TTData
+        self.data = TTData() if data is None else data  # TODO: change to approx_data?
 
-        if isinstance(arg, ApproxFunc):
-            self.bases = arg
-            self.data = arg.data 
-            self.options = arg.options
-
-        else:
-            if isinstance(arg, ApproxBases):
-                self.bases = arg
-            elif isinstance(arg, int):
-                arg1 = DEFAULT_POLY
-                arg2 = DEFAULT_DOMAIN
-                d = arg
-                self.bases = ApproxBases(arg1, arg2, d)
-            else:
-                raise Exception("Dimension should be a positive scalar.")
-                
-            self.data = DEFAULT_TT_DATA
+        # if isinstance(arg, ApproxFunc):
+        #     self.options = arg.options
         
         self.input_data.set_debug(func, self.bases)
         self.num_eval = 0
@@ -50,8 +35,6 @@ class ApproxFunc(abc.ABC):
         self.l2_err = torch.inf
         self.linf_err = torch.inf
         return
-
-    # TODO: add type annotations etc for the below abstractmethods.
     
     @abc.abstractmethod
     def eval_reference(
@@ -76,14 +59,10 @@ class ApproxFunc(abc.ABC):
     @abc.abstractmethod
     def int_reference(self):
         """Integrates the approximation to the target function over the 
-        reference domain (TODO: check this.).
+        reference domain (TODO: check this).
         """
         return
     
-    @property 
-    def dim(self) -> torch.Tensor|int:
-        return self.bases.dim
-
     def compute_relative_error(self) -> None:
         """TODO: write docstring."""
 

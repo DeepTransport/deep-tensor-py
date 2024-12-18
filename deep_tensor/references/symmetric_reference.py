@@ -111,54 +111,49 @@ class SymmetricReference(Reference, abc.ABC):
         z: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Returns the log-PDF and gradient of the log-PDF of the 
-        vector z, under the assumption the elements of z are independent
-        and identically distributed according to the reference 
-        distribution.
+        reference distribution evaluated at z.
 
         Parameters
         ----------
         z:
-            The vector at which to evaluate the log-PDF and gradient of 
-            the log-PDF of the joint distribution.
+            An n-dimensional vector at which to evaluate the log-PDF 
+            and gradient of the log-PDF of the reference distribution.
 
         Returns
         -------
         :
-            The value of the log-PDF and gradient of the log-PDF of z.
+            The value of the log-PDF and gradient of the log-PDF of the 
+            reference distribution at z.
         
         """
+        return
 
     def map_to_ref(self, x: torch.Tensor) -> torch.Tensor:
         return (x-self.mu) / self.sigma
 
-    def eval_cdf(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def eval_cdf(self, xs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         # TODO: might need to do some epsilon stuff in here.. 
-        # (ask about this?)
 
-        # Map x to the equivalent point on the unit reference distribution
-        z = self.map_to_ref(x)
-        u, f = self.eval_ref_cdf(self, z)
+        rs = self.map_to_ref(xs)
+        zs, dzdrs = self.eval_ref_cdf(rs)
 
-        # Account for any bounds on the cdf
-        u = (u - self.left) / (self.right - self.left)
+        zs = (zs - self.left) / (self.right - self.left)
+        dzdrs = dzdrs / self.sigma / (self.right - self.left)
         
-        # TODO: figure out what is going on here... (I don't get it)
-        f = f / self.sigma / (self.right - self.left)
-        
-        return u, f
+        return zs, dzdrs
 
-    def invert_cdf(self, u: torch.Tensor) -> torch.Tensor:
+    def invert_cdf(self, zs: torch.Tensor) -> torch.Tensor:
 
-        u[torch.isinf(u)] = 1.0 - EPSILON
-        u[torch.isnan(u)] = EPSILON
+        zs[torch.isinf(zs)] = 1.0 - EPSILON
+        zs[torch.isnan(zs)] = EPSILON
 
-        # Map points into appropriate range
-        u = self.left + u * (self.right-self.left)
-        z = self.invert_ref_cdf(self, u)
+        # Map points into desired section of range of CDF
+        zs = self.left + zs * (self.right-self.left)
+        rs = self.invert_ref_cdf(zs)
 
         # Rescale points
-        x = self.mu + self.sigma * z
-        return x
+        xs = self.mu + self.sigma * rs
+        return xs
         
     def eval_pdf(
         self, 
@@ -176,42 +171,23 @@ class SymmetricReference(Reference, abc.ABC):
         
     def log_joint_pdf(
         self, 
-        x: torch.Tensor
+        xs: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
         
-        num_x = x.numel()
+        zs = self.map_to_ref(xs)
+        log_fzs, log_gzs = self.log_joint_ref_pdf(zs)
 
-        z = self.map_to_ref(x)
-        f, g = self.log_joint_ref_pdf(z)
-
-        # TODO: figure out what is going on here.
-        f = f - num_x * torch.log(self.sigma * (self.right - self.left))
-        g = g / self.sigma
+        log_fxs = log_fzs - xs.numel() * (self.sigma * (self.right - self.left)).log()
+        log_gxs = log_gzs / self.sigma
     
-        return f, g
+        return log_fxs, log_gxs
     
     def random(self, d: int, n: int) -> torch.Tensor:
-        """Draws a set of samples from the reference distribution using
-        the inverse CDF method.
-        
-        Parameters
-        ----------
-        d:
-            The dimension of the samples.
-        n:
-            The number of samples to draw.
 
-        Returns
-        -------
-        :
-            The generated samples.
-
-        """
-
-        u = torch.rand(size=(n, d))
-        u = self.left + (self.right - self.left) * u
-        z = self.invert_cdf(self, u)
-        return z
+        zs = torch.rand(size=(n, d))
+        zs = self.left + (self.right - self.left) * zs
+        rs = self.invert_cdf(zs)
+        return rs
         
     def sobol(self, d: int, n: int) -> torch.Tensor:
         """Generates a set of QMC samples from the reference 
@@ -225,13 +201,13 @@ class SymmetricReference(Reference, abc.ABC):
             The number of samples to generate.
 
         Returns
-        :
+        rs:
             The generated samples.
         
         """
 
         S = torch.quasirandom.SobolEngine(dimension=d)
-        u = S.draw(n)
-        u = self.left + (self.right - self.left) * u
-        z = self.invert_cdf(u)
-        return z
+        zs = S.draw(n)
+        zs = self.left + (self.right - self.left) * zs
+        rs = self.invert_cdf(zs)
+        return rs

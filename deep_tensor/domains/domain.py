@@ -36,7 +36,7 @@ class Domain(abc.ABC):
         Parameters
         ----------
         rs: 
-            An n-dimensionl vector containing points from the reference 
+            An n-dimensional vector containing points from the reference 
             domain.
 
         Returns

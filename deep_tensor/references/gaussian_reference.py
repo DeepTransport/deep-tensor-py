@@ -22,9 +22,9 @@ class GaussianReference(SymmetricReference):
     def invert_ref_cdf(self, u: torch.Tensor) -> torch.Tensor:
         return torch.sqrt(torch.tensor(2.0)) * torch.erfinv(2.0*u-1.0)
 
-    def log_joint_ref_pdf(self, z: torch.Tensor) -> torch.Tensor:
-        num_z = z.numel()
-        f = (-0.5 * num_z * torch.log(torch.tensor(2.0*torch.pi)) 
-             + torch.sum(-0.5 * z**2))
-        g = -z 
-        return f, g
+    def log_joint_ref_pdf(self, rs: torch.Tensor) -> torch.Tensor:
+        num_r = rs.shape[1]
+        frs = (-0.5 * num_r * torch.log(torch.tensor(2.0*torch.pi)) 
+             + torch.sum(-0.5 * rs**2, dim=1))
+        grs = -rs
+        return frs, grs

@@ -8,8 +8,9 @@ from ..approx_func import ApproxFunc
 from ..constants import EPS
 from ..directions import Direction
 from ..input_data import InputData
-from ..options import ApproxOptions
+from ..options import ApproxOptions, TTOptions
 from ..polynomials import CDF1D
+from ..tt_data import TTData
 
 
 Z_MIN = torch.tensor(EPS)
@@ -18,6 +19,24 @@ Z_MAX = torch.tensor(1.0-EPS)
 
 class AbstractIRT(abc.ABC):
     """TODO: write docstring for this."""
+
+    def __init__(
+        self, 
+        potential: Callable,
+        bases: ApproxBases, 
+        approx: ApproxFunc|None,
+        options: ApproxOptions,  # TODO: check this.
+        input_data: InputData,
+        approx_data: TTData
+    ):
+
+        self.potential = potential 
+        self.bases = bases
+        self.approx = approx
+        self.options = options 
+        self.input_data = input_data
+        self.approx_data = approx_data
+        return
 
     @property
     @abc.abstractmethod 
@@ -76,11 +95,32 @@ class AbstractIRT(abc.ABC):
     @abc.abstractmethod
     def potential2density(
         self,
-        bases: ApproxBases, 
         func: Callable,
         zs: torch.Tensor
     ) -> torch.Tensor:
-        """TODO: write docstring."""
+        """Computes the density of a sample, or set of samples, from 
+        the reference domain.
+
+        Parameters
+        ----------
+        potential_func:
+            A function that returns the potential of the target density 
+            function at a given point in the approximation domain.
+        zs:
+            A set of samples from the reference domain, of dimension 
+            n * d.
+
+        Returns
+        ------
+        ys:
+            An n-dimensional vector containing the square root of the 
+            (unnormalised) target density function evaluated at each 
+            (transformed) value of zs.
+            
+        TODO: I think this returns g(x) (i.e. square root of pi -- see 
+        Cui and Dolgov, Eq. 18).
+        TODO: figure out what the reference function is doing here.
+        """
         return
     
     @abc.abstractmethod
@@ -89,7 +129,26 @@ class AbstractIRT(abc.ABC):
         ys: torch.Tensor,
         zs: torch.Tensor
     ) -> torch.Tensor:
-        """TODO: write docstring."""
+        """Computes the density of a sample, or set of samples, from 
+        the reference domain.
+
+        Parameters
+        ----------
+        ys:
+            The potential function associated with the target density, 
+            evaluated at each (transformed) sample from zs.
+        zs:
+            A set of samples from the reference domain, of dimension 
+            n * d.
+
+        Returns
+        ------
+        ys:
+            An n-dimensional vector containing the square root of the 
+            (unnormalised) target density function evaluated at each 
+            (transformed) value of zs.
+        
+        """
         return
 
     @abc.abstractmethod
@@ -203,25 +262,24 @@ class AbstractIRT(abc.ABC):
         Parameters
         ----------
         xs:
-            An n * d matrix containing samples from the reference 
+            An n * d matrix containing samples from the approximation 
             domain.
         
         Returns
         -------
-        fxs:
-            The marginal density evaluated at each sample contained in 
-            xs.
+        neglogfxs:
+            The negative log of the approximation to the target density 
+            evaluated at each sample in xs.
 
         """
 
-        dim_z = xs.shape[1]
-        indices = self.get_transform_indices(dim_z)
+        indices = self.get_transform_indices(xs.shape[1])
         
         rs, drdxs = self.approx.bases.domain2reference(xs, indices)
-        frs = self.eval_potential_reference(rs)
+        neglogfrs = self.eval_potential_reference(rs)
         # TODO: check whether the sum direction is correct.
-        fxs = frs - torch.sum(torch.log(drdxs), 1)
-        return fxs
+        neglogfxs = neglogfrs - drdxs.log().sum(dim=1)
+        return neglogfxs
 
     def eval_pdf(
         self, 
@@ -233,24 +291,26 @@ class AbstractIRT(abc.ABC):
         TODO: finish
         """
 
-        fxs = self.eval_potential(xs)
-        fxs = torch.exp(-fxs)
+        neglogfxs = self.eval_potential(xs)
+        fxs = torch.exp(-neglogfxs)
         return fxs
     
     def eval_rt(self, xs: torch.Tensor) -> torch.Tensor:
-        """Evaluates the squared Rosenblatt transport Z = R(X), where 
-        Z is a (unit) uniform random variable and X is the target 
-        random variable.
+        """Evaluates the Rosenblatt transport Z = R(X), where Z is a 
+        (standard) uniform random variable and X is the target random 
+        variable.
 
         Parameters
         ----------
         xs: 
-            A set of realisations of X.
+            An n * d matrix containing samples from the approxiation 
+            domain.
         
         Returns
         -------
-        :
-            The corresponding realisations of Z.
+        zs:
+            An n * d matrix containing the samples after applying the 
+            Rosenblatt transport.
         
         """
 
@@ -293,7 +353,7 @@ class AbstractIRT(abc.ABC):
         xs: 
             An n * d matrix containing the corresponding samples from 
             the PDF defined by SIRT.
-        potential_xs: 
+        neglogfxs: 
             An n-dimensional vector containing the potential function
             associated with the target density evaluated at each sample
             in xs.
@@ -306,11 +366,11 @@ class AbstractIRT(abc.ABC):
         zs = torch.clamp(zs, Z_MIN, Z_MAX)
         indices = self.get_transform_indices(zs.shape[1])
 
-        rs, potential_rs = self.eval_irt_reference_nograd(zs)
+        rs, neglogfrs = self.eval_irt_reference_nograd(zs)
         xs, dxdrs = self.approx.bases.reference2domain(rs, indices)
-        potential_xs = potential_rs + dxdrs.log().sum(dim=1)
+        neglogfxs = neglogfrs + dxdrs.log().sum(dim=1)
 
-        return xs, potential_xs
+        return xs, neglogfxs
     
     def eval_cirt(
         self, 

@@ -15,8 +15,8 @@ class BoundedDomain(LinearDomain):
             raise Exception(msg)
 
         self._bounds = bounds
-        self._mean = torch.mean(self._bounds)
-        self._dxdr = 0.5 * (self._bounds[1] - self._bounds[0])
+        self._mean = self.bounds.mean()
+        self._dxdr = 0.5 * (self.bounds[1] - self.bounds[0])
         
         self._left = self.bounds[0]
         self._right = self.bounds[1]

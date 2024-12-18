@@ -4,10 +4,12 @@ import torch
 
 from .sirt import SIRT
 from ..approx_bases import ApproxBases
+from ..approx_func import ApproxFunc
 from ..directions import Direction
 from ..input_data import InputData
 from ..options import TTOptions
 from ..polynomials import Basis1D
+from ..tt_data import TTData
 from ..tt_func import TTFunc
 from ..tools import reshape_matlab
 
@@ -18,16 +20,32 @@ class TTSIRT(SIRT):
         self, 
         potential: Callable, 
         bases: ApproxBases,
-        options: TTOptions=TTOptions(), 
-        input_data: InputData=InputData(), 
+        approx: TTFunc|None=None,
+        options: TTOptions|None=None, 
+        input_data: InputData|None=None, 
+        tt_data: TTData|None=None,
         tau: float=1e-8
     ):
+        
+        if options is None:
+            options = TTOptions()
+        
+        if input_data is None:
+            input_data = InputData()
         
         # Define coefficient tensors and marginalisation coefficents
         self.Bs: dict[int, torch.Tensor] = {}
         self.Rs: dict[int, torch.Tensor] = {} 
 
-        super().__init__(potential, bases, options, input_data, tau)
+        super().__init__(
+            potential, 
+            bases, 
+            approx, 
+            options, 
+            input_data, 
+            tt_data,
+            tau
+        )
 
         # TODO: figure out what this is for. I think this is set in the 
         # marginalise() function--so I'm not sure what's going on here.
@@ -55,7 +73,7 @@ class TTSIRT(SIRT):
             
             _, self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")
 
-        self._z_func = torch.sum(self.Rs[0] ** 2)
+        self._z_func = self.Rs[0].square().sum()
         return 
     
     def _marginalise_backward(self) -> None:
@@ -79,7 +97,7 @@ class TTSIRT(SIRT):
 
             _, self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")
 
-        self._z_func = torch.sum(self.Rs[self.bases.dim-1] ** 2)
+        self._z_func = self.Rs[self.bases.dim-1].square().sum()
         return
 
     def _eval_irt_reference_nograd_forward(
@@ -129,8 +147,8 @@ class TTSIRT(SIRT):
             indices = torch.vstack((ii[None, :], jj[None, :]))
             values = frl.T.flatten()
             size = (num_z, rank_p * num_z)
-            
             B = torch.sparse_coo_tensor(indices, values, size)
+            
             frl = B @ T2
             frl[torch.isnan(frl)] = 0.0
         
@@ -205,14 +223,16 @@ class TTSIRT(SIRT):
         density_func: Callable, 
         bases: ApproxBases, 
         options: TTOptions, 
-        input_data: InputData
-    ):
+        input_data: InputData,
+        tt_data: TTData
+    ) -> TTFunc:
         
         approx = TTFunc(
             density_func, 
-            bases, 
+            bases,
             options=options, 
-            input_data=input_data
+            input_data=input_data,
+            tt_data=tt_data
         )
 
         if approx.use_amen:
@@ -444,6 +464,8 @@ class TTSIRT(SIRT):
         
         else:
             
+            # TODO: check this
+
             k_min = self.approx.dim - dim_r
             frg = torch.ones((1, num_r))
 
@@ -499,7 +521,7 @@ class TTSIRT(SIRT):
 
         Returns
         -------
-        %   X - random variable drawn form the pdf defined by SIRT
+        %   X - random variable drawn from the pdf defined by SIRT
         %   f - potential function at X
         %   g - gradient of potential function at X
 
@@ -551,9 +573,10 @@ class TTSIRT(SIRT):
                 # TODO
                 ii = 1.0
                 jj = torch.arange()
+                raise NotImplementedError("TODO")
 
         else:  # from right to left
-            raise NotImplementedError()
+            raise NotImplementedError("TODO")
     
     def eval_irt_reference_nograd(
         self, 
@@ -588,8 +611,8 @@ class TTSIRT(SIRT):
             rs, pi_rs = self._eval_irt_reference_nograd_backward(zs)
         
         indices = self.get_transform_indices(zs.shape[1])
-        neglogref = self.bases.eval_measure_potential_reference(rs, indices)
-        potential_rs = self.z.log() - (pi_rs + self.tau).log() + neglogref
+        neglogrefs = self.bases.eval_measure_potential_reference(rs, indices)
+        potential_rs = self.z.log() - (pi_rs + self.tau).log() + neglogrefs
 
         return rs, potential_rs
 

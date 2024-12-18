@@ -4,7 +4,7 @@ import torch
 
 from .single_beta import SingleBeta
 from ..references import Reference
-from ..tools import compute_ess_ratio
+from ..tools import compute_ess_ratio, compute_f_divergence
 from ..utils import info
 
 
@@ -12,9 +12,12 @@ class Tempering1(SingleBeta):
 
     def __init__(
         self, 
-        betas: torch.Tensor=torch.tensor([]), 
+        betas: torch.Tensor|None=None, 
         **kwargs
     ):
+        
+        if betas == None:
+            betas = torch.tensor([])
 
         super().__init__(betas, **kwargs)
         self.betas = torch.sort(betas)[0]
@@ -27,19 +30,24 @@ class Tempering1(SingleBeta):
         return self._is_adaptive
 
     @property 
+    def is_last(self) -> bool:
+        return torch.abs(self.betas[self.num_layers] - 1.0) < 1e-6
+
+    @property 
     def num_layers(self) -> int:
         return self._num_layers
     
     @num_layers.setter
     def num_layers(self, value):
         self._num_layers = value
+        return
     
     def adapt_density(
         self, 
         method: str, 
         neglogliks: torch.Tensor, 
         neglogpris: torch.Tensor, 
-        neglogfs: torch.Tensor
+        neglogfxs: torch.Tensor
     ) -> None:
         """Determines the beta value associated with the next bridging 
         density.
@@ -50,12 +58,19 @@ class Tempering1(SingleBeta):
             The method used to select the next bridging parameter. Can
             be `aratio` (approximate ratio) or `eratio` (exact ratio).
         neglogliks: 
-            The negative log-likelihood of each sample.
+            An n-dimensional vector containging the negative 
+            log-likelihood of each of the current samples.
         neglogpris:
-            The negative log-prior density of each sample.
-        neglogfs:
-            The negative log-density of the current approximation to 
-            the target distribution for each sample.
+            An n-dimensional vector containing the negative log-prior 
+            density of each of the current samples.
+        neglogfxs:
+            An n-dimensional vector containing the negative log-density 
+            of the current approximation to the target density for each 
+            of the current samples.
+
+        Returns
+        -------
+        None
         
         """
         
@@ -68,24 +83,21 @@ class Tempering1(SingleBeta):
             return
             
         beta_prev = self.betas[self.num_layers-1]
-        beta = max(beta_prev, self.min_beta)
+        beta = torch.maximum(beta_prev, self.min_beta).clone()
 
-        # TODO: tidy this up (the while loop is pretty much the same in both cases.)
         if method == "aratio":
-            ess = compute_ess_ratio(-(beta-beta_prev)*neglogliks)
-            while ess > self.ess_tol:
+            log_weights = -(beta-beta_prev)*neglogliks
+            while compute_ess_ratio(log_weights) > self.ess_tol:
                 beta *= self.beta_factor
-                ess = compute_ess_ratio(-(beta-beta_prev)*neglogliks)
+                log_weights = -(beta-beta_prev)*neglogliks
         
         elif method == "eratio":
-            # Compute ess over sample size
-            ess = compute_ess_ratio(-beta*neglogliks-neglogpris+neglogfs)
-            while ess > self.ess_tol:
+            log_weights = -beta*neglogliks - neglogpris + neglogfxs
+            while compute_ess_ratio(log_weights) > self.ess_tol:
                 beta *= self.beta_factor
-                ess = compute_ess_ratio(-beta*neglogliks-neglogpris+neglogfs)
+                log_weights = -beta*neglogliks - neglogpris + neglogfxs
 
-        beta = min(1.0, beta)
-        
+        beta = torch.minimum(beta, torch.tensor(1.0))
         self.betas = torch.cat((self.betas, beta.reshape(1)))
         return
 
@@ -93,31 +105,58 @@ class Tempering1(SingleBeta):
         self, 
         reference: Reference, 
         method: str,
-        zs: torch.Tensor,
+        xs: torch.Tensor,
         neglogliks: torch.Tensor, 
         neglogpris: torch.Tensor, 
-        neglogfs: torch.Tensor # the current approximate density 
-        # evaluated at each of the current samples (pushed forward 
-        # under the current mapping)
+        neglogfxs: torch.Tensor
     ) -> torch.Tensor:
-        """Returns the negative log-ratio function."""
+        """Returns the negative log-ratio function evaluated each of 
+        the current set of samples.
+        
+        Parameters
+        ----------
+        reference:
+            The reference distribution.
+        method:
+            The method used to compute the ratio function. Can be
+            'eratio' (exact) or 'aratio' (approximate).
+        xs:
+            An n * d matrix containing a set of samples from the 
+            approximation domain.
+        neglogliks:
+            An n-dimensional vector containing the negative 
+            log-likelihood evaluated at each sample.
+        neglogpris:
+            An n-dimensional vector containing the negative log-prior
+            density evaluated at each sample.
+        neglogfxs:
+            An n-dimensional vector containing the negative logarithm
+            of the density the samples are drawn from.
+
+        Returns
+        -------
+        neglogratio:
+            The negative logarithm of the ratio function evaluated for
+            each sample.
+            
+        """
         
         beta = self.betas[self.num_layers]
 
         if self.num_layers == 0:
-            ratio = beta * neglogliks + neglogpris
-            return ratio
+            neglogratio = beta*neglogliks + neglogpris
+            return neglogratio
         
-        # Compute the reference density at each z value
-        logfz = reference.log_joint_pdf(zs)
+        # Compute the reference density at each value of xs
+        logfrs = reference.log_joint_pdf(xs)[0]
         beta_prev = self.betas[self.num_layers-1]
 
-        if method == "aratio":
-            ratio = (beta-beta_prev) * neglogliks - logfz
-        elif method == "eratio":
-            ratio = beta * neglogliks + neglogpris - neglogfs - logfz
+        if method == "eratio":  # TODO: match these to the paper
+            neglogratio = beta*neglogliks + neglogpris - neglogfxs - logfrs
+        elif method == "aratio":
+            neglogratio = (beta-beta_prev)*neglogliks - logfrs
         
-        return ratio
+        return neglogratio
     
     def ratio_func(
         self, 
@@ -172,34 +211,44 @@ class Tempering1(SingleBeta):
         self, 
         neglogliks: torch.Tensor,
         neglogpris: torch.Tensor,
-        neglogfs: torch.Tensor
+        neglogfxs: torch.Tensor
     ) -> torch.Tensor:
         """Returns the logarithm of the current density function being
         approximated at each of a set of samples.
         """
         
-        log_weights = (- self.betas[self.num_layers]*neglogliks
+        log_weights = (- self.betas[self.num_layers] * neglogliks
                        - neglogpris 
-                       + neglogfs)
+                       + neglogfxs)
         
         return log_weights
 
     def print_progress(
         self, 
-        log_weights: torch.Tensor
+        log_weights: torch.Tensor,
+        neglogliks: torch.Tensor,
+        neglogpris: torch.Tensor,
+        neglogfxs: torch.Tensor
     ) -> None:
 
         ess = compute_ess_ratio(log_weights)
 
-        if self.num_layers == 0:
-            msg = [
-                f"Iter: {self.num_layers}", 
-                f"beta: {self.betas[self.num_layers-1]:.4f}", 
-                f"ESS: {ess:.4f}"
-            ]
-            info(" | ".join(msg))
-            return
-        
-        raise NotImplementedError()
+        msg = [
+            f"Iter: {self.num_layers}", 
+            f"beta: {self.betas[self.num_layers]:.4f}", 
+            f"ESS: {ess:.4f}"
+        ]
 
+        if self.num_layers > 0:
+        
+            lp_ref = -neglogfxs
+            lp = -self.betas[self.num_layers-1] * neglogliks - neglogpris
+            div_h2 = compute_f_divergence(lp_ref, lp)[1]
+
+            msg = msg[:1] + [
+                f"DHell: {div_h2.sqrt()[0]:.4f}",
+                f"prev beta: {self.betas[self.num_layers-1]:.4f}"
+            ] + msg[1:]
+
+        info(" | ".join(msg))
         return

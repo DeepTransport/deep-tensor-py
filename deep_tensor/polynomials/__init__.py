@@ -4,6 +4,7 @@ from .basis_1d import Basis1D
 # Piecewise polynomials
 from .piecewise import Piecewise
 from .lagrange_1 import Lagrange1
+from .lagrange_p import LagrangeP
 
 # Spectral polynomials
 from .spectral import Spectral

@@ -53,17 +53,27 @@ class Bridge(abc.ABC):
         method: str, 
         neglogliks: torch.Tensor, 
         neglogpris: torch.Tensor, 
-        neglogfs: torch.Tensor
+        neglogfxs: torch.Tensor
     ) -> None:
         return
     
+    @abc.abstractmethod
+    def compute_log_weights(
+        self,
+        neglogliks: torch.Tensor,
+        neglogpris: torch.Tensor, 
+        neglogfxs: torch.Tensor
+    ) -> torch.Tensor:
+        """TODO: write docstring."""
+        return
+
     @abc.abstractmethod
     def print_progress(
         self, 
         neglogliks: torch.Tensor, 
         neglogpris: torch.Tensor, 
         neglogfx: torch.Tensor
-    ):
+    ) -> None:
         return 
     
     def eval(self, func: Callable, x: torch.Tensor) -> tuple[float, float]:
@@ -84,6 +94,8 @@ class Bridge(abc.ABC):
         :
             The negative log-likelihood and negative log-prior density
             associated with x.
+
+        TODO: get rid of this.
             
         """
         return func(x)

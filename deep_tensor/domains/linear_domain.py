@@ -11,14 +11,14 @@ class LinearDomain(Domain, abc.ABC):
     @property 
     @abc.abstractmethod
     def mean(self):
-        """The midpoint of the reference domain."""
+        """The midpoint of the approximation domain."""
         return
     
     @property 
     @abc.abstractmethod
     def dxdr(self):
-        """The gradient of the mapping from the approximation domain to 
-        the reference domain.
+        """The gradient of the mapping from the reference domain to 
+        the approximation domain.
         """
         return
 

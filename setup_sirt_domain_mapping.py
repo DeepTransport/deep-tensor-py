@@ -1,6 +1,5 @@
+from matplotlib import pyplot as plt 
 import torch
-
-from ou import OU
 
 from deep_tensor import (
     ApproxBases,
@@ -13,6 +12,8 @@ from deep_tensor import (
 )
 
 from deep_tensor.utils import info
+
+from ou import OU
 
 torch.manual_seed(3)
 
@@ -34,17 +35,17 @@ input_data = InputData(sample_x, debug_x)
 
 domain = BoundedDomain(bounds=torch.tensor([-5.0, 5.0]))
 
-# bases = ApproxBases(
-#     polys=Lagrange1(num_elems=20), 
-#     domains=domain, 
-#     dim=d
-# )
-
 bases = ApproxBases(
-    polys=Legendre(order=40),
-    domains=domain,
+    polys=Lagrange1(num_elems=20), 
+    domains=domain, 
     dim=d
 )
+
+# bases = ApproxBases(
+#     polys=Legendre(order=40),
+#     domains=domain,
+#     dim=d
+# )
 
 # bases{1} = ApproxBases(Legendre(40), dom, d);
 # bases{2} = ApproxBases(Fourier(20), dom, d);
@@ -53,27 +54,26 @@ bases = ApproxBases(
 # bases{5} = ApproxBases(Hermite(10), UnboundedDomain(), d);
 
 options = TTOptions(
-    tt_method="amen", 
+    tt_method="random",
     als_tol=1e-8, 
     local_tol=1e-6,
     max_rank=20, 
-    max_als=1
+    max_als=4
 )
 
-irt = TTSIRT(
+sirt = TTSIRT(
     potential_func, 
     bases, 
     options=options, 
     input_data=input_data
 )
 
-from deep_tensor.directions import Direction
-
-irt.marginalise(direction=Direction.FORWARD)
+# from deep_tensor.directions import Direction
+# sirt.marginalise(direction=Direction.FORWARD)
 
 zs = torch.rand((10_000, d))
-xs, potential_xs = irt.eval_irt_nograd(zs)
-z0 = irt.eval_rt(xs)
+xs, potential_xs = sirt.eval_irt_nograd(zs)
+z0 = sirt.eval_rt(xs)
 
 transform_error = torch.linalg.norm(zs-z0, ord="fro")
 potential_error = torch.linalg.norm(potential_func(xs) - potential_xs)
@@ -86,7 +86,6 @@ info(f"Potential error: {potential_error}")
 info(f"PDF error: {pdf_error}")
 
 #disp(['cov eror: ' num2str(norm(data.C - cov(r'))/norm(data.C))])
-from matplotlib import pyplot as plt 
 
 plt.scatter(potential_func(xs), potential_xs, s=10)
 plt.xlabel("Potential")

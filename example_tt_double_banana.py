@@ -4,7 +4,7 @@ from deep_tensor.domains import BoundedDomain
 from deep_tensor.polynomials import Lagrange1
 from deep_tensor.approx_bases import ApproxBases
 from deep_tensor.bridging_densities import Tempering1
-from deep_tensor.irt.dirt import TTDIRT
+from deep_tensor.irt.tt_dirt import TTDIRT
 
 from double_banana import DoubleBanana
 
@@ -41,8 +41,8 @@ bounds = torch.tensor([-4.0, 4.0])
 domain = BoundedDomain(bounds)
 
 # Define interpolation basis
-basis = Lagrange1(num_elems=50)
-bases = ApproxBases([basis], [domain], dim)
+poly = Lagrange1(num_elems=50)
+bases = ApproxBases(poly, domain, dim)
 
 # Define bridging measures
 bridge = Tempering1()

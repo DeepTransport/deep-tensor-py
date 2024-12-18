@@ -82,14 +82,14 @@ class Reference(abc.ABC):
     @abc.abstractmethod
     def log_joint_pdf(
         self, 
-        x: torch.Tensor
+        xs: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Returns the log-PDF and gradient of the log-PDF of the 
         vector x under the approximation distribution.
 
         Parameters
         ----------
-        u:
+        xs:
             The vector at which to evaluate the log-PDF and gradient of 
             the log-PDF of the joint distribution. 
 
@@ -97,6 +97,26 @@ class Reference(abc.ABC):
         -------
         :
             The value of the log-PDF and gradient of the log-PDF of u.
+
+        """
+        return
+    
+    @abc.abstractmethod
+    def random(self, d: int, n: int) -> torch.Tensor:
+        """Draws a set of samples from the reference distribution using
+        the inverse CDF method.
+        
+        Parameters
+        ----------
+        d:
+            The dimension of the samples.
+        n:
+            The number of samples to draw.
+
+        Returns
+        -------
+        :
+            The generated samples.
 
         """
         return
