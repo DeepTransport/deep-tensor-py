@@ -4,7 +4,6 @@ import warnings
 import torch
 
 from .approx_bases import ApproxBases
-from .utils import info
 
 
 class InputData():
@@ -62,7 +61,7 @@ class InputData():
             if n is not None:
                 msg = ("Generating initialization samples from the " 
                        + "base measure.")
-                info(msg)
+                print(msg)
                 self.rs_samp, _ = base.sample_measure_reference(n)
             else:
                 msg = ("There are no initialization samples available. "

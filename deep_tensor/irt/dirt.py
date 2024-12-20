@@ -11,7 +11,7 @@ from ..domains import BoundedDomain
 from ..input_data import InputData
 from ..options import ApproxOptions, DIRTOptions, TTOptions
 from ..references import Reference, GaussianReference
-from ..utils import info
+from ..utils import dirt_info
 
 
 class DIRT(abc.ABC):
@@ -456,7 +456,7 @@ class DIRT(abc.ABC):
             rs = self.reference.random(self.dim, self.pre_sample_size)
 
             if self.bridge.is_last:
-                info("DIRT construction complete.")
+                dirt_info("DIRT construction complete.")
                 return
             self.num_layers += 1
 

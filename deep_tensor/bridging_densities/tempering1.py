@@ -5,7 +5,7 @@ import torch
 from .single_beta import SingleBeta
 from ..references import Reference
 from ..tools import compute_ess_ratio, compute_f_divergence
-from ..utils import info
+from ..utils import dirt_info
 
 
 class Tempering1(SingleBeta):
@@ -174,5 +174,5 @@ class Tempering1(SingleBeta):
             # f"prev beta: {self.betas[self.num_layers-1]:.4f}"
             msg.append(f"DHell: {div_h2.sqrt()[0]:.4f}")
 
-        info(" | ".join(msg))
+        dirt_info(" | ".join(msg))
         return

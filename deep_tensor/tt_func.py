@@ -11,7 +11,7 @@ from .options import TTOptions
 from .polynomials import Basis1D, Piecewise, Spectral
 from .tools import deim, maxvol, reshape_matlab
 from .tt_data import TTData
-from .utils import info
+from .utils import als_info
 
 MAX_COND = 1.0e+5
 
@@ -81,7 +81,7 @@ class TTFunc(ApproxFunc):
                 "Mean Debug Error"
             ]
 
-        info(" | ".join(info_headers))
+        als_info(" | ".join(info_headers))
         return
 
     def _print_info(
@@ -104,7 +104,7 @@ class TTFunc(ApproxFunc):
                 f"{self.l2_err:=16.5e}"
             ]
 
-        info(" | ".join(diagnostics))
+        als_info(" | ".join(diagnostics))
         return
 
     def _compute_cross_iter_fixed_rank(
@@ -816,8 +816,8 @@ class TTFunc(ApproxFunc):
 
             if self.is_finished(als_iter, indices):
                 self._print_info(als_iter, indices)
-                info(f"ALS complete.")
-                info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
+                als_info(f"ALS complete.")
+                als_info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
                 return
 
             else:
