@@ -107,8 +107,8 @@ def compute_norm_const_ratio(
     for i in range(m):
         # Shift by maximum value to avoid numerical issues
         max_val = log_ratios[i].max()
-        log_norm_ratios[i] = (max_val 
-                              + (log_ratios[i] - max_val).exp().sum().log() 
+        log_norm_ratios[i] = ((log_ratios[i] - max_val).exp().sum().log() 
+                              + max_val
                               - torch.tensor(n).log())
     
     return log_norm_ratios

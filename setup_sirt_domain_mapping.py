@@ -11,8 +11,6 @@ from deep_tensor import (
     TTSIRT
 )
 
-from deep_tensor.utils import info
-
 from ou import OU
 
 torch.manual_seed(3)
@@ -81,9 +79,9 @@ pdf_error = torch.linalg.norm(torch.exp(-potential_func(xs)) - torch.exp(-potent
 
 # print((zs-z0)[:2, :])
 
-info(f"Transform error: {transform_error}")
-info(f"Potential error: {potential_error}")
-info(f"PDF error: {pdf_error}")
+print(f"Transform error: {transform_error}")
+print(f"Potential error: {potential_error}")
+print(f"PDF error: {pdf_error}")
 
 #disp(['cov eror: ' num2str(norm(data.C - cov(r'))/norm(data.C))])
 

@@ -201,6 +201,9 @@ class TTFunc(ApproxFunc):
         x_right = self.data.interp_x[int(k+1)]
         self.data.cores[k] = self.build_block_local(func, x_left, x_right, k)
 
+        #print("Final block...")
+        #print(self.data.cores[k].mean())
+
         return
 
     def _select_points_piecewise(
@@ -598,7 +601,7 @@ class TTFunc(ApproxFunc):
 
     def eval_reference(
         self, 
-        x: torch.Tensor
+        xs: torch.Tensor
     ) -> torch.Tensor:
         """Evaluates the TTFunRef for either the first or last k 
         variables, depending on the current direction the cores are 
@@ -607,7 +610,7 @@ class TTFunc(ApproxFunc):
         TODO: finish docstring
         """
 
-        fx = self.eval_block(x)
+        fx = self.eval_block(xs)
         return fx
     
     def eval_block(
@@ -677,7 +680,7 @@ class TTFunc(ApproxFunc):
                 rank_p, num_nodes, rank_j = self.data.cores[j].shape
 
                 A_k = self.data.cores[j].permute(1, 2, 0)
-                A_k = reshape_matlab(self.data.cores[j], (num_nodes, -1))
+                A_k = reshape_matlab(A_k, (num_nodes, -1))
 
                 G_k = self.bases.polys[j].eval_radon(A_k, xs[:, x_inds[i]])
                 G_k = reshape_matlab(G_k, (num_x, rank_j, rank_p))
@@ -760,7 +763,7 @@ class TTFunc(ApproxFunc):
     def cross(
         self, 
         func: Callable[[torch.Tensor], torch.Tensor]
-    ):
+    ) -> None:
         """Cross iterations for building the tensor train.
 
         Parameters

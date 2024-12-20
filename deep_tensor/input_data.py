@@ -157,6 +157,7 @@ class InputData():
         self, 
         approx: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """TODO: write docstring."""
         
         # TODO: figure out if this is necessary (the function that 
         # calls this has an early return also)
