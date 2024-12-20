@@ -9,22 +9,23 @@ class GaussianReference(SymmetricReference):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
     
-    def eval_ref_cdf(self, z: torch.Tensor) -> torch.Tensor:
-        u = 0.5 * (1.0 + torch.erf(z / torch.sqrt(torch.tensor(2.0))))
-        f = torch.exp(-0.5 * z**2) / torch.sqrt(torch.tensor(2.0 * torch.pi))
-        return u, f
+    def eval_unit_cdf(self, us: torch.Tensor) -> torch.Tensor:
+        zs = 0.5 * (1.0 + torch.erf(us / (2.0 ** 0.5)))
+        dzdus = torch.exp(-0.5 * us**2) / ((2.0 * torch.pi) ** 0.5)
+        return zs, dzdus
     
-    def eval_ref_pdf(self, z: torch.Tensor) -> torch.Tensor:
-        f = torch.exp(-0.5 * z**2) / torch.sqrt(torch.tensor(2.0 * torch.pi))
-        g = -z * f 
-        return f, g
+    def eval_unit_pdf(self, us: torch.Tensor) -> torch.Tensor:
+        pdfs = torch.exp(-0.5 * us**2) / ((2.0 * torch.pi) ** 0.5)
+        grad_pdfs = -us * pdfs
+        return pdfs, grad_pdfs
     
-    def invert_ref_cdf(self, u: torch.Tensor) -> torch.Tensor:
-        return torch.sqrt(torch.tensor(2.0)) * torch.erfinv(2.0*u-1.0)
+    def invert_unit_cdf(self, zs: torch.Tensor) -> torch.Tensor:
+        us = (2.0 ** 0.5) * torch.erfinv(2.0*zs-1.0)
+        return us
 
-    def log_joint_unit_pdf(self, rs: torch.Tensor) -> torch.Tensor:
-        num_r = rs.shape[1]
-        frs = (-0.5 * num_r * torch.log(torch.tensor(2.0*torch.pi)) 
-             + torch.sum(-0.5 * rs**2, dim=1))
-        grs = -rs
-        return frs, grs
+    def log_joint_unit_pdf(self, us: torch.Tensor) -> torch.Tensor:
+        dim_u = us.shape[1]
+        logpdfs = (-0.5 * dim_u * torch.log(torch.tensor(2.0*torch.pi)) 
+                   + torch.sum(-0.5 * us**2, dim=1))
+        loggrad_pdfs = -us
+        return logpdfs, loggrad_pdfs

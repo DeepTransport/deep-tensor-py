@@ -15,22 +15,27 @@ class Reference(abc.ABC):
     @abc.abstractmethod
     def eval_cdf(
         self, 
-        x: torch.Tensor
+        rs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Evaluates the CDF and gradient of the CDF (i.e., the PDF) of 
+        """Evaluates the CDF and PDF (i.e., the gradient of the CDF) of 
         the reference distribution at a set of values.
         
         Parameters
         ----------
-        x:
-            Set of values at which to evaluate the CDF and PDF of the 
-            reference distribution.
+        rs:
+            A matrix or vector containing a samples from the reference 
+            density.
             
         Returns
         -------
-        :
-            The CDF and PDF of the reference distribution evaluated at 
-            each value of x.
+        zs:
+            A matrix or vector of the same dimension as rs, containing 
+            the CDF of the reference density evaluated at each element 
+            of rs.
+        dzdrs:
+            A matrix or vector of the same dimension as rs, containing 
+            the PDF of the reference density evaluated at each element 
+            of rs.
         
         """
         return 
@@ -38,22 +43,27 @@ class Reference(abc.ABC):
     @abc.abstractmethod
     def eval_pdf(
         self,
-        x: torch.Tensor
+        rs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Evaluates the PDF and gradient of the PDF of the reference
-        distribution at each value of x.
+        """Evaluates the PDF and gradient of the PDF of the reference 
+        distribution at a set of values.
         
         Parameters
         ----------
-        x:
-            Set of values at which to evaluate the PDF and gradient of 
-            the PDF of the reference distribution.
-
+        rs:
+            A matrix or vector containing a samples from the reference 
+            density.
+            
         Returns
         -------
-        :
-            The PDF and gradient of the PDF of the reference 
-            distribution evaluated at each element of x.
+        pdfs:
+            A matrix or vector of the same dimension as rs, containing 
+            the PDF of the reference density evaluated at each element 
+            of rs.
+        grad_pdfs:
+            A matrix or vector of the same dimension as rs, containing 
+            the gradient of the PDF of the reference density evaluated 
+            at each element of rs.
         
         """
         return
@@ -61,20 +71,23 @@ class Reference(abc.ABC):
     @abc.abstractmethod
     def invert_cdf(
         self,
-        u: torch.Tensor
+        zs: torch.Tensor
     ) -> torch.Tensor:
         """Returns the values of the reference distribution 
         corresponding to a set of points on the CDF.
         
         Parameters
         ----------
-        u: 
-            A set of points on the CDF of the distribution.
+        zs: 
+            A matrix or vector containing points distributed according 
+            to the CDF of the distribution.
 
         Returns
         -------
-        : 
-            The corresponding points of the distribution.
+        rs:
+            A matrix or vector of the same dimension as zs, containing 
+            the points from the reference density corresponding to each 
+            element of zs.
         
         """
         return
@@ -82,28 +95,34 @@ class Reference(abc.ABC):
     @abc.abstractmethod
     def log_joint_pdf(
         self, 
-        xs: torch.Tensor
+        rs: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        """Returns the log-PDF and gradient of the log-PDF of each 
-        elements of xs for the reference distribution.
+        """Returns the joint log-PDF and gradient of the log-PDF of 
+        each of a set of points distributed according to the joint 
+        reference density. 
 
         Parameters
         ----------
-        xs:
-            The vector at which to evaluate the log-PDF and gradient of 
-            the log-PDF of the joint distribution. 
+        rs:
+            An n * d matrix containing samples for which to evaluate 
+            the log-PDF and gradient of the log-PDF of the joint 
+            reference density.
 
         Returns
         -------
-        :
-            The value of the log-PDF and gradient of the log-PDF of xs.
+        log_pdfs:
+            A d-dimensional vector containing the log of the joint 
+            reference density evaluated at each sample in rs.
+        log_grad_pdfs:
+            An n * d matrix containing the log of the gradient of the 
+            joint reference density evaluated at each sample in rs.
 
         """
         return
     
     @abc.abstractmethod
     def random(self, d: int, n: int) -> torch.Tensor:
-        """Draws a set of samples from the reference distribution using
+        """Draws a set of samples from the reference density using
         the inverse CDF method.
         
         Parameters
@@ -115,8 +134,8 @@ class Reference(abc.ABC):
 
         Returns
         -------
-        :
-            The generated samples.
+        rs:
+            An n * d matrix containing the generated samples.
 
         """
         return
@@ -134,8 +153,9 @@ class Reference(abc.ABC):
             The number of samples to generate.
 
         Returns
+        -------
         rs:
-            The generated samples.
+            An n * d matrix containing the generated samples.
         
         """
         return
