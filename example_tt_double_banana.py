@@ -65,7 +65,7 @@ rts = torch.concatenate([xx, yy], axis=1)
 
 for k in range(airt.num_layers+1):
 
-    fig, axes = plt.subplots(2, 2)
+    fig, axes = plt.subplots(2, 2, figsize=(5, 5))
 
     # Evaluate density
     rf = airt.eval_potential(xts, k)
@@ -76,30 +76,31 @@ for k in range(airt.num_layers+1):
     bf = torch.exp(-neglogliks*airt.bridge.betas[k]-neglogpris)
     bf = bf / (torch.sum(bf) * const)
 
-    axes[0][0].contourf(xs, ys, rf.reshape(n, n))
+    axes[0][0].contourf(xs, ys, rf.reshape(n, n).T)
     axes[0][0].set_xlabel("$x_{1}$")
     axes[0][0].set_ylabel("$x_{2}$")
     axes[0][0].set_title(r"$\hat{\pi}$")
 
-    axes[0][1].contourf(xs, ys, bf.reshape(n, n))
+    axes[0][1].contourf(xs, ys, bf.reshape(n, n).T)
     axes[0][1].set_xlabel("$x_{1}$")
     axes[0][1].set_ylabel("$x_{2}$")
     axes[0][1].set_title(r"$\pi$")
 
     fk = airt.irts[k].eval_pdf(rts)
-    axes[1][0].contourf(rxs, rys, fk.reshape(n, n))
+    axes[1][0].contourf(rxs, rys, fk.reshape(n, n).T)
     axes[1][0].set_xlabel("$u_{1}$")
     axes[1][0].set_ylabel("$u_{2}$")
+    axes[1][0].set_title("tt")
 
     if k > 0:
         
-        xs_, logfxs = airt.eval_irt(rts, k-1)
+        xs_, _ = airt.eval_irt(rts, k)
         neglogliks, neglogpris = model.potential_dirt(xs_)
         logfzs = airt.reference.log_joint_pdf(rts)[0]
         
         bf = torch.exp(-neglogliks*(airt.bridge.betas[k]-airt.bridge.betas[k-1])+logfzs)
-        
-        axes[1][1].contourf(rxs, rys, bf.reshape(n, n))
+
+        axes[1][1].contourf(rxs, rys, bf.reshape(n, n).T)
         axes[1][1].set_xlabel("$u_{1}$")
         axes[1][1].set_ylabel("$u_{2}$")
         axes[1][1].set_title("a. ratio fun")

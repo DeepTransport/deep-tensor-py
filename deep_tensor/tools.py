@@ -33,38 +33,85 @@ def compute_ess_ratio(log_weights: torch.Tensor) -> torch.Tensor:
 
 
 def compute_f_divergence(
-    lp_ref: torch.Tensor, 
-    lp: torch.Tensor
+    log_proposal: torch.Tensor, 
+    log_target: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """TODO: write this.
+    """Computes approximations of a set of f-divergences between two 
+    probability distributions using samples.
+
+    Parameters
+    ----------
+    log_proposal:
+        An n-dimensional vector containing the proposal density (i.e., 
+        the density the samples are drawn from) evaluated at each 
+        sample.
+    log_target:
+        An m * n matrix. Each row should contain the values of a target
+        density evaluated at each sample.
+
+    Returns
+    -------
+    div_kl: 
+        An approximation of the KL divergence between the distributions 
+        based on the samples.
+    div_h2:
+        An approximation of the (squared) Hellinger distance between 
+        the distributions based on the samples.
+    div_tv:
+        An approximation of the total variation distance between the 
+        distributions based on the samples.
     
-    KL divergence, (squared) Hellinger distance, TV distance."""
+    TODO: derive the TV and H2 estimates.
+        
+    """
 
-    lp = torch.atleast_2d(lp)
-    m, n = lp.shape
-    lp_ref = lp_ref.tile((m, 1))
+    log_target = torch.atleast_2d(log_target)
+    m, n = log_target.shape
+    log_proposal = log_proposal.tile((m, 1))
 
-    t = lp - lp_ref
-    log_ratio = log_avr_exp(t)  # ratio of normalising constant p over p_ref
+    log_ratios = log_target - log_proposal
+    log_norm_ratios = compute_norm_const_ratio(log_ratios)
 
-    div_kl = torch.sum(t, dim=1) / n + log_ratio
-    div_h2 = 1.0 - (log_avr_exp(0.5*t) - 0.5 * log_ratio).exp()
-    div_tv = 0.5 * (torch.exp(t + log_ratio) - 1.0).abs().sum(dim=1) / n
+    div_kl = log_ratios.sum(dim=1) / n + log_norm_ratios
+    div_h2 = 1.0 - (compute_norm_const_ratio(0.5*log_ratios) - 0.5*log_norm_ratios).exp()
+    div_tv = 0.5 * (torch.exp(log_ratios + log_norm_ratios) - 1.0).abs().sum(dim=1) / n
 
     return div_kl, div_h2, div_tv
 
 
-def log_avr_exp(t: torch.Tensor) -> torch.Tensor:
-    """TODO: write this."""
+def compute_norm_const_ratio(
+    log_ratios: torch.Tensor
+) -> torch.Tensor:
+    """Estimates the ratio of the normalising constants between two 
+    (unnormalised) densities using a set of samples.
+    
+    Parameters
+    ----------
+    log_ratios:
+        An m * n matrix. Each row contains the logarithm of the ratio 
+        between a (possibly unnormalised) target density and the 
+        proposal density, for samples drawn from the proposal density.
+    
+    Returns
+    -------
+    log_norm_ratios:
+        An m-dimensional vector containing estimates of the log of the 
+        ratio of the normalising constants between each of the target 
+        densities and the proposal density.
+    
+    """
 
-    m, n = t.shape
-    a = torch.zeros(m)
+    m, n = log_ratios.shape
+    log_norm_ratios = torch.zeros(m)
 
     for i in range(m):
-        mt = torch.max(t[i])
-        a[i] = mt + (t[i] - mt).exp().sum().log() - torch.log(torch.tensor(n))
+        # Shift by maximum value to avoid numerical issues
+        max_val = log_ratios[i].max()
+        log_norm_ratios[i] = (max_val 
+                              + (log_ratios[i] - max_val).exp().sum().log() 
+                              - torch.tensor(n).log())
     
-    return a
+    return log_norm_ratios
 
 
 def deim(U: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:

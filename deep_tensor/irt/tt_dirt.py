@@ -21,7 +21,7 @@ class TTDIRT(DIRT):
         bases: list[ApproxBases], 
         sirt_options: ApproxOptions, 
         xs: torch.Tensor, 
-        neglogratio: torch.Tensor
+        neglogratios: torch.Tensor
     ) -> TTSIRT:
         """TODO: write docstring.
 
@@ -36,9 +36,9 @@ class TTDIRT(DIRT):
             Options used when constructing the SIRT associated with the 
             layer.
         xs:
-            An n * d matrix containing samples from the current 
-            bridging density. 
-        neglogratio:
+            An n * d matrix containing samples distributed according to
+            the current bridging density.
+        neglogratios:
             An n-dimensional vector containing the negative log-ratio 
             function evaluated at each element in xs.
 
@@ -50,11 +50,11 @@ class TTDIRT(DIRT):
         
         """
 
-        def updated_func(zs: torch.Tensor) -> torch.Tensor:
+        def updated_func(rs: torch.Tensor) -> torch.Tensor:
 
             return self.bridge.ratio_func(
                 func, 
-                zs, 
+                rs, 
                 self.eval_irt, 
                 self.reference, 
                 self.dirt_options.method
@@ -68,7 +68,7 @@ class TTDIRT(DIRT):
                 input_data = self.get_inputdata(
                     bases[self.num_layers], 
                     xs, 
-                    neglogratio
+                    neglogratios
                 )
 
                 sirt = TTSIRT(
@@ -83,17 +83,17 @@ class TTDIRT(DIRT):
 
                 # Start from the previous approximation
                 input_data = self.get_inputdata(
-                    self.irts[self.num_layers-1].approx.bases,
+                    deepcopy(self.irts[self.num_layers-1].approx.bases),
                     xs, 
-                    neglogratio
+                    neglogratios
                 )
 
                 sirt = TTSIRT(
-                    updated_func, 
-                    bases=self.irts[self.num_layers-1].approx.bases,
-                    approx=deepcopy(self.irts[self.num_layers-1].approx), 
+                    updated_func,
+                    bases=deepcopy(self.irts[self.num_layers-1].approx.bases),
+                    approx=deepcopy(self.irts[self.num_layers-1].approx),
                     options=sirt_options,
-                    input_data=input_data,
+                    input_data=deepcopy(input_data),
                     tt_data=deepcopy(self.irts[self.num_layers-1].approx.data),
                     tau=self.dirt_options.defensive
                 )

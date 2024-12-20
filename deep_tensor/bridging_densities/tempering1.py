@@ -49,30 +49,6 @@ class Tempering1(SingleBeta):
         neglogpris: torch.Tensor, 
         neglogfxs: torch.Tensor
     ) -> None:
-        """Determines the beta value associated with the next bridging 
-        density.
-        
-        Parameters
-        ----------
-        method: 
-            The method used to select the next bridging parameter. Can
-            be `aratio` (approximate ratio) or `eratio` (exact ratio).
-        neglogliks: 
-            An n-dimensional vector containging the negative 
-            log-likelihood of each of the current samples.
-        neglogpris:
-            An n-dimensional vector containing the negative log-prior 
-            density of each of the current samples.
-        neglogfxs:
-            An n-dimensional vector containing the negative log-density 
-            of the current approximation to the target density for each 
-            of the current samples.
-
-        Returns
-        -------
-        None
-        
-        """
         
         if not self.is_adaptive:
             return
@@ -110,103 +86,52 @@ class Tempering1(SingleBeta):
         neglogpris: torch.Tensor, 
         neglogfxs: torch.Tensor
     ) -> torch.Tensor:
-        """Returns the negative log-ratio function evaluated each of 
-        the current set of samples.
-        
-        Parameters
-        ----------
-        reference:
-            The reference distribution.
-        method:
-            The method used to compute the ratio function. Can be
-            'eratio' (exact) or 'aratio' (approximate).
-        xs:
-            An n * d matrix containing a set of samples from the 
-            approximation domain.
-        neglogliks:
-            An n-dimensional vector containing the negative 
-            log-likelihood evaluated at each sample.
-        neglogpris:
-            An n-dimensional vector containing the negative log-prior
-            density evaluated at each sample.
-        neglogfxs:
-            An n-dimensional vector containing the negative logarithm
-            of the density the samples are drawn from.
-
-        Returns
-        -------
-        neglogratio:
-            The negative logarithm of the ratio function evaluated for
-            each sample.
-            
-        """
         
         beta = self.betas[self.num_layers]
 
         if self.num_layers == 0:
-            neglogratio = beta*neglogliks + neglogpris
+            neglogratio = beta*neglogliks + neglogpris  # neglogfrs == neglogpris in the first instance, also beta_prev=0
             return neglogratio
         
         # Compute the reference density at each value of xs
         neglogfrs = -reference.log_joint_pdf(xs)[0]
         beta_prev = self.betas[self.num_layers-1]
 
-        if method == "eratio":  # TODO: match these to the paper
-            neglogratio = (beta*neglogliks + neglogpris + neglogfrs
-                           - neglogfxs)
+        if method == "eratio":
+            # beta*neglogliks + neglogpris = exact evaluations of next target of samples under current composition of mappings
+            # neglogfrs = density of reference evaluated at each sample
+            # neglogfxs = current approximation density (that the samples are drawn from) evaluated at each sample
+            # TODO: figure out where omega went here. I assume it's somehow lumped in to neglogfxs..?
+            neglogratios = (beta*neglogliks + neglogpris + neglogfrs
+                            - neglogfxs)
         elif method == "aratio":
-            neglogratio = (beta-beta_prev)*neglogliks + neglogfrs
+            neglogratios = (beta-beta_prev)*neglogliks + neglogfrs
         
-        return neglogratio
+        return neglogratios
     
     def ratio_func(
         self, 
         func: Callable, 
-        zs: torch.Tensor,
+        rs: torch.Tensor,
         irt_func: Callable,
         reference: Reference,
         method: str
     ) -> torch.Tensor:
-        """Returns the negative log-ratio function associated with a 
-        set of samples from the reference domain.
         
-        Parameters
-        ----------
-        func:
-            User-defined function that returns the negative 
-            log-likelihood and negative log-prior density of a sample 
-            in the approximation domain.
-        zs:
-            The samples from the reference domain.
-        irt_func:
-            Function that computes the inverse Rosenblatt transform.
-        reference:
-            The reference distribution.
-        method:
-            The method to use when computing the ratio function; can be
-            `aratio` (approximate ratio) or `eratio` (exact ratio).
-        
-        Returns
-        -------
-        : 
-            The negative log-ratio function evaluated for each sample.
-
-        """
-        
-        # Push samples forward to the approximation domain
-        xs, neglogfs = irt_func(zs)
+        # Push samples forward to the approximation of the current target
+        xs, neglogfxs = irt_func(rs)
         neglogliks, neglogpris = func(xs)
         
-        f = self.get_ratio_func(
+        neglogratios = self.get_ratio_func(
             reference, 
             method, 
-            zs, 
+            rs,  # TODO: confirm that this should be xs rather than rs
             neglogliks, 
             neglogpris, 
-            neglogfs
+            neglogfxs
         )
 
-        return f
+        return neglogratios
     
     def compute_log_weights(
         self, 
@@ -214,12 +139,8 @@ class Tempering1(SingleBeta):
         neglogpris: torch.Tensor,
         neglogfxs: torch.Tensor
     ) -> torch.Tensor:
-        """Returns the logarithm of the current density function being
-        approximated at each of a set of samples.
-        """
-        
-        log_weights = (- self.betas[self.num_layers] * neglogliks
-                       - neglogpris 
+
+        log_weights = (-self.betas[self.num_layers]*neglogliks - neglogpris
                        + neglogfxs)
         
         return log_weights
@@ -242,14 +163,16 @@ class Tempering1(SingleBeta):
 
         if self.num_layers > 0:
         
-            lp_ref = -neglogfxs
-            lp = -self.betas[self.num_layers-1] * neglogliks - neglogpris
-            div_h2 = compute_f_divergence(lp_ref, lp)[1]
+            beta = self.betas[self.num_layers-1]
+            log_proposal = -neglogfxs
+            log_target = -beta*neglogliks - neglogpris
 
-            msg = msg[:1] + [
-                f"DHell: {div_h2.sqrt()[0]:.4f}",
-                f"prev beta: {self.betas[self.num_layers-1]:.4f}"
-            ] + msg[1:]
+            # Estimate square Hellinger distance between current (kth)
+            # approximation and previous (kth) target density
+            div_h2 = compute_f_divergence(log_proposal, log_target)[1]
+
+            # f"prev beta: {self.betas[self.num_layers-1]:.4f}"
+            msg.append(f"DHell: {div_h2.sqrt()[0]:.4f}")
 
         info(" | ".join(msg))
         return

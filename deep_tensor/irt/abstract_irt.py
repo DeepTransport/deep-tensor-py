@@ -303,7 +303,7 @@ class AbstractIRT(abc.ABC):
         Parameters
         ----------
         xs: 
-            An n * d matrix containing samples from the approxiation 
+            An n * d matrix containing samples from the approximation 
             domain.
         
         Returns
@@ -317,6 +317,7 @@ class AbstractIRT(abc.ABC):
         dim_x = xs.shape[1]
         indices = self.get_transform_indices(dim_x)
         
+        # TODO: is it better call this reference or unit?
         rs, _ = self.approx.bases.domain2reference(xs, indices)
         zs = self.eval_rt_reference(rs)
         return zs

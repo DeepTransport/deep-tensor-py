@@ -27,4 +27,3 @@ class SingleBeta(Bridge, abc.ABC):
         self.init_beta = torch.tensor(min_beta)
 
         return
-

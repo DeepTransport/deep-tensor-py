@@ -11,6 +11,7 @@ from ..domains import BoundedDomain
 from ..input_data import InputData
 from ..options import ApproxOptions, DIRTOptions, TTOptions
 from ..references import Reference, GaussianReference
+from ..utils import info
 
 
 class DIRT(abc.ABC):
@@ -23,7 +24,7 @@ class DIRT(abc.ABC):
         reference: Reference|None=None,
         sirt_options: ApproxOptions|None=None,
         dirt_options: DIRTOptions|None=None,
-        init_samples: torch.Tensor|None=None,  # TODO: check type annotation
+        init_samples: torch.Tensor|None=None,
         prev_approx=None  # TODO: fix this (set as None if not passed in) and add type annotation
     ):
         """Deep inverse Rosenblatt transform.
@@ -35,7 +36,8 @@ class DIRT(abc.ABC):
             negative log-likelihood and negative log-prior density
             associated with a given set of parameters.
         bases:
-            The bases for ...
+            The set of polynomial bases associated with each dimension
+            of the approximation domain.
         bridge:
             An object used to construct successive approximations to the 
             target distribution.
@@ -152,20 +154,132 @@ class DIRT(abc.ABC):
 
         return xs, neglogliks, neglogpris, neglogfxs
 
+    def get_potential_to_density(
+        self, 
+        bases: ApproxBases, 
+        neglogratio: torch.Tensor, 
+        rs: torch.Tensor  # Not sure what this is supposed to be? Samples from the reference (not [-1, 1]), although the bases.reference2domain and bases.eval_measure_potential_reference would suggest otherwise...
+    ) -> torch.Tensor:
+        """Returns the (square-rooted?) density we aim to approximate.
+        
+        TODO: finish docstring. This seems like a pretty key function..."""
+        
+        # TODO: figure out what's going on here. I have no idea why dxdrs is being computed.
+        _, dxdrs = bases.reference2domain(rs)
+        neglogws = bases.eval_measure_potential_reference(rs)
+
+        log_ys = -0.5 * (neglogratio - neglogws - dxdrs.log().sum(dim=1))
+        return torch.exp(log_ys)
+
+    def get_inputdata(
+        self, 
+        bases: ApproxBases, 
+        xs: torch.Tensor, 
+        neglogratio: torch.Tensor 
+    ) -> InputData:
+        """TODO: write docstring.
+        
+        Parameters
+        ----------
+        bases:
+            A set of bases for each direction of the reference / 
+            approximation domain.
+        xs:
+            An n * d matrix containing samples distributed according to
+            the current bridging density.
+        neglogratio:
+            A n-dimensional vector containing the negative logarithm of
+            the current ratio function evaluated at each sample in xs.
+        
+        Returns
+        -------
+        input_data:
+            TODO: write this.
+            
+        """
+
+        if self.dirt_options.num_debugs == 0:
+            return InputData(xs)  # TODO: figure out if the indices are actually needed.
+        
+        indices = torch.arange(self.dirt_options.num_samples)
+        indices_debug = torch.arange(self.dirt_options.num_debugs)
+        indices_debug += self.dirt_options.num_samples
+
+        fxs_debug = self.get_potential_to_density(
+            bases, 
+            neglogratio[indices_debug], 
+            xs[indices_debug]
+        )
+
+        return InputData(xs[indices], xs[indices_debug], fxs_debug)
+
+    def eval_potential(
+        self, 
+        xs: torch.Tensor,
+        num_layers: torch.Tensor=torch.inf
+    ) -> torch.Tensor:
+        """Evaluates the potential function associated with the 
+        pushforward of the reference measure under a given number of 
+        layers of the current DIRT.
+        
+        Parameters
+        ----------
+        xs:
+            An n * d matrix containing a set of samples to evaluate the 
+            pushforward for.
+        num_layers:
+            The number of layers of the current DIRT construction to
+            push forward the samples under.
+
+        Returns
+        -------
+        neglogfxs:
+            An n-dimensional vector containing the potential function
+            of the desnity of the pushforward measure evaluated at each
+            element of xs. 
+
+        """
+
+        num_layers = min(num_layers, self.num_layers)
+        _, neglogfxs = self.eval_rt(xs, num_layers)
+
+        return neglogfxs
+
     def eval_rt(
         self,
         xs: torch.Tensor,
         num_layers: torch.Tensor=torch.inf
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """TODO: write docstring."""
+        """Evaluate the deep Rosenblatt transport X = T(R), where 
+        R is the reference random variable and X is the target random
+        variable.
+        
+        TODO: tidy the below up.
+        Parameters
+        ----------
+        xs:
+            An n * d matrix of random variables drawn from the density 
+            defined by the current SIRT.
+        num_layers:
+            The number of layers of SIRTS to push the random variables 
+            forward under.
+
+        Returns
+        -------
+        zs:
+            xx
+        neglogfxs:
+            xx
+        """
         
         num_layers = min(num_layers, self.num_layers)
         zs = xs.clone()
 
         neglogfxs = torch.zeros(zs.shape[0])
 
-        for l in range(num_layers+1):  # TODO: figure out what this should be..?
+        for l in range(num_layers+1):
             
+            # The first two are fine regardless of number of layers, the third appears problematic
             us = self.irts[l].eval_rt(zs)
             neglogts = self.irts[l].eval_potential(zs)
 
@@ -176,6 +290,13 @@ class DIRT(abc.ABC):
 
         neglogfs = -self.reference.log_joint_pdf(zs)[0]
         neglogfxs += neglogfs # TODO: figure out what these things are
+
+        # from matplotlib import pyplot as plt
+        # plt.clf()
+        # n = int(neglogfxs.numel() ** 0.5)
+        # plt.pcolormesh(torch.exp(-neglogfxs).reshape(n, n))
+        # plt.colorbar()
+        # plt.show()
 
         return zs, neglogfxs
 
@@ -191,8 +312,8 @@ class DIRT(abc.ABC):
         Parameters
         ----------
         rs:
-            An n * d matrix containing samples from the reference
-            distribution.
+            An n * d matrix containing samples distributed according to
+            the reference density.
         num_layers: 
             The number of layers of the deep inverse Rosenblatt 
             transport.
@@ -211,90 +332,30 @@ class DIRT(abc.ABC):
         References
         ----------
         Cui and Dolgov (2022). Deep composition of tensor-trains using 
-        squared inverse Rosenblatt transports.
-          - Eq. (48)
-
-        TODO: this has a few different cases / output arguments. Need 
-        to figure out how to split it up. This function is currently
-        for the case where nargout=2.
+        squared inverse Rosenblatt transports. Eq. (48).
+        Cui, Dolgov and Scheichl (2024). Deep importance sampling using 
+        tensor trains with application to a-priori and a-posteriori
+        rare events. Eq. (3.9).
 
         """
 
-        # if num_layers > self.num_layers:
-        #     msg = ("Number of layers requested for IRT is greater "
-        #            + "than the number of layers that have been "
-        #            + "constructed.")
-        #     raise Exception(msg)
-
         num_layers = min(num_layers, self.num_layers)
-        xs = rs.clone()  # reference domain == approximation domain
+        xs = rs.clone()
 
         neglogfxs = -self.reference.log_joint_pdf(xs)[0]
 
         for l in range(num_layers-1, -1, -1):
 
-            # Transform from reference to uniform
+            # Evaluate reference density
             neglogrefs = -self.reference.log_joint_pdf(xs)[0]
+
+            # Evaluate the current mapping Q
             zs = self.reference.eval_cdf(xs)[0]
-
-            # Evaluate the current SIRT
             xs, neglogsirts = self.irts[l].eval_irt_nograd(zs)
-
-            # Update density
             neglogfxs += neglogsirts - neglogrefs
 
         return xs, neglogfxs
     
-    def get_potential_to_density(
-        self, 
-        bases: ApproxBases, 
-        neglogratio: torch.Tensor, 
-        rs: torch.Tensor  # Not sure what this is supposed to be? Samples from the reference (not [-1, 1]), although the bases.reference2domain and bases.eval_measure_potential_reference would suggest otherwise
-    ) -> torch.Tensor:
-        """Returns the (square-rooted?) density we aim to approximate."""
-        
-        _, dxdrs = bases.reference2domain(rs)  # TODO: figure out what's going on here...
-        neglogref = bases.eval_measure_potential_reference(rs)
-
-        log_ys = -0.5 * (neglogratio - neglogref - dxdrs.log().sum(dim=1))
-        return torch.exp(log_ys)
-
-    def get_inputdata(
-        self, 
-        bases: ApproxBases, 
-        xs: torch.Tensor, 
-        neglogratio: torch.Tensor 
-    ) -> InputData:
-        """TODO: write docstring."""
-            
-        indices = torch.arange(self.dirt_options.num_samples)
-
-        if self.dirt_options.num_debugs == 0:
-            return InputData(xs[indices])
-
-        indices_debug = (torch.arange(self.dirt_options.num_debugs)
-                         + self.dirt_options.num_samples)
-
-        fxs_debug = self.get_potential_to_density(
-            bases, 
-            neglogratio[indices_debug], 
-            xs[indices_debug]
-        )
-
-        return InputData(xs[indices], xs[indices_debug], fxs_debug)
-
-    def eval_potential(
-        self, 
-        xs: torch.Tensor,
-        num_layers: torch.Tensor=torch.inf
-    ) -> torch.Tensor:
-        """TODO: write docstring."""
-
-        num_layers = min(num_layers, self.num_layers)
-        _, f = self.eval_rt(xs, num_layers)
-
-        return f
-
     def build_bases(self, bases, reference: Reference):
         """TODO: need to do the cases where we have, e.g., a list of 
         approximation bases rather than just one."""
@@ -313,8 +374,9 @@ class DIRT(abc.ABC):
         self,
         func: Callable, 
         bases: list[ApproxBases]
-    ):
-        """TODO: write docstring.
+    ) -> None:
+        """Constructs the deep inverse Rosenblatt transport using a
+        composition of mappings.
         
         Parameters
         ----------
@@ -327,7 +389,7 @@ class DIRT(abc.ABC):
 
         Returns
         -------
-        TODO
+        None
         
         """
         
@@ -337,12 +399,12 @@ class DIRT(abc.ABC):
                 (xs, neglogliks, 
                  neglogpris, neglogfxs) = self.initialise(bases[0])
             else:
-                # Push forward a set of reference samples to the 
-                # approximation domain
+                # Push forward a set of samples from the reference 
+                # density to the current approximation
                 xs, neglogfxs = self.eval_irt(rs)
                 neglogliks, neglogpris = func(xs)
         
-            # Generate new target density
+            # Determine parameters (e.g., beta) associated with next target density
             self.bridge.adapt_density(
                 self.dirt_options.method, 
                 neglogliks, 
@@ -373,6 +435,7 @@ class DIRT(abc.ABC):
             )
 
             # Generate a new set of particles with equal weights
+            # TODO: move this to its own function
             resampled_inds = torch.multinomial(
                 input=log_weights.exp(), 
                 num_samples=self.pre_sample_size, 
@@ -393,10 +456,12 @@ class DIRT(abc.ABC):
             rs = self.reference.random(self.dim, self.pre_sample_size)
 
             if self.bridge.is_last:
+                info("DIRT construction complete.")
                 return
             self.num_layers += 1
 
         # Finish off the last layer
+        # TODO: it might be good to have a warning in here.
         xs, neglogfxs = self.eval_irt(rs)
         neglogliks, neglogpris = func(xs)
 

@@ -120,3 +120,22 @@ class Reference(abc.ABC):
 
         """
         return
+    
+    @abc.abstractmethod
+    def sobol(self, d: int, n: int) -> torch.Tensor:
+        """Generates a set of QMC samples from the reference 
+        distribution using a Sobol sequence.
+        
+        Parameters
+        ----------
+        d: 
+            The dimension of the samples.
+        n:
+            The number of samples to generate.
+
+        Returns
+        rs:
+            The generated samples.
+        
+        """
+        return

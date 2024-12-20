@@ -120,8 +120,7 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         ))
 
         fs = torch.sum(x_mat * data.poly_coef[:, i_inds].T, 1)
-        fs = fs + data.cdf_poly_grid.T.flatten()[j_inds]
-
+        fs += data.cdf_poly_grid.T.flatten()[j_inds]
         return fs
 
     def eval_int_lag_local_deriv(

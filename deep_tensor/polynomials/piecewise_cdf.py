@@ -58,10 +58,14 @@ class PiecewiseCDF(CDF1D, abc.ABC):
 
         zs[e_ks == self.num_elems] = data.poly_norm[e_ks == self.num_elems]
 
-        # TODO: figure out how to simplify this
-        in_domain = ~((e_ks == -1) & (e_ks == self.num_elems))
-
-        zs[in_domain] = self.eval_int_lag_local(data, e_ks[in_domain], in_domain, rs[in_domain])
+        in_domain = ~((e_ks == -1) | (e_ks == self.num_elems))
+        
+        zs[in_domain] = self.eval_int_lag_local(
+            data, 
+            e_ks[in_domain], 
+            in_domain, 
+            rs[in_domain]
+        )
 
         return zs
 
@@ -92,7 +96,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         return fs, dfs
 
     def eval_cdf(self, pdf_vals: torch.Tensor, rs: torch.Tensor):
-        """"""
+        """TODO: write docstring."""
 
         if torch.min(pdf_vals) < -1e-8:
             msg = "Negative values of PDF found."

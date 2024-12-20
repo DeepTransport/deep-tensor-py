@@ -15,7 +15,7 @@ class TTOptions(ApproxOptions):
         kick_rank: int=2,
         max_rank: int=30, 
         local_tol: float=1e-8,
-        cdf_tol: float=1e-4,
+        cdf_tol: float=1e-6,
         tt_method: str="amen",
         int_method: str="maxvol",
         verbose: bool=True

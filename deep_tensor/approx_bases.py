@@ -382,7 +382,7 @@ class ApproxBases():
         xs:
             An n * d matrix containing samples from the approximation 
             domain.
-        neglogfx:   
+        neglogfxs:
             An n-dimensional vector containing the negative logarithm 
             of the pushforward density of each sample.
         
@@ -440,7 +440,7 @@ class ApproxBases():
         """Computes the density of the reference measure for a set of 
         samples from the input domain, with the domain mapping.
 
-        
+        TODO: finish
 
         """
 
