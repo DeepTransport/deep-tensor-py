@@ -1,23 +1,18 @@
-_DEFAULT_METHOD = "aratio"
-_METHODS = ["eratio", "aratio"]
-_DEFAULT_MAX_LAYERS = 50
-_DEFAULT_NUM_SAMPLES = 1000
-_DEFAULT_NUM_DEBUGS = 1000
-_DEFAULT_TAU = 1e-8
+METHODS = ["eratio", "aratio"]
 
 
 class DIRTOptions():
 
     def __init__(
         self, 
-        method: str=_DEFAULT_METHOD,
-        max_layers: int=_DEFAULT_MAX_LAYERS,
-        num_samples: int=_DEFAULT_NUM_SAMPLES,
-        num_debugs: int=_DEFAULT_NUM_DEBUGS,
-        defensive: float=_DEFAULT_TAU
+        method: str="aratio",
+        max_layers: int=50,
+        num_samples: int=1000,
+        num_debugs: int=1000,
+        defensive: float=1e-8
     ):
         
-        self._validate_method(method)
+        self._verify_method(method)
         
         self.method = method.lower()
         self.max_layers = max_layers
@@ -27,11 +22,11 @@ class DIRTOptions():
 
         return
     
-    def _validate_method(self, method: str) -> None:
+    def _verify_method(self, method: str) -> None:
         
-        if method.lower() in _METHODS:
+        if method.lower() in METHODS:
             return
         
         msg = (f"`{method}` is an invalid method. Valid "
-               + "methods are: " + ", ".join(_METHODS) + ".")
+               + "methods are: " + ", ".join(METHODS) + ".")
         raise Exception(msg)
