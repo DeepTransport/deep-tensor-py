@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Callable
 
 import torch
@@ -6,8 +7,6 @@ from .dirt import DIRT
 from .tt_sirt import TTSIRT
 from ..approx_bases import ApproxBases
 from ..options import ApproxOptions
-
-from copy import deepcopy
 
 
 class TTDIRT(DIRT):
@@ -62,41 +61,26 @@ class TTDIRT(DIRT):
 
         if self.prev_approx is None:
             
+            # Generate debugging and initialisation samples
+            bases_i = bases[min(self.num_layers, 1)] 
+            input_data = self.get_inputdata(bases_i, xs, neglogratios)
+
             if self.num_layers <= 1:  # start from fresh (TODO: figure out why this happens on the second iteration?)
-                
-                # Generate debugging and initialisation samples
-                input_data = self.get_inputdata(
-                    bases[self.num_layers], 
-                    xs, 
-                    neglogratios
-                )
-
-                sirt = TTSIRT(
-                    updated_func, 
-                    bases=bases[self.num_layers], 
-                    options=sirt_options, 
-                    input_data=input_data,
-                    tau=self.dirt_options.defensive
-                )
-
+                approx = None 
+                tt_data = None
             else:
+                approx = deepcopy(self.irts[self.num_layers-1].approx)
+                tt_data = deepcopy(self.irts[self.num_layers-1].approx.data)
 
-                # Start from the previous approximation
-                input_data = self.get_inputdata(
-                    deepcopy(self.irts[self.num_layers-1].approx.bases),
-                    xs, 
-                    neglogratios
-                )
-
-                sirt = TTSIRT(
-                    updated_func,
-                    bases=deepcopy(self.irts[self.num_layers-1].approx.bases),
-                    approx=deepcopy(self.irts[self.num_layers-1].approx),
-                    options=sirt_options,
-                    input_data=deepcopy(input_data),
-                    tt_data=deepcopy(self.irts[self.num_layers-1].approx.data),
-                    tau=self.dirt_options.defensive
-                )
+            sirt = TTSIRT(
+                updated_func,
+                bases=bases_i,
+                approx=approx,
+                options=sirt_options,
+                input_data=input_data,
+                tt_data=tt_data,
+                tau=self.dirt_options.defensive
+            )
         
         else:
             raise NotImplementedError()
