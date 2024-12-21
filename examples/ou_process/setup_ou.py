@@ -54,7 +54,7 @@ options_list = [
     ) for method in tt_methods_list
 ]
 
-sirts = {}
+sirts: dict[int: dict[int: dt.TTSIRT]] = {}
 
 for i, bases in enumerate(bases_list):
     sirts[i] = {}

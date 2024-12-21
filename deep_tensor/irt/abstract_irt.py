@@ -362,7 +362,7 @@ class AbstractIRT(abc.ABC):
         """
 
         # TEMP (TODO: remove)
-        self._int_dir = Direction.FORWARD
+        # self._int_dir = Direction.FORWARD
 
         zs = torch.clamp(zs, Z_MIN, Z_MAX)
         indices = self.get_transform_indices(zs.shape[1])

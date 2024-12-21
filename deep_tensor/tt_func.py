@@ -610,12 +610,13 @@ class TTFunc(ApproxFunc):
         TODO: finish docstring
         """
 
-        fx = self.eval_block(xs)
+        fx = self.eval_block(xs, self.data.direction)
         return fx
     
     def eval_block(
         self, 
-        xs: torch.Tensor
+        xs: torch.Tensor,
+        direction: Direction
     ) -> torch.Tensor:
         """Evaluates the functional tensor train approximation to the 
         target function for either the first or last k variables, for a 
@@ -642,7 +643,7 @@ class TTFunc(ApproxFunc):
 
         fxs = torch.ones((num_x, 1))
 
-        if self.data.direction == Direction.FORWARD:
+        if direction == Direction.FORWARD:
 
             for k in range(min(dim_x, self.dim)):
 

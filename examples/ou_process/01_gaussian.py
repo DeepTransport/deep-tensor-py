@@ -35,7 +35,7 @@ for i in range(len(bases_list)):
         axes[0].set_xlabel("Error")
         axes[0].set_title("Error in potential function")
 
-        axes[1].scatter(potential_func(xs), potential_xs, s=10)
+        axes[1].scatter(potential_func(xs), potential_xs, s=4)
         axes[1].set_xlabel("True potential")
         axes[1].set_ylabel("FTT")
         axes[1].set_title("True potential vs FTT")

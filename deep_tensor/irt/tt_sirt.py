@@ -94,7 +94,7 @@ class TTSIRT(SIRT):
             B_k = reshape_matlab(B_k, (num_nodes, rank_p * rank_k))
             C_k = reshape_matlab(poly_k.mass_r(B_k), (num_nodes * rank_p, rank_k))
 
-            _, self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")
+            self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")[1]
 
         self._z_func = self.Rs[self.bases.dim-1].square().sum()
         return
@@ -152,7 +152,7 @@ class TTSIRT(SIRT):
             frl[torch.isnan(frl)] = 0.0
         
         if dim_z < self.approx.dim:
-            raise NotImplementedError("TODO")
+            pi_rs = torch.sum((frl @ self.Rs[dim_z]).square(), 1)
         else:
             pi_rs = frl.flatten().square()
 
@@ -211,7 +211,7 @@ class TTSIRT(SIRT):
             frg[torch.isnan(frg)] = 0.0
 
         if dim_z < self.approx.bases.dim:
-            raise NotImplementedError("TODO")
+            frs = (self.Rs[i_min-1] @ frg).square().sum(dim=0)
         else:
             frs = frg.flatten().square()
 
@@ -260,8 +260,10 @@ class TTSIRT(SIRT):
         Updates self.Bs, self.z_func, self.z.
 
         """
+
+        self._int_dir = direction
         
-        if direction == Direction.FORWARD:
+        if self._int_dir == Direction.FORWARD:
             self._marginalise_forward()
         else:
             self._marginalise_backward()
@@ -381,21 +383,7 @@ class TTSIRT(SIRT):
     ) -> torch.Tensor:
         """TODO: write docstring."""
 
-        raise Exception("change reshape operations")
-        
-        rank_0 = core.shape[0]
-        num_x = x.numel()
-
-        temp = poly.eval_radon_deriv(
-            core.permute(1, 2, 0).reshape(poly.cardinality, -1),
-            x.flatten()
-        )
-
-        T = (temp.reshape(num_x, rank_0, -1)
-                 .permute(1, 0, 2)
-                 .reshape(rank_0 * num_x, -1))
-
-        return T
+        raise NotImplementedError("Not implemented.")
     
     def eval_potential_reference(
         self, 
@@ -413,19 +401,32 @@ class TTSIRT(SIRT):
         # d = self.approx.dim
         if self.int_dir == Direction.FORWARD:
 
-            fxl = self.approx.eval_block(xs)#, self.int_dir) # TODO: eval_block currently uses data.direction---seems like a possible issue
+            fxl = self.approx.eval_block(xs, direction=self.int_dir) # TODO: eval_block currently uses data.direction---seems like a possible issue
 
             if dim_z < self.approx.dim:
-                raise NotImplementedError()
+                fx = (fxl @ self.Rs[dim_z]).square().sum(dim=1)
             else: 
                 fx = fxl.square()
 
             indices = torch.arange(dim_z)
-            neglogws = self.approx.bases.eval_measure_potential_reference(xs, indices)
-            fxs = self.z.log() - (fx + self.tau).log() + neglogws
+            # neglogws = self.approx.bases.eval_measure_potential_reference(xs, indices)
+            # fxs = self.z.log() - (fx + self.tau).log() + neglogws
             
         else:
-            raise NotImplementedError()
+
+            fxg = self.approx.eval_block(xs, direction=self.int_dir) # TODO: fix the int_dir thing
+
+            i_min = self.approx.dim - dim_z
+
+            if dim_z < self.approx.dim:
+                fx = (self.Rs[i_min-1] @ fxg).square().sum(dim=0)
+            else:
+                fx = fxg.square()
+
+            indices = torch.arange(self.bases.dim-1, self.bases.dim-dim_z-1, -1)
+            
+        neglogws = self.approx.bases.eval_measure_potential_reference(xs, indices)  # TODO: check that indices go backwards
+        fxs = self.z.log() - (fx + self.tau).log() + neglogws
 
         return fxs
 
