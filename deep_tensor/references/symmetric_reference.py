@@ -215,7 +215,7 @@ class SymmetricReference(Reference, abc.ABC):
     def log_joint_pdf(
         self, 
         xs: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         
         dim_x = xs.shape[1]
 
