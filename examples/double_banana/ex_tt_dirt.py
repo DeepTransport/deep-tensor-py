@@ -3,15 +3,11 @@
 from matplotlib import pyplot as plt
 import torch
 
-from deep_tensor.domains import BoundedDomain
-from deep_tensor.polynomials import Lagrange1
-from deep_tensor.approx_bases import ApproxBases
-from deep_tensor.bridging_densities import Tempering1
-from deep_tensor.irt.tt_dirt import TTDIRT
+import deep_tensor as dt
 
 from examples.double_banana.double_banana import DoubleBanana
 
-plt.rcParams.update({"text.usetex": True})
+plt.style.use("examples/plotstyle.mplstyle")
 torch.manual_seed(64)
 
 
@@ -44,15 +40,15 @@ dim = 2
 
 # Define interpolation bounds
 bounds = torch.tensor([-4.0, 4.0])
-domain = BoundedDomain(bounds)
+domain = dt.BoundedDomain(bounds)
 
 # Define interpolation basis
-poly = Lagrange1(num_elems=50)
-bases = ApproxBases(poly, domain, dim)
+poly = dt.Lagrange1(num_elems=50)
+bases = dt.ApproxBases(poly, domain, dim)
 
 # Define bridging measures
-bridge = Tempering1()
-airt = TTDIRT(model.potential_dirt, bases, bridge=bridge)
+bridge = dt.Tempering1()
+airt = dt.TTDIRT(model.potential_dirt, bases, bridge=bridge)
 
 n = 100
 
@@ -67,7 +63,10 @@ rts = torch.concatenate([xx, yy], axis=1)
 
 for k in range(airt.num_layers+1):
 
-    fig, axes = plt.subplots(2, 2, figsize=(5, 5))
+    fig, axes = plt.subplots(2, 2, figsize=(8, 8), sharex=True, sharey=True)
+
+    for ax in axes.flat:
+        ax.set_box_aspect(1)
 
     # Evaluate density
     rf = airt.eval_potential(xts, k)
@@ -106,8 +105,10 @@ for k in range(airt.num_layers+1):
         axes[1][1].set_xlabel("$u_{1}$")
         axes[1][1].set_ylabel("$u_{2}$")
         axes[1][1].set_title("a. ratio fun")
+    
+    else:
+        axes[1][1].set_axis_off()
 
-    plt.tight_layout()
     plt.show()
 
 

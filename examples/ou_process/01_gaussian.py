@@ -1,8 +1,5 @@
 """TODO: write docstring."""
 
-import warnings
-warnings.filterwarnings("ignore")
-
 from torch.linalg import norm
 
 from examples.ou_process.setup_ou import * 
@@ -43,4 +40,4 @@ for i in range(len(bases_list)):
         axes[1].set_ylabel("FTT")
         axes[1].set_title("True potential vs FTT")
         
-        plt.savefig(f"examples/ou_process/figures/01_marginal_{i}{j}.pdf")
+        plt.savefig(f"examples/ou_process/figures/01_gaussian_{i}{j}.pdf")

@@ -9,6 +9,7 @@ from .lagrange_p import LagrangeP
 # Spectral polynomials
 from .spectral import Spectral
 from .chebyshev_1st import Chebyshev1st
+from .fourier import Fourier
 from .recurr import Recurr
 from .legendre import Legendre
 
