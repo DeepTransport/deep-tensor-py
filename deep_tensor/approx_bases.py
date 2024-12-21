@@ -2,7 +2,7 @@ from typing import Tuple
 
 import torch
 
-from .domains import BoundedDomain
+from .domains import BoundedDomain  # TODO: figure out whether the domain needs to be bounded or not.
 from .polynomials import Basis1D
 
 

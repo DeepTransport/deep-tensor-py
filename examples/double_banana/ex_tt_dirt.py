@@ -1,3 +1,5 @@
+"""TODO: write a docstring for this."""
+
 from matplotlib import pyplot as plt
 import torch
 
@@ -7,7 +9,7 @@ from deep_tensor.approx_bases import ApproxBases
 from deep_tensor.bridging_densities import Tempering1
 from deep_tensor.irt.tt_dirt import TTDIRT
 
-from double_banana import DoubleBanana
+from examples.double_banana.double_banana import DoubleBanana
 
 plt.rcParams.update({"text.usetex": True})
 torch.manual_seed(64)

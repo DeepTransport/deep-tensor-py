@@ -3,12 +3,15 @@ import torch
 from .linear_domain import LinearDomain
 
 
-DEFAULT_BOUNDS = torch.tensor([-1.0, 1.0])
-
-
 class BoundedDomain(LinearDomain):
 
-    def __init__(self, bounds: torch.Tensor=DEFAULT_BOUNDS):
+    def __init__(
+        self, 
+        bounds: torch.Tensor|None=None
+    ):
+        
+        if bounds is None:
+            bounds = torch.tensor([-1.0, 1.0])
 
         if bounds[0] >= bounds[1]:
             msg = "Left-hand bound must be less than right-hand bound."
