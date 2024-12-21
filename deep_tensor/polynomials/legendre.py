@@ -2,14 +2,12 @@ import torch
 
 from .recurr import Recurr
 
-DEFAULT_DOMAIN = torch.tensor([-1.0, 1.0])
-
 
 class Legendre(Recurr):
 
     def __init__(self, order: int):
 
-        self._domain = DEFAULT_DOMAIN
+        self._domain = torch.tensor([-1.0, 1.0])
         self._constant_weight = True
 
         k = torch.arange(order+1)

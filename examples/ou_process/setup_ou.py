@@ -1,4 +1,9 @@
-from matplotlib import pyplot as plt 
+"""TODO: write docstring.
+TODO: add timing.
+
+Sets up the OU process"""
+
+from matplotlib import pyplot as plt
 import torch
 
 from deep_tensor import (
@@ -13,55 +18,58 @@ from deep_tensor import (
 
 from examples.ou_process.ou import OU
 
-torch.manual_seed(3)
+plt.style.use("examples/plotstyle.mplstyle")
+torch.manual_seed(64)
 
 
-# Set up the OU process
-d = 20
+dim = 20
 a = 0.5
 
-model = OU(d, a)
+model = OU(dim, a)
 
 def potential_func(x: torch.Tensor):
     return model.eval_potential(x)
 
 debug_size = 10_000
-debug_x = torch.linalg.solve(model.B, torch.randn((d, debug_size))).T
+debug_x = torch.linalg.solve(model.B, torch.randn((dim, debug_size))).T
 
-sample_x = torch.linalg.solve(model.B, torch.randn((d, 1_000))).T
+sample_x = torch.linalg.solve(model.B, torch.randn((dim, 1_000))).T
 input_data = InputData(sample_x, debug_x)
 
 domain = BoundedDomain(bounds=torch.tensor([-5.0, 5.0]))
 
-bases = ApproxBases(
-    polys=Lagrange1(num_elems=20), 
-    domains=domain, 
-    dim=d
-)
+polys_list = [
+    Legendre(order=40),
+    Lagrange1(num_elems=40)
+]
 
-# bases = ApproxBases(
-#     polys=Legendre(order=40),
-#     domains=domain,
-#     dim=d
-# )
+bases_list = [
+    ApproxBases(polys=polys, domains=domain, dim=dim)
+    for polys in polys_list
+]
 
-# bases{1} = ApproxBases(Legendre(40), dom, d);
 # bases{2} = ApproxBases(Fourier(20), dom, d);
-# bases{3} = ApproxBases(Lagrange1(40), dom, d);
 # bases{4} = ApproxBases(Lagrangep(5,8), dom, d);
-# bases{5} = ApproxBases(Hermite(10), UnboundedDomain(), d);
 
-options = TTOptions(
-    tt_method="random",
-    als_tol=1e-8, 
-    local_tol=1e-6,
-    max_rank=20, 
-    max_als=4
-)
+tt_methods_list = ["random", "fixed_rank"]
 
-sirt = TTSIRT(
-    potential_func, 
-    bases, 
-    options=options, 
-    input_data=input_data
-)
+options_list = [
+    TTOptions(
+        tt_method=method,
+        als_tol=1e-4, 
+        max_rank=20, 
+        max_als=1
+    ) for method in tt_methods_list
+]
+
+sirts = {}
+
+for i, bases in enumerate(bases_list):
+    sirts[i] = {}
+    for j, options in enumerate(options_list):
+        sirts[i][j] = TTSIRT(
+            potential_func, 
+            bases, 
+            options=options, 
+            input_data=input_data
+        )
