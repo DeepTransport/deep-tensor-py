@@ -33,14 +33,6 @@ class Recurr(Spectral, abc.ABC):
         self.post_construction()
         return
 
-    @property 
-    def nodes(self) -> torch.Tensor:
-        return self._nodes
-
-    @property
-    def weights(self) -> torch.Tensor:
-        return self._weights
-
     def eval_basis(self, x: torch.Tensor) -> torch.Tensor:
 
         if self.order == 0:

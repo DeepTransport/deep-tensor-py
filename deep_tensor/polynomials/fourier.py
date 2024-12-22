@@ -16,8 +16,8 @@ class Fourier(Spectral):
         num_nodes = 2 + self.order * 2
         n = torch.arange(num_nodes)
 
-        self.nodes = torch.sort((2.0/num_nodes) * (n+1) - 1)
-        self.weights = torch.ones_like(self.nodes) / num_nodes
+        self._nodes = torch.sort((2.0/num_nodes) * (n+1) - 1).values
+        self._weights = torch.ones_like(self.nodes) / num_nodes
 
         self.c = (torch.arange(self.order)+1) * torch.pi
 
@@ -33,6 +33,14 @@ class Fourier(Spectral):
     @property
     def constant_weight(self) -> bool:
         return self._constant_weight
+    
+    @property 
+    def nodes(self) -> torch.Tensor:
+        return self._nodes
+
+    @property
+    def weights(self) -> torch.Tensor:
+        return self._weights
 
     def sample_measure(self, n: int) -> torch.Tensor:
         return torch.rand(n) * 2 - 1
@@ -44,7 +52,7 @@ class Fourier(Spectral):
         return 0.5 * torch.ones_like(x)
     
     def eval_log_measure(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.full(x.shape, torch.log(0.5))
+        return torch.full(x.shape, torch.tensor(0.5).log())
     
     def eval_measure_deriv(self, x: torch.Tensor) -> torch.Tensor:
         return torch.zeros_like(x)
@@ -52,30 +60,20 @@ class Fourier(Spectral):
     def eval_log_measure_deriv(self, x: torch.Tensor) -> torch.Tensor:
         return torch.zeros_like(x)
     
-    def eval_basis(self, xs: torch.Tensor) -> torch.Tensor:
-        raise Exception("TODO: write me")
-        return 
-    
-    def eval(self, coeffs, xs):
-        raise Exception("TODO: write me")
-        return super().eval(coeffs, xs)
+    def eval_basis(self, us: torch.Tensor) -> torch.Tensor:
 
-"""
+        tmp = torch.outer(us, self.c)
+        basis_vals = torch.hstack((
+            torch.ones((us.numel(), 1)),
+            2 ** 0.5 * torch.sin(tmp),
+            2 ** 0.5 * torch.cos(tmp),
+            2 ** 0.5 * torch.cos(us[:, None] * self.m * torch.pi)
+        ))
         
-        function f = eval_basis(obj, x)
-            %
-            tmp = x(:).*obj.c;     
-            %f = [ones(size(x(:))), sin(tmp)*sqrt(2), cos(tmp)*sqrt(2)];
-            f = [ones(size(x(:))), sin(tmp)*sqrt(2), cos(tmp)*sqrt(2), ...
-                cos( x(:)*(obj.m*pi) )*sqrt(2)];
-        end
-        
-        function f = eval_basis_deri(obj, x)
-            %
-            tmp = x(:).*obj.c;
-            %f = [zeros(length(x),1), cos(tmp).*(obj.c*sqrt(2)), -sin(tmp).*(obj.c*sqrt(2))];
-            f = [zeros(length(x),1), cos(tmp).*(obj.c*sqrt(2)), -sin(tmp).*(obj.c*sqrt(2)), ...
-                -sin(x(:)*(obj.m*pi))*(sqrt(2)*obj.m*pi)];
-        end
-    end
-end"""
+        return basis_vals
+    
+    def eval_basis_deriv(self, x):
+        raise NotImplementedError()
+     
+    def eval(self, coeffs, xs):
+        raise NotImplementedError()

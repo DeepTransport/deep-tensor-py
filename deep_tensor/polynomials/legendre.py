@@ -18,6 +18,7 @@ class Legendre(Recurr):
         normalising_const = torch.sqrt(2*k+1)
 
         super().__init__(order, a, b, c, normalising_const)
+        return
 
     @property
     def domain(self) -> torch.Tensor:
@@ -26,6 +27,14 @@ class Legendre(Recurr):
     @property
     def constant_weight(self) -> bool:
         return self._constant_weight
+    
+    @property 
+    def nodes(self) -> torch.Tensor:
+        return self._nodes
+
+    @property
+    def weights(self) -> torch.Tensor:
+        return self._weights
 
     def eval_measure(self, x: torch.Tensor) -> torch.Tensor:
         return torch.full(x.shape, 0.5)

@@ -11,20 +11,22 @@ for i in range(len(bases_list)):
     for j in range(len(options_list)):
         for k in range(2):
 
+            sirt: dt.TTSIRT = sirts[i][j]
+
             if k == 0:
                 # Forward marginalisation
                 indices = torch.arange(8)
-                if sirts[i][j].int_dir != dt.Direction.FORWARD:
-                    sirts[i][j].marginalise(dt.Direction.FORWARD) 
+                if sirt.int_dir != dt.Direction.FORWARD:
+                    sirt.marginalise(dt.Direction.FORWARD) 
             else:
                 # Backward marginalisation
                 indices = torch.arange(dim-1, 14, -1)
-                if sirts[i][j].int_dir != dt.Direction.BACKWARD:
-                    sirts[i][j].marginalise(dt.Direction.BACKWARD)
+                if sirt.int_dir != dt.Direction.BACKWARD:
+                    sirt.marginalise(dt.Direction.BACKWARD)
 
-            xs, potential_xs = sirts[i][j].eval_irt_nograd(zs[:, indices])
-            fxs = sirts[i][j].eval_pdf(xs)
-            z0 = sirts[i][j].eval_rt(xs)
+            xs, potential_xs = sirt.eval_irt_nograd(zs[:, indices])
+            fxs = sirt.eval_pdf(xs)
+            z0 = sirt.eval_rt(xs)
 
             transform_error = norm(zs[:, indices] -z0, ord="fro")
             density_error = norm(torch.exp(-potential_xs) - fxs)

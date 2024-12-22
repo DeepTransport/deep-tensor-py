@@ -32,7 +32,7 @@ domain = dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0]))
 
 polys_list = [
     dt.Legendre(order=40),
-    # dt.Fourier(order=20),
+    dt.Fourier(order=20),
     dt.Lagrange1(num_elems=40)
 ]
 
@@ -54,7 +54,7 @@ options_list = [
     ) for method in tt_methods_list
 ]
 
-sirts: dict[int: dict[int: dt.TTSIRT]] = {}
+sirts = {}
 
 for i, bases in enumerate(bases_list):
     sirts[i] = {}

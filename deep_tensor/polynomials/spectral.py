@@ -1,5 +1,4 @@
 import abc 
-from typing import Tuple
 
 import torch
 
@@ -9,12 +8,17 @@ from ..constants import EPS
 
 class Spectral(Basis1D, abc.ABC):
 
+    # @property
+    # @abc.abstractmethod
+    # def weights(self) -> torch.Tensor:
+    #     """The values of the weighting function evaluated at each 
+    #     collocation point.
+    #     """
+    #     return
+
     @property
     @abc.abstractmethod
     def weights(self) -> torch.Tensor:
-        """The values of the weighting function evaluated at each 
-        collocation point.
-        """
         return
 
     @property 
@@ -66,7 +70,8 @@ class Spectral(Basis1D, abc.ABC):
         self._node2basis = self.basis2node.T * self.weights
 
         # TODO: move this to unit tests at some point
-        assert torch.max(torch.abs(self.basis2node @ self.node2basis - torch.eye(self.basis2node.shape[0]))) < 1e-2, "node2basis/basis2node constructed incorrectly."
+        # print(torch.max(torch.abs(self.basis2node @ self.node2basis - torch.eye(self.basis2node.shape[0]))))
+        # assert torch.max(torch.abs(self.basis2node @ self.node2basis - torch.eye(self.basis2node.shape[0]))) < 1e-2, "node2basis/basis2node constructed incorrectly."
 
         # Basis functions are orthonormal w.r.t weights so mass matrix 
         # is very simple

@@ -5,7 +5,6 @@ import warnings
 import torch
 
 from .cdf_1d import CDF1D
-from ..constants import EPS
 
 
 class SpectralCDF(CDF1D, abc.ABC):
