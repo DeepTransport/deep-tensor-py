@@ -40,8 +40,11 @@ class SIRT(AbstractIRT, abc.ABC):
         self._order = None
         self._tau = tau
 
-        def func(z: torch.Tensor) -> torch.Tensor:
-            return self.potential2density(potential, z)
+        def func(ls: torch.Tensor) -> torch.Tensor:
+            """Computes the approximation to the target density for a 
+            set of samples in the local domain.
+            """
+            return self.potential2density(potential, ls)
 
         self._approx = self.build_approximation(
             func, 
@@ -101,16 +104,15 @@ class SIRT(AbstractIRT, abc.ABC):
     def potential2density(
         self, 
         potential_func: Callable, 
-        zs: torch.Tensor
+        ls: torch.Tensor
     ) -> torch.Tensor:
         
-        xs, dxdzs = self.bases.reference2domain(zs)
-        ys = potential_func(xs)
+        xs, dxdls = self.bases.local2approx(ls)
+        neglogfxs = potential_func(xs)
         
-        neglogref = self.bases.eval_measure_potential_reference(zs)
+        neglogrefs = self.bases.eval_measure_potential_local(ls)
 
-        logdet = dxdzs.log().sum(dim=1)
-        log_ys = -0.5 * (ys - neglogref - logdet)
+        log_ys = -0.5 * (neglogfxs - neglogrefs - dxdls.log().sum(dim=1))
         return torch.exp(log_ys)
     
     def get_potential2density(
@@ -119,9 +121,9 @@ class SIRT(AbstractIRT, abc.ABC):
         zs: torch.Tensor
     ) -> torch.Tensor:
         
-        _, dxdzs = self.bases.reference2domain(ys, zs)
+        _, dxdzs = self.bases.local2approx(ys, zs)
 
-        neglogref = self.bases.eval_measure_potential_reference(zs)
+        neglogref = self.bases.eval_measure_potential_local(zs)
 
         logdet = dxdzs.log().sum(dim=1)
         log_ys = -0.5 * (ys - neglogref - logdet)

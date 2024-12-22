@@ -158,17 +158,23 @@ class DIRT(abc.ABC):
         self, 
         bases: ApproxBases, 
         neglogratio: torch.Tensor, 
-        rs: torch.Tensor  # Not sure what this is supposed to be? Samples from the reference (not [-1, 1]), although the bases.reference2domain and bases.eval_measure_potential_reference would suggest otherwise...
+        rs: torch.Tensor
     ) -> torch.Tensor:
         """Returns the (square-rooted?) density we aim to approximate.
         
-        TODO: finish docstring. This seems like a pretty key function..."""
+        TODO: finish docstring. This seems like a pretty key function...
+        TODO: talk to TC about MATLAB implementation of this one...
+        """
         
         # TODO: figure out what's going on here. I have no idea why dxdrs is being computed.
-        _, dxdrs = bases.reference2domain(rs)
-        neglogws = bases.eval_measure_potential_reference(rs)
+        neglogws = bases.eval_measure_potential_local(rs)
+        _, dxdrs = bases.local2approx(rs)
 
         log_ys = -0.5 * (neglogratio - neglogws - dxdrs.log().sum(dim=1))
+
+        # neglogws = bases.eval_measure_potential(rs)[0]
+        # log_ys = -0.5 * (neglogratio - neglogws)
+
         return torch.exp(log_ys)
 
     def get_inputdata(
@@ -289,14 +295,7 @@ class DIRT(abc.ABC):
             neglogfxs += neglogts - neglogds
 
         neglogfs = -self.reference.log_joint_pdf(zs)[0]
-        neglogfxs += neglogfs # TODO: figure out what these things are
-
-        # from matplotlib import pyplot as plt
-        # plt.clf()
-        # n = int(neglogfxs.numel() ** 0.5)
-        # plt.pcolormesh(torch.exp(-neglogfxs).reshape(n, n))
-        # plt.colorbar()
-        # plt.show()
+        neglogfxs += neglogfs
 
         return zs, neglogfxs
 
@@ -344,14 +343,14 @@ class DIRT(abc.ABC):
 
         neglogfxs = -self.reference.log_joint_pdf(xs)[0]
 
-        for l in range(num_layers-1, -1, -1):
+        for i in range(num_layers-1, -1, -1):
 
             # Evaluate reference density
             neglogrefs = -self.reference.log_joint_pdf(xs)[0]
 
             # Evaluate the current mapping Q
             zs = self.reference.eval_cdf(xs)[0]
-            xs, neglogsirts = self.irts[l].eval_irt_nograd(zs)
+            xs, neglogsirts = self.irts[i].eval_irt_nograd(zs)
             neglogfxs += neglogsirts - neglogrefs
 
         return xs, neglogfxs

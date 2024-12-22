@@ -2,7 +2,8 @@ from typing import Tuple
 
 import torch
 
-from .domains import BoundedDomain  # TODO: figure out whether the domain needs to be bounded or not.
+# TODO: figure out whether the domain actually needs to be bounded or not.
+from .domains import BoundedDomain
 from .polynomials import Basis1D
 
 
@@ -14,14 +15,14 @@ class ApproxBases():
 
     def __init__(self, polys: PolyType, domains: DomainType, dim: int):
         """Class containing a set of tensor-product polynomial basis 
-        functions and mappings between the reference and approximation 
-        domains.
+        functions and mappings between the local domain and 
+        approximation domain.
 
         Parameters
         ----------
         polys:
             Tensor-product univariate polynomial basis functions, 
-            defined on the reference domain.
+            defined on a local domain (generally [-1, 1]).
         domains:
             The approximation domain in each dimension.
         dim:
@@ -99,32 +100,31 @@ class ApproxBases():
             del self.domains[i]
         return
 
-    def reference2domain(
+    def local2approx(
         self, 
-        rs: torch.Tensor, 
+        ls: torch.Tensor, 
         indices: torch.Tensor|None=None
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        """Maps a set of samples drawn from (a subset of) the reference 
-        measure to the approximation domain.
+        """Maps a set of samples drawn distributed in (a subset of) the 
+        local domain to the approximation domain.
         
         Parameters
         ----------
-        rs:
-            An n * d matrix containing samples from the reference 
-            domain.
+        ls:
+            An n * d matrix containing samples from the local domain.
         indices:
             The indices corresponding to the dimensions of the 
-            reference domain the samples live in (can be a subset of 
+            local domain the samples live in (can be a subset of 
             {1, 2, ..., d}).
 
         Returns
         -------
-        xs
+        xs:
             An n * d matrix containing the corresponding samples in the 
             approximation domain.
-        dxdrs: 
+        dxdls: 
             An n * d matrix containing the diagonal of the gradient of 
-            the mapping from the reference domain to the approximation 
+            the mapping from the local domain to the approximation 
             domain evaluated at each element of xs.
 
         """
@@ -132,25 +132,25 @@ class ApproxBases():
         if indices is None:
             indices = torch.arange(self.dim)
         
-        if len(indices) != rs.shape[1]:
-            msg = "Reference samples do not have the correct dimension."
+        if len(indices) != ls.shape[1]:
+            msg = "Samples do not have the correct dimension."
             raise Exception(msg)
 
-        xs = torch.empty_like(rs)
-        dxdrs = torch.empty_like(rs)
-        for i, r in enumerate(rs.T):
+        xs = torch.empty_like(ls)
+        dxdls = torch.empty_like(ls)
+        for i, ls_i in enumerate(ls.T):
             domain = self.domains[indices[i]]
-            xs[:, i], dxdrs[:, i] = domain.reference2domain(r)
+            xs[:, i], dxdls[:, i] = domain.local2approx(ls_i)
 
-        return xs, dxdrs
+        return xs, dxdls
 
-    def domain2reference(
+    def approx2local(
         self, 
         xs: torch.Tensor, 
         indices: torch.Tensor|None=None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Maps a set of samples from (a subset of) the approximation 
-        domain to the reference domain.
+        domain to the local domain.
         
         Parameters
         ----------
@@ -164,13 +164,13 @@ class ApproxBases():
 
         Returns
         -------
-        rs:
-            An n * d matrix containg the corresponding samples from the 
-            reference domain.
-        drdxs: 
+        ls:
+            An n * d matrix containg the corresponding samples in the 
+            local domain.
+        dldxs: 
             An n * d matrix containing the (diagonal of the) gradient 
             of the mapping from the approximation domain to the 
-            reference domain evaluated at each element of rs.
+            local domain evaluated at each element of ls.
 
         """
         
@@ -178,84 +178,84 @@ class ApproxBases():
             indices = torch.arange(self.dim)
         
         if len(indices) != xs.shape[1]:
-            msg = "xs does not have the correct dimensions."
+            msg = "Samples do not have the correct dimensions."
             raise Exception(msg)
 
-        rs = torch.empty_like(xs)
-        drdxs = torch.empty_like(xs)
-        for i, x in enumerate(xs.T):
+        ls = torch.empty_like(xs)
+        dldxs = torch.empty_like(xs)
+        for i, xs_i in enumerate(xs.T):
             domain = self.domains[indices[i]]
-            rs[:, i], drdxs[:, i] = domain.domain2reference(x)
+            ls[:, i], dldxs[:, i] = domain.approx2local(xs_i)
 
-        return rs, drdxs
+        return ls, dldxs
 
-    def reference2domain_log_density(
+    def local2approx_log_density(
         self,
-        rs: torch.Tensor,
+        ls: torch.Tensor,
         indices: torch.Tensor|None=None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Computes the logarithm of the gradient, and derivative of 
         the gradient, of the transformation of a set of samples from 
-        the reference domain to the approximation domain.
+        the local domain to the approximation domain.
         
         Parameters
         ----------
-        rs:
-            An n * d matrix containing samples from the reference 
-            domain.
+        ls:
+            An n * d matrix containing samples from the local domain.
 
         Returns
         -------
-        dlog
+        dlogxdls:
+            An n-dimensional vector containing...?
         """
         
         if indices is None:
             indices = torch.arange(self.dim)
 
-        if len(indices) != rs.shape[1]:
-            msg = "rs does not have the correct dimensions."
+        if len(indices) != ls.shape[1]:
+            msg = "Samples do not have the correct dimensions."
             raise Exception(msg)
 
-        dlogxdrs = torch.empty_like(rs)
-        d2logxdr2s = torch.empty_like(rs)
+        dlogxdls = torch.empty_like(ls)
+        d2logxdl2s = torch.empty_like(ls)
 
-        for i, r in enumerate(rs.T):
+        for i, ls_i in enumerate(ls.T):
             domain = self.domains[indices[i]]
-            dlogxdr, d2logxdr2 = domain.reference2domain_log_density(r)
-            dlogxdrs[:, i], d2logxdr2s[:, i] = dlogxdr, d2logxdr2
+            dlogxdl, d2logxdl2 = domain.local2approx_log_density(ls_i)
+            dlogxdls[:, i], d2logxdl2s[:, i] = dlogxdl, d2logxdl2
 
-        return dlogxdrs, d2logxdr2s
+        return dlogxdls, d2logxdl2s
     
-    def domain2reference_log_density(
+    def approx2local_log_density(
         self,
         xs: torch.Tensor,
         indices: torch.Tensor|None=None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Not entirely sure what this is doing yet..."""
+        """TODO: write docstring."""
         
         if indices is None:
             indices = torch.arange(self.dim)
 
         if len(indices) != xs.shape[1]:
-            msg = "xs does not have the correct dimensions."
+            msg = "Samples do not have the correct dimensions."
             raise Exception(msg)
 
-        dlogrdxs = torch.empty_like(xs)
-        d2logrdx2s = torch.empty_like(xs)
+        dlogldxs = torch.empty_like(xs)
+        d2logldx2s = torch.empty_like(xs)
 
-        for i, x in enumerate(xs.T):
+        for i, xs_i in enumerate(xs.T):
             domain = self.domains[indices[i]]
-            dlogrdx, d2logrdx2 = domain.domain2reference_log_density(x)
-            dlogrdxs[:, i], d2logrdx2s[:, i] = dlogrdx, d2logrdx2
+            dlogldx, d2logldx2 = domain.approx2local_log_density(xs_i)
+            dlogldxs[:, i], d2logldx2s[:, i] = dlogldx, d2logldx2
 
-        return dlogrdxs, d2logrdx2s
+        return dlogldxs, d2logldx2s
 
-    def sample_measure_reference(
+    def sample_measure_local(
         self, 
         n: int
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Generates a set of random variates from the weighting 
-        function of the (product-form) reference distribution.
+        """Generates a set of random variates from the local weighting 
+        function.
 
         Parameters
         ----------
@@ -264,46 +264,44 @@ class ApproxBases():
 
         Returns
         -------
-        rs:
-            An n * d matrix containing samples drawn from the reference
-            distribution.
-        neglogfrs:
+        ls:
+            An n * d matrix containing samples drawn from the local
+            weighting function.
+        neglogfls:
             An n-dimensional vector containing the negative logarithm 
             of the weighting function evaluated at each sample.
 
         """ 
 
-        rs = torch.zeros((n, self.dim))
-        neglogfrs = torch.zeros(n)
+        ls = torch.zeros((n, self.dim))
+        neglogfls = torch.zeros(n)
         
         for k in range(self.dim):
-            rs[:, k] = self.polys[k].sample_measure(n)
-            neglogfrs -= self.polys[k].eval_log_measure(rs[:, k])
+            ls[:, k] = self.polys[k].sample_measure(n)
+            neglogfls -= self.polys[k].eval_log_measure(ls[:, k])
         
-        return rs, neglogfrs
+        return ls, neglogfls
 
-    def eval_measure_potential_reference(
+    def eval_measure_potential_local(
         self, 
-        rs: torch.Tensor, 
+        ls: torch.Tensor, 
         indices: torch.Tensor|None=None
     ) -> torch.Tensor:
         """Computes the negative logarithm of the weighting function 
-        associated with (a subset of) the basis functions for a set of 
-        reference variables.
+        associated with (a subset of) the basis functions (defined in 
+        the local domain).
 
         Parameters
         ----------
-        rs:
-            An n * d matrix containing samples from the reference 
-            distribution.
+        ls:
+            An n * d matrix containing samples from the local domain. 
         indices:
-            The indices corresponding to the dimensions of the 
-            approximation domain the samples live in (can be a subset 
-            of {1, 2, ..., d}).
+            The indices corresponding to the dimensions of the domain 
+            the samples live in (can be a subset of {1, 2, ..., d}).
 
         Returns
         -------
-        neglogref: 
+        neglogwls: 
             An n-dimensional vector containg the negative logarithm of 
             the product of the weighting functions for each basis 
             evaluated at each input sample.
@@ -313,31 +311,28 @@ class ApproxBases():
         if indices is None:
             indices = torch.arange(self.dim)
 
-        if len(indices) != rs.shape[1]:
-            msg = "zs does not have the correct dimension."
+        if len(indices) != ls.shape[1]:
+            msg = "Samples do not have the correct dimension."
             raise Exception(msg)
 
-        ws = torch.empty_like(rs)
-        for i, r in enumerate(rs.T):
-            ws[:, i] = -self.polys[i].eval_log_measure(r)
+        neglogwls = torch.empty_like(ls)
+        for i, ls_i in enumerate(ls.T):
+            neglogwls[:, i] = -self.polys[i].eval_log_measure(ls_i)
 
-        # Radon-Nikodym derivative w.r.t. the base measure 
-        # (TODO: figure out why)
-        neglogref = torch.sum(ws, dim=1)
-        return neglogref
+        return neglogwls.sum(dim=1)
 
-    def eval_measure_potential_reference_grad(
+    def eval_measure_potential_local_grad(
         self, 
-        rs: torch.Tensor,
+        ls: torch.Tensor,
         indices: torch.Tensor|None=None
     ):
         """Computes the gradient of the negative logarithm of the 
         weighting functions of (a subset of) the basis functions for a 
-        given set of samples from the reference distribution.
+        given set of samples in the local domain.
 
         Parameters
         ----------
-        rs: 
+        ls: 
             An n * d matrix containing samples from the reference 
             distribution.
         indices:
@@ -349,20 +344,22 @@ class ApproxBases():
         -------
         gs:
             The gradient of the negative logarithm of the weighting 
-            functions coresponding to each sample in rs.
+            functions coresponding to each sample in ls.
 
+        TODO: tidy up the returns of this docstring.
+            
         """
 
         if indices is None:
             indices = torch.arange(self.dim)
 
-        if len(indices) != rs.shape[1]:
-            msg = "rs does not have the correct dimension."
+        if len(indices) != ls.shape[1]:
+            msg = "Samples do not have the correct dimension."
             raise Exception(msg)
         
-        gs = torch.empty_like(rs)
-        for i, r in enumerate(rs.T):
-            gs[:, i] = -self.polys[indices[i]].eval_log_measure_deriv(r)
+        gs = torch.empty_like(ls)
+        for i, ls_i in enumerate(ls.T):
+            gs[:, i] = -self.polys[indices[i]].eval_log_measure_deriv(ls_i)
 
         return gs
 
@@ -388,10 +385,10 @@ class ApproxBases():
         
         """
 
-        rs, neglogfrs = self.sample_measure_reference(n)
-        xs, dxdrs = self.reference2domain(rs)
+        ls, neglogfls = self.sample_measure_local(n)
+        xs, dxdls = self.local2approx(ls)
 
-        neglogfxs = neglogfrs + torch.sum(torch.log(dxdrs), dim=1)
+        neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs
     
     def eval_measure_potential(
@@ -416,6 +413,7 @@ class ApproxBases():
         -------
         fxs:
             The 
+        TODO: tidy this up.
 
         """
         
@@ -426,15 +424,15 @@ class ApproxBases():
             msg = "xs does not have the correct dimension."
             raise Exception(msg)
 
-        rs, drdxs = self.domain2reference(xs, indices)
+        ls, dldxs = self.approx2local(xs, indices)
         
-        fzs = self.eval_measure_potential_reference(rs, indices)
-        fxs = fzs + torch.sum(torch.log(drdxs), 1)
+        neglogrefls = self.eval_measure_potential_local(ls, indices)
+        neglogrefxs = neglogrefls + dldxs.log().sum(dim=1)
         
-        grs = self.eval_measure_potential_reference_grad(rs, indices)
-        gxs = grs * drdxs
+        grs = self.eval_measure_potential_local_grad(ls, indices)
+        gxs = grs * dldxs
 
-        return fxs, gxs
+        return neglogrefxs, gxs
     
     def eval_measure(self, xs: torch.Tensor) -> torch.Tensor:
         """Computes the density of the reference measure for a set of 

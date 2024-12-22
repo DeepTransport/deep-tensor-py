@@ -140,15 +140,15 @@ class TTFunc(ApproxFunc):
             # of samples each time despite the original blocks using 
             # the same sets
 
-            F = self.build_block_local(func, x_left, x_right, k)
-            self.errors[k] = self.get_error_local(F, k)
+            F_k = self.build_block_local(func, x_left, x_right, k)
+            self.errors[k] = self.get_error_local(F_k, k)
 
             if self.data.direction == Direction.FORWARD:
                 F_enrich = self.build_block_local(func, x_left, enrich[:, k+1:], k)
-                F_full = torch.concatenate((F, F_enrich), dim=2)
+                F_full = torch.concatenate((F_k, F_enrich), dim=2)
             else:
                 F_enrich = self.build_block_local(func, enrich[:, :k], x_right, k)
-                F_full = torch.concatenate((F, F_enrich), dim=0)
+                F_full = torch.concatenate((F_k, F_enrich), dim=0)
 
             self.build_basis_svd(F_full, k)
 

@@ -92,7 +92,7 @@ class ApproxFunc(abc.ABC):
         
         """
 
-        rs = self.bases.domain2reference(xs)[0]
+        rs = self.bases.approx2local(xs)[0]
         fxs = self.eval_reference(rs)
         
         return fxs
@@ -115,7 +115,7 @@ class ApproxFunc(abc.ABC):
 
         """
 
-        zs, dzdxs = self.bases.domain2reference(xs)
+        zs, dzdxs = self.bases.approx2local(xs)
         gzs, fxs = self.grad_reference(self, zs)
         gxs = gzs * dzdxs
         return gxs, fxs

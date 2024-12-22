@@ -22,7 +22,7 @@ class LinearDomain(Domain, abc.ABC):
         """
         return
 
-    def reference2domain(
+    def local2approx(
         self, 
         rs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -31,7 +31,7 @@ class LinearDomain(Domain, abc.ABC):
         dxdrs = torch.full(rs.shape, self.dxdr)
         return xs, dxdrs
     
-    def domain2reference(
+    def approx2local(
         self, 
         xs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -40,7 +40,7 @@ class LinearDomain(Domain, abc.ABC):
         drdxs = torch.full(xs.shape, 1.0 / self.dxdr)
         return rs, drdxs
     
-    def reference2domain_log_density(
+    def local2approx_log_density(
         self, 
         rs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -49,7 +49,7 @@ class LinearDomain(Domain, abc.ABC):
         logdxdr2s = torch.zeros_like(rs)
         return logdxdrs, logdxdr2s
     
-    def domain2reference_log_density(
+    def approx2local_log_density(
         self, 
         xs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:

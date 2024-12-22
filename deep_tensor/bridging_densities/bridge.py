@@ -68,13 +68,13 @@ class Bridge(abc.ABC):
     @abc.abstractmethod
     def ratio_func(
         func: Callable, 
-        zs: torch.Tensor,
+        rs: torch.Tensor,
         irt_func: Callable,
         reference: Reference,
         method: str
     ) -> torch.Tensor:
         """Returns the negative log-ratio function associated with a 
-        set of samples from the reference domain.
+        set of samples from the reference density.
         
         Parameters
         ----------
@@ -83,11 +83,11 @@ class Bridge(abc.ABC):
             log-likelihood and negative log-prior density of a sample 
             in the approximation domain.
         zs:
-            The samples from the reference domain.
+            The samples from the reference density.
         irt_func:
             Function that computes the inverse Rosenblatt transform.
         reference:
-            The reference distribution.
+            The reference density.
         method:
             The method to use when computing the ratio function; can be
             `aratio` (approximate ratio) or `eratio` (exact ratio).

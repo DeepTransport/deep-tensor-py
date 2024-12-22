@@ -26,7 +26,7 @@ class Domain(abc.ABC):
         return
     
     @abc.abstractmethod
-    def reference2domain(
+    def local2approx(
         self, 
         rs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -53,7 +53,7 @@ class Domain(abc.ABC):
         return
     
     @abc.abstractmethod
-    def domain2reference(
+    def approx2local(
         self, 
         xs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -80,7 +80,7 @@ class Domain(abc.ABC):
         return
     
     @abc.abstractmethod
-    def reference2domain_log_density(
+    def local2approx_log_density(
         self, 
         rs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -109,7 +109,7 @@ class Domain(abc.ABC):
         return
     
     @abc.abstractmethod
-    def domain2reference_log_density(
+    def approx2local_log_density(
         self, 
         xs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:

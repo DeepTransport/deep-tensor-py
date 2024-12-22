@@ -184,7 +184,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod 
-    def eval_potential_reference(
+    def eval_potential_local(
         self, 
         zs: torch.Tensor
     ) -> torch.Tensor:
@@ -192,7 +192,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_rt_reference(
+    def eval_rt_local(
         self, 
         zs: torch.Tensor
     ) -> torch.Tensor:
@@ -200,7 +200,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod 
-    def eval_rt_jac_reference(
+    def eval_rt_jac_local(
         self,
         zs: torch.Tensor
     ) -> torch.Tensor:
@@ -208,7 +208,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_irt_reference_nograd(
+    def eval_irt_local_nograd(
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -216,7 +216,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod 
-    def eval_cirt_reference(
+    def eval_cirt_local(
         self, 
         zs: torch.Tensor
     ) -> torch.Tensor:
@@ -275,10 +275,9 @@ class AbstractIRT(abc.ABC):
 
         indices = self.get_transform_indices(xs.shape[1])
         
-        rs, drdxs = self.approx.bases.domain2reference(xs, indices)
-        neglogfrs = self.eval_potential_reference(rs)
-        # TODO: check whether the sum direction is correct.
-        neglogfxs = neglogfrs - drdxs.log().sum(dim=1)
+        ls, dldxs = self.approx.bases.approx2local(xs, indices)
+        neglogfls = self.eval_potential_local(ls)
+        neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
 
     def eval_pdf(
@@ -318,8 +317,8 @@ class AbstractIRT(abc.ABC):
         indices = self.get_transform_indices(dim_x)
         
         # TODO: is it better call this reference or unit?
-        rs, _ = self.approx.bases.domain2reference(xs, indices)
-        zs = self.eval_rt_reference(rs)
+        rs, _ = self.approx.bases.approx2local(xs, indices)
+        zs = self.eval_rt_local(rs)
         return zs
     
     def eval_rt_jac(
@@ -361,15 +360,12 @@ class AbstractIRT(abc.ABC):
         
         """
 
-        # TEMP (TODO: remove)
-        # self._int_dir = Direction.FORWARD
-
         zs = torch.clamp(zs, Z_MIN, Z_MAX)
         indices = self.get_transform_indices(zs.shape[1])
 
-        rs, neglogfrs = self.eval_irt_reference_nograd(zs)
-        xs, dxdrs = self.approx.bases.reference2domain(rs, indices)
-        neglogfxs = neglogfrs + dxdrs.log().sum(dim=1)
+        ls, neglogfls = self.eval_irt_local_nograd(zs)
+        xs, dxdls = self.approx.bases.local2approx(ls, indices)
+        neglogfxs = neglogfls + dxdls.log().sum(dim=1)
 
         return xs, neglogfxs
     

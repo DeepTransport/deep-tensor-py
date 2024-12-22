@@ -125,7 +125,7 @@ class Tempering1(SingleBeta):
         neglogratios = self.get_ratio_func(
             reference, 
             method, 
-            rs,  # TODO: confirm that this should be xs rather than rs
+            rs, 
             neglogliks, 
             neglogpris, 
             neglogfxs

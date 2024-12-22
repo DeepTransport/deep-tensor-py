@@ -62,7 +62,7 @@ class InputData():
                 msg = ("Generating initialization samples from the " 
                        + "base measure.")
                 print(msg)
-                self.rs_samp, _ = base.sample_measure_reference(n)
+                self.rs_samp, _ = base.sample_measure_local(n)
             else:
                 msg = ("There are no initialization samples available. "
                        + "Please provide a sample set "
@@ -75,9 +75,9 @@ class InputData():
                 msg = ("Not enough number of samples to initialise " 
                        + "functional tensor train.")
                 warnings.warn(msg)
-                self.sample_z, _ = base.sample_measure_reference(n)
+                self.sample_z, _ = base.sample_measure_local(n)
             else:
-                self.sample_z, _ = base.domain2reference(self.xs_samp)
+                self.sample_z, _ = base.approx2local(self.xs_samp)
 
         self.count = 0
         return
@@ -147,7 +147,7 @@ class InputData():
             warnings.warn(msg)
             return
     
-        self.rs_debug, _ = bases.domain2reference(self.xs_debug)
+        self.rs_debug, _ = bases.approx2local(self.xs_debug)
         if self.fxs_debug.numel() == 0:
             self.fxs_debug = func(self.rs_debug)
 
