@@ -625,6 +625,92 @@ class TTFunc(ApproxFunc):
         fx = self.eval_block(xs, self.data.direction)
         return fx
     
+    def _eval_block(
+        self, 
+        xs: torch.Tensor,
+        direction: Direction
+    ) -> torch.Tensor:
+        """Evaluates the functional tensor train approximation to the 
+        target function for either the first or last k variables, for a 
+        set of points in the reference domain.
+        
+        Parameters
+        ----------
+        xs:
+            A set of points in the reference domain.
+        
+        Returns
+        -------
+        fxs:
+            The value of the FTT approximation to the target function
+            at each point in xs.
+
+        TODO: figure out exactly what's going on in here (I think 
+        ultimately it just takes the product of all the cores and basis 
+        functions).
+            
+        """
+
+        num_x, dim_x = xs.shape
+
+        fxs = torch.ones((num_x, 1))
+
+        if direction == Direction.FORWARD:
+
+            for k in range(min(dim_x, self.dim)):
+
+                rank_p, num_nodes, rank_k = self.data.cores[k].shape
+
+                A_k = self.data.cores[k].permute(1, 0, 2)
+                A_k = reshape_matlab(A_k, (num_nodes, -1))
+
+                G_k = self.bases.polys[k].eval_radon(A_k, xs[:, k])
+                G_k = reshape_matlab(G_k, (num_x, rank_p, rank_k))
+                G_k = G_k.permute(1, 0, 2)
+                G_k = reshape_matlab(G_k, (rank_p * num_x, rank_k))
+
+                # TODO: figure out what the below code is doing
+                ii = torch.arange(num_x).repeat(rank_p)
+                jj = (torch.arange(rank_p * num_x)
+                           .reshape(num_x, rank_p).T
+                           .flatten())
+
+                indices = torch.vstack((ii[None, :], jj[None, :]))
+                size = (num_x, rank_p * num_x)
+
+                B = torch.sparse_coo_tensor(indices, fxs.T.flatten(), size)
+                fxs = B @ G_k
+
+        else:
+            
+            x_inds = torch.arange(dim_x-1, -1, -1)
+            t_inds = torch.arange(self.bases.dim-1, -1, -1)
+            
+            for i in range(min(dim_x, self.bases.dim)):
+                
+                j = int(t_inds[i])
+                
+                rank_p, num_nodes, rank_j = self.data.cores[j].shape
+
+                A_k = self.data.cores[j].permute(1, 2, 0)
+                A_k = reshape_matlab(A_k, (num_nodes, -1))
+
+                G_k = self.bases.polys[j].eval_radon(A_k, xs[:, x_inds[i]])
+                G_k = reshape_matlab(G_k, (num_x, rank_j, rank_p))
+                G_k = G_k.permute(1, 0, 2)
+                G_k = reshape_matlab(G_k, (rank_j * num_x, rank_p))
+
+                ii = torch.arange(num_x * rank_j)
+                jj = torch.arange(num_x).repeat_interleave(rank_j)
+                
+                indices = torch.vstack((ii[None, :], jj[None, :]))
+                size = (rank_j * num_x, num_x)
+
+                B = torch.sparse_coo_tensor(indices, fxs.T.flatten(), size)
+                fxs = G_k.T @ B
+
+        return fxs.squeeze()
+    
     def eval_block(
         self, 
         xs: torch.Tensor,

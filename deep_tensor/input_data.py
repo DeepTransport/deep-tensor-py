@@ -23,8 +23,8 @@ class InputData():
         self.xs_debug = xs_debug
         self.fxs_debug = fxs_debug
 
-        self.rs_samp = torch.tensor([])
-        self.rs_debug = torch.tensor([])
+        self.ls_samp = torch.tensor([])
+        self.ls_debug = torch.tensor([])
         self.count = 0
 
         return
@@ -34,11 +34,11 @@ class InputData():
         """Flag that indicates whether debugging samples are available.
         """
 
-        if self.xs_debug.numel() > 0 and self.rs_debug.numel() == 0:
-            msg = "Debug samples must be transformed to the reference domain."
-            warnings.warn(msg)
+        if self.xs_debug.numel() > 0 and self.ls_debug.numel() == 0:
+            msg = "Debug samples must be transformed to the local domain."
+            raise Exception(msg)
         
-        flag = not self.rs_debug.numel() == 0
+        flag = not self.ls_debug.numel() == 0
         return flag
     
     @property 
@@ -62,7 +62,7 @@ class InputData():
                 msg = ("Generating initialization samples from the " 
                        + "base measure.")
                 print(msg)
-                self.rs_samp, _ = base.sample_measure_local(n)
+                self.ls_samp = base.sample_measure_local(n)[0]
             else:
                 msg = ("There are no initialization samples available. "
                        + "Please provide a sample set "
@@ -75,15 +75,15 @@ class InputData():
                 msg = ("Not enough number of samples to initialise " 
                        + "functional tensor train.")
                 warnings.warn(msg)
-                self.sample_z, _ = base.sample_measure_local(n)
+                self.ls_samp = base.sample_measure_local(n)[0]
             else:
-                self.sample_z, _ = base.approx2local(self.xs_samp)
+                self.ls_samp = base.approx2local(self.xs_samp)[0]
 
         self.count = 0
         return
         
     def get_samples(self, n: int|None=None) -> torch.Tensor:
-        """Returns a set of samples from the reference domain.
+        """Returns a set of samples from the local domain.
         
         Parameters
         ----------
@@ -92,17 +92,17 @@ class InputData():
         
         Returns
         -------
-        rs:
-            An n * d matrix containing the requested samples.
+        ls:
+            An n * d matrix containing samples from the local domain.
         
         """
         
-        num_samples = self.sample_z.shape[0]
+        num_samples = self.ls_samp.shape[0]
 
         if self.count + n <= num_samples:
             indices = torch.arange(n) + self.count
             self.count += n
-            return self.sample_z[indices]
+            return self.ls_samp[indices]
 
         n1 = num_samples - self.count + 1
         n2 = n - n1
@@ -116,7 +116,7 @@ class InputData():
         msg = "All samples have been used. Starting from the beginning."
         warnings.warn(msg)
         
-        return self.sample_z[indices]
+        return self.ls_samp[indices]
         
     def set_debug(
         self, 
@@ -124,13 +124,13 @@ class InputData():
         bases: ApproxBases
     ) -> None:
         """Generates a set of samples to use to evaluate the quality of 
-        the approximation to the target density.
+        the approximation to the target function.
 
         Parameters
         ----------
         func:
-            Function that returns the value of the target function for 
-            a given set of parameters from the reference domain.
+            A function that returns the value of the target function 
+            for a given set of parameters from the local domain.
         bases:
             The set of bases used to construct the approximation to the
             target function.
@@ -147,9 +147,9 @@ class InputData():
             warnings.warn(msg)
             return
     
-        self.rs_debug, _ = bases.approx2local(self.xs_debug)
+        self.ls_debug = bases.approx2local(self.xs_debug)[0]
         if self.fxs_debug.numel() == 0:
-            self.fxs_debug = func(self.rs_debug)
+            self.fxs_debug = func(self.ls_debug)
 
         return
     
