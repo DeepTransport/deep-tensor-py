@@ -267,20 +267,20 @@ class ApproxBases():
         ls:
             An n * d matrix containing samples drawn from the local
             weighting function.
-        neglogfls:
+        neglogwls:
             An n-dimensional vector containing the negative logarithm 
             of the weighting function evaluated at each sample.
 
         """ 
 
         ls = torch.zeros((n, self.dim))
-        neglogfls = torch.zeros(n)
+        neglogwls = torch.zeros(n)
         
         for k in range(self.dim):
             ls[:, k] = self.polys[k].sample_measure(n)
-            neglogfls -= self.polys[k].eval_log_measure(ls[:, k])
+            neglogwls -= self.polys[k].eval_log_measure(ls[:, k])
         
-        return ls, neglogfls
+        return ls, neglogwls
 
     def eval_measure_potential_local(
         self, 
@@ -379,17 +379,18 @@ class ApproxBases():
         xs:
             An n * d matrix containing samples from the approximation 
             domain.
-        neglogfxs:
+        neglogwxs:
             An n-dimensional vector containing the negative logarithm 
-            of the pushforward density of each sample.
+            of the weighting density (pushed forward into the 
+            approximation domain) for each sample.
         
         """
 
-        ls, neglogfls = self.sample_measure_local(n)
+        ls, neglogwls = self.sample_measure_local(n)
         xs, dxdls = self.local2approx(ls)
 
-        neglogfxs = neglogfls + dxdls.log().sum(dim=1)
-        return xs, neglogfxs
+        neglogwxs = neglogwls + dxdls.log().sum(dim=1)
+        return xs, neglogwxs
     
     def eval_measure_potential(
         self, 
@@ -426,13 +427,13 @@ class ApproxBases():
 
         ls, dldxs = self.approx2local(xs, indices)
         
-        neglogrefls = self.eval_measure_potential_local(ls, indices)
-        neglogrefxs = neglogrefls + dldxs.log().sum(dim=1)
+        neglogwls = self.eval_measure_potential_local(ls, indices)
+        neglogwxs = neglogwls + dldxs.log().sum(dim=1)
         
         grs = self.eval_measure_potential_local_grad(ls, indices)
         gxs = grs * dldxs
 
-        return neglogrefxs, gxs
+        return neglogwxs, gxs
     
     def eval_measure(self, xs: torch.Tensor) -> torch.Tensor:
         """Computes the density of the reference measure for a set of 

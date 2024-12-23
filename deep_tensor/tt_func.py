@@ -442,10 +442,24 @@ class TTFunc(ApproxFunc):
 
     def build_basis_svd(
         self, 
-        F: torch.Tensor, 
+        F_k: torch.Tensor, 
         k: torch.Tensor|int
     ) -> None:
-        """TODO: write docstring..."""
+        """TODO: write docstring...
+        
+        Parameters
+        ----------
+        F_k:
+            TODO
+        k:
+            The index of the dimension corresponding to the basis 
+            being constructed.
+
+        Returns
+        -------
+        None
+            
+        """
 
         k = int(k)
         k_prev = int(k - self.data.direction.value)
@@ -455,21 +469,19 @@ class TTFunc(ApproxFunc):
         interp_x_prev = self.data.interp_x[k_prev]
         core_next = self.data.cores[k_next]
 
-        num_b_left, num_nodes, num_b_right = F.shape 
+        num_b_left, num_nodes, num_b_right = F_k.shape 
         rank_0_next, num_nodes_next, rank_1_next = core_next.shape
 
-        # F = reshape_matlab(torch.arange(1, 41*20+1, dtype=torch.float32), (1, 41, 20))
-
         if self.data.direction == Direction.FORWARD:
-            F = F.permute(1, 0, 2)
-            F = reshape_matlab(F, (num_nodes * num_b_left, num_b_right))
+            F_k = F_k.permute(1, 0, 2)
+            F_k = reshape_matlab(F_k, (num_nodes * num_b_left, num_b_right))
             rank_prev = num_b_left
         else: 
-            F = F.permute(1, 2, 0)
-            F = reshape_matlab(F, (num_nodes * num_b_right, num_b_left))
+            F_k = F_k.permute(1, 2, 0)
+            F_k = reshape_matlab(F_k, (num_nodes * num_b_right, num_b_left))
             rank_prev = num_b_right
 
-        B, A, rank = self.truncate_local(F, k)
+        B, A, rank = self.truncate_local(F_k, k)
 
         indices, core, interp_atx = self.select_points(B, k)
 
@@ -481,7 +493,7 @@ class TTFunc(ApproxFunc):
             core = reshape_matlab(core, (num_nodes, rank_prev, rank))
             core = core.permute(1, 0, 2)
 
-            couple = couple[:, :rank_0_next].permute(0, 1)  # TODO: remove permuate thing
+            couple = couple[:, :rank_0_next]
             couple = reshape_matlab(couple, (-1, rank_0_next))
             
             core_next = reshape_matlab(core_next, (rank_0_next, -1))

@@ -29,8 +29,9 @@ class TTDIRT(DIRT):
         func:
             Function that returns the negative log-likelihood and 
             negative log-prior density of a sample.
-        bases:
-            List of approximation bases in each dimension.
+        bases_list:
+            A list of the bases used when constructing the first two 
+            levels of DIRT.
         sirt_options:
             Options used when constructing the SIRT associated with the 
             layer.

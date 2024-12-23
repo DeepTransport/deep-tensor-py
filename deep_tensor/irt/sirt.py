@@ -121,6 +121,8 @@ class SIRT(AbstractIRT, abc.ABC):
         zs: torch.Tensor
     ) -> torch.Tensor:
         
+        raise Exception("TODO: something seems wrong here.")
+        
         _, dxdzs = self.bases.local2approx(ys, zs)
 
         neglogref = self.bases.eval_measure_potential_local(zs)

@@ -426,10 +426,10 @@ class TTSIRT(SIRT):
 
             indices = torch.arange(self.bases.dim-1, self.bases.dim-dim_z-1, -1)
             
-        neglogws = self.approx.bases.eval_measure_potential(xs, indices)[0]  # TODO: check that indices go backwards
-        fxs = self.z.log() - (fx + self.tau).log() + neglogws
+        neglogwls = self.approx.bases.eval_measure_potential(xs, indices)[0]  # TODO: check that indices go backwards
+        neglogfls = self.z.log() - (fx + self.tau).log() + neglogwls
 
-        return fxs
+        return neglogfls
 
     def eval_rt_jac_local(
         self, 
@@ -510,7 +510,7 @@ class TTSIRT(SIRT):
                 T1 = reshape_matlab(T1, (-1, rank_k))
 
                 pk = reshape_matlab(T1 @ frg, (-1, num_nodes * num_r))
-                pk = reshape_matlab(torch.sum(pk ** 2, 0), (num_nodes, num_r))
+                pk = reshape_matlab(pk.square().sum(dim=0), (num_nodes, num_r))
 
                 zs[:, k_ind] = self.oned_cdfs[k].eval_cdf(pk + self.tau, rs[:, k_ind])
 
@@ -638,8 +638,10 @@ class TTSIRT(SIRT):
             ls, gls_sq = self._eval_irt_local_nograd_backward(zs)
         
         indices = self.get_transform_indices(zs.shape[1])
-        negloglams = self.bases.eval_measure_potential_local(ls, indices)
-        neglogfls = self.z.log() - (gls_sq + self.tau).log() + negloglams
+        
+        neglogpls = -(gls_sq + self.tau).log()
+        neglogwls = self.bases.eval_measure_potential_local(ls, indices)
+        neglogfls = self.z.log() + neglogpls + neglogwls
 
         return ls, neglogfls
 

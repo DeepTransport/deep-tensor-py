@@ -163,30 +163,37 @@ class Bridge(abc.ABC):
     ) -> None:
         return 
     
-    # def eval(
-    #     self, 
-    #     func: Callable, 
-    #     xs: torch.Tensor
-    # ) -> tuple[float, float]:
-    #     """Returns (quantities proportional to) the negative 
-    #     log-likelihood and negative log-prior density associated with 
-    #     a set of parameters. 
-        
-    #     Parameters
-    #     ----------
-    #     func: 
-    #         Returns a quantity proportional to the log of the current 
-    #         bridging density.
-    #     xs: 
-    #         The parameters at which to evaluate func.
+    def resample(
+        self, 
+        log_weights: torch.Tensor
+    ) -> torch.Tensor:
+        """Returns a resampled set of indices based on the importance
+        weights between the current bridging density and the density 
+        of the approximation to the previous target density evaluated
+        at a set of samples from the approximation to the previous 
+        target density.
 
-    #     Returns
-    #     -------
-    #     :
-    #         The negative log-likelihood and negative log-prior density
-    #         associated with x.
+        Parameters
+        ----------
+        log_weights:
+            An n-dimensional vector containing the logarithm of the 
+            ratio between the current bridging density and the density 
+            of the approximation to the previous target density 
+            evaluated at each sample.
 
-    #     TODO: get rid of this.
-            
-    #     """
-    #     return func(xs)
+        Returns
+        -------
+        resampled_inds:
+            An n-dimensional vector containing the indices of the 
+            (now equally-weighted) samples that were selected during 
+            the resampling process.
+
+        """
+
+        resampled_inds = torch.multinomial(
+            input=log_weights.exp(), 
+            num_samples=log_weights.numel(), 
+            replacement=True
+        )
+
+        return resampled_inds

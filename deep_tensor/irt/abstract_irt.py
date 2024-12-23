@@ -316,9 +316,8 @@ class AbstractIRT(abc.ABC):
         dim_x = xs.shape[1]
         indices = self.get_transform_indices(dim_x)
         
-        # TODO: is it better call this reference or unit?
-        rs, _ = self.approx.bases.approx2local(xs, indices)
-        zs = self.eval_rt_local(rs)
+        ls = self.approx.bases.approx2local(xs, indices)[0]
+        zs = self.eval_rt_local(ls)
         return zs
     
     def eval_rt_jac(

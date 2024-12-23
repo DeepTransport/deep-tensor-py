@@ -54,8 +54,7 @@ class Tempering1(SingleBeta):
             return
             
         if self.num_layers == 0:
-            beta = self.init_beta 
-            self.betas = torch.cat((self.betas, beta.reshape(1)))
+            self.betas = torch.tensor([self.init_beta])
             return
             
         beta_prev = self.betas[self.num_layers-1]
@@ -86,26 +85,63 @@ class Tempering1(SingleBeta):
         neglogpris: torch.Tensor, 
         neglogfxs: torch.Tensor
     ) -> torch.Tensor:
+        """Returns the value of the current ratio function evaluated at
+        each sample in xs.
+        
+        Parameters
+        ----------
+        reference:
+            The reference density.
+        method:
+            The type of ratio function to compute. Can be 'aratio' or
+            'eratio'.
+        xs:
+            An n * d matrix containing samples from the approximation 
+            domain.
+        neglogliks:
+            An n-dimensional vector containing the negative 
+            log-likelihood evaluated at each sample in xs.
+        neglogpris:
+            An n-dimensional vector containing the negative log-prior 
+            density evaluated at each sample in xs.
+        neglogfxs:
+            An n-dimensional vector containing the density of the 
+            approximation to the previous bridging density evaluated at
+            each sample in xs.
+        
+        Returns
+        -------
+        neglogratios:
+            The negative log-ratio function evaluated at each sample in
+            xs.
+         
+        """
         
         beta = self.betas[self.num_layers]
-
         if self.num_layers == 0:
-            neglogratio = beta*neglogliks + neglogpris  # neglogfrs == neglogpris in the first instance, also beta_prev=0
-            return neglogratio
+            beta_prev = 0.0
+        else:
+            beta_prev = self.betas[self.num_layers-1]
+
+        # TODO: ask TC what is going on here.
+        # neglogfrs != neglogpris (in general)
+        # (note: beta_prev = 0)
+        # if self.num_layers == 0:
+        #     neglogratios = beta*neglogliks + neglogpris
+        #     return neglogratios
         
         # Compute the reference density at each value of xs
-        neglogfrs = -reference.log_joint_pdf(xs)[0]
-        beta_prev = self.betas[self.num_layers-1]
+        neglogrefs = -reference.log_joint_pdf(xs)[0]
 
         if method == "eratio":
             # beta*neglogliks + neglogpris = exact evaluations of next target of samples under current composition of mappings
             # neglogfrs = density of reference evaluated at each sample
             # neglogfxs = current approximation density (that the samples are drawn from) evaluated at each sample
             # TODO: figure out where omega went here. I assume it's somehow lumped in to neglogfxs..?
-            neglogratios = (beta*neglogliks + neglogpris + neglogfrs
+            neglogratios = (beta*neglogliks + neglogpris + neglogrefs
                             - neglogfxs)
         elif method == "aratio":
-            neglogratios = (beta-beta_prev)*neglogliks + neglogfrs
+            neglogratios = (beta-beta_prev) * neglogliks + neglogrefs
         
         return neglogratios
     
@@ -139,10 +175,35 @@ class Tempering1(SingleBeta):
         neglogpris: torch.Tensor,
         neglogfxs: torch.Tensor
     ) -> torch.Tensor:
+        """Returns the logarithm of the ratio between the current 
+        bridging density and the density of the approximation to the 
+        previous bridging density evaluated at each of a set of samples
+        distributed according to the previous bridging density.
 
-        log_weights = (-self.betas[self.num_layers]*neglogliks - neglogpris
-                       + neglogfxs)
+        Parameters
+        ----------
+        neglogliks:
+            An n-dimensional vector containing the negative 
+            log-likelihood function evaluated at each sample.
+        neglogpris:
+            An n-dimensional vector containing the negative log-prior 
+            density evaluated at each sample.
+        neglogfxs:
+            An n-dimensional vector containing the negative logarithm
+            of the approximation to the previous bridging density 
+            evaluated at each sample.
+
+        Returns
+        -------
+        log_weights:
+            The logarithm of the ratio between the current bridging 
+            density and the density of the approximation to the 
+            previous bridging density evaluated at each sample.
         
+        """
+
+        beta = self.betas[self.num_layers]
+        log_weights = -beta*neglogliks - neglogpris + neglogfxs
         return log_weights
 
     def print_progress(
@@ -163,9 +224,9 @@ class Tempering1(SingleBeta):
 
         if self.num_layers > 0:
         
-            beta = self.betas[self.num_layers-1]
+            beta_prev = self.betas[self.num_layers-1]
             log_proposal = -neglogfxs
-            log_target = -beta*neglogliks - neglogpris
+            log_target = -beta_prev*neglogliks - neglogpris
 
             # Estimate square Hellinger distance between current (kth)
             # approximation and previous (kth) target density

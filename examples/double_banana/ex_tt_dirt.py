@@ -3,6 +3,8 @@
 from matplotlib import pyplot as plt
 import torch
 
+import os, sys; sys.path.append(os.getcwd())
+
 import deep_tensor as dt
 
 from examples.double_banana.double_banana import DoubleBanana

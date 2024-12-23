@@ -33,7 +33,7 @@ class Piecewise(Basis1D, abc.ABC):
         return self._constant_weight
 
     def sample_measure(self, n: int) -> torch.Tensor:
-        return torch.rand(n) * self.domain_size + self.domain[0]
+        return self.domain[0] + self.domain_size * torch.rand(n)
 
     def sample_measure_skip(self, n: int) -> torch.Tensor:
         return self.sample_measure(n)
@@ -41,8 +41,8 @@ class Piecewise(Basis1D, abc.ABC):
     def eval_measure(self, x: torch.Tensor) -> torch.Tensor:
         return torch.full(x.shape, 1.0 / self.domain_size)
 
-    def eval_log_measure(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.full(x.shape, -torch.log(self.domain_size))
+    def eval_log_measure(self, ls: torch.Tensor) -> torch.Tensor:
+        return torch.full(ls.shape, -self.domain_size.log())
 
     def eval_measure_deriv(obj, x: torch.Tensor) -> torch.Tensor:
         return torch.zeros_like(x)

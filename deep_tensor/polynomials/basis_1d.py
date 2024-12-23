@@ -45,56 +45,59 @@ class Basis1D(abc.ABC, object):
         return
 
     @abc.abstractmethod
-    def eval_basis(self, xs: torch.Tensor) -> torch.Tensor:
+    def eval_basis(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the (normalised) one-dimensional basis at a given 
         set of points.
         
         Parameters 
         ----------
-        xs:
-            A vector of locations at which to evaluate the basis 
-            functions.
+        ls:
+            An n-dimensional vector of points (on the interval [-1, 1])
+            at which to evaluate the basis functions.
         
         Returns
         -------
         basis_vals:
-            A matrix containing the values of each basis function 
-            evaluated at each point. Element (i, j) contains the value 
-            of the jth basis function evaluated at the ith element of 
-            xs.
+            An n * d matrix containing the values of each basis 
+            function evaluated at each point. Element (i, j) contains 
+            the value of the jth basis function evaluated at the ith 
+            element of ls.
         
         """
         return
     
     @abc.abstractmethod
-    def eval_basis_deriv(self, x: torch.Tensor) -> torch.Tensor:
+    def eval_basis_deriv(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the derivative of each (normalised) basis function
         at a given set of points.
         
         Parameters
         ----------
-        x: 
-            The locations at which to evaluate the derivative of each
-            basis function.
+        ls: 
+            An n-dimensional vector of points (on the interval [-1, 1])
+            at which to evaluate the derivative of each basis function.
         
         Returns
         -------
-        :
-            A matrix containing the derivatives of each basis function
-            evaluated at each point.
+        deriv_vals:
+            An n * d matrix containing the derivative of each basis 
+            function evaluated at each point. Element (i, j) contains 
+            the derivative of the jth basis function evaluated at the
+            ith element of ls.
 
         """
         return 
     
     @abc.abstractmethod
-    def eval_measure(self, x: torch.Tensor) -> torch.Tensor:
+    def eval_measure(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the (normalised) weighting function at a given set
         of points.
         
         Parameters
         ----------
-        x: 
-            The locations at which to evaluate the weighting function.
+        ls: 
+            An n-dimensional vector of points at which to evaluate the 
+            weighting function.
 
         Returns
         -------
