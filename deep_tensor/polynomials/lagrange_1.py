@@ -46,36 +46,36 @@ class Lagrange1(Piecewise):
     def int_W(self) -> torch.Tensor: 
         return self._int_W
     
-    def eval_basis(self, xs: torch.Tensor) -> torch.Tensor:
+    def eval_basis(self, ls: torch.Tensor) -> torch.Tensor:
             
-        points_in_domain = self.in_domain(xs)
+        points_in_domain = self.in_domain(ls)
         inds_in_domain = points_in_domain.nonzero().flatten()
 
         if not torch.all(points_in_domain):
             warnings.warn("Some points are outside the domain")
 
         if not torch.any(points_in_domain):
-            basis_vals = torch.zeros((xs.numel(), self.cardinality))
+            basis_vals = torch.zeros((ls.numel(), self.cardinality))
             return basis_vals
 
-        inside_points = xs[points_in_domain]
+        inside_points = ls[points_in_domain]
 
         left_inds = (inside_points-self.domain[0]) / self.elem_size
         left_inds = left_inds.floor().int()
         left_inds[left_inds == self.num_elems] = self.num_elems - 1
 
         # Convert to local coordinates
-        xs_local = (inside_points-self.grid[left_inds]) / self.elem_size
+        ls_local = (inside_points-self.grid[left_inds]) / self.elem_size
 
         row_inds = torch.concatenate((inds_in_domain, inds_in_domain))
         col_inds = torch.concatenate((left_inds, left_inds+1))
         indices = torch.vstack((row_inds, col_inds))
-        vals = torch.concatenate((1-xs_local, xs_local))
+        vals = torch.concatenate((1-ls_local, ls_local))
 
         basis_vals = torch.sparse_coo_tensor(
             indices=indices, 
             values=vals, 
-            size=(xs.numel(), self.cardinality)
+            size=(ls.numel(), self.cardinality)
         )
 
         return basis_vals
