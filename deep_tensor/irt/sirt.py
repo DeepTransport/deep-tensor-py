@@ -17,7 +17,7 @@ class SIRT(AbstractIRT, abc.ABC):
     
     def __init__(
         self, 
-        potential: Callable, 
+        potential: Callable[[torch.Tensor], torch.Tensor], 
         bases: ApproxBases,
         approx: ApproxFunc|None, 
         options: ApproxOptions, 
@@ -40,14 +40,15 @@ class SIRT(AbstractIRT, abc.ABC):
         self._order = None
         self._tau = tau
 
-        def func(ls: torch.Tensor) -> torch.Tensor:
-            """Computes the approximation to the target density for a 
-            set of samples in the local domain.
+        def target_func(ls: torch.Tensor) -> torch.Tensor:
+            """Returns the square root of the ratio between the target 
+            density and the weighting function evaluated at a set of 
+            points in the local domain ([-1, 1]^d).
             """
             return self.potential2density(potential, ls)
 
         self._approx = self.build_approximation(
-            func, 
+            target_func, 
             bases,
             options, 
             input_data,
@@ -135,8 +136,8 @@ class SIRT(AbstractIRT, abc.ABC):
         neglogwxs = self.bases.eval_measure_potential(xs)[0]
 
         # The ratio of f and w is invariant to changes of coordinate
-        pls = torch.exp(-0.5 * (neglogfxs - neglogwxs))
-        return pls
+        ps = torch.exp(-0.5 * (neglogfxs - neglogwxs))
+        return ps
     
     def get_potential2density(
         self, 
@@ -144,7 +145,7 @@ class SIRT(AbstractIRT, abc.ABC):
         zs: torch.Tensor
     ) -> torch.Tensor:
         
-        raise Exception("TODO: something seems wrong here.")
+        raise NotImplementedError()
         
         _, dxdzs = self.bases.local2approx(ys, zs)
 

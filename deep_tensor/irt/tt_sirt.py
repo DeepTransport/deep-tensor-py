@@ -222,7 +222,7 @@ class TTSIRT(SIRT):
 
     def build_approximation(
         self, 
-        density_func: Callable, 
+        target_func: Callable[[torch.Tensor], torch.Tensor], 
         bases: ApproxBases, 
         options: TTOptions, 
         input_data: InputData,
@@ -230,7 +230,7 @@ class TTSIRT(SIRT):
     ) -> TTFunc:
         
         approx = TTFunc(
-            density_func, 
+            target_func, 
             bases,
             options=options, 
             input_data=input_data,

@@ -20,29 +20,37 @@ class TTFunc(ApproxFunc):
 
     def __init__(
         self, 
-        func: Callable, 
+        target_func: Callable[[torch.Tensor], torch.Tensor], 
         bases: ApproxBases, 
         options: TTOptions, 
         input_data: InputData,
         tt_data: TTData|None
     ):
-        r"""A functional tensor-train approximation for a function 
-        mapping from $\mathbb{R}^{d}$ to $\mathbb{R}$.
+        """A functional tensor-train approximation for a function 
+        mapping from some subset of R^d to some subset of R.
 
         Parameters
         ----------
-        func:
-            A function ($\mathbb{R}^{d} \rightarrow \mathbb{R}$) that 
-            takes as input a $n \times d$ matrix and returns an 
-            $n$-dimensional vector.
-        
-        TODO: finish
+        target_func:
+            Maps an n * d matrix containing samples from the local 
+            domain ([-1, 1]^d) to an n-dimensional vector containing 
+            the values of the target function at each sample.
+        bases:
+            The bases associated with the approximation domain.
+        options:
+            Options used when constructing the FTT approximation to
+            the target function.
+        input_data:
+            Data used for initialising and evaluating the quality of 
+            the FTT approximation to the target function.
+        tt_data:
+            Data used to construct the FTT approximation to the target
+            function.
 
         """
-        
-        super().__init__(func, bases, options, input_data, tt_data)
+        super().__init__(target_func, bases, options, input_data, tt_data)
         self.input_data.set_samples(self.bases, self.sample_size)
-        self.cross(func)
+        self.cross(target_func)
         return
         
     @property 
@@ -109,7 +117,7 @@ class TTFunc(ApproxFunc):
 
     def _compute_cross_iter_fixed_rank(
         self, 
-        func: Callable,
+        target_func: Callable,
         indices: torch.Tensor
     ) -> None:
 
@@ -118,7 +126,7 @@ class TTFunc(ApproxFunc):
             x_left = self.data.interp_x[int(k-1)]
             x_right = self.data.interp_x[int(k+1)]
             
-            F_k = self.build_block_local(func, x_left, x_right, k) 
+            F_k = self.build_block_local(target_func, x_left, x_right, k) 
             self.errors[k] = self.get_error_local(F_k, k)
             self.build_basis_svd(F_k, k)
 
@@ -126,7 +134,7 @@ class TTFunc(ApproxFunc):
     
     def _compute_cross_iter_random(
         self,
-        func: Callable,
+        target_func: Callable[[torch.Tensor], torch.Tensor],
         indices: torch.Tensor
     ) -> None:
         
@@ -136,14 +144,14 @@ class TTFunc(ApproxFunc):
             x_right = self.data.interp_x[int(k+1)].clone()
             enrich = self.input_data.get_samples(self.options.kick_rank)
 
-            F_k = self.build_block_local(func, x_left, x_right, k)
+            F_k = self.build_block_local(target_func, x_left, x_right, k)
             self.errors[k] = self.get_error_local(F_k, k)
 
             if self.data.direction == Direction.FORWARD:
-                F_enrich = self.build_block_local(func, x_left, enrich[:, k+1:], k)
+                F_enrich = self.build_block_local(target_func, x_left, enrich[:, k+1:], k)
                 F_full = torch.concatenate((F_k, F_enrich), dim=2)
             else:
-                F_enrich = self.build_block_local(func, enrich[:, :k], x_right, k)
+                F_enrich = self.build_block_local(target_func, enrich[:, :k], x_right, k)
                 F_full = torch.concatenate((F_k, F_enrich), dim=0)
 
             self.build_basis_svd(F_full, k)
@@ -307,7 +315,7 @@ class TTFunc(ApproxFunc):
 
     def build_block_local(
         self, 
-        func: Callable, 
+        target_func: Callable[[torch.Tensor], torch.Tensor], 
         x_left: torch.Tensor,
         x_right: torch.Tensor,
         k: int
@@ -318,14 +326,14 @@ class TTFunc(ApproxFunc):
 
         Parameters
         ----------
-        func: 
+        target_func: 
             The function being approximated.
         k:
             The dimension in which interpolation is being carried out.
 
         Returns
         -------
-        f: 
+        F_k: 
             An r_{k-1} * n_{k} * r_{k} tensor containing the values of 
             the function evaluated at each interpolation point.
 
@@ -366,17 +374,17 @@ class TTFunc(ApproxFunc):
                 x_right.repeat_interleave(num_left * poly.cardinality, dim=0)
             ))
         
-        f = func(params)
-        f = reshape_matlab(f, (num_left, poly.cardinality, num_right))
+        F_k = target_func(params)
+        F_k = reshape_matlab(F_k, (num_left, poly.cardinality, num_right))
 
         if isinstance(poly, Spectral):  # TODO: I think this could be a separate method eventually
-            f = f.permute(1, 0, 2)
-            f = poly.node2basis @ reshape_matlab(f, (poly.cardinality, -1))
-            f = reshape_matlab(f, (poly.cardinality, num_left, num_right))
-            f = f.permute(1, 0, 2)
+            F_k = F_k.permute(1, 0, 2)
+            F_k = poly.node2basis @ reshape_matlab(F_k, (poly.cardinality, -1))
+            F_k = reshape_matlab(F_k, (poly.cardinality, num_left, num_right))
+            F_k = F_k.permute(1, 0, 2)
 
         self.num_eval += params.shape[0]
-        return f
+        return F_k
 
     def truncate_local(
         self,
@@ -766,7 +774,7 @@ class TTFunc(ApproxFunc):
 
     def cross(
         self, 
-        func: Callable[[torch.Tensor], torch.Tensor]
+        target_func: Callable[[torch.Tensor], torch.Tensor]
     ) -> None:
         """Cross iterations for building the tensor train.
 
@@ -803,13 +811,13 @@ class TTFunc(ApproxFunc):
                 indices = torch.arange(self.dim-1, 0, -1)
             
             if self.options.tt_method == "fixed_rank":
-                self._compute_cross_iter_fixed_rank(func, indices)
+                self._compute_cross_iter_fixed_rank(target_func, indices)
             
             elif self.options.tt_method == "random":
-                self._compute_cross_iter_random(func, indices)
+                self._compute_cross_iter_random(target_func, indices)
 
             elif self.options.tt_method == "amen":
-                self._compute_cross_iter_amen(func, indices)  # TODO: implement this. 
+                self._compute_cross_iter_amen(target_func, indices)  # TODO: implement this. 
             
             else: 
                 raise Exception("Unknown TT method.")
@@ -817,7 +825,7 @@ class TTFunc(ApproxFunc):
             als_iter += 1
 
             if self.is_finished(als_iter, indices): 
-                self._compute_final_block(func)
+                self._compute_final_block(target_func)
 
             self.compute_relative_error()
 

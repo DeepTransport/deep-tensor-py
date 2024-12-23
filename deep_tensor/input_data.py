@@ -50,7 +50,7 @@ class InputData():
 
     def set_samples(
         self, 
-        base: ApproxBases, 
+        bases: ApproxBases, 
         n: int|None=None
     ) -> torch.Tensor:
         """Generates the samples required for TT, given the 
@@ -62,7 +62,7 @@ class InputData():
                 msg = ("Generating initialization samples from the " 
                        + "base measure.")
                 print(msg)
-                self.ls_samp = base.sample_measure_local(n)[0]
+                self.ls_samp = bases.sample_measure_local(n)[0]
             else:
                 msg = ("There are no initialization samples available. "
                        + "Please provide a sample set "
@@ -75,9 +75,9 @@ class InputData():
                 msg = ("Not enough number of samples to initialise " 
                        + "functional tensor train.")
                 warnings.warn(msg)
-                self.ls_samp = base.sample_measure_local(n)[0]
+                self.ls_samp = bases.sample_measure_local(n)[0]
             else:
-                self.ls_samp = base.approx2local(self.xs_samp)[0]
+                self.ls_samp = bases.approx2local(self.xs_samp)[0]
 
         self.count = 0
         return
@@ -88,12 +88,13 @@ class InputData():
         Parameters
         ----------
         n: 
-            Number of samples to return.
+            The number of samples to return.
         
         Returns
         -------
         ls:
-            An n * d matrix containing samples from the local domain.
+            An n * d matrix containing samples from the local domain
+            ([-1, 1]^d).
         
         """
         
