@@ -359,7 +359,8 @@ class ApproxBases():
         
         gs = torch.empty_like(ls)
         for i, ls_i in enumerate(ls.T):
-            gs[:, i] = -self.polys[indices[i]].eval_log_measure_deriv(ls_i)
+            poly = self.polys[indices[i]]
+            gs[:, i] = -poly.eval_log_measure_deriv(ls_i)
 
         return gs
 
@@ -385,10 +386,8 @@ class ApproxBases():
             approximation domain) for each sample.
         
         """
-
         ls, neglogwls = self.sample_measure_local(n)
         xs, dxdls = self.local2approx(ls)
-
         neglogwxs = neglogwls + dxdls.log().sum(dim=1)
         return xs, neglogwxs
     
@@ -412,9 +411,12 @@ class ApproxBases():
         
         Returns
         -------
-        fxs:
-            The 
-        TODO: tidy this up.
+        neglogwxs:
+            The weighting function evaluated at each element of xs.
+        gxs:
+            TODO: change the naming etc here.
+
+        TODO: check this with TC (MATLAB version is different)
 
         """
         
@@ -428,7 +430,7 @@ class ApproxBases():
         ls, dldxs = self.approx2local(xs, indices)
         
         neglogwls = self.eval_measure_potential_local(ls, indices)
-        neglogwxs = neglogwls + dldxs.log().sum(dim=1)
+        neglogwxs = neglogwls - dldxs.log().sum(dim=1)  # TODO: check this
         
         grs = self.eval_measure_potential_local_grad(ls, indices)
         gxs = grs * dldxs
@@ -436,13 +438,22 @@ class ApproxBases():
         return neglogwxs, gxs
     
     def eval_measure(self, xs: torch.Tensor) -> torch.Tensor:
-        """Computes the density of the reference measure for a set of 
-        samples from the input domain, with the domain mapping.
+        """Computes the weighting function for a set of samples from 
+        the approximation domain, with the domain mapping.
 
-        TODO: finish
+        Parameters
+        ----------
+        xs:
+            An n * d matrix containing a set of n samples from the 
+            approximation domain.
+        
+        Returns
+        -------
+        wxs:
+            An n-dimensional vector containing the value of the 
+            weighting function evaluated at each element in xs.
 
         """
-
-        fx, _ = self.eval_measure_potential(xs)
-        fx = torch.exp(-fx)
-        return fx
+        neglogwxs = self.eval_measure_potential(xs)[0]
+        wxs = torch.exp(-neglogwxs)
+        return wxs

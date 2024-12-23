@@ -103,17 +103,40 @@ class SIRT(AbstractIRT, abc.ABC):
 
     def potential2density(
         self, 
-        potential_func: Callable, 
+        potential_func: Callable[[torch.Tensor], torch.Tensor], 
         ls: torch.Tensor
     ) -> torch.Tensor:
+        """Returns the square root of the target function evaluated at
+        a set of samples in the local domain.
         
-        xs, dxdls = self.bases.local2approx(ls)
-        neglogfxs = potential_func(xs)
-        
-        neglogrefs = self.bases.eval_measure_potential_local(ls)
+        Parameters
+        ----------
+        ls:
+            An n * d matrix containing a set of n samples from the 
+            local domain ([-1, 1]^d).
+        potential_func:
+            A function that evaluates the potential (negative log) 
+            of the target function at a given set of samples from the 
+            approximation domain.
 
-        log_ys = -0.5 * (neglogfxs - neglogrefs - dxdls.log().sum(dim=1))
-        return torch.exp(log_ys)
+        Returns
+        -------
+        pls:
+            An n-dimensional vector containing the square root of the 
+            ratio of the potential function and the weighting function, 
+            evaluated at each element of ls.
+            
+        TODO: check this (and eval_measure_potential) with TC.
+
+        """
+        
+        xs = self.bases.local2approx(ls)[0]
+        neglogfxs = potential_func(xs)
+        neglogwxs = self.bases.eval_measure_potential(xs)[0]
+
+        # The ratio of f and w is invariant to changes of coordinate
+        pls = torch.exp(-0.5 * (neglogfxs - neglogwxs))
+        return pls
     
     def get_potential2density(
         self, 

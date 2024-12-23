@@ -118,9 +118,9 @@ class TTFunc(ApproxFunc):
             x_left = self.data.interp_x[int(k-1)]
             x_right = self.data.interp_x[int(k+1)]
             
-            F = self.build_block_local(func, x_left, x_right, k) 
-            self.errors[k] = self.get_error_local(F, k)
-            self.build_basis_svd(F, k)
+            F_k = self.build_block_local(func, x_left, x_right, k) 
+            self.errors[k] = self.get_error_local(F_k, k)
+            self.build_basis_svd(F_k, k)
 
         return
     
@@ -135,10 +135,6 @@ class TTFunc(ApproxFunc):
             x_left = self.data.interp_x[int(k-1)].clone()
             x_right = self.data.interp_x[int(k+1)].clone()
             enrich = self.input_data.get_samples(self.options.kick_rank)
-            
-            # TODO: figure out why enrich seems to use a different set 
-            # of samples each time despite the original blocks using 
-            # the same sets
 
             F_k = self.build_block_local(func, x_left, x_right, k)
             self.errors[k] = self.get_error_local(F_k, k)
@@ -200,10 +196,6 @@ class TTFunc(ApproxFunc):
         x_left = self.data.interp_x[int(k-1)]
         x_right = self.data.interp_x[int(k+1)]
         self.data.cores[k] = self.build_block_local(func, x_left, x_right, k)
-
-        #print("Final block...")
-        #print(self.data.cores[k].mean())
-
         return
 
     def _select_points_piecewise(
@@ -238,7 +230,7 @@ class TTFunc(ApproxFunc):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
         # TODO: this is probably available somewhere else.
-        rank_prev = torch.tensor(H.shape[0] / poly.cardinality)  # TODO: should the 0 change when going backwards?
+        rank_prev = torch.tensor(H.shape[0] / poly.cardinality)
         rank_prev = rank_prev.round().int()
         
         nodes = poly.basis2node @ reshape_matlab(H, (poly.cardinality, -1))
@@ -278,7 +270,7 @@ class TTFunc(ApproxFunc):
             self.data.cores[k] = torch.rand(core_shape)
 
             samples = self.input_data.get_samples(self.options.init_rank)
-            self.data.interp_x[k] = samples[:, k:]  # TODO: check this this is working correctly
+            self.data.interp_x[k] = samples[:, k:]
 
         self.data.interp_x[-1] = torch.tensor([])
         self.data.interp_x[self.dim] = torch.tensor([])
@@ -797,7 +789,7 @@ class TTFunc(ApproxFunc):
             self.data.direction = Direction.FORWARD 
             self.initialise_cores()
         else:
-            # Prepare for the next iteration (DIRT-related)
+            # Prepare for the next iteration
             self.data.reverse_direction()
         
         if self.use_amen:
