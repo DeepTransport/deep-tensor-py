@@ -122,7 +122,7 @@ class SIRT(AbstractIRT, abc.ABC):
 
         Returns
         -------
-        pls:
+        ps:
             An n-dimensional vector containing the square root of the 
             ratio of the potential function and the weighting function, 
             evaluated at each element of ls.

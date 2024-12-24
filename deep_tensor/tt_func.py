@@ -611,7 +611,7 @@ class TTFunc(ApproxFunc):
 
         return interp_x
 
-    def eval_reference(
+    def eval_local(
         self, 
         ls: torch.Tensor
     ) -> torch.Tensor:
@@ -622,8 +622,8 @@ class TTFunc(ApproxFunc):
         TODO: finish docstring
         """
 
-        fls = self.eval_block(ls, self.data.direction)
-        return fls
+        ps = self.eval_block(ls, self.data.direction)
+        return ps
     
     def eval_block(
         self, 

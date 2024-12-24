@@ -37,12 +37,24 @@ class ApproxFunc(abc.ABC):
         return
     
     @abc.abstractmethod
-    def eval_reference(
+    def eval_local(
         self, 
-        rs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        ls: torch.Tensor
+    ) -> torch.Tensor:
         """Evaluates the approximation to the target function for a set 
-        of reference variables.
+        of samples in the local domain ([-1, 1]^d).
+
+        Parameters
+        ----------
+        ls:
+            An n * d matrix containing samples in the local domain.
+        
+        Returns
+        -------
+        ps:
+            An n-dimensional vector containing the result of evaluating
+            the target function at each element in ls. 
+            
         """
         return
     
@@ -69,8 +81,8 @@ class ApproxFunc(abc.ABC):
         if not self.input_data.is_debug:
             return
         
-        approx = self.eval_reference(self.input_data.ls_debug)
-        self.l2_err, self.linf_err = self.input_data.relative_error(approx)
+        ps_approx = self.eval_local(self.input_data.ls_debug)
+        self.l2_err, self.linf_err = self.input_data.relative_error(ps_approx)
         return
 
     def eval(self, xs: torch.Tensor) -> torch.Tensor:

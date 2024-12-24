@@ -14,14 +14,21 @@ class InputData():
 
     def __init__(
         self, 
-        xs_samp: torch.Tensor=torch.tensor([]), 
-        xs_debug: torch.Tensor=torch.tensor([]), 
-        fxs_debug: torch.Tensor=torch.tensor([])
+        xs_samp: torch.Tensor|None=None, 
+        xs_debug: torch.Tensor|None=None, 
+        ps_debug: torch.Tensor|None=None
     ):
+        
+        if xs_samp is None:
+            xs_samp = torch.tensor([])
+        if xs_debug is None:
+            xs_debug = torch.tensor([])
+        if ps_debug is None:
+            ps_debug = torch.tensor([])
         
         self.xs_samp = xs_samp
         self.xs_debug = xs_debug
-        self.fxs_debug = fxs_debug
+        self.ps_debug = ps_debug
 
         self.ls_samp = torch.tensor([])
         self.ls_debug = torch.tensor([])
@@ -34,7 +41,7 @@ class InputData():
         """Flag that indicates whether debugging samples are available.
         """
 
-        if self.xs_debug.numel() > 0 and self.ls_debug.numel() == 0:
+        if self.ps_debug.numel() > 0 and self.ls_debug.numel() == 0:
             msg = "Debug samples must be transformed to the local domain."
             raise Exception(msg)
         
@@ -46,7 +53,7 @@ class InputData():
         """Flag that indicates whether the approximation to the target 
         function has been evaluated for all samples.
         """
-        return not self.fxs_debug.numel() == 0
+        return not self.ps_debug.numel() == 0
 
     def set_samples(
         self, 
@@ -121,7 +128,7 @@ class InputData():
         
     def set_debug(
         self, 
-        func: Callable, 
+        target_func: Callable[[torch.Tensor], torch.Tensor], 
         bases: ApproxBases
     ) -> None:
         """Generates a set of samples to use to evaluate the quality of 
@@ -129,7 +136,7 @@ class InputData():
 
         Parameters
         ----------
-        func:
+        target_func:
             A function that returns the value of the target function 
             for a given set of parameters from the local domain.
         bases:
@@ -149,14 +156,14 @@ class InputData():
             return
     
         self.ls_debug = bases.approx2local(self.xs_debug)[0]
-        if self.fxs_debug.numel() == 0:
-            self.fxs_debug = func(self.ls_debug)
+        if self.ps_debug.numel() == 0:
+            self.ps_debug = target_func(self.ls_debug)
 
         return
     
     def relative_error(
         self, 
-        approx: torch.Tensor
+        ps_approx: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """TODO: write docstring."""
         
@@ -165,11 +172,11 @@ class InputData():
         if not self.is_debug:
             return torch.inf, torch.inf 
         
-        error_l2 = ((self.fxs_debug - approx).square().mean().sqrt()
-                    / self.fxs_debug.square().mean().sqrt())
+        error_l2 = ((self.ps_debug - ps_approx).square().mean().sqrt()
+                    / self.ps_debug.square().mean().sqrt())
         
-        error_linf = ((self.fxs_debug - approx).abs().max()
-                      / self.fxs_debug.abs().max())
+        error_linf = ((self.ps_debug - ps_approx).abs().max()
+                      / self.ps_debug.abs().max())
 
         return error_l2, error_linf
     
