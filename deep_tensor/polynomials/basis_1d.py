@@ -10,7 +10,7 @@ class Basis1D(abc.ABC, object):
     @property
     @abc.abstractmethod
     def domain(self) -> torch.Tensor:
-        """The domain of the basis."""
+        """The (local) domain of the basis."""
         pass
 
     @property
@@ -25,7 +25,7 @@ class Basis1D(abc.ABC, object):
     @abc.abstractmethod
     def constant_weight(self) -> bool:
         """Returns whether the weighting function of the basis is 
-        constant for all x.
+        constant for all values of l.
         """
         pass
 
@@ -34,7 +34,7 @@ class Basis1D(abc.ABC, object):
     def mass_R(self) -> torch.Tensor:
         """Cholesky factor of the matrix containing the (weighted) 
         inner products of each pair of basis functions over the 
-        reference domain.
+        local domain.
         """
         return 
     
@@ -52,8 +52,8 @@ class Basis1D(abc.ABC, object):
         Parameters 
         ----------
         ls:
-            An n-dimensional vector of points (on the interval [-1, 1])
-            at which to evaluate the basis functions.
+            An n-dimensional vector of points in the local domain at 
+            which to evaluate the basis functions.
         
         Returns
         -------
@@ -74,8 +74,8 @@ class Basis1D(abc.ABC, object):
         Parameters
         ----------
         ls: 
-            An n-dimensional vector of points (on the interval [-1, 1])
-            at which to evaluate the derivative of each basis function.
+            An n-dimensional vector of points in the local domain at 
+            which to evaluate the derivative of each basis function.
         
         Returns
         -------
@@ -96,59 +96,78 @@ class Basis1D(abc.ABC, object):
         Parameters
         ----------
         ls: 
-            An n-dimensional vector of points at which to evaluate the 
-            weighting function.
+            An n-dimensional vector of points in the local domain at 
+            which to evaluate the weighting function.
 
         Returns
         -------
-        :
-            The value of the weighting function evaluated at each 
-            location.
+        wls:
+            An n-dimensional vector containing the value of the 
+            weighting function evaluated at each point in ls.
                 
         """
         return
     
     @abc.abstractmethod
-    def eval_measure_deriv(self, x: torch.Tensor) -> torch.Tensor:
-        """TODO: write docstring."""
+    def eval_measure_deriv(self, ls: torch.Tensor) -> torch.Tensor:
+        """Evaluates the gradient of the (normalised) weighting 
+        function at a given set of points.
+        
+        Parameters
+        ----------
+        ls:
+            An n-dimensional vector of points in the local domain at 
+            which to evaluate the gradient of the weighting function.
+        
+        Returns
+        -------
+        gradwls:
+            An n-dimensional vector containing the value of the 
+            gradient of the weighting function evaluated at each point
+            in ls.
+
+        """
         return
     
     @abc.abstractmethod 
-    def eval_log_measure(self, x: torch.Tensor) -> torch.Tensor:
+    def eval_log_measure(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the logarithm of the (normalised) weighting 
         function at a given set of points.
         
         Parameters
         ----------
-        x: 
-            The locations at which to evaluate the logarithm of the 
-            weighting function.
+        ls: 
+            An n-dimensional vector of points in the local domain at
+            which to evaluate the logarithm of the weighting function.
 
         Returns
         -------
-        :
-            The logarithm of the weighting function evaluated at each 
-            location.
+        logwls:
+            An n-dimensional vector containing the value of the 
+            logarithm of the weighting function evaluated at each point
+            in ls.
         
         """
         return 
 
     @abc.abstractmethod
-    def eval_log_measure_deriv(self, x: torch.Tensor) -> torch.Tensor:
-        """Evaluates the gradient of the logarithm of the (normalised)
+    def eval_log_measure_deriv(self, ls: torch.Tensor) -> torch.Tensor:
+        """Evaluates the logarithm of the gradient of the (normalised) 
         weighting function at a given set of points.
         
         Parameters
         ----------
-        x:
-            The locations at which to evaluate the gradient of the 
-            logarithm of the weighting function.
+        ls:
+            An n-dimensional vector of points in the local domain at
+            which to evaluate the logarithm of the gradient of the 
+            weighting function.
 
         Returns
         -------
-        :
-            The logarithm of the gradient of the weighting function 
-            evaluated at each location.
+        loggradwls:
+            An n-dimensional vector containing the logarithm of the 
+            gradient of the weighting function evaluated at each point
+            in ls.
         
         """
         return
@@ -161,12 +180,12 @@ class Basis1D(abc.ABC, object):
         Parameters
         ----------
         n: 
-            Number of samples to generate.
+            The number of samples to generate.
 
         Returns
         -------
-        :
-            The generated samples.
+        ls:
+            An n-dimensional vector containing the generated samples.
         
         """
         return
@@ -174,102 +193,53 @@ class Basis1D(abc.ABC, object):
     @property
     def has_bounded_domain(self) -> bool:
         """Whether the domain of the basis is bounded."""
-        return not torch.any(torch.isinf(self.domain))
+        return self.domain.isinf().any()
 
     @property
     def cardinality(self) -> int:
         """The number of nodes associated with the basis."""
         return self.nodes.numel()
 
-    def in_domain(self, x: torch.Tensor) -> torch.Tensor:
+    def in_domain(self, ls: torch.Tensor) -> torch.Tensor:
         """Returns a boolean mask that indicates whether each of a set
-        of points is contained within the domain of the basis.
+        of points is contained within the local domain of the basis.
         
         Parameters
         ----------
-        x: 
+        ls: 
+            An n-dimensional vector.
+
+        Returns
+        -------
+        inside:
+            An n-dimensional boolean mask that indicates whether each 
+            element of ls is contained within the local domain.
+        
+        """
+        return (ls >= self.domain[0]) & (ls <= self.domain[1])
+    
+    def out_domain(self, ls: torch.Tensor) -> torch.Tensor:
+        """Returns a boolean mask that indicates whether each of a set
+        of points is outside the local domain of the basis.
+        
+        Parameters
+        ----------
+        ls: 
             A set of points.
 
         Returns
         -------
-        :
-            A boolean mask that indicates whether each x is contained 
-            within the domain.
+        outside:
+            A boolean mask that indicates whether each element of ls 
+            is outside the local domain.
         
         """
-        return (x >= self.domain[0]) & (x <= self.domain[1])
+        return (ls < self.domain[0]) | (ls > self.domain[1])
     
-    def out_domain(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns a boolean mask that indicates whether each of a set
-        of points is outside the domain of the basis.
-        
-        Parameters
-        ----------
-        x: 
-            A set of points.
-
-        Returns
-        -------
-        :
-            A boolean mask that indicates whether each x is outside the 
-            domain.
-        
-        """
-        return (x < self.domain[0]) | (x > self.domain[1])
-    
-    def eval(
-        self, 
-        coeffs: torch.Tensor, 
-        xs: torch.Tensor
-    ) -> torch.Tensor:
-        """Evaluates the product of approximated function and the 
-        weighting function at a given vector of points.
-        
-        Parameters 
-        ----------
-        coeffs:
-            The coefficients associated with each basis function.
-        xs:
-            Points at which to evaluate the approximated function.
-
-        Returns
-        -------
-        :
-            The values of the product of the approximated function 
-            and the weighting function at each point.
-        
-        """
-        
-        func_vals = self.eval_radon(coeffs, xs)
-        weights = self.eval_measure(xs)
-        return func_vals * weights
-        
-    def eval_deriv(
-        self, 
-        coeffs: torch.Tensor, 
-        xs: torch.Tensor
-    ) -> torch.Tensor:
-        """Not sure what this is for yet."""
-        
-        deriv_vals = torch.zeros((xs.shape, coeffs.shape[1]))
-        points_in_domain = self.in_domain(xs)
-
-        if not torch.any(points_in_domain):
-            return deriv_vals
-        
-        basis_vals = self.eval_basis_deriv(xs[points_in_domain])
-        deriv_vals[points_in_domain] = basis_vals @ coeffs * self.eval_measure(xs[points_in_domain])
-
-        if not self.constant_weight:
-            basis_vals = self.eval_basis(xs[points_in_domain])
-            deriv_vals[points_in_domain] = deriv_vals[points_in_domain] + basis_vals @ coeffs * self.eval_measure_deriv(xs[points_in_domain])
-
-        return deriv_vals
- 
     def eval_radon(
         self, 
         coeffs: torch.Tensor, 
-        xs: torch.Tensor
+        ls: torch.Tensor
     ) -> torch.Tensor:
         """Evaluates the approximated function at a given vector of 
         points.
@@ -282,7 +252,7 @@ class Basis1D(abc.ABC, object):
             associated with each basis function. Element (i, j) 
             contains the jth coefficient associated with the ith basis 
             function.
-        xs:
+        ls:
             A vector of points at which to evaluate the approximated 
             function.
 
@@ -295,14 +265,13 @@ class Basis1D(abc.ABC, object):
         
         """
 
-        func_vals = torch.zeros((xs.numel(), coeffs.shape[1]))
-
-        points_in_domain = self.in_domain(xs)
-        if not torch.any(points_in_domain):
+        func_vals = torch.zeros((ls.numel(), coeffs.shape[1]))
+        
+        if not torch.any(inside := self.in_domain(ls)):
             return func_vals
         
-        basis_vals = self.eval_basis(xs[points_in_domain])
-        func_vals[points_in_domain] = basis_vals @ coeffs
+        basis_vals = self.eval_basis(ls[inside])
+        func_vals[inside] = basis_vals @ coeffs
         return func_vals
         
     def eval_radon_deriv(
@@ -328,15 +297,67 @@ class Basis1D(abc.ABC, object):
         """
 
         deriv_vals = torch.zeros((xs.numel(), coeffs.shape[1]))
-        points_in_domain = self.in_domain(xs)
 
-        if not torch.any(points_in_domain):
+        if not torch.any(inside := self.in_domain(xs)):
             return deriv_vals 
         
-        basis_vals = self.eval_basis_deriv(xs[points_in_domain])
-        deriv_vals[points_in_domain] = basis_vals @ coeffs
+        basis_vals = self.eval_basis_deriv(xs[inside])
+        deriv_vals[inside] = basis_vals @ coeffs
         return deriv_vals
-    
+
+    def eval(
+        self, 
+        coeffs: torch.Tensor, 
+        ls: torch.Tensor
+    ) -> torch.Tensor:
+        """Evaluates the product of approximated function and the 
+        weighting function at a given vector of points.
+        
+        Parameters 
+        ----------
+        coeffs:
+            The coefficients associated with each basis function.
+        ls:
+            An n-dimensional vector containing points (within the local
+            domain) at which to evaluate the approximated function.
+
+        Returns
+        -------
+        vals:
+            The values of the product of the approximated function 
+            and the weighting function at each point.
+        
+        """
+        func_vals = self.eval_radon(coeffs, ls)
+        wls = self.eval_measure(ls)
+        return func_vals * wls
+        
+    def eval_deriv(
+        self, 
+        coeffs: torch.Tensor, 
+        ls: torch.Tensor
+    ) -> torch.Tensor:
+        """TODO: write this. 
+        
+        TODO: fix the variable naming.
+        """
+        
+        deriv_vals = torch.zeros((ls.shape, coeffs.shape[1]))
+
+        if not torch.any(inside := self.in_domain(ls)):
+            return deriv_vals
+        
+        basis_vals = self.eval_basis_deriv(ls[inside])
+        wls = self.eval_measure(ls[inside])
+        deriv_vals[inside] = basis_vals @ coeffs * wls
+
+        if not self.constant_weight:
+            basis_vals = self.eval_basis(ls[inside])
+            gradwls = self.eval_measure_deriv(ls[inside])
+            deriv_vals[inside] += basis_vals @ coeffs * gradwls
+
+        return deriv_vals
+ 
     def mass_r(self, interp_w: torch.Tensor) -> torch.Tensor:
         """Evaluates the product of the upper Cholesky factor of the 
         mass matrix and a set of nodal values or coefficients.
