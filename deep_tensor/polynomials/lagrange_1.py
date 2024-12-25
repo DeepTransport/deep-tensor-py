@@ -10,12 +10,12 @@ class Lagrange1(Piecewise):
     def __init__(self, num_elems: int):
         
         super().__init__(order=1, num_elems=num_elems)
+        self._nodes = self.grid.clone()
 
         self.local_mass = torch.tensor([[2.0, 1.0], [1.0, 2.0]]) / 6.0
         self.local_weights = torch.tensor([1.0, 1.0]) / 2.0
         self.local_domain = torch.tensor([0.0, 1.0])
 
-        self._nodes = self.grid
         self.jac = self.elem_size
         
         unweighted_mass = torch.zeros((self.cardinality, self.cardinality))
@@ -28,20 +28,20 @@ class Lagrange1(Piecewise):
 
         unweighted_mass_R = torch.linalg.cholesky(unweighted_mass).T
         
-        self.mass = unweighted_mass / self.elem_size
+        self.mass = unweighted_mass / self.domain_size
         self._mass_R = unweighted_mass_R / self.domain_size.sqrt()
         self._int_W = unweighted_weights / self.domain_size
 
         return
     
     @property 
-    def nodes(self) -> torch.Tensor:
-        return self._nodes
-    
-    @property 
     def mass_R(self) -> torch.Tensor:
         return self._mass_R
     
+    @property
+    def nodes(self) -> torch.Tensor:
+        return self._nodes
+
     @property 
     def int_W(self) -> torch.Tensor: 
         return self._int_W

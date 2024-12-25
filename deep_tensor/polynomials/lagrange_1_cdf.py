@@ -17,6 +17,7 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         
         num_nodes = 2 * self.num_elems + 1
         self._nodes = torch.linspace(*self.domain, num_nodes)
+        
         dhh = self.elem_size / 2.0
 
         ii = torch.zeros((self.num_elems, 3), dtype=torch.int32)
