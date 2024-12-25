@@ -4,6 +4,9 @@ import torch
 
 from .piecewise import Piecewise
 
+# Integrals and weights of adjacent basis functions mapped to [0, 1].
+LOCAL_MASS = torch.tensor([[2.0, 1.0], [1.0, 2.0]]) / 6.0
+LOCAL_WEIGHTS = torch.tensor([1.0, 1.0]) / 2.0
 
 class Lagrange1(Piecewise):
 
@@ -11,54 +14,42 @@ class Lagrange1(Piecewise):
         
         super().__init__(order=1, num_elems=num_elems)
         self._nodes = self.grid.clone()
-
-        self.local_mass = torch.tensor([[2.0, 1.0], [1.0, 2.0]]) / 6.0
-        self.local_weights = torch.tensor([1.0, 1.0]) / 2.0
-        self.local_domain = torch.tensor([0.0, 1.0])
-
-        self.jac = self.elem_size
         
-        unweighted_mass = torch.zeros((self.cardinality, self.cardinality))
-        unweighted_weights = torch.zeros(self.cardinality)
+        mass = torch.zeros((self.cardinality, self.cardinality))
+        jac = self.elem_size / self.domain_size
+        self._int_W = torch.zeros(self.cardinality)
 
         for i in range(self.num_elems):
             ind = torch.tensor([i, i+1])
-            unweighted_mass[ind[:, None], ind[None, :]] += self.local_mass * self.jac
-            unweighted_weights[ind] += self.local_weights * self.jac
+            mass[ind[:, None], ind[None, :]] += LOCAL_MASS * jac
+            self._int_W[ind] += LOCAL_WEIGHTS * jac
 
-        unweighted_mass_R = torch.linalg.cholesky(unweighted_mass).T
-        
-        self.mass = unweighted_mass / self.domain_size
-        self._mass_R = unweighted_mass_R / self.domain_size.sqrt()
-        self._int_W = unweighted_weights / self.domain_size
-
+        self._mass_R = torch.linalg.cholesky(mass).T
         return
-    
-    @property 
-    def mass_R(self) -> torch.Tensor:
-        return self._mass_R
     
     @property
     def nodes(self) -> torch.Tensor:
         return self._nodes
+    
+    @property 
+    def mass_R(self) -> torch.Tensor:
+        return self._mass_R
 
     @property 
     def int_W(self) -> torch.Tensor: 
         return self._int_W
     
     def eval_basis(self, ls: torch.Tensor) -> torch.Tensor:
-            
-        points_in_domain = self.in_domain(ls)
-        inds_in_domain = points_in_domain.nonzero().flatten()
 
-        if not torch.all(points_in_domain):
+        if not torch.all(inside := self.in_domain(ls)):
             warnings.warn("Some points are outside the domain")
 
-        if not torch.any(points_in_domain):
+        if not torch.any(inside):
             basis_vals = torch.zeros((ls.numel(), self.cardinality))
             return basis_vals
-
-        inside_points = ls[points_in_domain]
+        
+        inside_inds = inside.nonzero().flatten()
+        inside_points = ls[inside]
 
         left_inds = (inside_points-self.domain[0]) / self.elem_size
         left_inds = left_inds.floor().int()
@@ -67,7 +58,7 @@ class Lagrange1(Piecewise):
         # Convert to local coordinates
         ls_local = (inside_points-self.grid[left_inds]) / self.elem_size
 
-        row_inds = torch.concatenate((inds_in_domain, inds_in_domain))
+        row_inds = torch.concatenate((inside_inds, inside_inds))
         col_inds = torch.concatenate((left_inds, left_inds+1))
         indices = torch.vstack((row_inds, col_inds))
         vals = torch.concatenate((1-ls_local, ls_local))
