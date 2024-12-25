@@ -80,10 +80,10 @@ class Lagrange1(Piecewise):
         # Convert to local coordinates
         ls_local = (ls[inside]-self.grid[left_inds]) / self.elem_size
 
-        row_inds = torch.concatenate((inside_inds, inside_inds))
-        col_inds = torch.concatenate((left_inds, left_inds+1))
+        row_inds = torch.hstack((inside_inds, inside_inds))
+        col_inds = torch.hstack((left_inds, left_inds+1))
         indices = torch.vstack((row_inds, col_inds))
-        vals = torch.concatenate((1.0-ls_local, ls_local))
+        vals = torch.hstack((1.0-ls_local, ls_local))
 
         basis_vals = torch.sparse_coo_tensor(
             indices=indices, 
@@ -105,12 +105,12 @@ class Lagrange1(Piecewise):
         inside_inds = inside.nonzero().flatten()
         left_inds = self.get_left_hand_inds(ls[inside])
 
-        row_inds = torch.concatenate((inside_inds, inside_inds))
-        col_inds = torch.concatenate((left_inds, left_inds+1))
+        row_inds = torch.hstack((inside_inds, inside_inds))
+        col_inds = torch.hstack((left_inds, left_inds+1))
         indices = torch.vstack((row_inds, col_inds))
         
         derivs = torch.ones_like(ls[inside]) / self.elem_size
-        vals = torch.concatenate((-derivs, derivs))
+        vals = torch.hstack((-derivs, derivs))
         
         deriv_vals = torch.sparse_coo_tensor(
             indices=indices, 
