@@ -384,9 +384,67 @@ class AbstractIRT(abc.ABC):
         xs: torch.Tensor,
         zs: torch.Tensor 
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Evaluates the inverse of ..."""
+        """Evaluates the inverse of the conditional squared Rosenblatt 
+        transport Y|X = R^{-1}(Z, X), where X is given, (X, Y) jointly 
+        follow the SIRT approximation of the target distribution, and 
+        Z is uniform.
+        
+        Parameters
+        ----------
+        xs:
+            An n * d matrix containing samples from the approximation 
+            domain.
+        zs:
+            An n * (m-d) matrix containing samples from [0, 1]^{m-d},
+            where m is the the dimension of the joint distribution of 
+            X and Y.
+        
+        Returns
+        -------
+        ys:
+            An n * (m-d) matrix containing the realisations of Y 
+            corresponding to the values of zs after applying the 
+            (conditional) inverse Rosenblatt transport.
+        neglogfys:
+            An n-dimensional vector containing the potential function 
+            of the approximation to the conditional density of Y|X 
+            evaluated at each value of ys.
+    
+        """
+        
+        num_z, dim_z = zs.shape
+        num_x, dim_x = xs.shape
 
-        raise NotImplementedError()
+        if dim_z == 0 or dim_x == 0:
+            msg = "The dimensions of both X and Z should be at least 1."
+            raise Exception(msg)
+        
+        if dim_z + dim_x != self.approx.dim:
+            msg = ("The dimensions of X and Z should sum " 
+                   + "to the dimension of the approximation.")
+            raise Exception(msg)
+        
+        if num_z != num_x: 
+            if num_x != 1:
+                msg = "The number of samples of X and Z must be equal."
+                raise Exception(msg)
+            xs = xs.repeat(num_z, 1)
+
+        if self.int_dir == Direction.FORWARD:
+            inds_x = torch.arange(dim_x)
+            inds_z = torch.arange(dim_x, self.approx.dim)
+        elif self.int_dir == Direction.BACKWARD:
+            inds_x = torch.arange(dim_z, self.approx.dim)
+            inds_z = torch.arange(dim_z)
+        else:
+            raise NotImplementedError()
+        
+        ls_x = self.approx.bases.approx2local(xs, inds_x)[0]
+        ls_y, neglogfys = self.eval_cirt_local(ls_x, zs)
+        ys, dydlys = self.approx.bases.local2approx(ls_y, inds_z)
+        neglogfys += dydlys.log().sum(dim=1)
+
+        return ys, neglogfys
     
     def random(self, n: int) -> torch.Tensor: 
         """Generates a set of random samples from the approximation to

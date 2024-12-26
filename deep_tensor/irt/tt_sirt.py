@@ -321,21 +321,7 @@ class TTSIRT(SIRT):
         """TODO: check whether x will always be a vector (single 
         sample)."""
 
-        raise Exception("change reshape operations")
-
-        rank_0 = core.shape[0]
-        num_x = x.numel()
-
-        temp = poly.eval_radon_deriv(
-            core.permute((1, 0, 2)).reshape((poly.cardinality, -1)), 
-            x.flatten()
-        )
-
-        T = (temp.reshape((num_x, rank_0, -1))
-                 .permute((1, 0, 2))
-                 .reshape((rank_0 * num_x, -1)))
-        
-        return T
+        raise NotImplementedError()
 
     def eval_oned_core_231(
         self, 
@@ -383,7 +369,7 @@ class TTSIRT(SIRT):
     ) -> torch.Tensor:
         """TODO: write docstring."""
 
-        raise NotImplementedError("Not implemented.")
+        raise NotImplementedError()
     
     def eval_potential_local(
         self, 
@@ -644,5 +630,130 @@ class TTSIRT(SIRT):
 
         return ls, neglogfls
 
-    def eval_cirt_local(self) -> None:
-        raise NotImplementedError()
+    def _eval_cirt_local_forward(
+        self, 
+        ls_x: torch.Tensor, 
+        zs: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+
+        # from the last dimension, marginalise to the first
+        # order of the samples (x, r)
+        # first evaluate the marginal for x
+
+        num_x, dim_x = ls_x.shape
+        num_z, dim_z = zs.shape
+
+        ls_y = torch.zeros_like(zs)
+        
+        frl = torch.ones(num_z, 1)
+
+        for k in range(dim_x-1):
+            
+            rank_p = self.approx.data.cores[k].shape[0]
+            
+            T2 = self.eval_oned_core_213(
+                self.approx.bases.polys[k],
+                self.approx.data.cores[k],
+                ls_x[:, k]
+            )
+
+            ii = torch.arange(num_x).repeat(rank_p)
+            jj = (torch.arange(rank_p * num_x)
+                    .reshape(num_x, rank_p).T
+                    .flatten())
+            indices = torch.vstack((ii[None, :], jj[None, :]))
+            values = frl.T.flatten()
+            size = (num_x, rank_p * num_x)
+
+            B = torch.sparse_coo_tensor(indices, values, size)
+
+            frl = B @ T2
+
+        rank_p = self.approx.data.cores[dim_x-1].shape[0]
+
+        T2 = self.eval_oned_core_213(
+            self.approx.bases.polys[dim_x-1], 
+            self.Bs[dim_x-1], 
+            ls_x[:, dim_x-1]
+        )
+
+        ii = torch.arange(num_x).repeat(rank_p)
+        jj = (torch.arange(rank_p * num_x)
+                .reshape(num_x, rank_p).T
+                .flatten())
+        indices = torch.vstack((ii[None, :], jj[None, :]))
+        values = frl.T.flatten()
+        size = (num_x, rank_p * num_x)
+        B = torch.sparse_coo_tensor(indices, values, size)
+        
+        frl_m = B @ T2
+        fm = frl_m.square().sum(dim=1)
+        
+        T2 = self.eval_oned_core_213(
+            self.approx.bases.polys[dim_x-1], 
+            self.approx.data.cores[dim_x-1], 
+            ls_x[:, dim_x-1]
+        )
+
+        frl = B @ T2
+
+        # Generate conditional samples
+        for j in range(dim_z):
+            
+            k = dim_x + j
+
+            rank_p = self.approx.data.cores[k].shape[0]
+            num_nodes = self.oned_cdfs[k].nodes.numel()
+
+            T1 = reshape_matlab(
+                self.eval_oned_core_213(
+                    self.approx.bases.polys[k], 
+                    self.Bs[k], 
+                    self.oned_cdfs[k].nodes
+                ), 
+                (rank_p, -1)
+            )
+
+            pk = reshape_matlab(
+                reshape_matlab(frl @ T1, (num_z*num_nodes, -1)).square().sum(dim=1), 
+                (num_z, num_nodes)
+            ).T
+
+            ls_y[:, j] = self.oned_cdfs[k].invert_cdf(pk+self.tau, zs[:, j])
+
+            T2 = self.eval_oned_core_213(
+                self.approx.bases.polys[k], 
+                self.approx.data.cores[k],
+                ls_y[:, j]
+            )
+
+            ii = torch.arange(num_z).repeat(rank_p)
+            jj = (torch.arange(rank_p * num_z)
+                    .reshape(num_x, rank_p).T
+                    .flatten())
+            indices = torch.vstack((ii[None, :], jj[None, :]))
+            values = frl.T.flatten()
+            size = (num_z, rank_p * num_z)
+            B = torch.sparse_coo_tensor(indices, values, size)
+            frl = B @ T2
+
+        fs = frl.flatten().square()
+
+        indices = dim_x + torch.arange(dim_z)
+        neglogwls_y = self.approx.bases.eval_measure_potential_local(ls_y, indices)
+        neglogfls_y = (fm+self.tau).log() - (fs + self.tau).log() + neglogwls_y
+
+        return ls_y, neglogfls_y
+
+    def eval_cirt_local(
+        self, 
+        ls_x: torch.Tensor, 
+        zs: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+
+        if self.int_dir == Direction.FORWARD:
+            ls_y, neglogfls_y = self._eval_cirt_local_forward(ls_x, zs)
+        else:
+            raise NotImplementedError()
+
+        return ls_y, neglogfls_y

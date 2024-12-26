@@ -5,7 +5,6 @@ import torch
 from .cdf_data import CDFData
 from .lagrange_1 import Lagrange1
 from .piecewise_cdf import PiecewiseCDF
-from ..tools import reshape_matlab
 
 
 class Lagrange1CDF(Lagrange1, PiecewiseCDF):

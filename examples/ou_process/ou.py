@@ -1,5 +1,7 @@
 import torch
 
+from deep_tensor import Direction
+
 
 class OU():
 
@@ -29,3 +31,26 @@ class OU():
         z = 0.5 * torch.linalg.det(C).log() + 0.5 * indices.numel() * torch.tensor(2.0 * torch.pi).log()
         f = z + f 
         return f
+    
+    def eval_potential_cond(
+        self, 
+        xs_cond_l: torch.Tensor, 
+        xs_cond_r: torch.Tensor, 
+        dir: Direction
+    ) -> torch.Tensor:
+        
+        xs = torch.hstack((xs_cond_l, xs_cond_r))
+        fs = 0.5 * (self.B @ xs.T).square().sum(dim=0) + self.norm.log()
+
+        dim_xl = xs_cond_l.shape[1]
+        dim_xr = xs_cond_r.shape[1]
+
+        if dir == Direction.FORWARD:
+            indices = torch.arange(dim_xl)
+            fms = self.eval_potential_marginal(indices, xs_cond_l)
+        else:
+            indices = dim_xl + torch.arange(dim_xr)
+            fms = self.eval_potential_marginal(indices, xs_cond_r)
+
+        fs -= fms
+        return fs
