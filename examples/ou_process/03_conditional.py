@@ -5,6 +5,22 @@ from torch.linalg import norm
 from examples.ou_process.setup_ou import *
 
 
+directions = ["forward"]#, "backward"]
+
+headers = [
+    "Polynomial",
+    "TT Method",
+    "Direction",
+    "Approx. Error",
+    "Cov. Error"
+]
+headers = [f"{h:16}" for h in headers]
+
+print("")
+print(" | ".join(headers))
+print("-+-".join(["-" * 16] * len(headers)))
+
+
 zs = torch.rand((10_000, dim))
 
 m = 8
@@ -14,24 +30,48 @@ indices_r = torch.arange(m, dim)
 for poly in polys_dict:
     for method in options_dict:
 
-        xs_cond_l = debug_x[:, indices_l]
-        xs_cond_r = debug_x[:, indices_r]
+        for i, direction in enumerate(directions):
 
-        zs_cond_l = zs[:, indices_l]
-        zs_cond_r = zs[:, indices_r]
+            sirt: dt.TTSIRT = sirts[poly][method]
 
-        sirt: dt.TTSIRT = sirts[poly][method]
-        
-        if sirt.int_dir == dt.Direction.BACKWARD:
-            sirt.marginalise(direction=dt.Direction.FORWARD)
+            if direction == "forward":
+                xs_cond = debug_x[:, indices_l]
+                zs_cond = zs[:, indices_r]
+                if sirt.int_dir == dt.Direction.BACKWARD:
+                    sirt.marginalise(dt.Direction.FORWARD) 
+            else:
+                xs_cond = debug_x[:, indices_r]
+                zs_cond = zs[:, indices_l]
+                if sirt.int_dir != dt.Direction.BACKWARD:
+                    sirt.marginalise(dt.Direction.BACKWARD)
 
-        # if irts{i,j}.int_dir ~= 1, irts{i,j} = marginalise(irts{i,j}, 1); end
-        ys_cond, fys_cond = sirt.eval_cirt(xs_cond_l, zs_cond_r)
+            ys_cond_sirt, neglogfys_cond_sirt = sirt.eval_cirt(xs_cond, zs_cond)
 
-        potential_ys_cond = model.eval_potential_cond(xs_cond_l, ys_cond, dir=dt.Direction.FORWARD)
+            neglogfys_cond_true = model.eval_potential_cond(
+                xs_cond, 
+                ys_cond_sirt, 
+                dir=dt.Direction.FORWARD
+            )
 
-        plt.scatter(torch.arange(10_000), torch.abs(torch.exp(-potential_ys_cond) - torch.exp(-fys_cond)))
-        plt.show()
+            fys_cond_sirt = torch.exp(-neglogfys_cond_sirt)
+            fys_cond_true = torch.exp(-neglogfys_cond_true)
+            approx_error = norm(fys_cond_true - fys_cond_sirt) 
+
+            cov_cond_true = model.C[indices_r[:, None], indices_r[None, :]]
+            cov_cond_sirt = torch.cov(ys_cond_sirt.T)
+            cov_error = norm(cov_cond_true - cov_cond_sirt) / norm(cov_cond_true)
+
+            info = [
+                f"{poly:16}",
+                f"{method:16}",
+                f"{direction:16}",
+                f"{approx_error:=16.5e}",
+                f"{cov_error:=16.5e}"
+            ]
+            print(" | ".join(info))
+
+            # plt.scatter(torch.arange(10_000), torch.abs(torch.exp(-potential_ys_cond) - torch.exp(-fys_cond)))
+            # plt.show()
 
 
 
