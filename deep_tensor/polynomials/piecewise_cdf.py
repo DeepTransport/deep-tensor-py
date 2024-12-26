@@ -7,7 +7,6 @@ import torch
 from .cdf_1d import CDF1D
 from .cdf_data import CDFData
 from ..constants import EPS
-from ..tools import reshape_matlab
 
 
 class PiecewiseCDF(CDF1D, abc.ABC):
@@ -19,23 +18,42 @@ class PiecewiseCDF(CDF1D, abc.ABC):
 
     @abc.abstractmethod
     def eval_int_lag_local(
-        self,
-        data: CDFData, 
-        e_ks: torch.Tensor,
-        mask: torch.Tensor,
-        xs: torch.Tensor
-    ):
-        """TODO: write docstring etc"""
+        self, 
+        cdf_data: CDFData,
+        inds_left: torch.Tensor,
+        ls: torch.Tensor
+    ) -> torch.Tensor:
+        """Evaluates the (unnormalised) CDF at a given set of values.
+        
+        Parameters
+        ----------
+        cdf_data:
+            An object containing information about the properties of 
+            the CDF.
+        inds_left:
+            An n-dimensional vector containing the indices of the 
+            points of the grid on which the target PDF is discretised 
+            that are immediately to the left of each value in ls.
+        ls:
+            An n-dimensional vector containing a set of points in the 
+            local domain at which to evaluate the CDF.
+
+        Returns
+        -------
+        zs:
+            An n-dimensional vector containing the value of the CDF 
+            evaluated at each element of ls.
+        
+        """
         return
 
     @abc.abstractmethod
     def eval_int_lag_local_deriv(
-        self,
-        data: CDFData, 
-        e_ks: torch.Tensor,
-        mask: torch.Tensor,
-        xs: torch.Tensor
-    ):
+        self, 
+        cdf_data: CDFData,
+        inds_left: torch.Tensor,
+        ls: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         return
         
     @abc.abstractmethod
@@ -44,73 +62,113 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         
     def eval_int_lag(
         self, 
-        data: CDFData, 
-        rs: torch.Tensor
-    ):
+        cdf_data: CDFData, 
+        ls: torch.Tensor
+    ) -> torch.Tensor:
 
-        if data.num_samples > 1 and data.num_samples != len(rs):
+        if cdf_data.num_samples > 1 and cdf_data.num_samples != ls.numel():
             raise Exception("Data mismatch.")
 
-        zs = torch.zeros_like(rs)
+        zs = torch.zeros_like(ls)
 
-        # Indices of the gridpoint immediately to the left of each r
-        e_ks = torch.sum(self.grid < rs[:, None], dim=1) - 1
-
-        zs[e_ks == self.num_elems] = data.poly_norm[e_ks == self.num_elems]
-
-        in_domain = ~((e_ks == -1) | (e_ks == self.num_elems))
+        inds_left = torch.sum(self.grid < ls[:, None], dim=1) - 1
+        inds_left[inds_left == -1] = 0
+        inds_left[inds_left == self.num_elems] = self.num_elems - 1
         
-        zs[in_domain] = self.eval_int_lag_local(
-            data, 
-            e_ks[in_domain], 
-            in_domain, 
-            rs[in_domain]
-        )
-
+        zs = self.eval_int_lag_local(cdf_data, inds_left, ls)
         return zs
 
     def eval_int_lag_local_search(
         self, 
         data: CDFData,
         inds_left: torch.Tensor, 
-        mask: torch.Tensor, 
-        cdf_zs: torch.Tensor, 
-        rs: torch.Tensor 
+        zs_cdf: torch.Tensor, 
+        ls: torch.Tensor 
     ) -> torch.Tensor:
-        """TODO: write docstring."""
+        """Returns the difference between the values of the current 
+        CDF evaluated at a set of points in the local domain and a set
+        of values of the CDF we are aiming to compute the inverse of.
 
-        cdf_rs = self.eval_int_lag_local(data, inds_left, mask, rs)
-        return cdf_rs - cdf_zs
+        Parameters
+        ----------
+        cdf_data:
+            An object containing information about the CDF.
+        inds_left:
+            An n-dimensional vector containing the indices of the 
+            points of the grid on which the target PDF is discretised 
+            that are immediately to the left of each value in ls.
+        zs_cdf:
+            An n-dimensional vector of values we are aiming to evaluate 
+            the inverse of the (unnormalised) CDF at.
+        ls: 
+            An n-dimensional vector containing a current set of 
+            estimates (in the local domain) for the inverse of the CDF 
+            at each value of zs_cdf.
+
+        Returns
+        -------
+        dzs:
+            An n-dimensional vector containing the differences between 
+            the value of the CDF evaluated at each element of ls and 
+            the values of zs_cdf.
+
+        """
+        dzs = self.eval_int_lag_local(data, inds_left, ls) - zs_cdf
+        return dzs
     
     def eval_int_lag_local_newton(
         self, 
-        data: CDFData,
-        e_ks: torch.Tensor, 
-        mask: torch.Tensor, 
-        rhs: torch.Tensor, 
-        xs: torch.Tensor 
+        cdf_data: CDFData,
+        inds_left: torch.Tensor, 
+        zs_cdf: torch.Tensor, 
+        ls: torch.Tensor 
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        
-        fs, dfs = self.eval_int_lag_local_deriv(data, e_ks, mask, xs)
-        fs -= rhs 
-        return fs, dfs
+        """Returns the difference between the values of the 
+        (unnormalised) CDF evaluated at a set of points in the local 
+        domain and a set of values of the CDF we are aiming to compute 
+        the inverse of, as well as the gradient of the CDF.
 
-    def eval_cdf(self, pdf_vals: torch.Tensor, rs: torch.Tensor):
-        """TODO: write docstring."""
+        Parameters
+        ----------
+        cdf_data:
+            An object containing information about the CDF.
+        inds_left:
+            An n-dimensional vector containing the indices of the 
+            points of the grid on which the target PDF is discretised 
+            that are immediately to the left of each value in ls.
+        zs_cdf:
+            An n-dimensional vector of values we are aiming to evaluate 
+            the inverse of the (unnormalised) CDF at.
+        ls: 
+            An n-dimensional vector containing a current set of 
+            estimates (in the local domain) for the inverse of the CDF 
+            at each value of zs_cdf.
 
-        if torch.min(pdf_vals) < -1e-8:
-            msg = "Negative values of PDF found."
-            warnings.warn(msg)
+        Returns
+        -------
+        dzs:
+            An n-dimensional vector containing the differences between 
+            the value of the (unnormalised) CDF evaluated at each 
+            element of ls and the values of zs_cdf.
+        gradzs:
+            An n-dimensional vector containing the gradient of the 
+            unnormalised CDF evaluated at each element in ls.
 
-        data = self.pdf2cdf(pdf_vals)
-        zs = self.eval_int_lag(data, rs)
+        """
+        zs, gradzs = self.eval_int_lag_local_deriv(cdf_data, inds_left, ls)
+        dzs = zs - zs_cdf
+        return dzs, gradzs
 
-        if data.poly_norm.numel() > 1:
-            zs = zs / reshape_matlab(data.poly_norm, zs.shape)
-        else:
-            zs = zs / data.poly_norm
-        
-        zs = reshape_matlab(zs, rs.shape)
+    def eval_cdf(
+        self, 
+        pls: torch.Tensor, 
+        ls: torch.Tensor
+    ) -> torch.Tensor:
+
+        self.check_pdf_positive(pls)
+        cdf_data = self.pdf2cdf(pls)
+
+        zs = self.eval_int_lag(cdf_data, ls) / cdf_data.poly_norm
         zs = torch.clamp(zs, EPS, 1-EPS)
         return zs
         
@@ -127,106 +185,141 @@ class PiecewiseCDF(CDF1D, abc.ABC):
     
     def invert_cdf(
         self, 
-        pi_rs: torch.Tensor, 
-        zs_k: torch.Tensor
+        pls: torch.Tensor, 
+        zs: torch.Tensor
     ) -> torch.Tensor:
-        """TODO: write
 
+        self.check_pdf_positive(pls)
+        cdf_data = self.pdf2cdf(pls)
+        ls = torch.zeros_like(zs)
+
+        zs_cdf = zs * cdf_data.poly_norm
+        inds_left = (cdf_data.cdf_poly_grid <= zs_cdf).sum(dim=0) - 1
+
+        inds_left[inds_left == -1] = 0
+        inds_left[inds_left == self.num_elems] = self.num_elems - 1
+
+        ls = self.invert_cdf_local(cdf_data, inds_left, zs_cdf)
+
+        return ls
+    
+    def invert_cdf_local(
+        self, 
+        cdf_data: CDFData, 
+        inds_left: torch.Tensor,
+        zs_cdf: torch.Tensor
+    ) -> torch.Tensor:
+        """Evaluates the inverse of the CDF corresponding to the 
+        (unnormalised) target PDF at a given set of values.
+        
         Parameters
         ----------
-        pi_vals: 
-            TODO: figure out what is going on here. 
-            The values of the target density at...
-        zs_k:
-            An n-dimensional vector containing 
+        cdf_data:
+            An object containing information about the properties of 
+            the CDF.
+        inds_left:
+            An n-dimensional vector containing the indices of the 
+            points of the grid on which the target PDF is discretised 
+            that are immediately to the left of each value in ls.
+        zs_cdf:
+            An n-dimensional vector of values in the range [0, Z], 
+            where Z is the normalising constant associated with the 
+            (unnormalised) target PDF.
 
         Returns
         -------
-        TODO
-
+        ls:
+            An n-dimensional vector containing the inverse of the CDF 
+            evaluated at each element in zs_cdf.
+        
         """
-
-        self.check_pdf_positive(pi_rs)
-        cdf_data = self.pdf2cdf(pi_rs)
-        rs_k = torch.zeros_like(zs_k)
-
-        cdf_zs = zs_k * cdf_data.poly_norm
-        inds_left = (cdf_data.cdf_poly_grid <= cdf_zs).sum(dim=0) - 1
-
-        mask_left = inds_left == -1
-        mask_right = inds_left == self.num_elems
-        mask_centre = ~torch.bitwise_or(mask_left, mask_right)
-
-        rs_k[mask_left] = self.domain[0]
-        rs_k[mask_right] = self.domain[-1]
-        rs_k[mask_centre] = self.invert_cdf_local(
-            cdf_data, 
-            inds_left[mask_centre], 
-            mask_centre,
-            cdf_zs[mask_centre]
-        )
-
-        # TODO: figure out what this is doing.
-        rs_k[torch.isnan(rs_k)] = 0.5 * (self.domain[0] + self.domain[1])
-        rs_k[torch.isinf(rs_k)] = 0.5 * (self.domain[0] + self.domain[1])
-
-        return rs_k
+        l0s, l1s = self.grid[inds_left], self.grid[inds_left+1]
+        ls = self.newton(cdf_data, inds_left, zs_cdf, l0s, l1s)
+        return ls
 
     def newton(
         self, 
-        data: CDFData, 
+        cdf_data: CDFData, 
         inds_left: torch.Tensor, 
-        mask: torch.Tensor, 
-        cdf_zs: torch.Tensor, 
-        r0s: torch.Tensor, 
-        r1s: torch.Tensor
+        zs_cdf: torch.Tensor, 
+        l0s: torch.Tensor, 
+        l1s: torch.Tensor
     ) -> torch.Tensor:
-        """TODO: write docstring."""
+        """Inverts a CDF using Newton's method.
+        
+        Parameters
+        ----------
+        cdf_data:
+            An object containing information about the CDF.
+        inds_left:
+            An n-dimensional vector containing the indices of the 
+            points of the grid on which the target PDF is discretised 
+            that are immediately to the left of each value in ls.
+        zs_cdf:
+            An n-dimensional vector containing a set of values in the 
+            range [0, Z], where Z is the normalising constant 
+            associated with the current target PDF.
+        l0s:
+            An n-dimensional vector containing the locations of the 
+            nodes of the current polynomial basis (in the local domain) 
+            directly to the left of each value in zs_cdf.
+        l1s:
+            An n-dimensional vector containing the locations of the 
+            nodes of the current polynomial basis (in the local domain) 
+            directly to the right of each value in zs_cdf.
 
-        f0s = self.eval_int_lag_local_search(data, inds_left, mask, cdf_zs, r0s)
-        f1s = self.eval_int_lag_local_search(data, inds_left, mask, cdf_zs, r1s)
-        self._check_initial_intervals(f0s, f1s)
+        Returns
+        -------
+        ls:
+            An n-dimensional vector containing the values (in the local
+            domain) of the inverse of the CDF evaluated at each element 
+            in zs_cdf.
+        
+        """
+
+        z0s = self.eval_int_lag_local_search(cdf_data, inds_left, zs_cdf, l0s)
+        z1s = self.eval_int_lag_local_search(cdf_data, inds_left, zs_cdf, l1s)
+        self.check_initial_intervals(z0s, z1s)
 
         # Carry out the first iteration using the regula falsi method
-        rs = r1s - f1s * (r1s - r0s) / (f1s - f0s)
+        ls = l0s - z1s * (l1s - l0s) / (z1s - z0s)
 
         for _ in range(self.num_newton):  
             
-            fs, dfs = self.eval_int_lag_local_newton(data, inds_left, mask, cdf_zs, rs)
+            zs, dzs = self.eval_int_lag_local_newton(cdf_data, inds_left, zs_cdf, ls)
             
-            drs = -fs / dfs 
-            drs[torch.isnan(drs)] = 0.0
-            rs += drs 
-            rs = torch.clamp(rs, r0s, r1s)
+            dls = -zs / dzs 
+            dls[torch.isinf(dls)] = 0.0
+            ls += dls 
+            ls = torch.clamp(ls, l0s, l1s)
 
-            if self.converged(fs, drs):
-                return rs
+            if self.converged(zs, dls):
+                return ls
         
         msg = "Newton's method did not converge. Trying regula falsi..."
         warnings.warn(msg)
-        return self.regula_falsi(data, inds_left, mask, cdf_zs, r0s, r1s)
+        return self.regula_falsi(cdf_data, inds_left, zs_cdf, l0s, l1s)
     
     def regula_falsi(
         self, 
         data: CDFData, 
-        e_ks: torch.Tensor, 
-        mask: torch.Tensor, 
+        inds_left: torch.Tensor,
         rhs: torch.Tensor, 
         x0s: torch.Tensor, 
         x1s: torch.Tensor
     ) -> torch.Tensor:
         
-        f0s = self.eval_int_lag_local_search(data, e_ks, mask, rhs, x0s)
-        f1s = self.eval_int_lag_local_search(data, e_ks, mask, rhs, x1s)
-        self._check_initial_intervals(f0s, f1s)
+        f0s = self.eval_int_lag_local_search(data, inds_left, rhs, x0s)
+        f1s = self.eval_int_lag_local_search(data, inds_left, rhs, x1s)
+        self.check_initial_intervals(f0s, f1s)
 
-        for _ in range(100):  # TODO: make this an attribute
+        for _ in range(self.num_regula_falsi):  # TODO: make this an attribute
 
             dxs = -f1s * (x1s - x0s) / (f1s - f0s)
-            dxs[torch.isnan(dxs)] = 0.0
+            dxs[torch.isinf(dxs)] = 0.0
             xs = x1s + dxs
 
-            fs = self.eval_int_lag_local_search(data, e_ks, mask, rhs, xs)
+            fs = self.eval_int_lag_local_search(data, inds_left, rhs, xs)
 
             if self.converged(fs, dxs):
                 return xs 

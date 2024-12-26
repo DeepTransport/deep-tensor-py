@@ -20,8 +20,8 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         
         dhh = self.elem_size / 2.0
 
-        ii = torch.zeros((self.num_elems, 3), dtype=torch.int32)
-        jj = torch.zeros((self.num_elems, 3), dtype=torch.int32)
+        ii = torch.zeros((self.num_elems, 3), dtype=torch.get_default_dtype())
+        jj = torch.zeros((self.num_elems, 3), dtype=torch.get_default_dtype())
         for i in range(self.num_elems):
             ii[i] = 3*i + torch.arange(3)
             jj[i] = 2*i + torch.arange(3)
@@ -82,83 +82,53 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
 
         return CDFData(num_samples, poly_coef, cdf_poly_grid, poly_norm) 
 
-    def invert_cdf_local(
-        self, 
-        data: CDFData, 
-        inds_left: torch.Tensor,
-        mask: torch.Tensor, 
-        rhs: torch.Tensor
-    ) -> torch.Tensor:
-        """TODO: write docstring (in the parent class)."""
-
-        r0s, r1s = self.grid[inds_left], self.grid[inds_left+1]
-        rs = self.newton(data, inds_left, mask, rhs, r0s, r1s)
-        return rs
-
     def eval_int_lag_local(
         self, 
-        data: CDFData,
+        cdf_data: CDFData,
         inds_left: torch.Tensor,
-        mask: torch.Tensor, 
-        rs: torch.Tensor
+        ls: torch.Tensor
     ) -> torch.Tensor:
-        """TODO: write this."""
-
-        drs = rs - self.grid[inds_left]
         
-        if data.num_samples == 1:
+        if cdf_data.num_samples == 1:
             raise NotImplementedError("Does this make a difference?")
-            
-        coi = mask.nonzero().flatten()
+        
+        coi = torch.arange(ls.numel())
         i_inds = inds_left + coi * self.num_elems 
         j_inds = inds_left + coi * (self.num_elems + 1)
 
-        # TODO: figure out that this is
-        x_mat = torch.hstack((
-            drs[:, None],
-            (drs[:, None] ** 2) / 2.0,
-            (drs[:, None] ** 3) / 3.0
-        ))
+        dls = (ls - self.grid[inds_left])[:, None]
+        # TODO: figure out what this is
+        x_mat = torch.hstack((dls, (dls**2) / 2.0, (dls**3) / 3.0))
 
-        fs = torch.sum(x_mat * data.poly_coef[:, i_inds].T, 1)
-        fs += data.cdf_poly_grid.T.flatten()[j_inds]
-        return fs
+        zs = torch.sum(x_mat * cdf_data.poly_coef[:, i_inds].T, 1)
+        zs += cdf_data.cdf_poly_grid.T.flatten()[j_inds]
+        return zs
 
     def eval_int_lag_local_deriv(
         self, 
-        data: CDFData, 
-        e_ks: torch.Tensor,
-        mask: torch.Tensor,
-        xs: torch.Tensor
+        cdf_data: CDFData, 
+        inds_left: torch.Tensor,
+        ls: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         
-        xs = xs - reshape_matlab(self.grid[e_ks], xs.shape)
+        zs = self.eval_int_lag_local(cdf_data, inds_left, ls)
 
-        if data.num_samples == 1:
-            raise NotImplementedError("Does this make a difference?")
-            
-        coi = mask.nonzero().flatten()
-        
-        i_inds = e_ks + coi * self.num_elems 
-        j_inds = e_ks + coi * (self.num_elems + 1)
+        dls = ls - self.grid[inds_left]
 
         # TODO: figure out what this is
-        x_mat = torch.hstack((
-            xs[:, None],
-            (xs[:, None] ** 2) / 2.0,
-            (xs[:, None] ** 3) / 3.0
-        ))
-        fs = torch.sum(x_mat * data.poly_coef[:, i_inds].T, dim=1)
-        fs = fs + data.cdf_poly_grid.T.flatten()[j_inds]
-
+        # (derivatives of the above)
         temp = torch.hstack((
-            torch.ones((xs.shape[0], 1)),
-            xs[:, None],
-            xs[:, None] ** 2
-        )) # (derivatives of the above)
-        dfs = torch.sum(temp * data.poly_coef[:, i_inds].T, dim=1)
+            torch.ones((dls.shape[0], 1)),
+            dls[:, None],
+            dls[:, None] ** 2
+        ))
+
+        coi = torch.arange(ls.numel())
+        i_inds = inds_left + coi * self.num_elems 
+
+        dzs = torch.sum(temp * cdf_data.poly_coef[:, i_inds].T, dim=1)
         
-        return fs, dfs
+        return zs, dzs
 
     def eval_int_deriv(self):
         raise NotImplementedError()
