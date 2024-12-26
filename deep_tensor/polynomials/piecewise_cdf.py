@@ -301,34 +301,65 @@ class PiecewiseCDF(CDF1D, abc.ABC):
     
     def regula_falsi(
         self, 
-        data: CDFData, 
+        cdf_data: CDFData, 
         inds_left: torch.Tensor,
-        rhs: torch.Tensor, 
-        x0s: torch.Tensor, 
-        x1s: torch.Tensor
+        zs_cdf: torch.Tensor, 
+        l0s: torch.Tensor, 
+        l1s: torch.Tensor
     ) -> torch.Tensor:
+        """Inverts a CDF using the regula falsi method.
         
-        f0s = self.eval_int_lag_local_search(data, inds_left, rhs, x0s)
-        f1s = self.eval_int_lag_local_search(data, inds_left, rhs, x1s)
-        self.check_initial_intervals(f0s, f1s)
+        Parameters
+        ----------
+        cdf_data:
+            An object containing information about the CDF.
+        inds_left:
+            An n-dimensional vector containing the indices of the 
+            points of the grid on which the target PDF is discretised 
+            that are immediately to the left of each value in ls.
+        zs_cdf:
+            An n-dimensional vector containing a set of values in the 
+            range [0, Z], where Z is the normalising constant 
+            associated with the current target PDF.
+        l0s:
+            An n-dimensional vector containing the locations of the 
+            nodes of the current polynomial basis (in the local domain) 
+            directly to the left of each value in zs_cdf.
+        l1s:
+            An n-dimensional vector containing the locations of the 
+            nodes of the current polynomial basis (in the local domain) 
+            directly to the right of each value in zs_cdf.
 
-        for _ in range(self.num_regula_falsi):  # TODO: make this an attribute
+        Returns
+        -------
+        ls:
+            An n-dimensional vector containing the values (in the local
+            domain) of the inverse of the CDF evaluated at each element 
+            in zs_cdf.
+        
+        """
+        
+        z0s = self.eval_int_lag_local_search(cdf_data, inds_left, zs_cdf, l0s)
+        z1s = self.eval_int_lag_local_search(cdf_data, inds_left, zs_cdf, l1s)
+        self.check_initial_intervals(z0s, z1s)
 
-            dxs = -f1s * (x1s - x0s) / (f1s - f0s)
-            dxs[torch.isinf(dxs)] = 0.0
-            xs = x1s + dxs
+        for _ in range(self.num_regula_falsi):
 
-            fs = self.eval_int_lag_local_search(data, inds_left, rhs, xs)
+            dls = -z1s * (l1s - l0s) / (z1s - z0s)
+            dls[torch.isinf(dls)] = 0.0
+            ls = l1s + dls
 
-            if self.converged(fs, dxs):
-                return xs 
+            zs = self.eval_int_lag_local_search(cdf_data, inds_left, zs_cdf, ls)
 
-            # Update intervals (note: the CDF is monotone increasing)
-            x0s[fs < 0] = xs[fs < 0]
-            x1s[fs > 0] = xs[fs > 0]
-            f0s[fs < 0] = fs[fs < 0]
-            f1s[fs > 0] = fs[fs > 0]
+            if self.converged(zs, dls):
+                return ls 
+
+            # Note that the CDF is monotone increasing
+            l0s[zs < 0] = ls[zs < 0]
+            l1s[zs > 0] = ls[zs > 0]
+            z0s[zs < 0] = zs[zs < 0]
+            z1s[zs > 0] = zs[zs > 0]
             
         msg = "Regula falsi did not converge in 100 iterations."
         warnings.warn(msg)
-        return xs
+        return ls
