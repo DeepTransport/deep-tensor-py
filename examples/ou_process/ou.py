@@ -20,5 +20,12 @@ class OU():
         return
 
     def eval_potential(self, x: torch.Tensor) -> torch.Tensor:
-        f = 0.5 * torch.sum((self.B @ x.T) ** 2, 0) + torch.log(self.norm)
+        f = 0.5 * torch.sum((self.B @ x.T) ** 2, dim=0) + torch.log(self.norm)
+        return f
+    
+    def eval_potential_marginal(self, indices, x: torch.Tensor) -> torch.Tensor:
+        C = self.C[indices[:, None], indices[None, :]]
+        f = 0.5 * torch.sum(torch.linalg.solve(C, x.T) * x.T, dim=0)
+        z = 0.5 * torch.linalg.det(C).log() + 0.5 * indices.numel() * torch.tensor(2.0 * torch.pi).log()
+        f = z + f 
         return f

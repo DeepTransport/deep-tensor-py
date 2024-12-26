@@ -11,7 +11,8 @@ headers = [
     "TT Method",
     "Direction",
     "Transform Error",
-    "Potential Error"
+    "Density Error",
+    "Approx. Error"
 ]
 headers = [f"{h:16}" for h in headers]
 
@@ -23,7 +24,12 @@ zs = torch.rand((10_000, dim))
 
 for poly in polys_dict:
     for method in options_dict:
-        for direction in directions:
+
+        fig, axes = plt.subplots(2, 2, figsize=(6, 6))
+        for ax in axes.flat:
+            ax.set_box_aspect(1)
+
+        for i, direction in enumerate(directions):
 
             sirt: dt.TTSIRT = sirts[poly][method]
 
@@ -39,25 +45,34 @@ for poly in polys_dict:
                     sirt.marginalise(dt.Direction.BACKWARD)
 
             xs, potential_xs = sirt.eval_irt_nograd(zs[:, indices])
-            fxs = sirt.eval_pdf(xs)
+            fxs = sirt.eval_pdf(xs)  # TODO: fix the bug in here...
             z0 = sirt.eval_rt(xs)
+            fe = model.eval_potential_marginal(indices, xs)
 
             transform_error = norm(zs[:, indices] -z0, ord="fro")
             density_error = norm(torch.exp(-potential_xs) - fxs)
-            # pdf_error = norm(
-            #     torch.exp(-potential_func(xs))
-            #     - torch.exp(-potential_xs)
-            # )
-            # print(f" - PDF error: {pdf_error}.")
-
+            approx_error = norm(torch.exp(-potential_xs) - torch.exp(-fe))
             info = [
                 f"{poly:16}",
                 f"{method:16}",
                 f"{direction:16}",
                 f"{transform_error:=16.5e}",
-                f"{density_error:=16.5e}"
+                f"{density_error:=16.5e}",
+                f"{approx_error:=16.5e}"
             ]
             print(" | ".join(info))
+
+            axes[i][0].scatter(torch.arange(10_000), torch.abs(fe - potential_xs), s=4)
+            axes[i][0].set_ylim(bottom=0.0)
+            axes[i][0].set_ylabel("Error")
+            axes[i][0].set_title("Error in potential function")
+
+            axes[i][1].scatter(fe, potential_xs, s=4)
+            axes[i][1].set_xlabel("True potential")
+            axes[i][1].set_ylabel("FTT")
+            axes[i][1].set_title("True potential vs FTT")
+            
+        plt.savefig(f"examples/ou_process/figures/02_marginal_{poly}_{method}.pdf")
 
 """
 % should test ind = 1, ind = 1:(d-1) for > 0

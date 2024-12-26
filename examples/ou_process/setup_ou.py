@@ -52,6 +52,7 @@ options_dict = {
     method: dt.TTOptions(
         tt_method=method,
         als_tol=1e-4, 
+        local_tol=1e-10,
         max_rank=20, 
         max_als=1
     ) for method in tt_methods_list
