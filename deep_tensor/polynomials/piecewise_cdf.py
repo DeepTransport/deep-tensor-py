@@ -200,7 +200,6 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         inds_left[inds_left == self.num_elems] = self.num_elems - 1
 
         ls = self.invert_cdf_local(cdf_data, inds_left, zs_cdf)
-
         return ls
     
     def invert_cdf_local(

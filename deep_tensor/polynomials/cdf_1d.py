@@ -123,13 +123,13 @@ class CDF1D(abc.ABC):
 
     def check_initial_intervals(
         self, 
-        f0s: torch.Tensor, 
-        f1s: torch.Tensor 
+        z0s: torch.Tensor, 
+        z1s: torch.Tensor 
     ) -> None:
         """Checks whether the function values at each side of the 
         initial interval of a rootfinding method have different signs.
         """
-        if (num_violations := torch.sum((f0s * f1s) > -EPS)) > 0:
+        if (num_violations := torch.sum(z0s * z1s > 0)) > 0:
             msg = (f"Rootfinding: {num_violations} initial intervals "
                    + "without roots found.")
             warnings.warn(msg)
