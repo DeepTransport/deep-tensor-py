@@ -154,10 +154,7 @@ class TTSIRT(SIRT):
             fls_leq = B @ T2
             fls_leq[fls_leq.isnan()] = 0.0
         
-        if dim_z < self.approx.dim:
-            pi_ls = (fls_leq @ self.Rs[dim_z]).square().sum(dim=1)
-        else:
-            pi_ls = fls_leq.flatten().square()
+        pi_ls = (fls_leq @ self.Rs[dim_z]).square().sum(dim=1)
 
         return ls, pi_ls
     
@@ -390,7 +387,7 @@ class TTSIRT(SIRT):
     
     def eval_potential_local(
         self, 
-        xs: torch.Tensor
+        ls: torch.Tensor
     ) -> torch.Tensor:
         """Evaluates the normalised (marginal) PDF represented by the 
         squared FTT.
@@ -399,12 +396,14 @@ class TTSIRT(SIRT):
         
         """
 
-        dim_z = xs.shape[1]
+        dim_z = ls.shape[1]
 
         # d = self.approx.dim
         if self.int_dir == Direction.FORWARD:
 
-            fxl = self.approx.eval_block(xs, direction=self.int_dir)
+            fxl = self.approx.eval_block(ls, direction=self.int_dir)
+            
+            # fx = (fxl @ self.Rs[dim_z]).square().sum(dim=1)
 
             if dim_z < self.approx.dim:
                 fx = (fxl @ self.Rs[dim_z]).square().sum(dim=1)
@@ -415,9 +414,10 @@ class TTSIRT(SIRT):
             
         else:
 
-            fxg = self.approx.eval_block(xs, direction=self.int_dir) # TODO: fix the int_dir thing
+            fxg = self.approx.eval_block(ls, direction=self.int_dir) # TODO: fix the int_dir thing
 
             i_min = self.approx.dim - dim_z
+            # fx = (self.Rs[i_min-1] @ fxg).square().sum(dim=0)
 
             if dim_z < self.approx.dim:
                 fx = (self.Rs[i_min-1] @ fxg).square().sum(dim=0)
@@ -426,7 +426,7 @@ class TTSIRT(SIRT):
 
             indices = torch.arange(self.bases.dim-1, self.bases.dim-dim_z-1, -1)
             
-        neglogwls = self.approx.bases.eval_measure_potential(xs, indices)[0]  # TODO: check that indices go backwards
+        neglogwls = self.approx.bases.eval_measure_potential_local(ls, indices)  # TODO: check that indices go backwards
         neglogfls = self.z.log() - (fx + self.tau).log() + neglogwls
 
         return neglogfls
@@ -440,11 +440,11 @@ class TTSIRT(SIRT):
     
     def eval_rt_local(
         self, 
-        rs: torch.Tensor
+        ls: torch.Tensor
     ) -> torch.Tensor:
 
-        num_r, dim_r = rs.shape
-        zs = torch.zeros_like(rs)
+        num_r, dim_r = ls.shape
+        zs = torch.zeros_like(ls)
 
         if self.int_dir == Direction.FORWARD:
 
@@ -468,13 +468,13 @@ class TTSIRT(SIRT):
                                       .sum(dim=1)
                                       .reshape(num_nodes, num_r))
                 
-                zs[:, k] = self.oned_cdfs[k].eval_cdf(pdf_vals+self.tau, rs[:, k])
+                zs[:, k] = self.oned_cdfs[k].eval_cdf(pdf_vals+self.tau, ls[:, k])
 
                 # Evaluate the updated basis function
                 T2 = self.eval_oned_core_213(
                     self.bases.polys[k], 
                     self.approx.data.cores[k], 
-                    rs[:, k]
+                    ls[:, k]
                 )
 
                 ii = torch.arange(num_r).repeat(rank_p)
@@ -512,12 +512,12 @@ class TTSIRT(SIRT):
                 pk = reshape_matlab(T1 @ frg, (-1, num_nodes * num_r))
                 pk = reshape_matlab(pk.square().sum(dim=0), (num_nodes, num_r))
 
-                zs[:, k_ind] = self.oned_cdfs[k].eval_cdf(pk + self.tau, rs[:, k_ind])
+                zs[:, k_ind] = self.oned_cdfs[k].eval_cdf(pk + self.tau, ls[:, k_ind])
 
                 T2 = self.eval_oned_core_231(
                     self.bases.polys[k], 
                     self.approx.data.cores[k],
-                    rs[:, k_ind]
+                    ls[:, k_ind]
                 )
 
                 ii = torch.arange(rank_k * num_r)
@@ -617,14 +617,13 @@ class TTSIRT(SIRT):
         Parameters
         ----------
         zs: 
-            An n * d matrix containing variates from the standard 
-            uniform distribution.
+            An n * d matrix containing values on [0, 1]^d.
 
         Returns
         -------
         ls:
             An n * d matrix containing the corresponding samples of the 
-            local target random variable (defined on [-1, 1]).
+            target random variable mapped into the local domain.
         neglogfls:
             The local potential function associated with the 
             approximation to the target density, evaluated at each 

@@ -271,10 +271,10 @@ class AbstractIRT(abc.ABC):
             The negative log of the approximation to the target density 
             evaluated at each sample in xs.
 
-        """
+        TODO: check this one with TC.
 
+        """
         indices = self.get_transform_indices(xs.shape[1])
-        
         ls, dldxs = self.approx.bases.approx2local(xs, indices)
         neglogfls = self.eval_potential_local(ls)
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
@@ -287,9 +287,20 @@ class AbstractIRT(abc.ABC):
         """Evaluates the normalised marginal PDF at a given set of x 
         values.
         
-        TODO: finish
-        """
+        Parameters
+        ---------
+        xs: 
+            An n * d matrix containing samples from the approximation 
+            domain.
 
+        Returns
+        -------
+        fxs:
+            An n-dimensional vector containing the value of the 
+            approximation to the target PDF evaluated at each element 
+            in xs.
+        
+        """
         neglogfxs = self.eval_potential(xs)
         fxs = torch.exp(-neglogfxs)
         return fxs

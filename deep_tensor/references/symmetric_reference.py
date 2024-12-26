@@ -208,7 +208,6 @@ class SymmetricReference(Reference, abc.ABC):
         # Map points into desired section of range of CDF
         zs = self.left + zs * self.norm
         us = self.invert_unit_cdf(zs)
-
         rs = self.mu + self.sigma * us
         return rs
         

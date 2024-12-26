@@ -258,11 +258,10 @@ class DIRT(abc.ABC):
         xs: torch.Tensor,
         num_layers: torch.Tensor=torch.inf
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Evaluate the deep Rosenblatt transport X = T(R), where 
+        """Evaluates the deep Rosenblatt transport X = T(R), where 
         R is the reference random variable and X is the target random
         variable.
         
-        TODO: tidy the below up.
         Parameters
         ----------
         xs:
@@ -275,11 +274,14 @@ class DIRT(abc.ABC):
         Returns
         -------
         zs:
-            xx
+            An n * d matrix containing the value of the CDF of the 
+            current composition of mappings evaluated at each value of
+            xs.
         neglogfxs:
-            xx
+            An n-dimensional vector containing the negative log of the
+            pushforward of the reference density under the current 
+            composition of mappings, evaluated at each sample in xs.
 
-        TODO: fix this docstring and the variable names in here
         """
         
         num_layers = min(num_layers, self.num_layers)
@@ -294,7 +296,6 @@ class DIRT(abc.ABC):
 
             rs = self.reference.invert_cdf(zs)
             neglogrefs = -self.reference.log_joint_pdf(rs)[0]
-
             neglogfxs += neglogsirts - neglogrefs
 
         neglogrefs = -self.reference.log_joint_pdf(rs)[0]
@@ -327,9 +328,9 @@ class DIRT(abc.ABC):
             the approximation domain, after applying the deep inverse 
             Rosenblatt transport.
         neglogfxs:
-            An n-dimensional vector containing the pushforward of the 
-            reference density under the deep inverse Rosenblatt 
-            transport, evaluated at each sample in xs.
+            An n-dimensional vector containing the negative log of the
+            pushforward of the reference density under the current 
+            composition of mappings, evaluated at each sample in xs.
 
         References
         ----------
@@ -382,7 +383,7 @@ class DIRT(abc.ABC):
         """
 
         if not isinstance(bases, ApproxBases):
-            msg = ("Currently only a set of ApproxBases can be passed"
+            msg = ("Currently only a set of ApproxBases can be passed "
                    + "into 'build_bases()'.")
             raise NotImplementedError(msg)
 

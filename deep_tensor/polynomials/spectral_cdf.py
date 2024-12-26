@@ -303,7 +303,7 @@ class SpectralCDF(CDF1D, abc.ABC):
             fs, dfs = self.eval_int_newton(coefs, cdf_poly_base, rhs, xs)
             
             dxs = -fs / dfs 
-            dxs[torch.isnan(dxs)] = 0.0
+            dxs[torch.isinf(dxs)] = 0.0
             xs += dxs 
             xs = torch.clamp(xs, x0s, x1s)
 

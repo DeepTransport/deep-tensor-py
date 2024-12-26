@@ -45,7 +45,7 @@ for poly in polys_dict:
                     sirt.marginalise(dt.Direction.BACKWARD)
 
             xs, potential_xs = sirt.eval_irt_nograd(zs[:, indices])
-            fxs = sirt.eval_pdf(xs)  # TODO: fix the bug in here...
+            fxs = sirt.eval_pdf(xs)
             z0 = sirt.eval_rt(xs)
             fe = model.eval_potential_marginal(indices, xs)
 

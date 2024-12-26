@@ -23,8 +23,10 @@ zs = torch.rand((10_000, dim))
 for poly in polys_dict:
     for method in options_dict:
 
-        xs, potential_xs = sirts[poly][method].eval_irt_nograd(zs)
-        z0 = sirts[poly][method].eval_rt(xs)
+        sirt: dt.TTSIRT = sirts[poly][method]
+
+        xs, potential_xs = sirt.eval_irt_nograd(zs)
+        z0 = sirt.eval_rt(xs)
 
         transform_error = norm(zs-z0, ord="fro")
         potential_error = norm(potential_func(xs) - potential_xs)
