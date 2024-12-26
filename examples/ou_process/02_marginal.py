@@ -4,16 +4,30 @@ from torch.linalg import norm
 
 from examples.ou_process.setup_ou import *
 
+directions = ["forward", "backward"]
+
+headers = [
+    "Polynomial",
+    "TT Method",
+    "Direction",
+    "Transform Error",
+    "Potential Error"
+]
+headers = [f"{h:16}" for h in headers]
+
+print("")
+print(" | ".join(headers))
+print("-+-".join(["-" * 16] * len(headers)))
 
 zs = torch.rand((10_000, dim))
 
-for i in range(len(bases_list)):
-    for j in range(len(options_list)):
-        for k in range(2):
+for poly in polys_dict:
+    for method in options_dict:
+        for direction in directions:
 
-            sirt: dt.TTSIRT = sirts[i][j]
+            sirt: dt.TTSIRT = sirts[poly][method]
 
-            if k == 0:
+            if direction == "forward":
                 # Forward marginalisation
                 indices = torch.arange(8)
                 if sirt.int_dir != dt.Direction.FORWARD:
@@ -34,11 +48,16 @@ for i in range(len(bases_list)):
             #     torch.exp(-potential_func(xs))
             #     - torch.exp(-potential_xs)
             # )
-
-            print(f"Polynomial {i}, option {j}:")
-            print(f" - Transform error: {transform_error}.")
-            print(f" - Potential error: {density_error}.")
             # print(f" - PDF error: {pdf_error}.")
+
+            info = [
+                f"{poly:16}",
+                f"{method:16}",
+                f"{direction:16}",
+                f"{transform_error:=16.5e}",
+                f"{density_error:=16.5e}"
+            ]
+            print(" | ".join(info))
 
 """
 % should test ind = 1, ind = 1:(d-1) for > 0

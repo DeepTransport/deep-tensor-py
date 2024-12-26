@@ -30,38 +30,41 @@ input_data = dt.InputData(sample_x, debug_x)
 
 domain = dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0]))
 
-polys_list = [
-    dt.Legendre(order=40),
-    dt.Fourier(order=20),
-    dt.Lagrange1(num_elems=40)
-]
+polys_dict = {
+    "legendre": dt.Legendre(order=40),
+    "fourier": dt.Fourier(order=20),
+    "lagrange1": dt.Lagrange1(num_elems=40)
+}
 
 # bases{4} = ApproxBases(Lagrangep(5,8), dom, d);
 
-bases_list = [
-    dt.ApproxBases(polys=polys, domains=domain, dim=dim)
-    for polys in polys_list
-]
+bases_dict = {
+    poly: dt.ApproxBases(
+        polys=polys_dict[poly], 
+        domains=domain, 
+        dim=dim
+    ) for poly in polys_dict
+}
 
 tt_methods_list = ["random", "fixed_rank"]
 
-options_list = [
-    dt.TTOptions(
+options_dict = {
+    method: dt.TTOptions(
         tt_method=method,
         als_tol=1e-4, 
         max_rank=20, 
         max_als=1
     ) for method in tt_methods_list
-]
+}
 
 sirts = {}
 
-for i, bases in enumerate(bases_list):
-    sirts[i] = {}
-    for j, options in enumerate(options_list):
-        sirts[i][j] = dt.TTSIRT(
+for poly in bases_dict:
+    sirts[poly] = {}
+    for method in options_dict:
+        sirts[poly][method] = dt.TTSIRT(
             potential_func, 
-            bases, 
-            options=options, 
+            bases_dict[poly], 
+            options=options_dict[method], 
             input_data=input_data
         )
