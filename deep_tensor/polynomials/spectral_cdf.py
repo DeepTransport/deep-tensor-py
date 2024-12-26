@@ -293,7 +293,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         
         f0s = self.eval_int_search(coefs, cdf_poly_base, rhs, x0s)
         f1s = self.eval_int_search(coefs, cdf_poly_base, rhs, x1s)
-        self._check_initial_intervals(f0s, f1s)
+        self.check_initial_intervals(f0s, f1s)
 
         # Carry out the first iteration using the regula falsi method
         xs = x1s - f1s * (x1s - x0s) / (f1s - f0s)
