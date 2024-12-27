@@ -705,19 +705,17 @@ class TTSIRT(SIRT):
             rank_p = self.approx.data.cores[k].shape[0]
             num_nodes = self.oned_cdfs[k].nodes.numel()
 
-            T1 = reshape_matlab(
-                self.eval_oned_core_213(
-                    self.approx.bases.polys[k], 
-                    self.Bs[k], 
-                    self.oned_cdfs[k].nodes
-                ), 
-                (rank_p, -1)
-            )
+            T1 = self.eval_oned_core_213(
+                self.approx.bases.polys[k], 
+                self.Bs[k], 
+                self.oned_cdfs[k].nodes
+            ).T.reshape(-1, rank_p).T
 
-            pk = reshape_matlab(
-                reshape_matlab(frl @ T1, (num_z*num_nodes, -1)).square().sum(dim=1), 
-                (num_z, num_nodes)
-            ).T
+            pk = ((frl @ T1).T
+                  .reshape(-1, num_z*num_nodes)
+                  .square()
+                  .sum(dim=0)
+                  .reshape(num_nodes, num_z))
 
             ls_y[:, j] = self.oned_cdfs[k].invert_cdf(pk+self.tau, zs[:, j])
 
