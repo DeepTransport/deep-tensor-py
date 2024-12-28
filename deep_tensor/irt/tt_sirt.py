@@ -290,30 +290,23 @@ class TTSIRT(SIRT):
             on top of one another.
         
         """
-
-        assert xs.dim() == 1, "xs is not a vector."
         
-        rank_p, num_nodes, rank_k = A_k.shape
-        num_x = xs.numel()
+        r_p, n_k, r_k = A_k.shape
+        n_x = xs.numel()
 
-        coeffs = A_k.permute(1, 0, 2)
-        coeffs = reshape_matlab(coeffs, (num_nodes, rank_p * rank_k))
-        G_k = poly_k.eval_radon(coeffs, xs)
-        
-        G_k = reshape_matlab(G_k, (num_x, rank_p, rank_k))
-        G_k = G_k.permute(1, 0, 2)
-        G_k = reshape_matlab(G_k, (rank_p * num_x, rank_k))
-
+        coeffs = A_k.permute(2, 0, 1).reshape(r_p * r_k, n_k).T
+        G_k = (poly_k.eval_radon(coeffs, xs).T
+               .reshape(r_k, r_p, n_x)
+               .swapdims(1, 2)
+               .reshape(r_k, r_p * n_x).T)
         return G_k
         
     def eval_oned_core_213_deriv(
         self, 
         poly: Basis1D, 
         core: torch.Tensor, 
-        x: torch.Tensor 
+        xs: torch.Tensor 
     ) -> torch.Tensor:
-        """TODO: check whether x will always be a vector (single 
-        sample)."""
 
         raise NotImplementedError()
 
@@ -337,29 +330,26 @@ class TTSIRT(SIRT):
         Returns
         -------
         # G_k:
-        #     A matrix of dimension r_{k-1}n_{k} * r_{k}, corresponding 
+        #     A matrix of dimension r_{k}n_{k} * r_{k-1}, corresponding 
         #     to evaluations of the kth core at each value of xs stacked 
         #     on top of one another.
         """
         
-        rank_p, num_nodes, rank_k = A_k.shape
-        num_x = x.numel()
+        r_p, n_k, r_k = A_k.shape
+        n_x = x.numel()
 
-        coeffs = A_k.permute(1, 2, 0)
-        coeffs = reshape_matlab(coeffs, (num_nodes, rank_p * rank_k))
-        G_k = poly.eval_radon(coeffs, x)
-
-        G_k = reshape_matlab(G_k, (num_x, rank_k, rank_p))
-        G_k = G_k.permute(1, 0, 2)
-        G_k = reshape_matlab(G_k, (rank_k * num_x, rank_p))
-
+        coeffs = A_k.swapdims(1, 2).reshape(r_p * r_k, n_k).T
+        G_k = (poly.eval_radon(coeffs, x).T
+               .reshape(r_p, r_k, n_x)
+               .swapdims(1, 2)
+               .reshape(r_p, r_k * n_x).T)
         return G_k
     
     def eval_oned_core_231_deriv(
         self, 
         poly: Basis1D,
         core: torch.Tensor,
-        x: torch.Tensor
+        xs: torch.Tensor
     ) -> torch.Tensor:
         """TODO: write docstring."""
 
