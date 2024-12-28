@@ -61,15 +61,12 @@ class TTSIRT(SIRT):
             
             poly_k = self.approx.bases.polys[k]
             A_k = self.approx.data.cores[k]
-            rank_p, num_nodes, rank_k = A_k.shape
+            r_p, n_k, r_k = A_k.shape
 
-            B_k = reshape_matlab(A_k, (rank_p * num_nodes, rank_k)) @ self.Rs[k+1]
-            self.Bs[k] = reshape_matlab(B_k, (rank_p, num_nodes, rank_k))
-
-            B_k = self.Bs[k].permute(1, 2, 0)
-            B_k = reshape_matlab(B_k, (num_nodes, rank_k * rank_p)) 
-            C_k = reshape_matlab(poly_k.mass_r(B_k), (num_nodes * rank_k, rank_p))
-            
+            B_k = A_k.swapdims(0, 2).reshape(r_k, r_p * n_k).T @ self.Rs[k+1]
+            self.Bs[k] = B_k.T.reshape(r_k, n_k, r_p).swapdims(0, 2)
+            B_k = self.Bs[k].swapdims(2, 1).reshape(r_p * r_k, n_k).T
+            C_k = poly_k.mass_r(B_k).T.reshape(r_p, n_k * r_k).T
             self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
         self._z_func = self.Rs[0].square().sum()
@@ -85,15 +82,12 @@ class TTSIRT(SIRT):
             
             poly_k = self.approx.bases.polys[k]
             A_k = self.approx.data.cores[k]
-            rank_p, num_nodes, rank_k = A_k.shape
+            r_p, n_k, r_k = A_k.shape
 
-            B_k = self.Rs[k-1] @ reshape_matlab(A_k, (rank_p, num_nodes * rank_k))
-            self.Bs[k] = reshape_matlab(B_k, (rank_p, num_nodes, rank_k))
-
-            B_k = self.Bs[k].permute(1, 0, 2)
-            B_k = reshape_matlab(B_k, (num_nodes, rank_p * rank_k))
-            C_k = reshape_matlab(poly_k.mass_r(B_k), (num_nodes * rank_p, rank_k))
-
+            B_k = self.Rs[k-1] @ A_k.swapdims(0, 2).reshape(n_k * r_k, r_p).T
+            self.Bs[k] = B_k.T.reshape(r_k, n_k, r_p).swapdims(0, 2)
+            B_k = self.Bs[k].permute(2, 0, 1).reshape(r_p * r_k, n_k).T
+            C_k = poly_k.mass_r(B_k).T.reshape(r_k, n_k * r_p).T
             self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")[1]
 
         self._z_func = self.Rs[self.bases.dim-1].square().sum()
