@@ -33,10 +33,9 @@ domain = dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0]))
 polys_dict = {
     "legendre": dt.Legendre(order=40),
     "fourier": dt.Fourier(order=20),
-    "lagrange1": dt.Lagrange1(num_elems=40)
+    "lagrange1": dt.Lagrange1(num_elems=40),
+    # "lagrangep": dt.LagrangeP(order=5, num_elems=8)
 }
-
-# bases{4} = ApproxBases(Lagrangep(5,8), dom, d);
 
 bases_dict = {
     poly: dt.ApproxBases(
