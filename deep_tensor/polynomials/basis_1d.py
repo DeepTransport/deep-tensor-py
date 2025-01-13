@@ -258,21 +258,21 @@ class Basis1D(abc.ABC, object):
 
         Returns
         -------
-        func_vals:
+        fls:
             A matrix containing the values of each basis function 
             evaluated at each point. Element (i, j) contains the value 
             of the jth basis function evaluated at the ith value of x.
         
         """
 
-        func_vals = torch.zeros((ls.numel(), coeffs.shape[1]))
+        fls = torch.zeros((ls.numel(), coeffs.shape[1]))
         
         if not torch.any(inside := self.in_domain(ls)):
-            return func_vals
+            return fls
         
         basis_vals = self.eval_basis(ls[inside])
-        func_vals[inside] = basis_vals @ coeffs
-        return func_vals
+        fls[inside] = basis_vals @ coeffs
+        return fls
         
     def eval_radon_deriv(
         self, 
@@ -291,19 +291,19 @@ class Basis1D(abc.ABC, object):
 
         Returns
         -------
-        deriv:
+        gradfls:
             The values of the derivative of the function at each point.
         
         """
 
-        deriv_vals = torch.zeros((xs.numel(), coeffs.shape[1]))
+        gradfls = torch.zeros((xs.numel(), coeffs.shape[1]))
 
         if not torch.any(inside := self.in_domain(xs)):
-            return deriv_vals 
+            return gradfls 
         
-        basis_vals = self.eval_basis_deriv(xs[inside])
-        deriv_vals[inside] = basis_vals @ coeffs
-        return deriv_vals
+        deriv_vals = self.eval_basis_deriv(xs[inside])
+        gradfls[inside] = deriv_vals @ coeffs
+        return gradfls
 
     def eval(
         self, 
@@ -323,14 +323,14 @@ class Basis1D(abc.ABC, object):
 
         Returns
         -------
-        vals:
+        fwls:
             The values of the product of the approximated function 
             and the weighting function at each point.
         
         """
-        func_vals = self.eval_radon(coeffs, ls)
+        fls = self.eval_radon(coeffs, ls)
         wls = self.eval_measure(ls)
-        return func_vals * wls
+        return fls * wls
         
     def eval_deriv(
         self, 
@@ -348,11 +348,11 @@ class Basis1D(abc.ABC, object):
             return deriv_vals
         
         basis_vals = self.eval_basis_deriv(ls[inside])
+
         wls = self.eval_measure(ls[inside])
         deriv_vals[inside] = basis_vals @ coeffs * wls
 
         if not self.constant_weight:
-            basis_vals = self.eval_basis(ls[inside])
             gradwls = self.eval_measure_deriv(ls[inside])
             deriv_vals[inside] += basis_vals @ coeffs * gradwls
 
