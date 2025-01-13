@@ -97,6 +97,9 @@ class TTFunc(ApproxFunc):
         als_iter: int,
         indices: torch.Tensor
     ) -> None:
+        """Prints some diagnostic information about the current ALS 
+        iteration.
+        """
 
         diagnostics = [
             f"{als_iter:=3}", 
@@ -328,6 +331,12 @@ class TTFunc(ApproxFunc):
         ----------
         target_func: 
             The function being approximated.
+        x_left:
+            An r_{k-1} * {k-1} matrix containing a set of interpolation
+            points for dimensions 1, ..., {k-1}.
+        x_right:
+            An r_{k+1} * {k+1} matix containing a set of interpolation 
+            points for dimensions {k+1}, ..., d.
         k:
             The dimension in which interpolation is being carried out.
 
@@ -355,33 +364,32 @@ class TTFunc(ApproxFunc):
         if x_left.numel() == 0:
 
             params = torch.hstack((
-                nodes.repeat(num_right, 1),
-                x_right.repeat_interleave(poly.cardinality, dim=0)
+                nodes.repeat_interleave(num_right, dim=0),
+                x_right.repeat(poly.cardinality, 1)
             ))
 
         elif x_right.numel() == 0:
 
             params = torch.hstack((
-                x_left.repeat(poly.cardinality, 1),
-                nodes.repeat_interleave(num_left, dim=0)
+                x_left.repeat_interleave(poly.cardinality, dim=0),
+                nodes.repeat(num_left, 1)
             ))
 
         else:
 
             params = torch.hstack((
-                x_left.repeat(poly.cardinality * num_right, 1),
-                nodes.repeat_interleave(num_left, dim=0).repeat(num_right, 1),
-                x_right.repeat_interleave(num_left * poly.cardinality, dim=0)
+                x_left.repeat_interleave(poly.cardinality * num_right, dim=0),
+                nodes.repeat_interleave(num_right, dim=0).repeat(num_left, 1),
+                x_right.repeat(num_left * poly.cardinality, 1)
             ))
         
-        F_k = target_func(params)
-        F_k = reshape_matlab(F_k, (num_left, poly.cardinality, num_right))
+        F_k = target_func(params).reshape(num_left, poly.cardinality, num_right)
 
-        if isinstance(poly, Spectral):  # TODO: I think this could be a separate method eventually
-            F_k = F_k.permute(1, 0, 2)
-            F_k = poly.node2basis @ reshape_matlab(F_k, (poly.cardinality, -1))
-            F_k = reshape_matlab(F_k, (poly.cardinality, num_left, num_right))
-            F_k = F_k.permute(1, 0, 2)
+        # TODO: could be a separate method eventually
+        if isinstance(poly, Spectral): 
+            F_k = F_k.permute(2, 0, 1).reshape(num_left * num_right, -1).T
+            F_k = poly.node2basis @ F_k
+            F_k = F_k.T.reshape(num_right, num_left, -1).permute(1, 2, 0)
 
         self.num_eval += params.shape[0]
         return F_k
