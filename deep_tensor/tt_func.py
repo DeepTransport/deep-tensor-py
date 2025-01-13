@@ -404,7 +404,7 @@ class TTFunc(ApproxFunc):
         Parameters
         ----------
         F:
-            The TT block. Has dimensions TODO
+            TODO
         k:
             The index of the current dimension.
         
@@ -422,7 +422,7 @@ class TTFunc(ApproxFunc):
 
         """
 
-        poly = self.bases.polys[int(k)]
+        poly = self.bases.polys[k]
 
         if isinstance(poly, Piecewise):
             # TODO: figure out what nn is
@@ -458,7 +458,8 @@ class TTFunc(ApproxFunc):
         Parameters
         ----------
         F_k:
-            TODO
+            An r_{k-1} * n_{k} * r_{k} tensor containing the 
+            coefficients of the kth TT block.
         k:
             The index of the dimension corresponding to the basis 
             being constructed.
@@ -477,17 +478,15 @@ class TTFunc(ApproxFunc):
         interp_x_prev = self.data.interp_x[k_prev]
         core_next = self.data.cores[k_next]
 
-        num_b_left, num_nodes, num_b_right = F_k.shape 
-        rank_0_next, num_nodes_next, rank_1_next = core_next.shape
+        n_left, n_nodes, n_right = F_k.shape 
+        r_0_next, n_nodes_next, r_1_next = core_next.shape
 
         if self.data.direction == Direction.FORWARD:
-            F_k = F_k.permute(1, 0, 2)
-            F_k = reshape_matlab(F_k, (num_nodes * num_b_left, num_b_right))
-            rank_prev = num_b_left
+            F_k = F_k.permute(2, 0, 1).reshape(n_right, n_left * n_nodes).T
+            r_prev = n_left
         else: 
-            F_k = F_k.permute(1, 2, 0)
-            F_k = reshape_matlab(F_k, (num_nodes * num_b_right, num_b_left))
-            rank_prev = num_b_right
+            F_k = F_k.permute(0, 2, 1).reshape(n_left, n_nodes * n_right).T
+            r_prev = n_right
 
         B, A, rank = self.truncate_local(F_k, k)
 
@@ -498,27 +497,27 @@ class TTFunc(ApproxFunc):
 
         if self.data.direction == Direction.FORWARD:
             
-            core = reshape_matlab(core, (num_nodes, rank_prev, rank))
+            core = reshape_matlab(core, (n_nodes, r_prev, rank))
             core = core.permute(1, 0, 2)
 
-            couple = couple[:, :rank_0_next]
-            couple = reshape_matlab(couple, (-1, rank_0_next))
+            couple = couple[:, :r_0_next]
+            couple = reshape_matlab(couple, (-1, r_0_next))
             
-            core_next = reshape_matlab(core_next, (rank_0_next, -1))
+            core_next = reshape_matlab(core_next, (r_0_next, -1))
             core_next = couple @ core_next
-            core_next = reshape_matlab(core_next, (rank, num_nodes_next, rank_1_next))
+            core_next = reshape_matlab(core_next, (rank, n_nodes_next, r_1_next))
 
         else:
             
-            core = reshape_matlab(core, (num_nodes, rank_prev, rank))
+            core = reshape_matlab(core, (n_nodes, r_prev, rank))
             core = core.permute(2, 0, 1)
 
-            couple = couple[:, :rank_1_next].permute(1, 0)
-            couple = reshape_matlab(couple, (rank_1_next, -1))
+            couple = couple[:, :r_1_next].permute(1, 0)
+            couple = reshape_matlab(couple, (r_1_next, -1))
 
-            core_next = reshape_matlab(core_next, (-1, rank_1_next))
+            core_next = reshape_matlab(core_next, (-1, r_1_next))
             core_next = core_next @ couple 
-            core_next = reshape_matlab(core_next, (rank_0_next, num_nodes_next, rank))
+            core_next = reshape_matlab(core_next, (r_0_next, n_nodes_next, rank))
 
         self.data.cores[k] = core
         self.data.interp_x[k] = interp_x 
