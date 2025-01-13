@@ -20,6 +20,14 @@ class Jacobi11(Recurr):
         self._constant_weight = False
         
         return
+    
+    @property
+    def nodes(self) -> torch.Tensor:
+        return self._nodes
+    
+    @property
+    def weights(self) -> torch.Tensor:
+        return self._weights
 
     @property 
     def domain(self) -> torch.Tensor:

@@ -33,6 +33,30 @@ class Piecewise(Basis1D, abc.ABC):
     def constant_weight(self) -> bool:
         return self._constant_weight
 
+    def get_left_hand_inds(
+        self, 
+        ls: torch.Tensor, 
+    ) -> torch.Tensor:
+        """Returns the indices of the nodes that are directly to the 
+        left of each of a give set of points.
+        
+        Parameters
+        ----------
+        ls:
+            An n-dimensional vector of points within the local domain.
+
+        Returns
+        -------
+        left_inds:
+            An n-dimensional vector containing the indices of the nodes
+            of the basis directly to the left of each element in ls.
+        
+        """
+
+        left_inds = ((ls-self.domain[0]) / self.elem_size).floor().int()
+        left_inds[left_inds == self.num_elems] = self.num_elems - 1
+        return left_inds
+
     def sample_measure(self, n: int) -> torch.Tensor:
         return self.domain[0] + self.domain_size * torch.rand(n)
 

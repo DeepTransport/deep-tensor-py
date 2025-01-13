@@ -9,5 +9,5 @@ from .directions import Direction
 from .domains import BoundedDomain
 from .input_data import InputData
 from .options import TTOptions
-from .polynomials import Fourier, Lagrange1, Legendre
+from .polynomials import Fourier, Lagrange1, LagrangeP, Legendre
 from .irt import TTDIRT, TTSIRT

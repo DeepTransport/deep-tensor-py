@@ -1,3 +1,4 @@
+from typing import Tuple
 import warnings
 
 import torch
@@ -5,6 +6,7 @@ import torch
 from .jacobi_11 import Jacobi11
 from .piecewise import Piecewise
 from ..constants import EPS
+from ..tools import integrate
 
 
 class LagrangeRef():
@@ -25,69 +27,82 @@ class LagrangeRef():
 
         """
 
-        self.cardinality = n
+        assert n > 2, "Value of n should be greater than 2."
 
-        if n < 2: 
-            msg = ("More than two points are needed " 
-                   + "to define Lagrange interpolation.")
-            raise Exception(msg)
+        self.domain = torch.tensor([0.0, 1.0])
+        self.cardinality = n
+        self.es = torch.eye(n)
         
-        self.nodes = torch.zeros(n)
+        jacobi = Jacobi11(order=n-3)
+        self.nodes = torch.zeros(self.cardinality)
+        self.nodes[1:-1] = 0.5 * (jacobi.nodes + 1.0)
         self.nodes[-1] = 1.0
 
-        if n > 2:
-            order = n-3
-            jacobi = Jacobi11(order)
-            self.nodes[1:-1] = 0.5 * (jacobi.nodes + 1.0)
-
-        # Compute the local Barycentric weights (see Berrut and 
-        # Trefethen, Eq. (3.2))
-        self.omega = torch.zeros(n)
-        for j in range(n):
-            mask = torch.full((n, ), True)
-            mask[j] = False
-            self.omega[j] = 1.0 / (self.nodes[j]-self.nodes[mask]).prod()
-        
-        # Define the mass matrix
-        I = torch.eye(n)
-        self.mass = torch.zeros((n, n))
-        for i in range(n):
-            for j in range(n):
-                raise NotImplementedError("TODO: finish")
-                f_ij = 1.0  # TODO: finish (need to integrate)
-
-        # Set up the integration of each basis
-        self.weights = torch.zeros((n,))
-        for i in range(n):
-            f_i = 1.0  # TODO: finish (need to integrate)
-
+        self.omega = self._compute_omegas()
+        self.weights = self._compute_weights()
+        self.mass = self._compute_mass()
         return
+    
+    def _compute_omegas(self) -> torch.Tensor:
+        """Computes the local Barycentric weights (see Berrut and 
+        Trefethen, Eq. (3.2)).
+        """
+        omega = torch.zeros(self.cardinality)
+        for i in range(self.cardinality):
+            mask = torch.full((self.cardinality,), True)
+            mask[i] = False
+            omega[i] = torch.prod(self.nodes[i]-self.nodes[mask]) ** -1
+        return omega
+    
+    def _compute_weights(self) -> torch.Tensor:
+        """Uses numerical integration to approximate the integral of 
+        each basis function over the domain.
+        """
+        weights = torch.zeros(self.cardinality)
+        for i in range(self.cardinality):
+            f_i = lambda x: self.eval(self.es[i], x)
+            weights[i] = integrate(f_i, *self.domain)
+        return weights
+    
+    def _compute_mass(self) -> torch.Tensor:
+        """Uses numerical integration to approximate the mass matrix 
+        (the integrals of the product of each pair of basis functions 
+        over the domain).
+        """
+        mass = torch.zeros((self.cardinality, self.cardinality))
+        for i in range(self.cardinality):
+            for j in range(i, self.cardinality):
+                e_i, e_j = self.es[i], self.es[j]
+                f_ij = lambda ls: self.eval(e_i, ls) * self.eval(e_j, ls)
+                integral = integrate(f_ij, *self.domain)
+                mass[i, j], mass[j, i] = integral, integral
+        return mass
 
     def eval(
         self, 
-        f_x: torch.Tensor, 
-        x: torch.Tensor
+        fls: torch.Tensor, 
+        ls: torch.Tensor
     ) -> torch.Tensor:
         """TODO: write docstring."""
 
-        m = x.numel()
+        m = ls.numel()
         n = self.cardinality
         f = torch.zeros((m, ))
 
-        mask_outside = torch.bitwise_or(
-            self.nodes[0] - EPS >= x,
-            self.nodes[-1] + EPS <= x
-        )
-
-        if mask_outside.any():
+        inside = (ls >= self.domain[0]) & (ls <= self.domain[1])
+        if not inside.all():
             msg = "Points outside of domain."
             warnings.warn(msg)
-            f[mask_outside] = 0.0
 
-        x_inside = x[~mask_outside]
+        n_in = inside.sum()
 
-        raise NotImplementedError("TODO: finish")
-        
+        diffs = ls[inside].repeat(n, 1).T - self.nodes.repeat(n_in, 1)
+        diffs[diffs.abs() < EPS] = EPS  # avoid division by 0
+
+        temp_m = self.omega.repeat(n_in, 1) / diffs
+
+        # evaluation of the internal interpolation
+        f[inside] = (fls.repeat(n_in, 1) * temp_m).sum(dim=1) / temp_m.sum(dim=1)
         return f
 
 
@@ -95,16 +110,89 @@ class LagrangeP(Piecewise):
 
     def __init__(self, order, num_elems):
 
-        Piecewise.__init__(self, order, num_elems)
-
         if order == 1:
             msg = ("When `order=1`, Lagrange1 should be used " 
                    + "instead of LagrangeP.")
             raise Exception(msg)
+
+        Piecewise.__init__(self, order, num_elems)
         
-        self.local = LagrangeRef(self.order + 1)
+        self.local = LagrangeRef(self.order+1)
 
-        # Set up global nodes
-        num_nodes = self.num_elements * (self.local.cardinality - 1) + 1
+        n_nodes = self.num_elems * (self.local.cardinality - 1) + 1
 
+        self._nodes = self._compute_nodes(n_nodes)
+
+        mass = torch.zeros((self.cardinality, self.cardinality))
+        jac = self.elem_size / self.domain_size
+        self._int_W = torch.zeros(self.cardinality)
+
+        for i in range(self.num_elems):
+            ind = (torch.arange(self.local.cardinality) 
+                   + i * (self.local.cardinality-1))
+            mass[ind[:, None], ind[None, :]] += self.local.mass * jac
+            self._int_W[ind] += self.local.weights * jac
+
+        self._mass_R = torch.linalg.cholesky(mass).T
+
+        # map the function value y to each local element
+        j = torch.arange(self.local.cardinality-1, n_nodes, self.local.cardinality-1)
+        self.global2local = torch.hstack((
+            torch.arange(self.local.cardinality-1).reshape(self.num_elems, self.local.cardinality-1), 
+            j[:, None]))
         return
+    
+    def _compute_nodes(self, n_nodes):
+        """Computes the values of the global nodes. 
+        TODO: give more detail on this.
+        """
+        nodes = torch.zeros(n_nodes)
+        for i in range(self.num_elems):
+            ind = (torch.arange(self.local.cardinality) 
+                   + i * (self.local.cardinality-1))
+            nodes[ind] = self.grid[i] + self.elem_size * self.local.nodes
+        return nodes
+    
+    @property
+    def int_W(self) -> torch.Tensor:
+        return self._int_W
+    
+    @property 
+    def nodes(self) -> torch.Tensor:
+        return self._nodes 
+    
+    @property 
+    def mass_R(self) -> torch.Tensor:
+        return self._mass_R
+
+    def eval_basis(self, ls: torch.Tensor) -> torch.Tensor:
+        
+        basis_vals = torch.zeros((ls.numel(), self.cardinality))
+
+        if not torch.all(inside := self.in_domain(ls)):
+            warnings.warn("Some points are outside the domain.")
+
+        if not torch.any(inside):
+            return basis_vals
+        
+        left_inds = self.get_left_hand_inds(ls[inside])
+
+        ls_local = (ls[inside] - self.grid[left_inds]) / self.elem_size
+        
+        diffs = ls_local.repeat(self.local.cardinality, 1).T - self.local.nodes.repeat(inside.sum(), 1)
+        diffs[diffs.abs() < EPS] = EPS
+
+        temp_m = self.local.omega.repeat(inside.sum(), 1) / diffs
+        lbs = temp_m / temp_m.sum(1, keepdim=True)
+        coi = self.global2local[left_inds].T.flatten()
+        roi = inside.nonzero().flatten().repeat(self.local.cardinality)
+        
+        basis_vals[roi, coi] = lbs.T.flatten()
+        return basis_vals
+    
+    def eval_basis_deriv(
+        self, 
+        ls: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]: 
+        raise NotImplementedError()
+    
