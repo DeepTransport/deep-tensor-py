@@ -404,7 +404,8 @@ class TTFunc(ApproxFunc):
         Parameters
         ----------
         F:
-            TODO
+            An r_{k_next} * (n_{k} * r_{k_prev}) matrix containing 
+            the coefficients associated with the kth tensor core.
         k:
             The index of the current dimension.
         
@@ -423,16 +424,14 @@ class TTFunc(ApproxFunc):
         """
 
         poly = self.bases.polys[k]
-
         if isinstance(poly, Piecewise):
-            # TODO: figure out what nn is
-            nn = F.shape[0]
-            F = poly.mass_R @ reshape_matlab(F, (poly.cardinality, -1))
-            F = reshape_matlab(F, (nn, -1))
+            nr_prev = F.shape[0]
+            F = poly.mass_R @ F.T.reshape(-1, poly.cardinality).T
+            F = F.T.reshape(-1, nr_prev).T
             
         U, s, Vh = torch.linalg.svd(F, full_matrices=False)
             
-        energies = torch.cumsum(torch.flip(s**2, dims=(0,)), dim=0)
+        energies = torch.flip(s**2, dims=(0,)).cumsum(dim=0)
         tol = 0.1 * energies[-1] * self.options.local_tol ** 2
         
         rank = torch.sum(energies > tol)
@@ -442,10 +441,10 @@ class TTFunc(ApproxFunc):
         A = (s[:rank] * Vh[:rank].T).T
 
         if isinstance(poly, Piecewise):
-            B = reshape_matlab(B, (poly.cardinality, -1))
+            B = B.T.reshape(-1, poly.cardinality).T
             B = torch.linalg.solve(poly.mass_R, B)
-            B = reshape_matlab(B, (nn, -1))
-
+            B = B.T.reshape(-1, nr_prev).T
+ 
         return B, A, rank
 
     def build_basis_svd(
