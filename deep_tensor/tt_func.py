@@ -4,7 +4,6 @@ import warnings
 import torch
 
 from .approx_bases import ApproxBases
-from .approx_func import ApproxFunc
 from .directions import Direction
 from .input_data import InputData
 from .options import TTOptions
@@ -16,7 +15,7 @@ from .utils import als_info
 MAX_COND = 1.0e+5
 
 
-class TTFunc(ApproxFunc):
+class TTFunc():
 
     def __init__(
         self, 
@@ -48,7 +47,22 @@ class TTFunc(ApproxFunc):
             function.
 
         """
-        super().__init__(target_func, bases, options, input_data, tt_data)
+        
+        self.bases = bases 
+        self.dim = bases.dim
+        self.options = options
+        self.input_data = input_data
+        self.data = TTData() if tt_data is None else tt_data
+
+        # if isinstance(arg, ApproxFunc):
+        #     self.options = arg.options
+        
+        self.input_data.set_debug(target_func, self.bases)
+        self.num_eval = 0
+        self.errors = torch.zeros(self.bases.dim)
+        self.l2_err = torch.inf
+        self.linf_err = torch.inf
+
         self.input_data.set_samples(self.bases, self.sample_size)
         self.cross(target_func)
         return
@@ -264,6 +278,16 @@ class TTFunc(ApproxFunc):
             warnings.warn(msg)
 
         return indices, core, interp_atx
+
+    def compute_relative_error(self) -> None:
+        """TODO: write docstring."""
+
+        if not self.input_data.is_debug:
+            return
+        
+        ps_approx = self.eval_local(self.input_data.ls_debug)
+        self.l2_err, self.linf_err = self.input_data.relative_error(ps_approx)
+        return
 
     def initialise_cores(self) -> None:
         """Initialises the cores and interpolation points in each 
@@ -496,14 +520,11 @@ class TTFunc(ApproxFunc):
 
         if self.data.direction == Direction.FORWARD:
             
-            core = reshape_matlab(core, (n_nodes, r_prev, rank))
-            core = core.permute(1, 0, 2)
+            core = core.T.reshape(rank, r_prev, n_nodes).permute(1, 2, 0)
 
-            couple = couple[:, :r_0_next]
-            couple = reshape_matlab(couple, (-1, r_0_next))
+            couple = couple[:, :r_0_next].T.reshape(r_0_next, -1).T
             
-            core_next = reshape_matlab(core_next, (r_0_next, -1))
-            core_next = couple @ core_next
+            core_next = couple @ core_next.permute(2, 1, 0).reshape(-1, r_0_next).T
             core_next = reshape_matlab(core_next, (rank, n_nodes_next, r_1_next))
 
         else:
@@ -511,7 +532,7 @@ class TTFunc(ApproxFunc):
             core = reshape_matlab(core, (n_nodes, r_prev, rank))
             core = core.permute(2, 0, 1)
 
-            couple = couple[:, :r_1_next].permute(1, 0)
+            couple = couple[:, :r_1_next].T
             couple = reshape_matlab(couple, (r_1_next, -1))
 
             core_next = reshape_matlab(core_next, (-1, r_1_next))
@@ -617,17 +638,46 @@ class TTFunc(ApproxFunc):
 
         return interp_x
 
+    def eval(self, xs: torch.Tensor) -> torch.Tensor:
+        """Evaluates the approximated function at a set of points in 
+        the approximation domain.
+        
+        Parameters
+        ----------
+        xs:
+            A matrix containing n sets of d-dimensional input 
+            variables in the approximation domain. Each row contains a
+            single input variable.
+            
+        Returns
+        -------
+        fxs:
+            An n-dimensional vector containing the values of the 
+            function at each x value.
+        """
+        ls = self.bases.approx2local(xs)[0]
+        fxs = self.eval_local(ls)
+        return fxs
+
     def eval_local(
         self, 
         ls: torch.Tensor
     ) -> torch.Tensor:
-        """Evaluates the TTFunRef for either the first or last k 
-        variables, depending on the current direction the cores are 
-        being evaluated in.
+        """Evaluates the approximation to the target function for a set 
+        of samples in the local domain ([-1, 1]^d).
 
-        TODO: finish docstring
+        Parameters
+        ----------
+        ls:
+            An n * d matrix containing samples in the local domain.
+        
+        Returns
+        -------
+        ps:
+            An n-dimensional vector containing the result of evaluating
+            the target function at each element in ls. 
+            
         """
-
         ps = self.eval_block(ls, self.data.direction)
         return ps
     
@@ -715,14 +765,42 @@ class TTFunc(ApproxFunc):
                 fls = G_k.T @ B
 
         return fls.squeeze()
-
+    
     def grad_reference(
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Evaluates the gradient of the approximation to the target 
+        function for a set of reference variables.
+        """
         raise NotImplementedError()
+
+    def grad(self, xs: torch.Tensor) -> torch.Tensor:
+        """Evaluates the gradient of the approximation to the target 
+        function at a set of points in the approximation domain.
+        
+        Parameters
+        ----------
+        xs: 
+            A matrix containing n sets of d-dimensional input 
+            variables in the approximation domain. Each row contains a
+            single input variable.
+
+        Returns
+        -------
+        gxs:
+            TODO: finish this once grad_reference is done.
+
+        """
+        zs, dzdxs = self.bases.approx2local(xs)
+        gzs, fxs = self.grad_reference(self, zs)
+        gxs = gzs * dzdxs
+        return gxs, fxs
     
     def int_reference(self):
+        """Integrates the approximation to the target function over the 
+        reference domain (TODO: check this).
+        """
         raise NotImplementedError()
 
     def select_points(

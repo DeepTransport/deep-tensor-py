@@ -5,7 +5,6 @@ import torch
 from .abstract_irt import AbstractIRT
 # from .sirt import SIRT
 from ..approx_bases import ApproxBases
-from ..approx_func import ApproxFunc
 from ..directions import Direction
 from ..input_data import InputData
 from ..options import TTOptions
@@ -34,10 +33,13 @@ class TTSIRT(AbstractIRT):
         if input_data is None:
             input_data = InputData()
         
-        # Define coefficient tensors and marginalisation coefficents
-        self.Bs: dict[int, torch.Tensor] = {}
-        self.Rs: dict[int, torch.Tensor] = {} 
-
+        def target_func(ls: torch.Tensor) -> torch.Tensor:
+            """Returns the square root of the ratio between the target 
+            density and the weighting function evaluated at a set of 
+            points in the local domain ([-1, 1]^d).
+            """
+            return self.potential2density(potential, ls)
+        
         AbstractIRT.__init__(
             self,
             potential, 
@@ -47,17 +49,14 @@ class TTSIRT(AbstractIRT):
             input_data,
             tt_data
         )
+
+        # Define coefficient tensors and marginalisation coefficents
+        self.Bs: dict[int, torch.Tensor] = {}
+        self.Rs: dict[int, torch.Tensor] = {} 
         
         self._int_dir = Direction.FORWARD # TEMP??
         self._order = None
         self._tau = tau
-
-        def target_func(ls: torch.Tensor) -> torch.Tensor:
-            """Returns the square root of the ratio between the target 
-            density and the weighting function evaluated at a set of 
-            points in the local domain ([-1, 1]^d).
-            """
-            return self.potential2density(potential, ls)
 
         self._approx = self.build_approximation(
             target_func, 
@@ -86,11 +85,11 @@ class TTSIRT(AbstractIRT):
         return self._oned_cdfs
 
     @property
-    def approx(self) -> ApproxFunc:
+    def approx(self) -> TTFunc:
         return self._approx
 
     @approx.setter 
-    def approx(self, value: ApproxFunc):
+    def approx(self, value: TTFunc):
         self._approx = value
 
     @property

@@ -4,7 +4,7 @@ from typing import Callable, Tuple
 import torch
 
 from ..approx_bases import ApproxBases
-from ..approx_func import ApproxFunc
+from ..tt_func import TTFunc
 from ..constants import EPS
 from ..directions import Direction
 from ..input_data import InputData
@@ -24,7 +24,7 @@ class AbstractIRT(abc.ABC):
         self, 
         potential: Callable,
         bases: ApproxBases, 
-        approx: ApproxFunc|None,
+        approx: TTFunc|None,
         options: TTOptions,
         input_data: InputData,
         approx_data: TTData
@@ -40,7 +40,7 @@ class AbstractIRT(abc.ABC):
 
     @property
     @abc.abstractmethod 
-    def approx(self) -> ApproxFunc:
+    def approx(self) -> TTFunc:
         """The approximation of the square root of the target density.
         """
         return
@@ -158,7 +158,7 @@ class AbstractIRT(abc.ABC):
         bases: ApproxBases, 
         options: TTOptions,
         input_data: InputData,
-    ) -> ApproxFunc:
+    ) -> TTFunc:
         """Constructs a functional approximation to a given target 
         density function.
 

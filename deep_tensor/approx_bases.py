@@ -2,13 +2,12 @@ from typing import Tuple
 
 import torch
 
-# TODO: figure out whether the domain actually needs to be bounded or not.
-from .domains import BoundedDomain
+from .domains import Domain
 from .polynomials import Basis1D
 
 
 PolyType = Basis1D | list[Basis1D]
-DomainType = BoundedDomain | list[BoundedDomain]
+DomainType = Domain | list[Domain]
 
 
 class ApproxBases():
@@ -32,7 +31,7 @@ class ApproxBases():
         
         if isinstance(polys, Basis1D):
             polys = [polys]
-        if isinstance(domains, BoundedDomain):
+        if isinstance(domains, Domain):
             domains = [domains]
 
         if len(domains) == 1:
