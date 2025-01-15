@@ -8,7 +8,7 @@ from ..approx_func import ApproxFunc
 from ..constants import EPS
 from ..directions import Direction
 from ..input_data import InputData
-from ..options import ApproxOptions, TTOptions
+from ..options import TTOptions
 from ..polynomials import CDF1D
 from ..tt_data import TTData
 
@@ -25,7 +25,7 @@ class AbstractIRT(abc.ABC):
         potential: Callable,
         bases: ApproxBases, 
         approx: ApproxFunc|None,
-        options: ApproxOptions,  # TODO: check this.
+        options: TTOptions,
         input_data: InputData,
         approx_data: TTData
     ):
@@ -156,7 +156,7 @@ class AbstractIRT(abc.ABC):
         self, 
         func: Callable, 
         bases: ApproxBases, 
-        options: ApproxOptions,
+        options: TTOptions,
         input_data: InputData,
     ) -> ApproxFunc:
         """Constructs a functional approximation to a given target 
@@ -465,7 +465,7 @@ class AbstractIRT(abc.ABC):
         """
 
         us = torch.rand(n, self.approx.bases.dim)
-        rs = self.eval_irt(us)
+        rs = self.eval_irt_nograd(us)
         return rs 
     
     def sobol(self, n: int) -> torch.Tensor:
@@ -486,7 +486,7 @@ class AbstractIRT(abc.ABC):
 
         S = torch.quasirandom.SobolEngine(dimension=self.approx.bases.dim)
         us = S.draw(n)
-        rs = self.eval_irt(us)
+        rs = self.eval_irt_nograd(us)
         return rs
 
     def set_defensive(
