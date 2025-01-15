@@ -2,22 +2,24 @@ from typing import Callable, Tuple
 
 import torch
 
-from .sirt import SIRT
+from .abstract_irt import AbstractIRT
+# from .sirt import SIRT
 from ..approx_bases import ApproxBases
+from ..approx_func import ApproxFunc
 from ..directions import Direction
 from ..input_data import InputData
 from ..options import TTOptions
-from ..polynomials import Basis1D
+from ..polynomials import Basis1D, CDF1D, construct_cdf
 from ..tt_data import TTData
 from ..tt_func import TTFunc
 from ..tools import reshape_matlab
 
 
-class TTSIRT(SIRT):
+class TTSIRT(AbstractIRT):
 
     def __init__(
         self, 
-        potential: Callable, 
+        potential: Callable[[torch.Tensor], torch.Tensor], 
         bases: ApproxBases,
         approx: TTFunc|None=None,
         options: TTOptions|None=None, 
@@ -36,20 +38,85 @@ class TTSIRT(SIRT):
         self.Bs: dict[int, torch.Tensor] = {}
         self.Rs: dict[int, torch.Tensor] = {} 
 
-        super().__init__(
+        AbstractIRT.__init__(
+            self,
             potential, 
-            bases, 
+            bases,
             approx, 
             options, 
-            input_data, 
-            tt_data,
-            tau
+            input_data,
+            tt_data
         )
+        
+        self._int_dir = Direction.FORWARD # TEMP??
+        self._order = None
+        self._tau = tau
+
+        def target_func(ls: torch.Tensor) -> torch.Tensor:
+            """Returns the square root of the ratio between the target 
+            density and the weighting function evaluated at a set of 
+            points in the local domain ([-1, 1]^d).
+            """
+            return self.potential2density(potential, ls)
+
+        self._approx = self.build_approximation(
+            target_func, 
+            bases,
+            options, 
+            input_data,
+            tt_data
+        )
+
+        self._oned_cdfs = {}
+        for k in range(self.bases.dim):
+            self._oned_cdfs[k] = construct_cdf(
+                poly=self.approx.bases.polys[k], 
+                error_tol=self.approx.options.cdf_tol
+            )
+
+        self.marginalise()
 
         # TODO: figure out what this is for. I think this is set in the 
         # marginalise() function--so I'm not sure what's going on here.
         self.order = None 
         return
+
+    @property 
+    def oned_cdfs(self) -> dict[int, CDF1D]:
+        return self._oned_cdfs
+
+    @property
+    def approx(self) -> ApproxFunc:
+        return self._approx
+
+    @approx.setter 
+    def approx(self, value: ApproxFunc):
+        self._approx = value
+
+    @property
+    def int_dir(self) -> Direction:
+        return self._int_dir
+    
+    @property
+    def order(self) -> torch.Tensor:
+        return self._order
+    
+    @order.setter 
+    def order(self, value: torch.Tensor):
+        self._order = value
+        return
+
+    @property 
+    def tau(self) -> torch.Tensor:
+        return self._tau
+    
+    @property 
+    def z(self) -> torch.Tensor:
+        return self._z 
+    
+    @property 
+    def z_func(self) -> torch.Tensor:
+        return self._z_func
 
     def _marginalise_forward(self) -> None:
         """TODO: write docstring."""
@@ -210,6 +277,51 @@ class TTSIRT(SIRT):
             frs = frg.flatten().square()
 
         return rs, frs
+
+    def get_potential2density(
+        self, 
+        ys: torch.Tensor, 
+        zs: torch.Tensor
+    ) -> torch.Tensor:
+        
+        raise NotImplementedError()
+
+    def potential2density(
+        self, 
+        potential_func: Callable[[torch.Tensor], torch.Tensor], 
+        ls: torch.Tensor
+    ) -> torch.Tensor:
+        """Returns the square root of the target function evaluated at
+        a set of samples in the local domain.
+        
+        Parameters
+        ----------
+        ls:
+            An n * d matrix containing a set of n samples from the 
+            local domain ([-1, 1]^d).
+        potential_func:
+            A function that evaluates the potential (negative log) 
+            of the target function at a given set of samples from the 
+            approximation domain.
+
+        Returns
+        -------
+        ps:
+            An n-dimensional vector containing the square root of the 
+            ratio of the potential function and the weighting function, 
+            evaluated at each element of ls.
+            
+        TODO: check this (and eval_measure_potential) with TC.
+
+        """
+        
+        xs = self.bases.local2approx(ls)[0]
+        neglogfxs = potential_func(xs)
+        neglogwxs = self.bases.eval_measure_potential(xs)[0]
+
+        # The ratio of f and w is invariant to changes of coordinate
+        ps = torch.exp(-0.5 * (neglogfxs - neglogwxs))
+        return ps
 
     def build_approximation(
         self, 
