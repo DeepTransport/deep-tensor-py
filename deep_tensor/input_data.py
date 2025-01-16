@@ -33,12 +33,6 @@ class InputData():
             function evaluated at each sample in xs_debug.
 
         """
-
-        if (xs_debug.numel() == 0) ^ (fxs_debug.numel() == 0):
-            msg = ("If debugging samples are provided, the value of "
-                   + "the target function at each sample must also "
-                   + "be specified (and vice versa).")
-            raise Exception(msg)
         
         if xs_samp is None:
             xs_samp = torch.tensor([])
@@ -46,7 +40,7 @@ class InputData():
             xs_debug = torch.tensor([])
         if fxs_debug is None:
             fxs_debug = torch.tensor([])
-        
+
         self.xs_samp = xs_samp
         self.xs_debug = xs_debug
         self.fxs_debug = fxs_debug
@@ -114,6 +108,7 @@ class InputData():
                 raise Exception(msg)
             self.ls_samp = bases.approx2local(self.xs_samp)[0]
 
+        self.count = 0
         return
         
     def get_samples(self, n: int|None=None) -> torch.Tensor:
