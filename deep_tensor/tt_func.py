@@ -54,16 +54,18 @@ class TTFunc():
         self.input_data = input_data
         self.data = TTData() if tt_data is None else tt_data
 
+        self.input_data.set_samples(self.bases, self.sample_size)
+        if self.input_data.is_debug:
+            self.input_data.set_debug(target_func, self.bases)
+
         # if isinstance(arg, ApproxFunc):
         #     self.options = arg.options
         
-        self.input_data.set_debug(target_func, self.bases)
         self.num_eval = 0
         self.errors = torch.zeros(self.bases.dim)
         self.l2_err = torch.inf
         self.linf_err = torch.inf
-
-        self.input_data.set_samples(self.bases, self.sample_size)
+        
         self.cross(target_func)
         return
         

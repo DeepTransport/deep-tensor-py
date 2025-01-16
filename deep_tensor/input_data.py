@@ -148,17 +148,9 @@ class InputData():
         None
 
         """
-
-        if self.xs_debug.numel() == 0:
-            msg = ("Debug samples are not provided. " + 
-                   "Turn off evaluation-based cross validation.")
-            warnings.warn(msg)
-            return
-    
         self.ls_debug = bases.approx2local(self.xs_debug)[0]
         if self.ps_debug.numel() == 0:
             self.ps_debug = target_func(self.ls_debug)
-
         return
     
     def relative_error(
@@ -167,8 +159,6 @@ class InputData():
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """TODO: write docstring."""
         
-        # TODO: figure out if this is necessary (the function that 
-        # calls this has an early return also)
         if not self.is_debug:
             return torch.inf, torch.inf 
         
