@@ -1,5 +1,6 @@
 from copy import deepcopy
 from typing import Callable, Tuple
+import warnings
 
 import torch
 
@@ -10,6 +11,7 @@ from ..domains import BoundedDomain
 from ..input_data import InputData
 from ..options import ApproxOptions, DIRTOptions, TTOptions
 from ..references import Reference, GaussianReference
+from ..tools import compute_f_divergence
 from ..utils import dirt_info
 
 
@@ -537,9 +539,19 @@ class TTDIRT():
                 dirt_info("DIRT construction complete.")
                 return
 
-        # TODO: finish off the last layer
-        # It might be good to have a warning in here.
+        warnings.warn("Maximum number of DIRT layers reached.")
+
         xs, neglogfxs = self.eval_irt(rs)
         neglogliks, neglogpris = func(xs)
+        
+        log_proposal = -neglogfxs
+        log_target = -neglogliks - neglogpris
+        div_h2 = compute_f_divergence(log_proposal, log_target)[1]
 
-        raise NotImplementedError()
+        msg = [
+            f"Iter: {self.num_layers}", 
+            f"DHell: {div_h2.sqrt()[0]:.4f}"
+        ]
+        dirt_info(msg)
+        dirt_info("DIRT construction complete.")
+        return
