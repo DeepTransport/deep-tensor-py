@@ -3,8 +3,6 @@
 from matplotlib import pyplot as plt
 import torch
 
-import os, sys; sys.path.append(os.getcwd())
-
 import deep_tensor as dt
 
 from examples.double_banana.double_banana import DoubleBanana
@@ -63,7 +61,7 @@ yy = torch.reshape(yy, (-1, 1))
 
 rts = torch.concatenate([xx, yy], axis=1)
 
-for k in range(airt.num_layers+1):
+for k in range(airt.num_layers):
 
     fig, axes = plt.subplots(2, 2, figsize=(8, 8), sharex=True, sharey=True)
 
@@ -71,7 +69,7 @@ for k in range(airt.num_layers+1):
         ax.set_box_aspect(1)
 
     # Evaluate density
-    rf = airt.eval_potential(xts, k)
+    rf = airt.eval_potential(xts, k+1)
     rf = torch.exp(-rf)
 
     neglogliks, neglogpris = model.potential_dirt(xts)

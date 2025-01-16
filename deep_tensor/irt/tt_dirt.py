@@ -3,7 +3,6 @@ from typing import Callable, Tuple
 
 import torch
 
-from .abstract_irt import AbstractIRT
 from .tt_sirt import TTSIRT
 from ..approx_bases import ApproxBases
 from ..bridging_densities import Bridge, Tempering1
@@ -27,7 +26,7 @@ class TTDIRT():
         init_samples: torch.Tensor|None=None,
         prev_approx=None  # TODO: fix this (set as None if not passed in) and add type annotation
     ):
-        """Deep inverse Rosenblatt transform.
+        """Class that implements the deep inverse Rosenblatt transport.
 
         Properties
         ----------
@@ -83,7 +82,7 @@ class TTDIRT():
         self.init_samples = init_samples
         self.prev_approx = prev_approx
 
-        self.irts: dict[int, AbstractIRT] = {}
+        self.irts: dict[int, TTSIRT] = {}
         self.num_eval: int = 0
         self.log_z: float = 0.0
 
@@ -112,7 +111,8 @@ class TTDIRT():
         xs: torch.Tensor, 
         neglogratios: torch.Tensor
     ) -> TTSIRT:
-        """TODO: write docstring.
+        """Constructs a new SIRT to add to the current composition of 
+        SIRTs.
 
         Parameters
         ----------
@@ -217,7 +217,7 @@ class TTDIRT():
             xs = self.init_samples
             neglogliks, neglogpris = self.func(xs)
             neglogfxs = neglogpris  # Samples are drawn from the prior
-            self.bridge = self.bridge.set_init(neglogliks)  # TODO: write this
+            self.bridge.set_init(neglogliks)  # TODO: write this
 
         return xs, neglogliks, neglogpris, neglogfxs
 
@@ -249,7 +249,8 @@ class TTDIRT():
         xs: torch.Tensor, 
         neglogratio: torch.Tensor 
     ) -> InputData:
-        """TODO: write docstring.
+        """Generates a set of input data and debugging samples used to 
+        initialise DIRT.
         
         Parameters
         ----------
@@ -311,7 +312,6 @@ class TTDIRT():
             element of xs. 
 
         """
-
         num_layers = min(num_layers, self.num_layers)
         neglogfxs = self.eval_rt(rs, num_layers)[1]
         return neglogfxs
@@ -351,7 +351,7 @@ class TTDIRT():
 
         neglogfxs = torch.zeros(rs.shape[0])
 
-        for i in range(num_layers+1):
+        for i in range(num_layers):
             
             zs = self.irts[i].eval_rt(rs)
             neglogsirts = self.irts[i].eval_potential(rs)
@@ -445,7 +445,7 @@ class TTDIRT():
         """
 
         if not isinstance(bases, ApproxBases):
-            msg = ("Currently only a set of ApproxBases can be passed "
+            msg = ("Currently, only a set of ApproxBases can be passed "
                    + "into 'build_bases()'.")
             raise NotImplementedError(msg)
 
@@ -534,10 +534,10 @@ class TTDIRT():
             self.num_eval += self.irts[self.num_layers].approx.num_eval
             rs = self.reference.random(self.dim, self.pre_sample_size)
 
+            self.num_layers += 1
             if self.bridge.is_last:
                 dirt_info("DIRT construction complete.")
                 return
-            self.num_layers += 1
 
         # TODO: finish off the last layer
         # It might be good to have a warning in here.

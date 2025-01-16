@@ -31,7 +31,7 @@ class Tempering1(SingleBeta):
 
     @property 
     def is_last(self) -> bool:
-        return torch.abs(self.betas[self.num_layers] - 1.0) < 1e-6
+        return torch.abs(self.betas[-1] - 1.0) < 1e-6
 
     @property 
     def num_layers(self) -> int:
@@ -201,7 +201,6 @@ class Tempering1(SingleBeta):
             previous bridging density evaluated at each sample.
         
         """
-
         beta = self.betas[self.num_layers]
         log_weights = -beta*neglogliks - neglogpris + neglogfxs
         return log_weights
@@ -231,8 +230,6 @@ class Tempering1(SingleBeta):
             # Estimate square Hellinger distance between current (kth)
             # approximation and previous (kth) target density
             div_h2 = compute_f_divergence(log_proposal, log_target)[1]
-
-            # f"prev beta: {self.betas[self.num_layers-1]:.4f}"
             msg.append(f"DHell: {div_h2.sqrt()[0]:.4f}")
 
         dirt_info(" | ".join(msg))

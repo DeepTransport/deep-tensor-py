@@ -202,8 +202,8 @@ class SymmetricReference(Reference, abc.ABC):
 
     def invert_cdf(self, zs: torch.Tensor) -> torch.Tensor:
 
-        zs[torch.isinf(zs)] = 1.0 - EPS
-        zs[torch.isnan(zs)] = EPS
+        # zs[torch.isinf(zs)] = 1.0 - EPS
+        # zs[torch.isnan(zs)] = EPS
 
         # Map points into desired section of range of CDF
         zs = self.left + zs * self.norm
@@ -229,7 +229,7 @@ class SymmetricReference(Reference, abc.ABC):
     def random(self, d: int, n: int) -> torch.Tensor:
 
         zs = torch.rand(size=(n, d))
-        zs = self.left + self.norm * zs
+        # zs = self.left + self.norm * zs
         rs = self.invert_cdf(zs)
         return rs
         
@@ -237,6 +237,6 @@ class SymmetricReference(Reference, abc.ABC):
 
         S = torch.quasirandom.SobolEngine(dimension=d)
         zs = S.draw(n)
-        zs = self.left + self.norm * zs
+        # zs = self.left + self.norm * zs
         rs = self.invert_cdf(zs)
         return rs
