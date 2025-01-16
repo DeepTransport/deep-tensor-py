@@ -55,18 +55,12 @@ class InputData():
     def is_debug(self) -> bool:
         """Flag that indicates whether debugging samples are available.
         """
-
-        # if self.xs_debug.numel() > 0 and self.ls_debug.numel() == 0:
-        #     msg = "Debug samples must be transformed to the local domain."
-        #     raise Exception(msg)
-        
-        flag = not self.xs_debug.numel() == 0
-        return flag
+        return not self.xs_debug.numel() == 0
     
     @property 
     def is_evaluated(self) -> bool:
         """Flag that indicates whether the approximation to the target 
-        function has been evaluated for all samples.
+        function has been evaluated for all debugging samples.
         """
         return not self.fxs_debug.numel() == 0
 
@@ -170,7 +164,7 @@ class InputData():
 
         """
         self.ls_debug = bases.approx2local(self.xs_debug)[0]
-        if self.fxs_debug.numel() == 0:
+        if not self.is_evaluated:
             self.fxs_debug = target_func(self.ls_debug)
         return
     
