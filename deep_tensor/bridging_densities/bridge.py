@@ -101,9 +101,10 @@ class Bridge(abc.ABC):
         """
         return
     
-    # @abc.abstractmethod 
-    # def set_init(self, mllkds, etol):
-    #     return 
+    @abc.abstractmethod 
+    def set_init(self, neglogliks: torch.Tensor, etol: float) -> None:
+        """TODO: write docstring."""
+        return 
     
     @abc.abstractmethod
     def adapt_density(
@@ -189,11 +190,9 @@ class Bridge(abc.ABC):
             the resampling process.
 
         """
-
         resampled_inds = torch.multinomial(
             input=log_weights.exp(), 
             num_samples=log_weights.numel(), 
             replacement=True
         )
-
         return resampled_inds

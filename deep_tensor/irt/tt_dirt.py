@@ -103,6 +103,145 @@ class TTDIRT():
     def pre_sample_size(self) -> int:
         return self.dirt_options.num_samples + self.dirt_options.num_debugs
 
+    def build_bases(
+        self, 
+        bases: ApproxBases, 
+        reference: Reference
+    ) -> list[ApproxBases]:
+        """Returns a list of bases for the first and second levels of 
+        DIRT construction.
+
+        Parameters
+        ----------
+        bases:
+            An ApproxBases object for the approximation domain.
+        reference:
+            The reference density.
+
+        Returns
+        -------
+        bases_list:
+            A list of the bases for the first and second levels of DIRT
+            construction.
+                
+        """
+
+        if not isinstance(bases, ApproxBases):
+            msg = ("Currently, only a set of ApproxBases can be passed "
+                   + "into 'build_bases()'.")
+            raise NotImplementedError(msg)
+
+        bases_list = [
+            ApproxBases(bases.polys, bases.domains, bases.dim),
+            ApproxBases(bases.polys, reference.domain, bases.dim)
+        ]
+
+        return bases_list
+
+    def initialise(
+        self, 
+        bases: ApproxBases
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Generates a set of samples to initialise the FTT with.
+        
+        Parameters
+        ----------
+        bases: 
+            A set of bases for the approximation domain.
+
+        Returns
+        -------
+        xs:
+            An n * d matrix containing samples from the approximation 
+            domain. If init_samples (samples drawn from the prior) are 
+            available, these are used; otherwise, a set of samples
+            are drawn from the weighting function associated with the 
+            bases for the reference density.     
+        neglogliks:
+            An n-dimensional vector containing the negative of the
+            log-likelihood function evaluated at each sample.
+        neglogpris: 
+            An n-dimensional vector containing the negative logarithm
+            of the prior density evaluated at each sample.
+        neglogfxs:
+            An n-dimensional vector containing the negative logarithm 
+            of the density the samples are drawn from.
+        
+        """
+
+        if self.init_samples is None:
+            # When piecewise polynomials are used, measure is uniform
+            xs, neglogfxs = bases.sample_measure(self.pre_sample_size)
+            neglogliks, neglogpris = self.func(xs)
+        else:
+            xs = self.init_samples
+            neglogliks, neglogpris = self.func(xs)
+            neglogfxs = neglogpris  # Samples are drawn from the prior
+            self.bridge.set_init(neglogliks)
+
+        return xs, neglogliks, neglogpris, neglogfxs
+
+    def get_potential_to_density(
+        self, 
+        bases: ApproxBases, 
+        neglogratios: torch.Tensor, 
+        rs: torch.Tensor
+    ) -> torch.Tensor:
+        """Returns the (square-rooted?) density we aim to approximate.
+        
+        TODO: talk to TC about MATLAB implementation of this one...
+        """
+        neglogwrs = bases.eval_measure_potential(rs)[0]
+        log_ys = -0.5 * (neglogratios - neglogwrs)
+        return torch.exp(log_ys)
+
+    def get_inputdata(
+        self, 
+        bases: ApproxBases, 
+        xs: torch.Tensor, 
+        neglogratio: torch.Tensor 
+    ) -> InputData:
+        """Generates a set of input data and debugging samples used to 
+        initialise DIRT.
+        
+        Parameters
+        ----------
+        bases:
+            A set of bases for each direction of the reference / 
+            approximation domain.
+        xs:
+            An n * d matrix containing samples distributed according to
+            the current bridging density.
+        neglogratio:
+            A n-dimensional vector containing the negative logarithm of
+            the current ratio function evaluated at each sample in xs.
+        
+        Returns
+        -------
+        input_data:
+            An InputData object containing a set of samples used to 
+            construct the FTT approximation to the target function, and 
+            (if debugging samples are requested) a set of debugging 
+            samples and the value of the target function evaluated 
+            at each debugging sample.
+            
+        """
+
+        if self.dirt_options.num_debugs == 0:
+            return InputData(xs)
+        
+        indices = torch.arange(self.dirt_options.num_samples)
+        indices_debug = torch.arange(self.dirt_options.num_debugs)
+        indices_debug += self.dirt_options.num_samples
+
+        fxs_debug = self.get_potential_to_density(
+            bases, 
+            neglogratio[indices_debug], 
+            xs[indices_debug]
+        )
+
+        return InputData(xs[indices], xs[indices_debug], fxs_debug)
+
     def get_new_layer(
         self, 
         func: Callable, 
@@ -156,7 +295,9 @@ class TTDIRT():
             bases_i = bases[min(self.num_layers, 1)] 
             input_data = self.get_inputdata(bases_i, xs, neglogratios)
 
-            if self.num_layers <= 1:  # start from fresh (TODO: figure out why this happens on the second iteration?)
+            # Start from fresh (TODO: figure out why this happens on 
+            # the second iteration?)
+            if self.num_layers <= 1:
                 approx = None 
                 tt_data = None
             else:
@@ -177,114 +318,6 @@ class TTDIRT():
             raise NotImplementedError()
         
         return sirt
-    
-    def initialise(
-        self, 
-        bases: ApproxBases
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Generates a set of samples to initialise the FTT with.
-        
-        Parameters
-        ----------
-        bases: 
-            A set of bases for the approximation domain.
-
-        Returns
-        -------
-        xs:
-            An n * d matrix containing samples from the approximation 
-            domain. If init_samples (samples drawn from the prior) are 
-            available, these are used; otherwise, a set of samples
-            are drawn from the weighting function associated with the 
-            bases for the reference density.     
-        neglogliks:
-            An n-dimensional vector containing the negative of the
-            log-likelihood function evaluated at each sample.
-        neglogpris: 
-            An n-dimensional vector containing the negative logarithm
-            of the prior density evaluated at each sample.
-        neglogfxs:
-            An n-dimensional vector containing the negative logarithm 
-            of the density the samples are drawn from.
-        
-        """
-
-        if self.init_samples is None:
-            # When piecewise polynomials are used, measure is uniform
-            xs, neglogfxs = bases.sample_measure(self.pre_sample_size)
-            neglogliks, neglogpris = self.func(xs)
-        else:
-            xs = self.init_samples
-            neglogliks, neglogpris = self.func(xs)
-            neglogfxs = neglogpris  # Samples are drawn from the prior
-            self.bridge.set_init(neglogliks)  # TODO: write this
-
-        return xs, neglogliks, neglogpris, neglogfxs
-
-    def get_potential_to_density(
-        self, 
-        bases: ApproxBases, 
-        neglogratios: torch.Tensor, 
-        rs: torch.Tensor
-    ) -> torch.Tensor:
-        """Returns the (square-rooted?) density we aim to approximate.
-        
-        TODO: talk to TC about MATLAB implementation of this one...
-        """
-        
-        # TODO: figure out what's going on here
-        ls, dldxs = bases.approx2local(rs)
-        neglogwls = bases.eval_measure_potential_local(ls)
-
-        log_ys = -0.5 * (neglogratios - neglogwls + dldxs.log().sum(dim=1))
-
-        # neglogws = bases.eval_measure_potential(rs)[0]
-        # log_ys = -0.5 * (neglogratio - neglogws)
-
-        return torch.exp(log_ys)
-
-    def get_inputdata(
-        self, 
-        bases: ApproxBases, 
-        xs: torch.Tensor, 
-        neglogratio: torch.Tensor 
-    ) -> InputData:
-        """Generates a set of input data and debugging samples used to 
-        initialise DIRT.
-        
-        Parameters
-        ----------
-        bases:
-            A set of bases for each direction of the reference / 
-            approximation domain.
-        xs:
-            An n * d matrix containing samples distributed according to
-            the current bridging density.
-        neglogratio:
-            A n-dimensional vector containing the negative logarithm of
-            the current ratio function evaluated at each sample in xs.
-        
-        Returns
-        -------
-        input_data:
-            TODO: write this.
-            
-        """
-
-        if self.dirt_options.num_debugs == 0:
-            return InputData(xs)
-        
-        indices = torch.arange(self.dirt_options.num_samples)
-        indices_debug = torch.arange(self.dirt_options.num_debugs)
-        indices_debug += self.dirt_options.num_samples
-
-        fxs_debug = self.get_potential_to_density(
-            bases, 
-            neglogratio[indices_debug], 
-            xs[indices_debug]
-        )
-
-        return InputData(xs[indices], xs[indices_debug], fxs_debug)
 
     def eval_potential(
         self, 
@@ -420,41 +453,6 @@ class TTDIRT():
             neglogfxs += neglogsirts - neglogrefs
 
         return xs, neglogfxs
-    
-    def build_bases(
-        self, 
-        bases: ApproxBases, 
-        reference: Reference
-    ) -> list[ApproxBases]:
-        """Returns a list of bases for the first and second levels of 
-        DIRT construction.
-
-        Parameters
-        ----------
-        bases:
-            An ApproxBases object for the approximation domain.
-        reference:
-            The reference density.
-
-        Returns
-        -------
-        bases_list:
-            A list of the bases for the first and second levels of DIRT
-            construction.
-                
-        """
-
-        if not isinstance(bases, ApproxBases):
-            msg = ("Currently, only a set of ApproxBases can be passed "
-                   + "into 'build_bases()'.")
-            raise NotImplementedError(msg)
-
-        bases_list = [
-            ApproxBases(bases.polys, bases.domains, bases.dim),
-            ApproxBases(bases.polys, reference.domain, bases.dim)
-        ]
-
-        return bases_list
 
     def build(
         self,

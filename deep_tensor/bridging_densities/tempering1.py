@@ -42,6 +42,28 @@ class Tempering1(SingleBeta):
         self._num_layers = value
         return
     
+    def set_init(
+        self, 
+        neglogliks: torch.Tensor, 
+        etol: float=0.8
+    ) -> None:
+
+        if not self.is_adaptive:
+            return 
+        
+        etol = min(etol, self.ess_tol_init)
+
+        beta = self.min_beta
+        ess = compute_ess_ratio(-beta*neglogliks)
+        while ess > etol:
+            beta *= self.beta_factor
+            ess = compute_ess_ratio(-beta*neglogliks)
+
+        beta = torch.minimum(torch.tensor(1.0), beta)
+        ess = compute_ess_ratio(-beta*neglogliks)
+        self.init_beta = beta
+        return
+
     def adapt_density(
         self, 
         method: str, 
@@ -85,37 +107,6 @@ class Tempering1(SingleBeta):
         neglogpris: torch.Tensor, 
         neglogfxs: torch.Tensor
     ) -> torch.Tensor:
-        """Returns the value of the current ratio function evaluated at
-        each sample in xs.
-        
-        Parameters
-        ----------
-        reference:
-            The reference density.
-        method:
-            The type of ratio function to compute. Can be 'aratio' or
-            'eratio'.
-        xs:
-            An n * d matrix containing samples from the approximation 
-            domain.
-        neglogliks:
-            An n-dimensional vector containing the negative 
-            log-likelihood evaluated at each sample in xs.
-        neglogpris:
-            An n-dimensional vector containing the negative log-prior 
-            density evaluated at each sample in xs.
-        neglogfxs:
-            An n-dimensional vector containing the density of the 
-            approximation to the previous bridging density evaluated at
-            each sample in xs.
-        
-        Returns
-        -------
-        neglogratios:
-            The negative log-ratio function evaluated at each sample in
-            xs.
-         
-        """
         
         beta = self.betas[self.num_layers]
         if self.num_layers == 0:
