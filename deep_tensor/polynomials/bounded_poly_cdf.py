@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 
 from .chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
@@ -34,7 +36,7 @@ class BoundedPolyCDF(Chebyshev2ndUnweighted, SpectralCDF):
     def eval_int_basis_newton(
         self, 
         rs: torch.Tensor
-    ) -> torch.Tuple[torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         
         thetas = self.x2theta(rs)
         basis_vals = (torch.cos(torch.outer(thetas, self.n+1)) 
