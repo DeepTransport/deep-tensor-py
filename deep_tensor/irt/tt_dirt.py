@@ -336,10 +336,9 @@ class TTDIRT():
 
         Returns
         -------
-        zs:
-            An n * d matrix containing the value of the CDF of the 
-            current composition of mappings evaluated at each value of
-            xs.
+        rs:
+            An n * d matrix containing the composition of mappings 
+            evaluated at each value of xs.
         neglogfxs:
             An n-dimensional vector containing the negative log of the
             pushforward of the reference density under the current 
@@ -364,7 +363,7 @@ class TTDIRT():
         neglogrefs = -self.reference.log_joint_pdf(rs)[0]
         neglogfxs += neglogrefs
 
-        return zs, neglogfxs
+        return rs, neglogfxs
 
     def eval_irt(
         self, 
