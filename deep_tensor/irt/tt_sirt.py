@@ -339,7 +339,7 @@ class TTSIRT(AbstractIRT):
         )
 
         if approx.use_amen:
-            approx.round()  # TODO: write this
+            approx.round()
 
         return approx
 

@@ -189,9 +189,8 @@ class TTFunc():
 
                 x_left = self.data.interp_x[int(k-1)]
                 x_right = self.data.interp_x[int(k+1)]
-                r_left = self.data.res_x[int(k-1)] # TODO: add the left-most and right-most versions of these to make this well-defined 
+                r_left = self.data.res_x[int(k-1)]
                 r_right = self.data.res_x[int(k+1)]
-                w_left = self.data.res_w[int(k-1)]
 
                 # Evaluate the interpolant function at x_k nodes
                 F = self.build_block_local(func, x_left, x_right, k)
@@ -204,9 +203,9 @@ class TTFunc():
                 if k > 0:
                     F_up = self.build_block_local(func, x_left, r_right, k)
                 else:
-                    F_up = F_res
+                    F_up = F_res.clone()
 
-                raise NotImplementedError("TODO: finish")
+                self.build_basis_amen(F, F_res, F_up, k)
 
             else:
                 raise NotImplementedError()
@@ -314,32 +313,57 @@ class TTFunc():
 
         return
 
-    def initialise_amen(self) -> None:
-        """TODO: figure out how AMEN works and tidy this up."""
+    def _initialise_res_x(self) -> None:
+        """Initialises the residual coordinates for AMEN."""
 
-        if self.data.res_x == {}:
-            # Define set of nested interpolation points for the residual
-            for k in range(self.dim-1, -1, -1):
-                samples = self.input_data.get_samples(self.options.kick_rank)
-                if self.data.direction == Direction.FORWARD:
-                    self.data.res_x[k] = samples[:, k:]
-                else:
-                    self.data.res_x[k] = samples[:, :(k+1)]
-
-        # TODO: tidy up the below
-        if self.data.res_w == {}:
+        for k in range(self.dim-1, -1, -1):
+            samples = self.input_data.get_samples(self.options.kick_rank)
             if self.data.direction == Direction.FORWARD:
-                self.data.res_w[0] = torch.ones((self.options.kick_rank, self.data.cores[k].shape[-1]))
-                for k in range(1, self.dim):
-                    res_shape = (self.data.cores[k].shape[0], self.options.kick_rank)
-                    self.data.res_w[k] = torch.ones(res_shape)
-
+                self.data.res_x[k] = samples[:, k:]
             else:
-                for k in range(self.dim-1):
-                    res_shape = (self.options.kick_rank, self.data.cores[k].shape[-1])
-                    self.data.res_w[k] = torch.ones(res_shape)
-                self.data.res_x[self.dim-1] = torch.ones((self.data.cores[k].shape[0], self.options.kick_rank))
-        
+                self.data.res_x[k] = samples[:, :(k+1)]
+
+        self.data.res_x[-1] = torch.tensor([])
+        self.data.res_x[self.dim] = torch.tensor([])
+        return
+    
+    def _initialise_res_w(self) -> None:
+        """Initialises the residual blocks for AMEN."""
+
+        if self.data.direction == Direction.FORWARD:
+            
+            core_0 = self.data.cores[0]
+            shape_0 = (self.options.kick_rank, core_0.shape[-1])
+            self.data.res_w[0] = torch.ones(shape_0)
+            
+            for k in range(1, self.dim):
+                core_k = self.data.cores[k].shape[0]
+                shape_k = (core_k, self.options.kick_rank)
+                self.data.res_w[k] = torch.ones(shape_k)
+
+        else:
+
+            for k in range(self.dim-1):
+                core_k = self.data.cores[k]
+                shape_k = (self.options.kick_rank, core_k.shape[-1])
+                self.data.res_w[k] = torch.ones(shape_k)
+
+            core_d = self.data.cores[self.dim-1]
+            shape_d = (core_d.shape[0], self.options.kick_rank)
+            self.data.res_w[self.dim-1] = torch.ones(shape_d)
+
+        self.data.res_w[-1] = torch.tensor([1.0])
+        self.data.res_w[self.dim] = torch.tensor([1.0])
+        return
+
+    def initialise_amen(self) -> None:
+        """Initialises the residual coordinates and residual blocks 
+        for AMEN.
+        """
+        if self.data.res_x == {}:
+            self._initialise_res_x()
+        if self.data.res_w == {}:
+            self._initialise_res_w()
         return
 
     def build_block_local(
@@ -348,7 +372,7 @@ class TTFunc():
         x_left: torch.Tensor,
         x_right: torch.Tensor,
         k: int
-    ) -> Tuple[torch.Tensor, int]:
+    ) -> torch.Tensor:
         """Evaluates the function being approximated at a (reduced) set 
         of interpolation points, and returns the corresponding
         local coefficient matrix.
@@ -562,35 +586,101 @@ class TTFunc():
         
         poly = self.bases.polys[k]
         interp_x_prev = self.data.interp_x[k_prev]
+        res_x_prev = self.data.res_x[k_prev]
+        res_w_prev = self.data.res_w[k_prev]
+        res_w_next = self.data.res_w[k_next]
+
         core_next = self.data.cores[k_next]
 
-        num_b_left, num_nodes, num_b_right = F.shape
-        num_r_left, _, num_r_right = F_res.shape
-        rank_0_next, num_nodes_next, rank_1_next = core_next.shape
+        n_left, n_nodes, n_right = F.shape
+        n_r_left, _, n_r_right = F_res.shape
+        r_0_next, n_nodes_next, r_1_next = core_next.shape
 
         if self.data.direction == Direction.FORWARD:
             F = F.permute(1, 0, 2)
-            F = reshape_matlab(F, (num_b_left * num_nodes, num_b_right))
+            F = reshape_matlab(F, (n_left * n_nodes, n_right))
             F_up = F_up.permute(1, 0, 2)
-            F_up = reshape_matlab(F_up, (num_b_left * num_nodes, num_b_right))
-            rank_prev = num_b_left 
-            rank_next = rank_0_next
+            F_up = reshape_matlab(F_up, (n_left * n_nodes, n_r_right))
+            r_prev = n_left 
+            r_next = r_0_next
 
         else:
             F = F.permute(1, 2, 0)
-            F = reshape_matlab(F, (num_nodes * num_b_right, num_b_left))
+            F = reshape_matlab(F, (n_nodes * n_right, n_left))
             F_up = F_up.permute(1, 2, 0)
-            F_up = reshape_matlab(F_up, (num_nodes * num_b_right, num_b_left))
-            rank_prev = num_b_right 
-            rank_next = rank_1_next
+            F_up = reshape_matlab(F_up, (n_nodes * n_right, n_left))
+            r_prev = n_right 
+            r_next = r_1_next
 
         B, A, rank = self.truncate_local(F, k)
 
         if self.data.direction == Direction.FORWARD:
+            # temp_r = reshape_matlab(A, (rank, r_0_next)) @ res_w_next
+            temp_r = A @ res_w_next
+            F_up -= B @ temp_r
 
+            temp_l = reshape_matlab(B, (n_nodes, r_prev, rank)).permute(1, 0, 2)
+            temp_l = reshape_matlab(temp_l, (r_prev, -1))
+            
+            temp_l = res_w_prev @ temp_l
+            temp_l = reshape_matlab(temp_l, (n_r_left * n_nodes, rank))
+
+            F_res = reshape_matlab(F_res, (n_r_left, n_nodes, n_r_right)) - reshape_matlab(temp_l @ temp_r, (n_r_left, n_nodes, n_r_right))
+            F_res = reshape_matlab(F_res.permute(1, 0, 2), (n_nodes * n_r_left, -1))
+            r_r_prev = n_r_left
+        
+        else: 
             raise NotImplementedError()
-            # temp_r = reshape_matlab(A, (rank, rank_0_next)) @ res_w_r
-            # temp_r = reshape_matlab(temp_r, (-1, ))
+        
+        # Enrich basis
+        T = torch.cat((B, F_up), dim=1)
+
+        if isinstance(poly, Piecewise):
+            T = poly.mass_R @ reshape_matlab(T, (poly.cardinality, -1))
+            T = reshape_matlab(T, (B.shape[0], -1))
+            Q, R = torch.linalg.qr(T)
+            B = torch.linalg.solve(poly.mass_R, reshape_matlab(Q, (poly.cardinality, -1)))
+            B = reshape_matlab(B, (Q.shape[0], -1))
+
+        else:
+            B, R = torch.linalg.qr(T)
+
+        r_new = B.shape[-1]
+
+        indices, core, interp_atx = self.select_points(B, k)
+        couple = reshape_matlab(interp_atx @ (R[:r_new, :rank] @ A), (r_new, r_next))
+
+        interp_x = self.get_local_index(poly, interp_x_prev, indices)
+        
+        Qr = self.truncate_local(F_res, k)[0]  # TODO: it might be a good idea to add the error tolerance as an argument to this function.
+
+        indices_r = self.select_points(Qr, k)[0]
+        res_x = self.get_local_index(poly, res_x_prev, indices_r)
+
+        if self.data.direction == Direction.FORWARD:
+            
+            core = reshape_matlab(core, (n_nodes, r_prev, r_new))
+            core = core.permute(1, 0, 2)
+
+            couple = couple[:, :r_next]
+            couple = reshape_matlab(couple, (-1, r_next))
+            core_next = couple @ reshape_matlab(core_next, (r_next, -1))
+            core_next = reshape_matlab(core_next, (r_new, n_nodes, r_1_next))
+
+            temp = res_w_prev @ reshape_matlab(core, (r_prev, n_nodes * r_new))
+            temp = reshape_matlab(temp, (r_r_prev, n_nodes, r_new))
+            temp = temp.permute(1, 0, 2)
+            temp = reshape_matlab(temp, (-1, r_new))
+            res_w = temp[indices_r, :]
+
+        else:
+            raise NotImplementedError()
+
+        self.data.cores[k] = core 
+        self.data.cores[k_next] = core_next
+        self.data.interp_x[k] = interp_x
+        self.data.res_w[k] = res_w 
+        self.data.res_x[k] = res_x
 
         return
 
@@ -805,6 +895,29 @@ class TTFunc():
         """
         raise NotImplementedError()
 
+    def round(self):
+        """Rounds the TT cores.
+        
+        TODO: finish docstring.
+        """
+
+        thres = self.options.local_tol  # TODO: remove eventually
+
+        # Apply double rounding to get back to the starting direction
+        for _ in range(2):
+            
+            self.data.reverse_direction()
+            
+            if self.data.direction == Direction.FORWARD:
+                indices = torch.arange(self.dim-1)
+            else:
+                indices = torch.arange(self.dim-1, 0, -1)
+
+            for k in indices:
+                self.build_basis_svd(self.data.cores[int(k)], k)
+
+        return
+
     def select_points(
         self,
         H: torch.Tensor,
@@ -903,19 +1016,20 @@ class TTFunc():
                 self._compute_cross_iter_random(target_func, indices)
 
             elif self.options.tt_method == "amen":
-                self._compute_cross_iter_amen(target_func, indices)  # TODO: implement this. 
+                self._compute_cross_iter_amen(target_func, indices)
             
             else: 
                 raise Exception("Unknown TT method.")
 
             als_iter += 1
+            finished = self.is_finished(als_iter, indices)
 
-            if self.is_finished(als_iter, indices): 
+            if finished: 
                 self._compute_final_block(target_func)
 
             self.compute_relative_error()
 
-            if self.is_finished(als_iter, indices):
+            if finished:
                 self._print_info(als_iter, indices)
                 als_info(f"ALS complete.")
                 als_info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
