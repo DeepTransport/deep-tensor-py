@@ -185,30 +185,26 @@ class TTFunc():
         
         for k in indices:
             
-            if self.data.direction == Direction.FORWARD:
+            x_left = self.data.interp_x[int(k-1)]
+            x_right = self.data.interp_x[int(k+1)]
+            r_left = self.data.res_x[int(k-1)]
+            r_right = self.data.res_x[int(k+1)]
 
-                x_left = self.data.interp_x[int(k-1)]
-                x_right = self.data.interp_x[int(k+1)]
-                r_left = self.data.res_x[int(k-1)]
-                r_right = self.data.res_x[int(k+1)]
+            # Evaluate the interpolant function at x_k nodes
+            F = self.build_block_local(func, x_left, x_right, k)
+            self.errors[k] = self.get_error_local(F, k)
 
-                # Evaluate the interpolant function at x_k nodes
-                F = self.build_block_local(func, x_left, x_right, k)
-                self.errors[k] = self.get_error_local(F, k)
+            # Evaluate residual function at x_k nodes
+            F_res = self.build_block_local(func, r_left, r_right, k)
 
-                # Evaluate residual function at x_k nodes
-                F_res = self.build_block_local(func, r_left, r_right, k)
-
-                # Evaluate update function at x_k nodes
-                if k > 0:
-                    F_up = self.build_block_local(func, x_left, r_right, k)
-                else:
-                    F_up = F_res.clone()
-
-                self.build_basis_amen(F, F_res, F_up, k)
-
+            if self.data.direction == Direction.FORWARD and k > 0:
+                F_up = self.build_block_local(func, x_left, r_right, k)
+            elif self.data.direction == Direction.BACKWARD and k < self.bases.dim-1: 
+                F_up = self.build_block_local(func, r_left, x_right, k)
             else:
-                raise NotImplementedError()
+                F_up = F_res.clone()
+
+            self.build_basis_amen(F, F_res, F_up, k)
 
         return 
 
@@ -587,35 +583,31 @@ class TTFunc():
         poly = self.bases.polys[k]
         interp_x_prev = self.data.interp_x[k_prev]
         res_x_prev = self.data.res_x[k_prev]
-        res_w_prev = self.data.res_w[k_prev]
-        res_w_next = self.data.res_w[k_next]
+
+        res_w_prev = self.data.res_w[k-1]
+        res_w_next = self.data.res_w[k+1]
 
         core_next = self.data.cores[k_next]
 
         n_left, n_nodes, n_right = F.shape
         n_r_left, _, n_r_right = F_res.shape
-        r_0_next, n_nodes_next, r_1_next = core_next.shape
+        r_0_next, _, r_1_next = core_next.shape
 
         if self.data.direction == Direction.FORWARD:
-            F = F.permute(1, 0, 2)
-            F = reshape_matlab(F, (n_left * n_nodes, n_right))
-            F_up = F_up.permute(1, 0, 2)
-            F_up = reshape_matlab(F_up, (n_left * n_nodes, n_r_right))
+            F = F.permute(2, 0, 1).reshape(n_right, n_left * n_nodes).T
+            F_up = F_up.permute(2, 0, 1).reshape(n_r_right, n_left * n_nodes).T
             r_prev = n_left 
             r_next = r_0_next
-
         else:
-            F = F.permute(1, 2, 0)
-            F = reshape_matlab(F, (n_nodes * n_right, n_left))
-            F_up = F_up.permute(1, 2, 0)
-            F_up = reshape_matlab(F_up, (n_nodes * n_right, n_left))
+            F = F.permute(0, 2, 1).reshape(n_left, n_nodes * n_right).T
+            F_up = F_up.permute(0, 2, 1).reshape(n_left, n_nodes * n_right).T
             r_prev = n_right 
             r_next = r_1_next
 
         B, A, rank = self.truncate_local(F, k)
 
         if self.data.direction == Direction.FORWARD:
-            # temp_r = reshape_matlab(A, (rank, r_0_next)) @ res_w_next
+            
             temp_r = A @ res_w_next
             F_up -= B @ temp_r
 
@@ -636,10 +628,10 @@ class TTFunc():
         T = torch.cat((B, F_up), dim=1)
 
         if isinstance(poly, Piecewise):
-            T = poly.mass_R @ reshape_matlab(T, (poly.cardinality, -1))
-            T = reshape_matlab(T, (B.shape[0], -1))
+            T = T.T.reshape(-1, poly.cardinality) @ poly.mass_R.T
+            T = T.reshape(-1, B.shape[0]).T
             Q, R = torch.linalg.qr(T)
-            B = torch.linalg.solve(poly.mass_R, reshape_matlab(Q, (poly.cardinality, -1)))
+            B = torch.linalg.solve(poly.mass_R, Q.T.reshape(-1, poly.cardinality).T)
             B = reshape_matlab(B, (Q.shape[0], -1))
 
         else:
@@ -652,7 +644,8 @@ class TTFunc():
 
         interp_x = self.get_local_index(poly, interp_x_prev, indices)
         
-        Qr = self.truncate_local(F_res, k)[0]  # TODO: it might be a good idea to add the error tolerance as an argument to this function.
+        # TODO: it might be a good idea to add the error tolerance as an argument to this function.
+        Qr = self.truncate_local(F_res, k)[0]
 
         indices_r = self.select_points(Qr, k)[0]
         res_x = self.get_local_index(poly, res_x_prev, indices_r)
@@ -901,13 +894,11 @@ class TTFunc():
         TODO: finish docstring.
         """
 
-        thres = self.options.local_tol  # TODO: remove eventually
-
         # Apply double rounding to get back to the starting direction
         for _ in range(2):
             
             self.data.reverse_direction()
-            
+
             if self.data.direction == Direction.FORWARD:
                 indices = torch.arange(self.dim-1)
             else:
