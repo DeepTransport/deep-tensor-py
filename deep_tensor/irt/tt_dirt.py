@@ -9,7 +9,7 @@ from ..approx_bases import ApproxBases
 from ..bridging_densities import Bridge, Tempering1
 from ..domains import BoundedDomain
 from ..input_data import InputData
-from ..options import ApproxOptions, DIRTOptions, TTOptions
+from ..options import DIRTOptions, TTOptions
 from ..references import Reference, GaussianReference
 from ..tools import compute_f_divergence
 from ..utils import dirt_info
@@ -23,7 +23,7 @@ class TTDIRT():
         bases: ApproxBases, 
         bridge: Bridge|None=None,
         reference: Reference|None=None,
-        sirt_options: ApproxOptions|None=None,
+        sirt_options: TTOptions|None=None,
         dirt_options: DIRTOptions|None=None,
         init_samples: torch.Tensor|None=None,
         prev_approx=None  # TODO: fix this (set as None if not passed in) and add type annotation
@@ -248,7 +248,7 @@ class TTDIRT():
         self, 
         func: Callable, 
         bases: list[ApproxBases], 
-        sirt_options: ApproxOptions, 
+        sirt_options: TTOptions, 
         xs: torch.Tensor, 
         neglogratios: torch.Tensor
     ) -> TTSIRT:

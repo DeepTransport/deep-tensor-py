@@ -1,11 +1,8 @@
-from .approx_options import ApproxOptions
-
-
 TT_METHODS = ["random", "amen", "fixed_rank"]
 INT_METHODS = ["qdeim", "deim", "maxvol"]
 
 
-class TTOptions(ApproxOptions):
+class TTOptions():
 
     def __init__(
         self, 
@@ -39,3 +36,16 @@ class TTOptions(ApproxOptions):
         self.verbose = verbose
         
         return
+
+    def _verify_method(
+        self,
+        method: str,
+        accepted_methods: str
+    ) -> None:
+        
+        if method in accepted_methods:
+            return 
+        
+        msg = (f"Method '{method}' not recognised. Expected one of " 
+                + ", ".join(accepted_methods) + ".")
+        raise Exception(msg)

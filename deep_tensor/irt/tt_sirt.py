@@ -3,7 +3,6 @@ from typing import Callable, Tuple
 import torch
 
 from .abstract_irt import AbstractIRT
-# from .sirt import SIRT
 from ..approx_bases import ApproxBases
 from ..directions import Direction
 from ..input_data import InputData
@@ -495,7 +494,7 @@ class TTSIRT(AbstractIRT):
             
         else:
 
-            fxg = self.approx.eval_block(ls, direction=self.int_dir) # TODO: fix the int_dir thing
+            fxg = self.approx.eval_block(ls, direction=self.int_dir)
 
             i_min = self.approx.dim - dim_z
             # fx = (self.Rs[i_min-1] @ fxg).square().sum(dim=0)
