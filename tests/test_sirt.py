@@ -26,7 +26,7 @@ class TestSIRT(unittest.TestCase):
             dt.Lagrange1(num_elems=40)
         ]
 
-        tt_methods = ["random", "fixed_rank"]
+        tt_methods = ["fixed_rank", "random", "amen"]
 
         dim = 20
         zs = torch.rand((10_000, dim))
