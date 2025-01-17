@@ -11,7 +11,7 @@ import deep_tensor as dt
 from examples.ou_process.ou import OU
 
 plt.style.use("examples/plotstyle.mplstyle")
-torch.manual_seed(64)
+torch.manual_seed(0)
 
 
 dim = 20
@@ -45,13 +45,11 @@ bases_dict = {
     ) for poly in polys_dict
 }
 
-tt_methods_list = ["random", "fixed_rank"]
+tt_methods_list = ["fixed_rank", "random", "amen"]
 
 options_dict = {
     method: dt.TTOptions(
         tt_method=method,
-        als_tol=1e-4, 
-        local_tol=1e-10,
         max_rank=20, 
         max_als=1
     ) for method in tt_methods_list

@@ -51,8 +51,8 @@ for poly in polys_dict:
         for ax in axes:
             ax.set_box_aspect(1)
 
-        axes[0].hist(torch.abs(potential_func(xs) - potential_xs))
-        axes[0].set_xlabel("Error")
+        axes[0].hist((potential_func(xs) - potential_xs).abs().log())
+        axes[0].set_xlabel("log(Error)")
         axes[0].set_title("Error in potential function")
 
         axes[1].scatter(potential_func(xs), potential_xs, s=4)
