@@ -83,6 +83,8 @@ class TTDIRT():
         self.dirt_options = dirt_options
         self.init_samples = init_samples
         self.prev_approx = prev_approx
+        self.pre_sample_size = (self.dirt_options.num_samples 
+                                + self.dirt_options.num_debugs)
 
         self.irts: dict[int, TTSIRT] = {}
         self.num_eval: int = 0
@@ -100,10 +102,6 @@ class TTDIRT():
     def num_layers(self, value):
         self.bridge.num_layers = value 
         return
-
-    @property
-    def pre_sample_size(self) -> int:
-        return self.dirt_options.num_samples + self.dirt_options.num_debugs
 
     def build_bases(
         self, 
