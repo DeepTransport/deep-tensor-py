@@ -68,11 +68,7 @@ class Spectral(Basis1D, abc.ABC):
         # See Cui and Dolgov (2022), p 1912.
         self._basis2node = self.eval_basis(self.nodes)
         self._node2basis = self.basis2node.T * self.weights
-
-        # TODO: move this to unit tests at some point
-        # print(torch.max(torch.abs(self.basis2node @ self.node2basis - torch.eye(self.basis2node.shape[0]))))
-        # assert torch.max(torch.abs(self.basis2node @ self.node2basis - torch.eye(self.basis2node.shape[0]))) < 1e-2, "node2basis/basis2node constructed incorrectly."
-
+        
         # Basis functions are orthonormal w.r.t weights so mass matrix 
         # is very simple
         self._mass_R = torch.eye(self.cardinality)
