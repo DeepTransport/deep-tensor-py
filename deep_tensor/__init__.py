@@ -9,5 +9,11 @@ from .directions import Direction
 from .domains import BoundedDomain
 from .input_data import InputData
 from .options import TTOptions
-from .polynomials import Basis1D, Fourier, Lagrange1, LagrangeP, Legendre
+from .polynomials import (
+    Basis1D,
+    Spectral, 
+    Chebyshev1st, Chebyshev2ndUnweighted, Fourier, Legendre,
+    Piecewise,
+    Lagrange1, LagrangeP
+)
 from .irt import TTDIRT, TTSIRT
