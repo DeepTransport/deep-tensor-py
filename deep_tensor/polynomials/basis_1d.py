@@ -352,26 +352,51 @@ class Basis1D(abc.ABC, object):
         coeffs: torch.Tensor, 
         ls: torch.Tensor
     ) -> torch.Tensor:
-        """TODO: write this. 
+        """Evaluates the gradient of the product of the approximated 
+        function and the weighting function at a given vector of 
+        points.
+
+        Parameters
+        ----------
+        coeffs: 
+            A matrix containing the nodal values (piecewise 
+            polynomials) or coefficients (spectral polynomials) 
+            associated with each basis function. Element (i, j) 
+            contains the jth coefficient associated with the ith basis 
+            function.
+        ls:
+            An n-dimensional vector containing points (within the local
+            domain) at which to evaluate the approximated function.
+
+        Returns
+        -------
+        gradfwls:
+            A matrix containing the values of the gradient of the 
+            product of the approximated function and the weighting 
+            function evaluated at each point in ls. Element (i, j) 
+            contains the product of the weighting function and the 
+            approximated function (using the jth set of coefficients) 
+            evaluated at the ith element of ls.
         
-        TODO: fix the variable naming.
         """
         
-        deriv_vals = torch.zeros((ls.shape, coeffs.shape[1]))
+        gradfwls = torch.zeros((ls.numel(), coeffs.shape[1]))
 
         if not torch.any(inside := self.in_domain(ls)):
-            return deriv_vals
+            return gradfwls
         
-        basis_vals = self.eval_basis_deriv(ls[inside])
-
+        # Compute first term of product rule
+        deriv_vals = self.eval_basis_deriv(ls[inside])
         wls = self.eval_measure(ls[inside])
-        deriv_vals[inside] = basis_vals @ coeffs * wls
+        gradfwls[inside] = deriv_vals @ coeffs * wls.reshape(-1, 1)
 
+        # Compute second term of product rule
         if not self.constant_weight:
+            basis_vals = self.eval_basis(ls[inside])
             gradwls = self.eval_measure_deriv(ls[inside])
-            deriv_vals[inside] += basis_vals @ coeffs * gradwls
+            gradfwls[inside] += basis_vals @ coeffs * gradwls.reshape(-1, 1)
 
-        return deriv_vals
+        return gradfwls
  
     def mass_r(self, interp_w: torch.Tensor) -> torch.Tensor:
         """Evaluates the product of the upper Cholesky factor of the 
