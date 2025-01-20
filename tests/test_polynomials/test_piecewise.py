@@ -88,3 +88,5 @@ class TestSpectralPolynomials(unittest.TestCase):
         self.assertTrue((weights_deriv_true - weights_deriv).abs().max() < 1e-8)
         self.assertTrue((radon_deriv_vals_true - radon_deriv_vals).abs().max() < 1e-8)
         self.assertTrue((func_deriv_vals_true - func_deriv_vals).abs().max() < 1e-8)
+
+        return
