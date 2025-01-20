@@ -259,9 +259,11 @@ class Basis1D(abc.ABC, object):
         Returns
         -------
         fls:
-            A matrix containing the values of each basis function 
-            evaluated at each point. Element (i, j) contains the value 
-            of the jth basis function evaluated at the ith value of x.
+            A matrix containing the values of the approximated function 
+            evaluated at each point in ls. Element (i, j) contains the 
+            value of the function evaluated at the ith element of ls 
+            using the jth set of coefficients (i.e., the jth column of 
+            coeffs).
         
         """
 
@@ -277,7 +279,7 @@ class Basis1D(abc.ABC, object):
     def eval_radon_deriv(
         self, 
         coeffs: torch.Tensor, 
-        xs: torch.Tensor
+        ls: torch.Tensor
     ) -> torch.Tensor:
         """Evaluates the derivative of the approximated function at
         a set of points.
@@ -285,9 +287,14 @@ class Basis1D(abc.ABC, object):
         Parameters 
         ----------
         coeffs:
-            The coefficients associated with each basis function.
-        xs:
-            Points at which to evaluate the approximated function.
+            A matrix containing the nodal values (piecewise 
+            polynomials) or coefficients (spectral polynomials) 
+            associated with each basis function. Element (i, j) 
+            contains the jth coefficient associated with the ith basis 
+            function.
+        ls:
+            A vector of points at which to evaluate the derivative of 
+            the approximated function.
 
         Returns
         -------
@@ -296,12 +303,12 @@ class Basis1D(abc.ABC, object):
         
         """
 
-        gradfls = torch.zeros((xs.numel(), coeffs.shape[1]))
+        gradfls = torch.zeros((ls.numel(), coeffs.shape[1]))
 
-        if not torch.any(inside := self.in_domain(xs)):
+        if not torch.any(inside := self.in_domain(ls)):
             return gradfls 
         
-        deriv_vals = self.eval_basis_deriv(xs[inside])
+        deriv_vals = self.eval_basis_deriv(ls[inside])
         gradfls[inside] = deriv_vals @ coeffs
         return gradfls
 
@@ -316,7 +323,11 @@ class Basis1D(abc.ABC, object):
         Parameters 
         ----------
         coeffs:
-            The coefficients associated with each basis function.
+            A matrix containing the nodal values (piecewise 
+            polynomials) or coefficients (spectral polynomials) 
+            associated with each basis function. Element (i, j) 
+            contains the jth coefficient associated with the ith basis 
+            function.
         ls:
             An n-dimensional vector containing points (within the local
             domain) at which to evaluate the approximated function.
@@ -324,12 +335,16 @@ class Basis1D(abc.ABC, object):
         Returns
         -------
         fwls:
-            The values of the product of the approximated function 
-            and the weighting function at each point.
+            A matrix containing the values of the product of the 
+            approximated function and the weighting function evaluated 
+            at each point in ls. Element (i, j) contains the product of 
+            the weighting function and the approximated function 
+            (using the jth set of coefficients) evaluated at the ith 
+            element of ls.
         
         """
         fls = self.eval_radon(coeffs, ls)
-        wls = self.eval_measure(ls)
+        wls = self.eval_measure(ls).reshape(-1, 1)
         return fls * wls
         
     def eval_deriv(
