@@ -11,9 +11,8 @@ torch.manual_seed(0)
 class TestSpectralPolynomials(unittest.TestCase):
 
     def test_lagrange_1d(self):
-        """Confirms that the product of the basis2node and node2basis 
-        matrices is the identity matrix (see Cui and Dolgov 2022, 
-        Appendix A).
+        """Verifies that some simple operations with Lagrange1 
+        polynomials work as intended.
         """
 
         poly = dt.Lagrange1(num_elems=4)
