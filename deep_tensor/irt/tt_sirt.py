@@ -53,11 +53,11 @@ class TTSIRT(AbstractIRT):
         self.Bs: dict[int, torch.Tensor] = {}
         self.Rs: dict[int, torch.Tensor] = {} 
         
-        self._int_dir = Direction.FORWARD # TEMP??
-        self._order = None
-        self._tau = tau
+        self.int_dir = Direction.FORWARD # TEMP?
+        self.order = None
+        self.tau = tau
 
-        self._approx = self.build_approximation(
+        self.approx = self.build_approximation(
             target_func, 
             bases,
             options, 
@@ -66,18 +66,19 @@ class TTSIRT(AbstractIRT):
         )
 
         self._oned_cdfs = {}
-        for k in range(self.bases.dim):
+        for k in range(self.dim):
             self._oned_cdfs[k] = construct_cdf(
                 poly=self.approx.bases.polys[k], 
                 error_tol=self.approx.options.cdf_tol
             )
 
         self.marginalise()
-
-        # TODO: figure out what this is for. I think this is set in the 
-        # marginalise() function--so I'm not sure what's going on here.
         self.order = None 
         return
+
+    @property
+    def dim(self) -> int:
+        return self.bases.dim
 
     @property 
     def oned_cdfs(self) -> dict[int, CDF1D]:
@@ -90,10 +91,16 @@ class TTSIRT(AbstractIRT):
     @approx.setter 
     def approx(self, value: TTFunc):
         self._approx = value
+        return
 
     @property
     def int_dir(self) -> Direction:
         return self._int_dir
+    
+    @int_dir.setter
+    def int_dir(self, value: Direction):
+        self._int_dir = value
+        return
     
     @property
     def order(self) -> torch.Tensor:
@@ -108,6 +115,11 @@ class TTSIRT(AbstractIRT):
     def tau(self) -> torch.Tensor:
         return self._tau
     
+    @tau.setter
+    def tau(self, value: torch.Tensor):
+        self._tau = value 
+        return
+    
     @property 
     def z(self) -> torch.Tensor:
         return self._z 
@@ -119,10 +131,10 @@ class TTSIRT(AbstractIRT):
     def _marginalise_forward(self) -> None:
         """TODO: write docstring."""
 
-        self.order = torch.arange(self.bases.dim)
-        self.Rs[self.bases.dim] = torch.tensor([[1.0]])
+        self.order = torch.arange(self.dim)
+        self.Rs[self.dim] = torch.tensor([[1.0]])
 
-        for k in range(self.bases.dim-1, -1, -1):
+        for k in range(self.dim-1, -1, -1):
             
             poly_k = self.approx.bases.polys[k]
             A_k = self.approx.data.cores[k]
@@ -140,10 +152,10 @@ class TTSIRT(AbstractIRT):
     def _marginalise_backward(self) -> None:
         """TODO: write docstring."""
         
-        self.order = torch.arange(self.bases.dim-1, -1, -1)
+        self.order = torch.arange(self.dim-1, -1, -1)
         self.Rs[-1] = torch.tensor([[1.0]])
 
-        for k in range(self.bases.dim):
+        for k in range(self.dim):
             
             poly_k = self.approx.bases.polys[k]
             A_k = self.approx.data.cores[k]
@@ -155,7 +167,7 @@ class TTSIRT(AbstractIRT):
             C_k = poly_k.mass_r(B_k).T.reshape(r_k, n_k * r_p).T
             self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")[1]
 
-        self._z_func = self.Rs[self.bases.dim-1].square().sum()
+        self._z_func = self.Rs[self.dim-1].square().sum()
         return
 
     def _eval_irt_local_nograd_forward(
@@ -221,15 +233,15 @@ class TTSIRT(AbstractIRT):
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """TODO: write docstring"""
+        """TODO: write docstring."""
         
         num_z, dim_z = zs.shape
         rs = torch.zeros_like(zs)
 
         frg = torch.ones((1, num_z))
-        i_min = self.bases.dim - dim_z
+        i_min = self.dim - dim_z
         
-        for k in range(self.bases.dim-1, i_min-1, -1):
+        for k in range(self.dim-1, i_min-1, -1):
             
             k_ind = k - i_min
             rank_p = self.approx.data.cores[k].shape[0]
@@ -308,8 +320,6 @@ class TTSIRT(AbstractIRT):
             An n-dimensional vector containing the square root of the 
             ratio of the potential function and the weighting function, 
             evaluated at each element of ls.
-            
-        TODO: check this (and eval_measure_potential) with TC.
 
         """
         
@@ -504,7 +514,7 @@ class TTSIRT(AbstractIRT):
             else:
                 fx = fxg.square()
 
-            indices = torch.arange(self.bases.dim-1, self.bases.dim-dim_z-1, -1)
+            indices = torch.arange(self.dim-1, self.dim-dim_z-1, -1)
             
         neglogwls = self.approx.bases.eval_measure_potential_local(ls, indices)  # TODO: check that indices go backwards
         neglogfls = self.z.log() - (fx + self.tau).log() + neglogwls

@@ -109,17 +109,15 @@ class Tempering1(SingleBeta):
     ) -> torch.Tensor:
         
         beta = self.betas[self.num_layers]
-        if self.num_layers == 0:
-            beta_prev = 0.0
-        else:
-            beta_prev = self.betas[self.num_layers-1]
 
         # TODO: ask TC what is going on here.
         # neglogfrs != neglogpris (in general)
         # (note: beta_prev = 0)
-        # if self.num_layers == 0:
-        #     neglogratios = beta*neglogliks + neglogpris
-        #     return neglogratios
+        if self.num_layers == 0:
+            neglogratios = beta*neglogliks + neglogpris
+            return neglogratios
+        
+        beta_prev = self.betas[self.num_layers-1]
         
         # Compute the reference density at each value of xs
         neglogrefs = -reference.log_joint_pdf(xs)[0]
