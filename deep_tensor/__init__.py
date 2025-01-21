@@ -11,9 +11,15 @@ from .input_data import InputData
 from .options import TTOptions
 from .polynomials import (
     Basis1D,
-    Spectral, 
-    Chebyshev1st, Chebyshev2ndUnweighted, Fourier, Legendre,
+    Chebyshev1st, 
+    Chebyshev2ndUnweighted,
+    Fourier,
+    Lagrange1, 
+    Lagrange1CDF,
+    LagrangeP, 
+    Legendre,
     Piecewise,
-    Lagrange1, LagrangeP
+    PiecewiseCDF,
+    Spectral
 )
 from .irt import TTDIRT, TTSIRT

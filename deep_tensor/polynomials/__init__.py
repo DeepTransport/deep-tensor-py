@@ -17,6 +17,7 @@ from .legendre import Legendre
 ## CDFs
 from .cdf_constructor import construct_cdf
 from .cdf_1d import CDF1D
+from .lagrange_1_cdf import Lagrange1CDF
 
 # Piecewise polynomials 
 from .piecewise_cdf import PiecewiseCDF

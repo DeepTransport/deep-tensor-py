@@ -57,7 +57,26 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         return
         
     @abc.abstractmethod
-    def pdf2cdf(self, pdf_vals: torch.Tensor) -> CDFData:
+    def pdf2cdf(self, pls: torch.Tensor) -> CDFData:
+        """Given evaluations of an (unnormalised) PDF (or set of 
+        unnormalised PDFs), generates data on the corresponding CDF.
+
+        Parameters
+        ----------
+        pls:
+            A matrix containing the values of the (unnormalised) target 
+            PDF evaluated at each of the nodes of the basis for the 
+            current CDF. The matrix may contain multiple columns if 
+            multiple PDFs are under consideration.
+
+        Returns
+        -------
+        cdf_data:
+            A CDFData object containing information on the values of 
+            the CDF corresponding to each PDF at each node of the 
+            current basis.
+
+        """
         return
         
     def eval_int_lag(

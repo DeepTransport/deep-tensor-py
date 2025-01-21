@@ -63,8 +63,12 @@ class CDF1D(abc.ABC):
         Parameters
         ----------
         pls: 
-            A matrix containing the values of the target PDF evaluated 
-            at each of the nodes of the basis for the current CDF.
+            A matrix containing the values of the (unnormalised) target 
+            PDF evaluated at each of the nodes of the basis for the 
+            current CDF. There are two possible cases: the matrix 
+            contains a single column (if the PDF is the same for all 
+            zs) or a number of columns equal to the number of elements 
+            of zs (if the PDF is different for all zs).
         zs:
             An n-dimensional vector containing points in the interval 
             [0, 1].
@@ -91,9 +95,12 @@ class CDF1D(abc.ABC):
         Parameters
         ----------
         pls:
-            The values of the (unnormalised) approximation to the 
-            target density function evaluated at each of the nodes of 
-            the polynomial basis of the CDF.
+            A matrix containing the values of the (unnormalised) target 
+            PDF evaluated at each of the nodes of the basis for the 
+            current CDF. There are two possible cases: the matrix 
+            contains a single column (if the PDF is the same for all 
+            zs) or a number of columns equal to the number of elements 
+            of zs (if the PDF is different for all zs).
         ls:
             An n-dimensional vector of values in the local domain at 
             which to evaluate the CDF.
@@ -109,7 +116,7 @@ class CDF1D(abc.ABC):
     
     @abc.abstractmethod
     def eval_int_deriv(self):
-        """??"""
+        """TODO: write docstring."""
         return
     
     def check_pdf_positive(self, pdf: torch.Tensor) -> None:
