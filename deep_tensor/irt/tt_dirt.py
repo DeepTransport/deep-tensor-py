@@ -86,6 +86,13 @@ class TTDIRT():
         self.pre_sample_size = (self.dirt_options.num_samples 
                                 + self.dirt_options.num_debugs)
 
+        if self.init_samples is not None:
+            if self.init_samples.shape[0] < self.pre_sample_size:
+                msg = ("More initialisation samples are required. "
+                       + f"Need {self.pre_sample_size}, "
+                       + f"got {self.init_samples.shape[0]}.")
+                raise Exception(msg)
+
         self.irts: dict[int, TTSIRT] = {}
         self.num_eval: int = 0
         self.log_z: float = 0.0
