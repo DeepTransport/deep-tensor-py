@@ -105,10 +105,10 @@ class TTFunc():
             self.data.cores[k] = torch.rand(core_shape)
 
             samples = self.input_data.get_samples(self.options.init_rank)
-            self.data.interp_x[k] = samples[:, k:]
+            self.data.interp_ls[k] = samples[:, k:]
 
-        self.data.interp_x[-1] = torch.tensor([])
-        self.data.interp_x[self.dim] = torch.tensor([])
+        self.data.interp_ls[-1] = torch.tensor([])
+        self.data.interp_ls[self.dim] = torch.tensor([])
 
         return
 
@@ -214,10 +214,10 @@ class TTFunc():
 
         for k in indices:
                     
-            x_left = self.data.interp_x[int(k-1)]
-            x_right = self.data.interp_x[int(k+1)]
+            ls_left = self.data.interp_ls[int(k-1)]
+            ls_right = self.data.interp_ls[int(k+1)]
             
-            F_k = self.build_block_local(x_left, x_right, k) 
+            F_k = self.build_block_local(ls_left, ls_right, k) 
             self.errors[k] = self.get_error_local(F_k, k)
             self.build_basis_svd(F_k, k)
 
@@ -227,18 +227,18 @@ class TTFunc():
         
         for k in indices:
             
-            x_left = self.data.interp_x[int(k-1)].clone()
-            x_right = self.data.interp_x[int(k+1)].clone()
+            ls_left = self.data.interp_ls[int(k-1)].clone()
+            ls_right = self.data.interp_ls[int(k+1)].clone()
             enrich = self.input_data.get_samples(self.options.kick_rank)
 
-            F_k = self.build_block_local(x_left, x_right, k)
+            F_k = self.build_block_local(ls_left, ls_right, k)
             self.errors[k] = self.get_error_local(F_k, k)
 
             if self.data.direction == Direction.FORWARD:
-                F_enrich = self.build_block_local(x_left, enrich[:, k+1:], k)
+                F_enrich = self.build_block_local(ls_left, enrich[:, k+1:], k)
                 F_full = torch.concatenate((F_k, F_enrich), dim=2)
             else:
-                F_enrich = self.build_block_local(enrich[:, :k], x_right, k)
+                F_enrich = self.build_block_local(enrich[:, :k], ls_right, k)
                 F_full = torch.concatenate((F_k, F_enrich), dim=0)
 
             self.build_basis_svd(F_full, k)
@@ -249,22 +249,22 @@ class TTFunc():
         
         for k in indices:
             
-            x_left = self.data.interp_x[int(k-1)]
-            x_right = self.data.interp_x[int(k+1)]
+            ls_left = self.data.interp_ls[int(k-1)]
+            ls_right = self.data.interp_ls[int(k+1)]
             r_left = self.data.res_x[int(k-1)]
             r_right = self.data.res_x[int(k+1)]
 
             # Evaluate the interpolant function at x_k nodes
-            F = self.build_block_local(x_left, x_right, k)
+            F = self.build_block_local(ls_left, ls_right, k)
             self.errors[k] = self.get_error_local(F, k)
 
             # Evaluate residual function at x_k nodes
             F_res = self.build_block_local(r_left, r_right, k)
 
             if self.data.direction == Direction.FORWARD and k > 0:
-                F_up = self.build_block_local(x_left, r_right, k)
+                F_up = self.build_block_local(ls_left, r_right, k)
             elif self.data.direction == Direction.BACKWARD and k < self.dim-1: 
-                F_up = self.build_block_local(r_left, x_right, k)
+                F_up = self.build_block_local(r_left, ls_right, k)
             else:
                 F_up = F_res.clone()
 
@@ -279,9 +279,9 @@ class TTFunc():
         else:
             k = 0
 
-        x_left = self.data.interp_x[int(k-1)]
-        x_right = self.data.interp_x[int(k+1)]
-        self.data.cores[k] = self.build_block_local(x_left, x_right, k)
+        ls_left = self.data.interp_ls[int(k-1)]
+        ls_right = self.data.interp_ls[int(k+1)]
+        self.data.cores[k] = self.build_block_local(ls_left, ls_right, k)
         return
 
     def _select_points_piecewise(
@@ -352,8 +352,8 @@ class TTFunc():
 
     def build_block_local(
         self, 
-        x_left: torch.Tensor,
-        x_right: torch.Tensor,
+        ls_left: torch.Tensor,
+        ls_right: torch.Tensor,
         k: int
     ) -> torch.Tensor:
         """Evaluates the function being approximated at a (reduced) set 
@@ -362,10 +362,10 @@ class TTFunc():
 
         Parameters
         ----------
-        x_left:
+        ls_left:
             An r_{k-1} * {k-1} matrix containing a set of interpolation
             points for dimensions 1, ..., {k-1}.
-        x_right:
+        ls_right:
             An r_{k+1} * {k+1} matix containing a set of interpolation 
             points for dimensions {k+1}, ..., d.
         k:
@@ -384,37 +384,37 @@ class TTFunc():
         
         """
 
-        num_left = 1 if x_left.numel() == 0 else x_left.shape[0]
-        num_right = 1 if x_right.numel() == 0 else x_right.shape[0]
+        num_left = 1 if ls_left.numel() == 0 else ls_left.shape[0]
+        num_right = 1 if ls_right.numel() == 0 else ls_right.shape[0]
 
         poly = self.bases.polys[k]
         nodes = poly.nodes[:, None]
 
         # Form the Cartesian product of the index sets and the nodes
         # corresponding to the basis of the current dimension
-        if x_left.numel() == 0:
+        if ls_left.numel() == 0:
 
-            params = torch.hstack((
+            ls = torch.hstack((
                 nodes.repeat_interleave(num_right, dim=0),
-                x_right.repeat(poly.cardinality, 1)
+                ls_right.repeat(poly.cardinality, 1)
             ))
 
-        elif x_right.numel() == 0:
+        elif ls_right.numel() == 0:
 
-            params = torch.hstack((
-                x_left.repeat_interleave(poly.cardinality, dim=0),
+            ls = torch.hstack((
+                ls_left.repeat_interleave(poly.cardinality, dim=0),
                 nodes.repeat(num_left, 1)
             ))
 
         else:
 
-            params = torch.hstack((
-                x_left.repeat_interleave(poly.cardinality * num_right, dim=0),
+            ls = torch.hstack((
+                ls_left.repeat_interleave(poly.cardinality * num_right, dim=0),
                 nodes.repeat_interleave(num_right, dim=0).repeat(num_left, 1),
-                x_right.repeat(num_left * poly.cardinality, 1)
+                ls_right.repeat(num_left * poly.cardinality, 1)
             ))
         
-        F_k = self.target_func(params).reshape(num_left, poly.cardinality, num_right)
+        F_k = self.target_func(ls).reshape(num_left, poly.cardinality, num_right)
 
         # TODO: could be a separate method eventually
         if isinstance(poly, Spectral): 
@@ -422,7 +422,7 @@ class TTFunc():
             F_k = poly.node2basis @ F_k
             F_k = F_k.T.reshape(num_right, num_left, -1).permute(1, 2, 0)
 
-        self.num_eval += params.shape[0]
+        self.num_eval += ls.shape[0]
         return F_k
 
     def truncate_local(
@@ -505,7 +505,7 @@ class TTFunc():
         k_next = int(k + self.data.direction.value)
         
         poly = self.bases.polys[k]
-        interp_x_prev = self.data.interp_x[k_prev]
+        interp_x_prev = self.data.interp_ls[k_prev]
         core_next = self.data.cores[k_next]
 
         n_left, n_nodes, n_right = F_k.shape 
@@ -547,7 +547,7 @@ class TTFunc():
             core_next = reshape_matlab(core_next, (r_0_next, n_nodes_next, rank))
 
         self.data.cores[k] = core
-        self.data.interp_x[k] = interp_x 
+        self.data.interp_ls[k] = interp_x 
         self.data.cores[k_next] = core_next
 
         return
@@ -566,7 +566,7 @@ class TTFunc():
         k_next = int(k + self.data.direction.value)
         
         poly = self.bases.polys[k]
-        interp_x_prev = self.data.interp_x[k_prev]
+        interp_x_prev = self.data.interp_ls[k_prev]
         res_x_prev = self.data.res_x[k_prev]
 
         res_w_prev = self.data.res_w[k-1]
@@ -656,7 +656,7 @@ class TTFunc():
 
         self.data.cores[k] = core 
         self.data.cores[k_next] = core_next
-        self.data.interp_x[k] = interp_x
+        self.data.interp_ls[k] = interp_x
         self.data.res_w[k] = res_w 
         self.data.res_x[k] = res_x
 

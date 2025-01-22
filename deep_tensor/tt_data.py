@@ -10,7 +10,7 @@ class TTData():
 
         self.direction = None
         self.cores: dict[int, torch.Tensor] = {}
-        self.interp_x: dict[int, torch.Tensor] = {}
+        self.interp_ls: dict[int, torch.Tensor] = {}
         
         self.res_x = {}  # Residual coordinates for AMEN
         self.res_w = {}  # Residual blocks for AMEN
@@ -35,7 +35,7 @@ class TTData():
         """Removes all of the intermediate data used to build the 
         tensor train (but retains the cores and evaluation direction).
         """
-        self.interp_x = torch.tensor([])
+        self.interp_ls = torch.tensor([])
         self.res_x = {}
         self.res_w = {}
         return
