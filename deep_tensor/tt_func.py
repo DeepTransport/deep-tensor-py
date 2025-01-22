@@ -210,28 +210,20 @@ class TTFunc():
         als_info(" | ".join(diagnostics))
         return
 
-    def _compute_cross_iter_fixed_rank(
-        self, 
-        target_func: Callable,
-        indices: torch.Tensor
-    ) -> None:
+    def _compute_cross_iter_fixed_rank(self, indices: torch.Tensor) -> None:
 
         for k in indices:
                     
             x_left = self.data.interp_x[int(k-1)]
             x_right = self.data.interp_x[int(k+1)]
             
-            F_k = self.build_block_local(target_func, x_left, x_right, k) 
+            F_k = self.build_block_local(x_left, x_right, k) 
             self.errors[k] = self.get_error_local(F_k, k)
             self.build_basis_svd(F_k, k)
 
         return
     
-    def _compute_cross_iter_random(
-        self,
-        target_func: Callable[[torch.Tensor], torch.Tensor],
-        indices: torch.Tensor
-    ) -> None:
+    def _compute_cross_iter_random(self, indices: torch.Tensor) -> None:
         
         for k in indices:
             
@@ -239,25 +231,21 @@ class TTFunc():
             x_right = self.data.interp_x[int(k+1)].clone()
             enrich = self.input_data.get_samples(self.options.kick_rank)
 
-            F_k = self.build_block_local(target_func, x_left, x_right, k)
+            F_k = self.build_block_local(x_left, x_right, k)
             self.errors[k] = self.get_error_local(F_k, k)
 
             if self.data.direction == Direction.FORWARD:
-                F_enrich = self.build_block_local(target_func, x_left, enrich[:, k+1:], k)
+                F_enrich = self.build_block_local(x_left, enrich[:, k+1:], k)
                 F_full = torch.concatenate((F_k, F_enrich), dim=2)
             else:
-                F_enrich = self.build_block_local(target_func, enrich[:, :k], x_right, k)
+                F_enrich = self.build_block_local(enrich[:, :k], x_right, k)
                 F_full = torch.concatenate((F_k, F_enrich), dim=0)
 
             self.build_basis_svd(F_full, k)
 
         return None
     
-    def _compute_cross_iter_amen(
-        self, 
-        func: Callable, 
-        indices: torch.Tensor
-    ):
+    def _compute_cross_iter_amen(self, indices: torch.Tensor) -> None:
         
         for k in indices:
             
@@ -267,16 +255,16 @@ class TTFunc():
             r_right = self.data.res_x[int(k+1)]
 
             # Evaluate the interpolant function at x_k nodes
-            F = self.build_block_local(func, x_left, x_right, k)
+            F = self.build_block_local(x_left, x_right, k)
             self.errors[k] = self.get_error_local(F, k)
 
             # Evaluate residual function at x_k nodes
-            F_res = self.build_block_local(func, r_left, r_right, k)
+            F_res = self.build_block_local(r_left, r_right, k)
 
             if self.data.direction == Direction.FORWARD and k > 0:
-                F_up = self.build_block_local(func, x_left, r_right, k)
+                F_up = self.build_block_local(x_left, r_right, k)
             elif self.data.direction == Direction.BACKWARD and k < self.dim-1: 
-                F_up = self.build_block_local(func, r_left, x_right, k)
+                F_up = self.build_block_local(r_left, x_right, k)
             else:
                 F_up = F_res.clone()
 
@@ -284,7 +272,7 @@ class TTFunc():
 
         return 
 
-    def _compute_final_block(self, func: Callable) -> None:
+    def _compute_final_block(self) -> None:
 
         if self.data.direction == Direction.FORWARD:
             k = self.dim-1 
@@ -293,7 +281,7 @@ class TTFunc():
 
         x_left = self.data.interp_x[int(k-1)]
         x_right = self.data.interp_x[int(k+1)]
-        self.data.cores[k] = self.build_block_local(func, x_left, x_right, k)
+        self.data.cores[k] = self.build_block_local(x_left, x_right, k)
         return
 
     def _select_points_piecewise(
@@ -364,7 +352,6 @@ class TTFunc():
 
     def build_block_local(
         self, 
-        target_func: Callable[[torch.Tensor], torch.Tensor], 
         x_left: torch.Tensor,
         x_right: torch.Tensor,
         k: int
@@ -375,8 +362,6 @@ class TTFunc():
 
         Parameters
         ----------
-        target_func: 
-            The function being approximated.
         x_left:
             An r_{k-1} * {k-1} matrix containing a set of interpolation
             points for dimensions 1, ..., {k-1}.
@@ -429,7 +414,7 @@ class TTFunc():
                 x_right.repeat(num_left * poly.cardinality, 1)
             ))
         
-        F_k = target_func(params).reshape(num_left, poly.cardinality, num_right)
+        F_k = self.target_func(params).reshape(num_left, poly.cardinality, num_right)
 
         # TODO: could be a separate method eventually
         if isinstance(poly, Spectral): 
@@ -1086,17 +1071,17 @@ class TTFunc():
                 indices = torch.arange(self.dim-1, 0, -1)
             
             if self.options.tt_method == "fixed_rank":
-                self._compute_cross_iter_fixed_rank(self.target_func, indices)
+                self._compute_cross_iter_fixed_rank(indices)
             elif self.options.tt_method == "random":
-                self._compute_cross_iter_random(self.target_func, indices)
+                self._compute_cross_iter_random(indices)
             elif self.options.tt_method == "amen":
-                self._compute_cross_iter_amen(self.target_func, indices)
+                self._compute_cross_iter_amen(indices)
 
             als_iter += 1
             finished = self.is_finished(als_iter, indices)
 
             if finished: 
-                self._compute_final_block(self.target_func)
+                self._compute_final_block()
 
             self.compute_relative_error()
 
