@@ -346,7 +346,7 @@ class TTFunc():
         if not self.input_data.is_debug:
             return
         
-        ps_approx = self.eval_local(self.input_data.ls_debug)
+        ps_approx = self.eval_local(self.input_data.ls_debug, self.data.direction)
         self.l2_err, self.linf_err = self.input_data.relative_error(ps_approx)
         return
 
@@ -801,56 +801,13 @@ class TTFunc():
 
         raise NotImplementedError()
 
-    def eval(self, xs: torch.Tensor) -> torch.Tensor:
-        """Evaluates the approximated function at a set of points in 
-        the approximation domain.
-        
-        Parameters
-        ----------
-        xs:
-            A matrix containing n sets of d-dimensional input 
-            variables in the approximation domain. Each row contains a
-            single input variable.
-            
-        Returns
-        -------
-        fxs:
-            An n-dimensional vector containing the values of the 
-            function at each x value.
-        """
-        ls = self.bases.approx2local(xs)[0]
-        fxs = self.eval_local(ls)
-        return fxs
-
-    def eval_local(
-        self, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
-        """Evaluates the approximation to the target function for a set 
-        of samples in the local domain ([-1, 1]^d).
-
-        Parameters
-        ----------
-        ls:
-            An n * d matrix containing samples in the local domain.
-        
-        Returns
-        -------
-        ps:
-            An n-dimensional vector containing the result of evaluating
-            the target function at each element in ls. 
-            
-        """
-        ps = self.eval_block(ls, self.data.direction)
-        return ps
-    
-    def _eval_block_forward(self, ls: torch.Tensor) -> torch.Tensor:
+    def _eval_local_forward(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the FTT approximation to the target function for 
         the first k variables.
         """
 
         n_l, dim_l = ls.shape
-        fls = torch.ones((n_l, 1))
+        ps = torch.ones((n_l, 1))
 
         for k in range(min(dim_l, self.dim)):
 
@@ -868,19 +825,19 @@ class TTFunc():
                     .flatten())
             indices = torch.vstack((ii[None, :], jj[None, :]))
             size = (n_l, r_p * n_l)
-            B = torch.sparse_coo_tensor(indices, fls.T.flatten(), size)
+            B = torch.sparse_coo_tensor(indices, ps.T.flatten(), size)
 
-            fls = B @ G_k
+            ps = B @ G_k
 
-        return fls.squeeze()
+        return ps.squeeze()
     
-    def _eval_block_backward(self, ls: torch.Tensor) -> torch.Tensor:
+    def _eval_local_backward(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the FTT approximation to the target function for 
         the last k variables.
         """
 
         n_l, dim_l = ls.shape
-        fls = torch.ones((n_l, 1))
+        ps = torch.ones((n_l, 1))
 
         x_inds = torch.arange(dim_l-1, -1, -1)
         t_inds = torch.arange(self.dim-1, -1, -1)
@@ -888,7 +845,6 @@ class TTFunc():
         for i in range(min(dim_l, self.dim)):
             
             j = int(t_inds[i])
-            
             r_j = self.data.cores[j].shape[-1]
 
             G_k = self.eval_oned_core_231(
@@ -899,16 +855,15 @@ class TTFunc():
 
             ii = torch.arange(n_l * r_j)
             jj = torch.arange(n_l).repeat_interleave(r_j)
-            
             indices = torch.vstack((ii[None, :], jj[None, :]))
             size = (r_j * n_l, n_l)
-            B = torch.sparse_coo_tensor(indices, fls.T.flatten(), size)
+            B = torch.sparse_coo_tensor(indices, ps.T.flatten(), size)
 
-            fls = G_k.T @ B
+            ps = G_k.T @ B
 
-        return fls.squeeze()
+        return ps.squeeze()
 
-    def eval_block(
+    def eval_local(
         self, 
         ls: torch.Tensor,
         direction: Direction
@@ -924,16 +879,37 @@ class TTFunc():
         
         Returns
         -------
-        fls:
+        ps:
             The value of the FTT approximation to the target function
             at each point in ls.
             
         """
         if direction == Direction.FORWARD:
-            fls = self._eval_block_forward(ls)
+            ps = self._eval_local_forward(ls)
         else: 
-            fls = self._eval_block_backward(ls)
-        return fls
+            ps = self._eval_local_backward(ls)
+        return ps
+
+    def eval(self, xs: torch.Tensor) -> torch.Tensor:
+        """Evaluates the approximated function at a set of points in 
+        the approximation domain.
+        
+        Parameters
+        ----------
+        xs:
+            A matrix containing n sets of d-dimensional input 
+            variables in the approximation domain. Each row contains a
+            single input variable.
+            
+        Returns
+        -------
+        ps:
+            An n-dimensional vector containing the values of the 
+            function at each x value.
+        """
+        ls = self.bases.approx2local(xs)[0]
+        ps = self.eval_local(ls, self.data.direction)
+        return ps
     
     def grad_reference(
         self, 

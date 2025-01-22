@@ -94,13 +94,13 @@ class TestSIRT(unittest.TestCase):
         ls_marg = torch.tensor([[-0.5, -0.5, -0.5],
                                 [-0.5,  0.0,  0.5]])
         
-        fls_forward = tt_func.eval_block(ls_marg, dt.Direction.FORWARD)
-        fls_backward = tt_func.eval_block(ls_marg, dt.Direction.BACKWARD)
+        ps_forward = tt_func.eval_local(ls_marg, dt.Direction.FORWARD)
+        ps_backward = tt_func.eval_local(ls_marg, dt.Direction.BACKWARD)
 
-        fls_true = torch.tensor([33.1250, 24.5])
+        ps_true = torch.tensor([33.1250, 24.5])
 
-        self.assertTrue(norm(fls_forward-fls_true) < 1e-8)
-        self.assertTrue(norm(fls_backward-fls_true) < 1e-8)
+        self.assertTrue(norm(ps_forward - ps_true) < 1e-8)
+        self.assertTrue(norm(ps_backward - ps_true) < 1e-8)
         return 
 
 

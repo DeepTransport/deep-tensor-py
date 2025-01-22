@@ -398,7 +398,7 @@ class TTSIRT(AbstractIRT):
         # d = self.approx.dim
         if self.int_dir == Direction.FORWARD:
 
-            fxl = self.approx.eval_block(ls, direction=self.int_dir)
+            fxl = self.approx.eval_local(ls, direction=self.int_dir)
             
             # fx = (fxl @ self.Rs[dim_z]).square().sum(dim=1)
 
@@ -411,7 +411,7 @@ class TTSIRT(AbstractIRT):
             
         else:
 
-            fxg = self.approx.eval_block(ls, direction=self.int_dir)
+            fxg = self.approx.eval_local(ls, direction=self.int_dir)
 
             i_min = self.approx.dim - dim_z
             # fx = (self.Rs[i_min-1] @ fxg).square().sum(dim=0)
