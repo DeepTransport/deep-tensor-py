@@ -343,6 +343,7 @@ class TTSIRT(AbstractIRT):
             input_data=input_data,
             tt_data=tt_data
         )
+        approx.cross()
 
         if approx.use_amen:
             approx.round()

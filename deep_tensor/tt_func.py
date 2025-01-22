@@ -23,7 +23,7 @@ class TTFunc():
         bases: ApproxBases, 
         options: TTOptions, 
         input_data: InputData,
-        tt_data: TTData|None
+        tt_data: TTData|None=None
     ):
         """A functional tensor-train approximation for a function 
         mapping from some subset of R^d to some subset of R.
@@ -48,6 +48,7 @@ class TTFunc():
 
         """
         
+        self.target_func = target_func
         self.bases = bases 
         self.dim = bases.dim
         self.options = options
@@ -56,17 +57,17 @@ class TTFunc():
 
         self.input_data.set_samples(self.bases, self.sample_size)
         if self.input_data.is_debug:
-            self.input_data.set_debug(target_func, self.bases)
+            self.input_data.set_debug(self.target_func, self.bases)
 
         # if isinstance(arg, ApproxFunc):
         #     self.options = arg.options
         
         self.num_eval = 0
-        self.errors = torch.zeros(self.bases.dim)
+        self.errors = torch.zeros(self.dim)
         self.l2_err = torch.inf
         self.linf_err = torch.inf
         
-        self.cross(target_func)
+        # self.cross(target_func)
         return
         
     @property 
@@ -275,7 +276,7 @@ class TTFunc():
 
             if self.data.direction == Direction.FORWARD and k > 0:
                 F_up = self.build_block_local(func, x_left, r_right, k)
-            elif self.data.direction == Direction.BACKWARD and k < self.bases.dim-1: 
+            elif self.data.direction == Direction.BACKWARD and k < self.dim-1: 
                 F_up = self.build_block_local(func, r_left, x_right, k)
             else:
                 F_up = F_res.clone()
@@ -859,6 +860,70 @@ class TTFunc():
         ps = self.eval_block(ls, self.data.direction)
         return ps
     
+    def _eval_block_forward(self, ls: torch.Tensor) -> torch.Tensor:
+        """Evaluates the FTT approximation to the target function for 
+        the first k variables.
+        """
+
+        n_l, dim_l = ls.shape
+        fls = torch.ones((n_l, 1))
+
+        for k in range(min(dim_l, self.dim)):
+
+            r_p = self.data.cores[k].shape[0]
+
+            G_k = self.eval_oned_core_213(
+                self.bases.polys[k],
+                self.data.cores[k],
+                ls[:, k]
+            )
+            
+            ii = torch.arange(n_l).repeat(r_p)
+            jj = (torch.arange(r_p * n_l)
+                    .reshape(n_l, r_p).T
+                    .flatten())
+            indices = torch.vstack((ii[None, :], jj[None, :]))
+            size = (n_l, r_p * n_l)
+            B = torch.sparse_coo_tensor(indices, fls.T.flatten(), size)
+
+            fls = B @ G_k
+
+        return fls.squeeze()
+    
+    def _eval_block_backward(self, ls: torch.Tensor) -> torch.Tensor:
+        """Evaluates the FTT approximation to the target function for 
+        the last k variables.
+        """
+
+        n_l, dim_l = ls.shape
+        fls = torch.ones((n_l, 1))
+
+        x_inds = torch.arange(dim_l-1, -1, -1)
+        t_inds = torch.arange(self.dim-1, -1, -1)
+        
+        for i in range(min(dim_l, self.dim)):
+            
+            j = int(t_inds[i])
+            
+            r_j = self.data.cores[j].shape[-1]
+
+            G_k = self.eval_oned_core_231(
+                self.bases.polys[j],
+                self.data.cores[j],
+                ls[:, x_inds[i]]
+            )
+
+            ii = torch.arange(n_l * r_j)
+            jj = torch.arange(n_l).repeat_interleave(r_j)
+            
+            indices = torch.vstack((ii[None, :], jj[None, :]))
+            size = (r_j * n_l, n_l)
+            B = torch.sparse_coo_tensor(indices, fls.T.flatten(), size)
+
+            fls = G_k.T @ B
+
+        return fls.squeeze()
+
     def eval_block(
         self, 
         ls: torch.Tensor,
@@ -884,62 +949,11 @@ class TTFunc():
         functions).
             
         """
-
-        n_l, dim_l = ls.shape
-
-        fls = torch.ones((n_l, 1))
-
         if direction == Direction.FORWARD:
-
-            for k in range(min(dim_l, self.dim)):
-
-                r_p = self.data.cores[k].shape[0]
-
-                G_k = self.eval_oned_core_213(
-                    self.bases.polys[k],
-                    self.data.cores[k],
-                    ls[:, k]
-                )
-                
-                ii = torch.arange(n_l).repeat(r_p)
-                jj = (torch.arange(r_p * n_l)
-                      .reshape(n_l, r_p).T
-                      .flatten())
-                indices = torch.vstack((ii[None, :], jj[None, :]))
-                size = (n_l, r_p * n_l)
-                B = torch.sparse_coo_tensor(indices, fls.T.flatten(), size)
-
-                fls = B @ G_k
-
-        else:
-            
-            x_inds = torch.arange(dim_l-1, -1, -1)
-            t_inds = torch.arange(self.bases.dim-1, -1, -1)
-            
-            for i in range(min(dim_l, self.bases.dim)):
-                
-                j = int(t_inds[i])
-                
-                rank_p, num_nodes, rank_j = self.data.cores[j].shape
-
-                A_k = self.data.cores[j].permute(1, 2, 0)
-                A_k = reshape_matlab(A_k, (num_nodes, -1))
-
-                G_k = self.bases.polys[j].eval_radon(A_k, ls[:, x_inds[i]])
-                G_k = reshape_matlab(G_k, (n_l, rank_j, rank_p))
-                G_k = G_k.permute(1, 0, 2)
-                G_k = reshape_matlab(G_k, (rank_j * n_l, rank_p))
-
-                ii = torch.arange(n_l * rank_j)
-                jj = torch.arange(n_l).repeat_interleave(rank_j)
-                
-                indices = torch.vstack((ii[None, :], jj[None, :]))
-                size = (rank_j * n_l, n_l)
-
-                B = torch.sparse_coo_tensor(indices, fls.T.flatten(), size)
-                fls = G_k.T @ B
-
-        return fls.squeeze()
+            fls = self._eval_block_forward(ls)
+        else: 
+            fls = self._eval_block_backward(ls)
+        return fls
     
     def grad_reference(
         self, 
@@ -1054,7 +1068,7 @@ class TTFunc():
 
     def cross(
         self, 
-        target_func: Callable[[torch.Tensor], torch.Tensor]
+        #target_func: Callable[[torch.Tensor], torch.Tensor]
     ) -> None:
         """Cross iterations for building the tensor train.
 
@@ -1091,13 +1105,13 @@ class TTFunc():
                 indices = torch.arange(self.dim-1, 0, -1)
             
             if self.options.tt_method == "fixed_rank":
-                self._compute_cross_iter_fixed_rank(target_func, indices)
+                self._compute_cross_iter_fixed_rank(self.target_func, indices)
             
             elif self.options.tt_method == "random":
-                self._compute_cross_iter_random(target_func, indices)
+                self._compute_cross_iter_random(self.target_func, indices)
 
             elif self.options.tt_method == "amen":
-                self._compute_cross_iter_amen(target_func, indices)
+                self._compute_cross_iter_amen(self.target_func, indices)
             
             else: 
                 raise Exception("Unknown TT method.")
@@ -1106,7 +1120,7 @@ class TTFunc():
             finished = self.is_finished(als_iter, indices)
 
             if finished: 
-                self._compute_final_block(target_func)
+                self._compute_final_block(self.target_func)
 
             self.compute_relative_error()
 
