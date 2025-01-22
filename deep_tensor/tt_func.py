@@ -885,32 +885,28 @@ class TTFunc():
             
         """
 
-        num_l, dim_l = ls.shape
+        n_l, dim_l = ls.shape
 
-        fls = torch.ones((num_l, 1))
+        fls = torch.ones((n_l, 1))
 
         if direction == Direction.FORWARD:
 
             for k in range(min(dim_l, self.dim)):
 
-                rank_p, num_nodes, rank_k = self.data.cores[k].shape
+                r_p = self.data.cores[k].shape[0]
 
-                # TODO: replace with eval_oned_core_213
-                A_k = (self.data.cores[k]
-                       .permute(2, 0, 1)
-                       .reshape(rank_p * rank_k, num_nodes).T)
-
-                G_k = (self.bases.polys[k].eval_radon(A_k, ls[:, k]).T
-                       .reshape(rank_k, rank_p, num_l)
-                       .swapdims(2, 1)
-                       .reshape(rank_k, num_l * rank_p).T)
+                G_k = self.eval_oned_core_213(
+                    self.bases.polys[k],
+                    self.data.cores[k],
+                    ls[:, k]
+                )
                 
-                ii = torch.arange(num_l).repeat(rank_p)
-                jj = (torch.arange(rank_p * num_l)
-                      .reshape(num_l, rank_p).T
+                ii = torch.arange(n_l).repeat(r_p)
+                jj = (torch.arange(r_p * n_l)
+                      .reshape(n_l, r_p).T
                       .flatten())
                 indices = torch.vstack((ii[None, :], jj[None, :]))
-                size = (num_l, rank_p * num_l)
+                size = (n_l, r_p * n_l)
                 B = torch.sparse_coo_tensor(indices, fls.T.flatten(), size)
 
                 fls = B @ G_k
@@ -930,15 +926,15 @@ class TTFunc():
                 A_k = reshape_matlab(A_k, (num_nodes, -1))
 
                 G_k = self.bases.polys[j].eval_radon(A_k, ls[:, x_inds[i]])
-                G_k = reshape_matlab(G_k, (num_l, rank_j, rank_p))
+                G_k = reshape_matlab(G_k, (n_l, rank_j, rank_p))
                 G_k = G_k.permute(1, 0, 2)
-                G_k = reshape_matlab(G_k, (rank_j * num_l, rank_p))
+                G_k = reshape_matlab(G_k, (rank_j * n_l, rank_p))
 
-                ii = torch.arange(num_l * rank_j)
-                jj = torch.arange(num_l).repeat_interleave(rank_j)
+                ii = torch.arange(n_l * rank_j)
+                jj = torch.arange(n_l).repeat_interleave(rank_j)
                 
                 indices = torch.vstack((ii[None, :], jj[None, :]))
-                size = (rank_j * num_l, num_l)
+                size = (rank_j * n_l, n_l)
 
                 B = torch.sparse_coo_tensor(indices, fls.T.flatten(), size)
                 fls = G_k.T @ B
