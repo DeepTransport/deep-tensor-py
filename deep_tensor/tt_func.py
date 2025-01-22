@@ -89,6 +89,82 @@ class TTFunc():
         n *= self.dim
         return n
 
+    def initialise_cores(self) -> None:
+        """Initialises the cores and interpolation points in each 
+        dimension.
+        """
+
+        for k in range(self.dim):
+
+            core_shape = [
+                1 if k == 0 else self.options.init_rank, 
+                self.bases.polys[k].cardinality,
+                self.options.init_rank if k != self.dim-1 else 1
+            ]
+
+            self.data.cores[k] = torch.rand(core_shape)
+
+            samples = self.input_data.get_samples(self.options.init_rank)
+            self.data.interp_x[k] = samples[:, k:]
+
+        self.data.interp_x[-1] = torch.tensor([])
+        self.data.interp_x[self.dim] = torch.tensor([])
+
+        return
+
+    def _initialise_res_x(self) -> None:
+        """Initialises the residual coordinates for AMEN."""
+
+        for k in range(self.dim-1, -1, -1):
+            samples = self.input_data.get_samples(self.options.kick_rank)
+            if self.data.direction == Direction.FORWARD:
+                self.data.res_x[k] = samples[:, k:]
+            else:
+                self.data.res_x[k] = samples[:, :(k+1)]
+
+        self.data.res_x[-1] = torch.tensor([])
+        self.data.res_x[self.dim] = torch.tensor([])
+        return
+    
+    def _initialise_res_w(self) -> None:
+        """Initialises the residual blocks for AMEN."""
+
+        if self.data.direction == Direction.FORWARD:
+            
+            core_0 = self.data.cores[0]
+            shape_0 = (self.options.kick_rank, core_0.shape[-1])
+            self.data.res_w[0] = torch.ones(shape_0)
+            
+            for k in range(1, self.dim):
+                core_k = self.data.cores[k].shape[0]
+                shape_k = (core_k, self.options.kick_rank)
+                self.data.res_w[k] = torch.ones(shape_k)
+
+        else:
+
+            for k in range(self.dim-1):
+                core_k = self.data.cores[k]
+                shape_k = (self.options.kick_rank, core_k.shape[-1])
+                self.data.res_w[k] = torch.ones(shape_k)
+
+            core_d = self.data.cores[self.dim-1]
+            shape_d = (core_d.shape[0], self.options.kick_rank)
+            self.data.res_w[self.dim-1] = torch.ones(shape_d)
+
+        self.data.res_w[-1] = torch.tensor([1.0])
+        self.data.res_w[self.dim] = torch.tensor([1.0])
+        return
+
+    def initialise_amen(self) -> None:
+        """Initialises the residual coordinates and residual blocks 
+        for AMEN.
+        """
+        if self.data.res_x == {}:
+            self._initialise_res_x()
+        if self.data.res_w == {}:
+            self._initialise_res_w()
+        return
+
     def _print_info_header(self) -> None:
 
         info_headers = [
@@ -284,82 +360,6 @@ class TTFunc():
         
         ps_approx = self.eval_local(self.input_data.ls_debug)
         self.l2_err, self.linf_err = self.input_data.relative_error(ps_approx)
-        return
-
-    def initialise_cores(self) -> None:
-        """Initialises the cores and interpolation points in each 
-        dimension.
-        """
-
-        for k in range(self.dim):
-
-            core_shape = [
-                1 if k == 0 else self.options.init_rank, 
-                self.bases.polys[k].cardinality,
-                self.options.init_rank if k != self.dim-1 else 1
-            ]
-
-            self.data.cores[k] = torch.rand(core_shape)
-
-            samples = self.input_data.get_samples(self.options.init_rank)
-            self.data.interp_x[k] = samples[:, k:]
-
-        self.data.interp_x[-1] = torch.tensor([])
-        self.data.interp_x[self.dim] = torch.tensor([])
-
-        return
-
-    def _initialise_res_x(self) -> None:
-        """Initialises the residual coordinates for AMEN."""
-
-        for k in range(self.dim-1, -1, -1):
-            samples = self.input_data.get_samples(self.options.kick_rank)
-            if self.data.direction == Direction.FORWARD:
-                self.data.res_x[k] = samples[:, k:]
-            else:
-                self.data.res_x[k] = samples[:, :(k+1)]
-
-        self.data.res_x[-1] = torch.tensor([])
-        self.data.res_x[self.dim] = torch.tensor([])
-        return
-    
-    def _initialise_res_w(self) -> None:
-        """Initialises the residual blocks for AMEN."""
-
-        if self.data.direction == Direction.FORWARD:
-            
-            core_0 = self.data.cores[0]
-            shape_0 = (self.options.kick_rank, core_0.shape[-1])
-            self.data.res_w[0] = torch.ones(shape_0)
-            
-            for k in range(1, self.dim):
-                core_k = self.data.cores[k].shape[0]
-                shape_k = (core_k, self.options.kick_rank)
-                self.data.res_w[k] = torch.ones(shape_k)
-
-        else:
-
-            for k in range(self.dim-1):
-                core_k = self.data.cores[k]
-                shape_k = (self.options.kick_rank, core_k.shape[-1])
-                self.data.res_w[k] = torch.ones(shape_k)
-
-            core_d = self.data.cores[self.dim-1]
-            shape_d = (core_d.shape[0], self.options.kick_rank)
-            self.data.res_w[self.dim-1] = torch.ones(shape_d)
-
-        self.data.res_w[-1] = torch.tensor([1.0])
-        self.data.res_w[self.dim] = torch.tensor([1.0])
-        return
-
-    def initialise_amen(self) -> None:
-        """Initialises the residual coordinates and residual blocks 
-        for AMEN.
-        """
-        if self.data.res_x == {}:
-            self._initialise_res_x()
-        if self.data.res_w == {}:
-            self._initialise_res_w()
         return
 
     def build_block_local(

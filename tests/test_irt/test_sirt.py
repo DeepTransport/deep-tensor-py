@@ -13,12 +13,41 @@ torch.manual_seed(0)
 
 
 class TestSIRT(unittest.TestCase):
-    """Verifies that the Rosenblatt transport and inverse Rosenblatt
-    transport methods of a SIRT are actually inverses of one another 
-    using a model of an OU process.
-    """
+
+    def test_eval_core_213(self):
+        """Verifies that the eval_oned_core_213 method is working as 
+        intended.
+        """
+
+        poly = dt.Lagrange1(num_elems=2)
+
+        A = torch.tensor([[[1.0, 2.0], 
+                           [3.0, 1.0], 
+                           [1.0, 4.0]], 
+                          [[3.0, 2.0], 
+                           [1.0, 2.0],
+                           [2.0, 3.0]]])
+
+        ls = torch.tensor([-0.5, 0.0, 0.5])
+
+        G = dt.TTSIRT.eval_oned_core_213(poly, A, ls)
+
+        G_true = torch.tensor([[2.0, 1.5],
+                               [2.0, 2.0],
+                               [3.0, 1.0],
+                               [1.0, 2.0],
+                               [2.0, 2.5],
+                               [1.5, 2.5]])
+
+        self.assertTrue(G.shape == torch.Size([6, 2]))
+        self.assertTrue((G-G_true).max().abs() < 1e-8)
+        return
 
     def test_ou_sirt(self):
+        """Verifies that the Rosenblatt transport and inverse 
+        Rosenblatt transport methods of a SIRT are actually inverses of 
+        one another using a model of an OU process.
+        """
 
         polys = [
             dt.Legendre(order=40),
@@ -78,3 +107,7 @@ class TestSIRT(unittest.TestCase):
                 self.assertTrue(transform_error < 1e-8)
         
         return
+
+
+if __name__ == "__main__":
+    unittest.main()

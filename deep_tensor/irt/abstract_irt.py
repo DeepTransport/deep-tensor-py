@@ -271,8 +271,6 @@ class AbstractIRT(abc.ABC):
             The negative log of the approximation to the target density 
             evaluated at each sample in xs.
 
-        TODO: check this one with TC.
-
         """
         indices = self.get_transform_indices(xs.shape[1])
         ls, dldxs = self.approx.bases.approx2local(xs, indices)
@@ -463,7 +461,6 @@ class AbstractIRT(abc.ABC):
             The generated samples.
         
         """
-
         us = torch.rand(n, self.approx.bases.dim)
         rs = self.eval_irt_nograd(us)
         return rs 
@@ -483,7 +480,6 @@ class AbstractIRT(abc.ABC):
             The generated samples.
 
         """
-
         S = torch.quasirandom.SobolEngine(dimension=self.approx.bases.dim)
         us = S.draw(n)
         rs = self.eval_irt_nograd(us)
@@ -497,7 +493,6 @@ class AbstractIRT(abc.ABC):
         associated with the approximation to the target density 
         function.
         """
-        
         self._tau = tau
         self._z = self.z_func + tau
         return

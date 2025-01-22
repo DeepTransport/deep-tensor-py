@@ -385,11 +385,11 @@ class TTSIRT(AbstractIRT):
         self._z = self.z_func + self.tau
         return
     
+    @staticmethod
     def eval_oned_core_213(
-        self, 
         poly_k: Basis1D, 
         A_k: torch.Tensor, 
-        xs: torch.Tensor 
+        ls: torch.Tensor 
     ) -> torch.Tensor:
         """Evaluates the kth tensor core at a given set of x values.
 
@@ -399,26 +399,27 @@ class TTSIRT(AbstractIRT):
             The basis functions associated with the current dimension.
         A_k:
             The coefficient tensor associated with the current core.
-        xs: 
+        ls: 
             A vector of points at which to evaluate the current core.
 
         Returns
         -------
         G_k:
             A matrix of dimension r_{k-1}n_{k} * r_{k}, corresponding 
-            to evaluations of the kth core at each value of xs stacked 
+            to evaluations of the kth core at each value of ls stacked 
             on top of one another.
         
         """
         
         r_p, n_k, r_k = A_k.shape
-        n_x = xs.numel()
+        n_l = ls.numel()
 
-        coeffs = A_k.permute(2, 0, 1).reshape(r_p * r_k, n_k).T
-        G_k = (poly_k.eval_radon(coeffs, xs).T
-               .reshape(r_k, r_p, n_x)
+        coeffs = A_k.permute(2, 0, 1).reshape(r_k * r_p, n_k).T
+
+        G_k = (poly_k.eval_radon(coeffs, ls).T
+               .reshape(r_k, r_p, n_l)
                .swapdims(1, 2)
-               .reshape(r_k, r_p * n_x).T)
+               .reshape(r_k, r_p * n_l).T)
         return G_k
         
     def eval_oned_core_213_deriv(
@@ -430,8 +431,8 @@ class TTSIRT(AbstractIRT):
 
         raise NotImplementedError()
 
+    @staticmethod
     def eval_oned_core_231(
-        self, 
         poly: Basis1D, 
         A_k: torch.Tensor, 
         x: torch.Tensor
