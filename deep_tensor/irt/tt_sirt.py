@@ -76,10 +76,6 @@ class TTSIRT(AbstractIRT):
         self.order = None 
         return
 
-    @property
-    def dim(self) -> int:
-        return self.bases.dim
-
     @property 
     def oned_cdfs(self) -> dict[int, CDF1D]:
         return self._oned_cdfs
@@ -461,7 +457,7 @@ class TTSIRT(AbstractIRT):
         n_l = ls.numel()
 
         coeffs = A_k.swapdims(1, 2).reshape(r_p * r_k, n_k).T
-        
+
         G_k = (poly.eval_radon(coeffs, ls).T
                .reshape(r_p, r_k, n_l)
                .swapdims(1, 2)
