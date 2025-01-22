@@ -7,7 +7,7 @@ from ..approx_bases import ApproxBases
 from ..directions import Direction
 from ..input_data import InputData
 from ..options import TTOptions
-from ..polynomials import Basis1D, CDF1D, construct_cdf
+from ..polynomials import CDF1D, construct_cdf
 from ..tt_data import TTData
 from ..tt_func import TTFunc
 from ..tools import reshape_matlab

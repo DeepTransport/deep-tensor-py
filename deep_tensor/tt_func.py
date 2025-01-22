@@ -67,7 +67,6 @@ class TTFunc():
         self.l2_err = torch.inf
         self.linf_err = torch.inf
         
-        # self.cross(target_func)
         return
         
     @property 
@@ -943,10 +942,6 @@ class TTFunc():
         fls:
             The value of the FTT approximation to the target function
             at each point in ls.
-
-        TODO: figure out exactly what's going on in here (I think 
-        ultimately it just takes the product of all the cores and basis 
-        functions).
             
         """
         if direction == Direction.FORWARD:
