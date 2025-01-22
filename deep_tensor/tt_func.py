@@ -384,8 +384,8 @@ class TTFunc():
         
         """
 
-        num_left = 1 if ls_left.numel() == 0 else ls_left.shape[0]
-        num_right = 1 if ls_right.numel() == 0 else ls_right.shape[0]
+        n_left = 1 if ls_left.numel() == 0 else ls_left.shape[0]
+        n_right = 1 if ls_right.numel() == 0 else ls_right.shape[0]
 
         poly = self.bases.polys[k]
         nodes = poly.nodes[:, None]
@@ -395,7 +395,7 @@ class TTFunc():
         if ls_left.numel() == 0:
 
             ls = torch.hstack((
-                nodes.repeat_interleave(num_right, dim=0),
+                nodes.repeat_interleave(n_right, dim=0),
                 ls_right.repeat(poly.cardinality, 1)
             ))
 
@@ -403,24 +403,24 @@ class TTFunc():
 
             ls = torch.hstack((
                 ls_left.repeat_interleave(poly.cardinality, dim=0),
-                nodes.repeat(num_left, 1)
+                nodes.repeat(n_left, 1)
             ))
 
         else:
 
             ls = torch.hstack((
-                ls_left.repeat_interleave(poly.cardinality * num_right, dim=0),
-                nodes.repeat_interleave(num_right, dim=0).repeat(num_left, 1),
-                ls_right.repeat(num_left * poly.cardinality, 1)
+                ls_left.repeat_interleave(poly.cardinality * n_right, dim=0),
+                nodes.repeat_interleave(n_right, dim=0).repeat(n_left, 1),
+                ls_right.repeat(n_left * poly.cardinality, 1)
             ))
         
-        F_k = self.target_func(ls).reshape(num_left, poly.cardinality, num_right)
+        F_k = self.target_func(ls).reshape(n_left, poly.cardinality, n_right)
 
         # TODO: could be a separate method eventually
         if isinstance(poly, Spectral): 
-            F_k = F_k.permute(2, 0, 1).reshape(num_left * num_right, -1).T
+            F_k = F_k.permute(2, 0, 1).reshape(n_left * n_right, -1).T
             F_k = poly.node2basis @ F_k
-            F_k = F_k.T.reshape(num_right, num_left, -1).permute(1, 2, 0)
+            F_k = F_k.T.reshape(n_right, n_left, -1).permute(1, 2, 0)
 
         self.num_eval += ls.shape[0]
         return F_k
