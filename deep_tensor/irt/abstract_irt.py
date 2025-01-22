@@ -92,6 +92,10 @@ class AbstractIRT(abc.ABC):
         """
         return
 
+    @property
+    def dim(self) -> int:
+        return self.bases.dim
+
     @abc.abstractmethod
     def potential2density(
         self,
@@ -461,7 +465,7 @@ class AbstractIRT(abc.ABC):
             The generated samples.
         
         """
-        us = torch.rand(n, self.approx.bases.dim)
+        us = torch.rand(n, self.dim)
         rs = self.eval_irt_nograd(us)
         return rs 
     
@@ -480,7 +484,7 @@ class AbstractIRT(abc.ABC):
             The generated samples.
 
         """
-        S = torch.quasirandom.SobolEngine(dimension=self.approx.bases.dim)
+        S = torch.quasirandom.SobolEngine(dimension=self.dim)
         us = S.draw(n)
         rs = self.eval_irt_nograd(us)
         return rs
