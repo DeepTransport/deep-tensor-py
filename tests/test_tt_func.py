@@ -1,6 +1,7 @@
 import unittest
 
 import torch
+from torch.linalg import norm
 
 import deep_tensor as dt
 
@@ -48,3 +49,60 @@ class TestSIRT(unittest.TestCase):
         self.assertTrue((G_213-G_213_true).max().abs() < 1e-8)
         self.assertTrue((G_231-G_231_true).max().abs() < 1e-8)
         return
+    
+    def test_eval_block(self):
+        """Verifies that eval_block is working as intended (when 
+        evaluating the marginal PDF).
+        """
+
+        dummy_func = lambda _: 1.0
+
+        poly = dt.Lagrange1(num_elems=2)
+        domain = dt.BoundedDomain()
+        dim = 3
+        bases = dt.ApproxBases(poly, domain, dim)
+
+        tt_func = dt.TTFunc(
+            dummy_func, 
+            bases, 
+            options=dt.TTOptions(),
+            input_data=dt.InputData()
+        )
+
+        A_0 = torch.tensor([[[1.0, 2.0], 
+                             [2.0, 2.0], 
+                             [1.0, 3.0]]])
+        A_1 = torch.tensor([[[1.0, 2.0], 
+                             [3.0, 1.0], 
+                             [1.0, 4.0]], 
+                            [[3.0, 2.0], 
+                             [1.0, 2.0],
+                             [2.0, 3.0]]])
+        A_2 = torch.tensor([[[2.0], 
+                             [3.0], 
+                             [2.0]], 
+                            [[4.0], 
+                             [1.0], 
+                             [2.0]]])
+
+        tt_func.data.cores = {
+            0: A_0,
+            1: A_1,
+            2: A_2
+        }
+
+        ls_marg = torch.tensor([[-0.5, -0.5, -0.5],
+                                [-0.5,  0.0,  0.5]])
+        
+        fls_forward = tt_func.eval_block(ls_marg, dt.Direction.FORWARD)
+        fls_backward = tt_func.eval_block(ls_marg, dt.Direction.BACKWARD)
+
+        fls_true = torch.tensor([33.1250, 24.5])
+
+        self.assertTrue(norm(fls_forward-fls_true) < 1e-8)
+        self.assertTrue(norm(fls_backward-fls_true) < 1e-8)
+        return 
+
+
+if __name__ == "__main__":
+    unittest.main()
