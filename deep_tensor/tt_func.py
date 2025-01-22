@@ -1061,22 +1061,8 @@ class TTFunc():
 
         return max_iters or max_error_tol or l2_error_tol
 
-    def cross(
-        self, 
-        #target_func: Callable[[torch.Tensor], torch.Tensor]
-    ) -> None:
-        """Cross iterations for building the tensor train.
-
-        Parameters
-        ----------
-        func: 
-            Returns the target function evaluated at a given point in 
-            the reference domain.
-        
-        Returns 
-        -------
-        None
-        
+    def cross(self) -> None:
+        """Builds the FTT using cross iterations.
         """
 
         self._print_info_header()
@@ -1101,15 +1087,10 @@ class TTFunc():
             
             if self.options.tt_method == "fixed_rank":
                 self._compute_cross_iter_fixed_rank(self.target_func, indices)
-            
             elif self.options.tt_method == "random":
                 self._compute_cross_iter_random(self.target_func, indices)
-
             elif self.options.tt_method == "amen":
                 self._compute_cross_iter_amen(self.target_func, indices)
-            
-            else: 
-                raise Exception("Unknown TT method.")
 
             als_iter += 1
             finished = self.is_finished(als_iter, indices)
