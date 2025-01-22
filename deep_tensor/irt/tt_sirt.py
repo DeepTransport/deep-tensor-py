@@ -185,7 +185,7 @@ class TTSIRT(AbstractIRT):
             num_nodes = self.oned_cdfs[k].cardinality
 
             # Evaluate the current core at each node of the current CDF
-            G_ks = self.eval_oned_core_213(
+            G_ks = self.approx.eval_oned_core_213(
                 self.approx.bases.polys[k], 
                 self.Bs[k], 
                 self.oned_cdfs[k].nodes
@@ -202,7 +202,7 @@ class TTSIRT(AbstractIRT):
                 zs[:, k]
             )
 
-            T2 = self.eval_oned_core_213(
+            T2 = self.approx.eval_oned_core_213(
                 self.approx.bases.polys[k], 
                 self.approx.data.cores[k], 
                 ls[:, k]
@@ -244,7 +244,7 @@ class TTSIRT(AbstractIRT):
             rank_k = self.approx.data.cores[k].shape[-1]
             num_nodes = self.oned_cdfs[k].cardinality
 
-            T1 = self.eval_oned_core_213(
+            T1 = self.approx.eval_oned_core_213(
                 self.approx.bases.polys[k], 
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
@@ -261,7 +261,7 @@ class TTSIRT(AbstractIRT):
                 zs[:, k_ind]
             )
 
-            T2 = self.eval_oned_core_231(
+            T2 = self.approx.eval_oned_core_231(
                 self.approx.bases.polys[k], 
                 self.approx.data.cores[k],
                 rs[:, k_ind]
@@ -381,99 +381,6 @@ class TTSIRT(AbstractIRT):
         self._z = self.z_func + self.tau
         return
     
-    @staticmethod
-    def eval_oned_core_213(
-        poly_k: Basis1D, 
-        A_k: torch.Tensor, 
-        ls: torch.Tensor 
-    ) -> torch.Tensor:
-        """Evaluates the kth tensor core at a given set of values.
-
-        Parameters
-        ----------
-        poly_k:
-            The basis functions associated with the current dimension.
-        A_k:
-            The coefficient tensor associated with the current core.
-        ls: 
-            A vector of points at which to evaluate the current core.
-
-        Returns
-        -------
-        G_k:
-            A matrix of dimension r_{k-1}n_{k} * r_{k}, corresponding 
-            to evaluations of the kth core at each value of ls stacked 
-            on top of one another.
-        
-        """
-        
-        r_p, n_k, r_k = A_k.shape
-        n_l = ls.numel()
-
-        coeffs = A_k.permute(2, 0, 1).reshape(r_k * r_p, n_k).T
-
-        G_k = (poly_k.eval_radon(coeffs, ls).T
-               .reshape(r_k, r_p, n_l)
-               .swapdims(1, 2)
-               .reshape(r_k, r_p * n_l).T)
-        return G_k
-        
-    def eval_oned_core_213_deriv(
-        self, 
-        poly: Basis1D, 
-        core: torch.Tensor, 
-        xs: torch.Tensor 
-    ) -> torch.Tensor:
-
-        raise NotImplementedError()
-
-    @staticmethod
-    def eval_oned_core_231(
-        poly: Basis1D, 
-        A_k: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
-        """Evaluates the kth tensor core at a given set of values.
-
-        Parameters
-        ----------
-        poly_k:
-            The basis functions associated with the current dimension.
-        A_k:
-            The coefficient tensor associated with the current core.
-        ls: 
-            A vector of points at which to evaluate the current core.
-
-        Returns
-        -------
-        G_k:
-            A matrix of dimension r_{k}n_{k} * r_{k-1}, corresponding 
-            to evaluations of the kth core at each value of ls stacked 
-            on top of one another.
-        
-        """
-        
-        r_p, n_k, r_k = A_k.shape
-        n_l = ls.numel()
-
-        coeffs = A_k.swapdims(1, 2).reshape(r_p * r_k, n_k).T
-
-        G_k = (poly.eval_radon(coeffs, ls).T
-               .reshape(r_p, r_k, n_l)
-               .swapdims(1, 2)
-               .reshape(r_p, r_k * n_l).T)
-        return G_k
-    
-    def eval_oned_core_231_deriv(
-        self, 
-        poly: Basis1D,
-        core: torch.Tensor,
-        xs: torch.Tensor
-    ) -> torch.Tensor:
-        """TODO: write docstring."""
-
-        raise NotImplementedError()
-    
     def eval_potential_local(
         self, 
         ls: torch.Tensor
@@ -545,7 +452,7 @@ class TTSIRT(AbstractIRT):
                 rank_k = self.approx.data.cores[k].shape[-1]
                 num_nodes = self.oned_cdfs[k].cardinality
 
-                T1 = self.eval_oned_core_213(
+                T1 = self.approx.eval_oned_core_213(
                     self.bases.polys[k],
                     self.Bs[k],
                     self.oned_cdfs[k].nodes
@@ -560,7 +467,7 @@ class TTSIRT(AbstractIRT):
                 zs[:, k] = self.oned_cdfs[k].eval_cdf(pdf_vals+self.tau, ls[:, k])
 
                 # Evaluate the updated basis function
-                T2 = self.eval_oned_core_213(
+                T2 = self.approx.eval_oned_core_213(
                     self.bases.polys[k], 
                     self.approx.data.cores[k], 
                     ls[:, k]
@@ -591,7 +498,7 @@ class TTSIRT(AbstractIRT):
                 rank_k = self.approx.data.cores[k].shape[-1]
                 num_nodes = self.oned_cdfs[k].cardinality
 
-                T1 = self.eval_oned_core_213(
+                T1 = self.approx.eval_oned_core_213(
                     self.bases.polys[k],
                     self.Bs[k],
                     self.oned_cdfs[k].nodes
@@ -603,7 +510,7 @@ class TTSIRT(AbstractIRT):
 
                 zs[:, k_ind] = self.oned_cdfs[k].eval_cdf(pk + self.tau, ls[:, k_ind])
 
-                T2 = self.eval_oned_core_231(
+                T2 = self.approx.eval_oned_core_231(
                     self.bases.polys[k], 
                     self.approx.data.cores[k],
                     ls[:, k_ind]
@@ -668,7 +575,7 @@ class TTSIRT(AbstractIRT):
                 rkm = self.approx.data.cores[k].shape[0]
                 num_nodes = self.oned_cdfs[k].cardinality
 
-                T1 = self.eval_oned_core_213(
+                T1 = self.approx.eval_oned_core_213(
                     self.approx.bases.polys[k], 
                     self.Bs[k], 
                     self.oned_cdfs[k].nodes
@@ -680,7 +587,7 @@ class TTSIRT(AbstractIRT):
 
                 rs[:, k] = self.oned_cdfs[k].invert_cdf(pk + self.tau, zs[:, k])
 
-                T2 = self.eval_oned_core_213(
+                T2 = self.approx.eval_oned_core_213(
                     self.approx.bases.polys[k], 
                     self.approx.data.cores[k], 
                     rs[:, k]
@@ -754,7 +661,7 @@ class TTSIRT(AbstractIRT):
             
             rank_p = self.approx.data.cores[k].shape[0]
             
-            T2 = self.eval_oned_core_213(
+            T2 = self.approx.eval_oned_core_213(
                 self.approx.bases.polys[k],
                 self.approx.data.cores[k],
                 ls_x[:, k]
@@ -774,7 +681,7 @@ class TTSIRT(AbstractIRT):
 
         rank_p = self.approx.data.cores[dim_x-1].shape[0]
 
-        T2 = self.eval_oned_core_213(
+        T2 = self.approx.eval_oned_core_213(
             self.approx.bases.polys[dim_x-1], 
             self.Bs[dim_x-1], 
             ls_x[:, dim_x-1]
@@ -792,7 +699,7 @@ class TTSIRT(AbstractIRT):
         frl_m = B @ T2
         fm = frl_m.square().sum(dim=1)
         
-        T2 = self.eval_oned_core_213(
+        T2 = self.approx.eval_oned_core_213(
             self.approx.bases.polys[dim_x-1], 
             self.approx.data.cores[dim_x-1], 
             ls_x[:, dim_x-1]
@@ -808,7 +715,7 @@ class TTSIRT(AbstractIRT):
             rank_p = self.approx.data.cores[k].shape[0]
             num_nodes = self.oned_cdfs[k].nodes.numel()
 
-            T1 = self.eval_oned_core_213(
+            T1 = self.approx.eval_oned_core_213(
                 self.approx.bases.polys[k], 
                 self.Bs[k], 
                 self.oned_cdfs[k].nodes
@@ -822,7 +729,7 @@ class TTSIRT(AbstractIRT):
 
             ls_y[:, j] = self.oned_cdfs[k].invert_cdf(pk+self.tau, zs[:, j])
 
-            T2 = self.eval_oned_core_213(
+            T2 = self.approx.eval_oned_core_213(
                 self.approx.bases.polys[k], 
                 self.approx.data.cores[k],
                 ls_y[:, j]
@@ -864,7 +771,7 @@ class TTSIRT(AbstractIRT):
             k = dim_z + j
             rank_k = self.approx.data.cores[k].shape[-1]
             
-            T2 = self.eval_oned_core_231(
+            T2 = self.approx.eval_oned_core_231(
                 self.approx.bases.polys[k],
                 self.approx.data.cores[k],
                 ls_x[:, j]
@@ -881,7 +788,7 @@ class TTSIRT(AbstractIRT):
 
         rank_k = self.approx.data.cores[dim_z].shape[-1]
 
-        T2 = self.eval_oned_core_231(
+        T2 = self.approx.eval_oned_core_231(
             self.approx.bases.polys[dim_z], 
             self.Bs[dim_z], 
             ls_x[:, 0]
@@ -897,7 +804,7 @@ class TTSIRT(AbstractIRT):
         frg_m = T2.T @ B
         fm = frg_m.square().sum(dim=0)
         
-        T2 = self.eval_oned_core_231(
+        T2 = self.approx.eval_oned_core_231(
             self.approx.bases.polys[dim_z], 
             self.approx.data.cores[dim_z], 
             ls_x[:, 0]
@@ -912,7 +819,7 @@ class TTSIRT(AbstractIRT):
             num_nodes = self.oned_cdfs[k].nodes.numel()
 
             T1 = reshape_matlab(
-                self.eval_oned_core_213(
+                self.approx.eval_oned_core_213(
                     self.approx.bases.polys[k], 
                     self.Bs[k], 
                     self.oned_cdfs[k].nodes
@@ -927,7 +834,7 @@ class TTSIRT(AbstractIRT):
 
             ls_y[:, k] = self.oned_cdfs[k].invert_cdf(pk+self.tau, zs[:, k])
 
-            T2 = self.eval_oned_core_231(
+            T2 = self.approx.eval_oned_core_231(
                 self.approx.bases.polys[k], 
                 self.approx.data.cores[k],
                 ls_y[:, k]

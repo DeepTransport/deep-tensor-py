@@ -723,6 +723,99 @@ class TTFunc():
 
         return interp_x
 
+    @staticmethod
+    def eval_oned_core_213(
+        poly_k: Basis1D, 
+        A_k: torch.Tensor, 
+        ls: torch.Tensor 
+    ) -> torch.Tensor:
+        """Evaluates the kth tensor core at a given set of values.
+
+        Parameters
+        ----------
+        poly_k:
+            The basis functions associated with the current dimension.
+        A_k:
+            The coefficient tensor associated with the current core.
+        ls: 
+            A vector of points at which to evaluate the current core.
+
+        Returns
+        -------
+        G_k:
+            A matrix of dimension r_{k-1}n_{k} * r_{k}, corresponding 
+            to evaluations of the kth core at each value of ls stacked 
+            on top of one another.
+        
+        """
+        
+        r_p, n_k, r_k = A_k.shape
+        n_l = ls.numel()
+
+        coeffs = A_k.permute(2, 0, 1).reshape(r_k * r_p, n_k).T
+
+        G_k = (poly_k.eval_radon(coeffs, ls).T
+               .reshape(r_k, r_p, n_l)
+               .swapdims(1, 2)
+               .reshape(r_k, r_p * n_l).T)
+        return G_k
+
+    def eval_oned_core_213_deriv(
+        self, 
+        poly: Basis1D, 
+        core: torch.Tensor, 
+        xs: torch.Tensor 
+    ) -> torch.Tensor:
+
+        raise NotImplementedError()
+
+    @staticmethod
+    def eval_oned_core_231(
+        poly: Basis1D, 
+        A_k: torch.Tensor, 
+        ls: torch.Tensor
+    ) -> torch.Tensor:
+        """Evaluates the kth tensor core at a given set of values.
+
+        Parameters
+        ----------
+        poly_k:
+            The basis functions associated with the current dimension.
+        A_k:
+            The coefficient tensor associated with the current core.
+        ls: 
+            A vector of points at which to evaluate the current core.
+
+        Returns
+        -------
+        G_k:
+            A matrix of dimension r_{k}n_{k} * r_{k-1}, corresponding 
+            to evaluations of the kth core at each value of ls stacked 
+            on top of one another.
+        
+        """
+        
+        r_p, n_k, r_k = A_k.shape
+        n_l = ls.numel()
+
+        coeffs = A_k.swapdims(1, 2).reshape(r_p * r_k, n_k).T
+
+        G_k = (poly.eval_radon(coeffs, ls).T
+               .reshape(r_p, r_k, n_l)
+               .swapdims(1, 2)
+               .reshape(r_p, r_k * n_l).T)
+        return G_k
+    
+    def eval_oned_core_231_deriv(
+        self, 
+        poly: Basis1D,
+        core: torch.Tensor,
+        xs: torch.Tensor
+    ) -> torch.Tensor:
+        """TODO: write docstring."""
+
+        raise NotImplementedError()
+
     def eval(self, xs: torch.Tensor) -> torch.Tensor:
         """Evaluates the approximated function at a set of points in 
         the approximation domain.
@@ -802,6 +895,7 @@ class TTFunc():
 
                 rank_p, num_nodes, rank_k = self.data.cores[k].shape
 
+                # TODO: replace with eval_oned_core_213
                 A_k = (self.data.cores[k]
                        .permute(2, 0, 1)
                        .reshape(rank_p * rank_k, num_nodes).T)
