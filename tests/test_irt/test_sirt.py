@@ -30,17 +30,27 @@ class TestSIRT(unittest.TestCase):
 
         ls = torch.tensor([-0.5, 0.0, 0.5])
 
-        G = dt.TTSIRT.eval_oned_core_213(poly, A, ls)
+        G_213 = dt.TTSIRT.eval_oned_core_213(poly, A, ls)
+        G_231 = dt.TTSIRT.eval_oned_core_231(poly, A, ls)
 
-        G_true = torch.tensor([[2.0, 1.5],
-                               [2.0, 2.0],
-                               [3.0, 1.0],
-                               [1.0, 2.0],
-                               [2.0, 2.5],
-                               [1.5, 2.5]])
+        G_213_true = torch.tensor([[2.0, 1.5],
+                                   [2.0, 2.0],
+                                   [3.0, 1.0],
+                                   [1.0, 2.0],
+                                   [2.0, 2.5],
+                                   [1.5, 2.5]])
+    
+        G_231_true = torch.tensor([[2.0, 2.0],
+                                   [1.5, 2.0],
+                                   [3.0, 1.0],
+                                   [1.0, 2.0],
+                                   [2.0, 1.5],
+                                   [2.5, 2.5]])
 
-        self.assertTrue(G.shape == torch.Size([6, 2]))
-        self.assertTrue((G-G_true).max().abs() < 1e-8)
+        self.assertTrue(G_213.shape == torch.Size([6, 2]))
+        self.assertTrue(G_231.shape == torch.Size([6, 2]))
+        self.assertTrue((G_213-G_213_true).max().abs() < 1e-8)
+        self.assertTrue((G_231-G_231_true).max().abs() < 1e-8)
         return
 
     def test_ou_sirt(self):

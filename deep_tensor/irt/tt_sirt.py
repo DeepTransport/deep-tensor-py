@@ -391,7 +391,7 @@ class TTSIRT(AbstractIRT):
         A_k: torch.Tensor, 
         ls: torch.Tensor 
     ) -> torch.Tensor:
-        """Evaluates the kth tensor core at a given set of x values.
+        """Evaluates the kth tensor core at a given set of values.
 
         Parameters
         ----------
@@ -435,9 +435,9 @@ class TTSIRT(AbstractIRT):
     def eval_oned_core_231(
         poly: Basis1D, 
         A_k: torch.Tensor, 
-        x: torch.Tensor
+        ls: torch.Tensor
     ) -> torch.Tensor:
-        """Evaluates the kth tensor core at a given set of x values.
+        """Evaluates the kth tensor core at a given set of values.
 
         Parameters
         ----------
@@ -445,25 +445,27 @@ class TTSIRT(AbstractIRT):
             The basis functions associated with the current dimension.
         A_k:
             The coefficient tensor associated with the current core.
-        xs: 
+        ls: 
             A vector of points at which to evaluate the current core.
 
         Returns
         -------
-        # G_k:
-        #     A matrix of dimension r_{k}n_{k} * r_{k-1}, corresponding 
-        #     to evaluations of the kth core at each value of xs stacked 
-        #     on top of one another.
+        G_k:
+            A matrix of dimension r_{k}n_{k} * r_{k-1}, corresponding 
+            to evaluations of the kth core at each value of ls stacked 
+            on top of one another.
+        
         """
         
         r_p, n_k, r_k = A_k.shape
-        n_x = x.numel()
+        n_l = ls.numel()
 
         coeffs = A_k.swapdims(1, 2).reshape(r_p * r_k, n_k).T
-        G_k = (poly.eval_radon(coeffs, x).T
-               .reshape(r_p, r_k, n_x)
+        
+        G_k = (poly.eval_radon(coeffs, ls).T
+               .reshape(r_p, r_k, n_l)
                .swapdims(1, 2)
-               .reshape(r_p, r_k * n_x).T)
+               .reshape(r_p, r_k * n_l).T)
         return G_k
     
     def eval_oned_core_231_deriv(
