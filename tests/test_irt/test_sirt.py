@@ -14,9 +14,9 @@ torch.manual_seed(0)
 
 class TestSIRT(unittest.TestCase):
 
-    def test_eval_core_213(self):
-        """Verifies that the eval_oned_core_213 method is working as 
-        intended.
+    def test_eval_core(self):
+        """Verifies that the eval_oned_core_213 and eval_oned_core_231 
+        methods are working as intended.
         """
 
         poly = dt.Lagrange1(num_elems=2)
