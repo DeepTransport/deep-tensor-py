@@ -389,43 +389,49 @@ class TTSIRT(AbstractIRT):
         """Evaluates the normalised (marginal) PDF represented by the 
         squared FTT.
         
-        TODO: finish docstring.
+        Parameters
+        ----------
+        ls:
+            An n * d matrix containing a set of samples from the local 
+            domain.
+
+        Returns
+        -------
+        fs:
+            The approximation to the target PDF (transformed into the 
+            local domain) at each element in ls.
         
         """
 
-        dim_z = ls.shape[1]
+        dim_l = ls.shape[1]
 
-        # d = self.approx.dim
         if self.int_dir == Direction.FORWARD:
 
-            fxl = self.approx.eval_local(ls, direction=self.int_dir)
-            
-            # fx = (fxl @ self.Rs[dim_z]).square().sum(dim=1)
+            ps = self.approx.eval_local(ls, direction=self.int_dir)
 
-            if dim_z < self.approx.dim:
-                fx = (fxl @ self.Rs[dim_z]).square().sum(dim=1)
+            if dim_l < self.approx.dim:
+                ps_sq = (ps @ self.Rs[dim_l]).square().sum(dim=1)
             else: 
-                fx = fxl.square()
+                ps_sq = ps.square()
 
-            indices = torch.arange(dim_z)
+            indices = torch.arange(dim_l)
             
         else:
 
-            fxg = self.approx.eval_local(ls, direction=self.int_dir)
+            ps = self.approx.eval_local(ls, direction=self.int_dir)
+            i_min = self.approx.dim - dim_l
 
-            i_min = self.approx.dim - dim_z
-            # fx = (self.Rs[i_min-1] @ fxg).square().sum(dim=0)
-
-            if dim_z < self.approx.dim:
-                fx = (self.Rs[i_min-1] @ fxg).square().sum(dim=0)
+            if dim_l < self.approx.dim:
+                ps_sq = (self.Rs[i_min-1] @ ps).square().sum(dim=0)
             else:
-                fx = fxg.square()
+                ps_sq = ps.square()
 
-            indices = torch.arange(self.dim-1, self.dim-dim_z-1, -1)
+            indices = torch.arange(self.dim-1, self.dim-dim_l-1, -1)
             
-        neglogwls = self.approx.bases.eval_measure_potential_local(ls, indices)  # TODO: check that indices go backwards
-        neglogfls = self.z.log() - (fx + self.tau).log() + neglogwls
-
+        # TODO: check that indices go backwards. This could be an issue 
+        # if different bases are used in each dimension.
+        neglogwls = self.approx.bases.eval_measure_potential_local(ls, indices)
+        neglogfls = self.z.log() - (ps_sq + self.tau).log() + neglogwls
         return neglogfls
 
     def eval_rt_jac_local(

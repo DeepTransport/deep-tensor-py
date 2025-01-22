@@ -316,7 +316,8 @@ class ApproxBases():
 
         neglogwls = torch.empty_like(ls)
         for i, ls_i in enumerate(ls.T):
-            neglogwls[:, i] = -self.polys[i].eval_log_measure(ls_i)
+            poly = self.polys[indices[i]]
+            neglogwls[:, i] = -poly.eval_log_measure(ls_i)
 
         return neglogwls.sum(dim=1)
 
