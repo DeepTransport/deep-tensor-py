@@ -195,8 +195,6 @@ class TTDIRT():
         rs: torch.Tensor
     ) -> torch.Tensor:
         """Returns the (square-rooted?) density we aim to approximate.
-        
-        TODO: talk to TC about MATLAB implementation of this one...
         """
         neglogwrs = bases.eval_measure_potential(rs)[0]
         log_ys = -0.5 * (neglogratios - neglogwrs)

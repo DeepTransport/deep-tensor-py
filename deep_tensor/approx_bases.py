@@ -416,8 +416,6 @@ class ApproxBases():
         gxs:
             TODO: change the naming etc here.
 
-        TODO: check this with TC (MATLAB version is different)
-
         """
         
         if indices is None:
