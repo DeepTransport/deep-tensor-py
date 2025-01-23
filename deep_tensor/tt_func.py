@@ -373,7 +373,7 @@ class TTFunc():
 
         Returns
         -------
-        F_k: 
+        H: 
             An r_{k-1} * n_{k} * r_{k} tensor containing the values of 
             the function evaluated at each interpolation point.
 
@@ -414,16 +414,16 @@ class TTFunc():
                 ls_right.repeat(n_left * poly.cardinality, 1)
             ))
         
-        F_k = self.target_func(ls).reshape(n_left, poly.cardinality, n_right)
+        H = self.target_func(ls).reshape(n_left, poly.cardinality, n_right)
 
         # TODO: could be a separate method eventually
         if isinstance(poly, Spectral): 
-            F_k = F_k.permute(2, 0, 1).reshape(n_left * n_right, -1).T
-            F_k = poly.node2basis @ F_k
-            F_k = F_k.T.reshape(n_right, n_left, -1).permute(1, 2, 0)
+            H = H.permute(2, 0, 1).reshape(n_left * n_right, -1).T
+            H = poly.node2basis @ H
+            H = H.T.reshape(n_right, n_left, -1).permute(1, 2, 0)
 
         self.num_eval += ls.shape[0]
-        return F_k
+        return H
 
     def truncate_local(
         self,
@@ -557,6 +557,7 @@ class TTFunc():
         couple = (interp_atx @ sVh).T.reshape(-1, rank)
         interp_ls = self.get_local_index(poly, interp_ls_prev, inds_k)
 
+        # Form current coefficient tensor and update next one
         if self.data.direction == Direction.FORWARD:
             A = TTFunc.fold_left(B, (r_p, n_k, rank))
             couple = couple[:r_p_next, :]
