@@ -478,6 +478,34 @@ class TTFunc():
  
         return B, A, rank
 
+    @staticmethod
+    def unfold_left(H: torch.Tensor) -> torch.Tensor:
+        """Forms the left unfolding matrix associated with a tensor.
+        """
+        r_p, n_k, r_k = H.shape
+        H = H.reshape(r_p * n_k, r_k)
+        return H
+    
+    @staticmethod 
+    def unfold_right(H: torch.Tensor) -> torch.Tensor:
+        """Forms the right unfolding matrix associated with a tensor.
+        """
+        r_p, n_k, r_k = H.shape
+        H = H.swapdims(0, 2).reshape(n_k * r_k, r_p)
+        return H
+    
+    @staticmethod 
+    def fold_left(H: torch.Tensor, newshape: Tuple) -> torch.Tensor:
+        """Computes the inverse of the unfold_left operation.
+        """
+        H = H.reshape(*newshape)
+        return H
+    
+    @staticmethod 
+    def fold_right(H: torch.Tensor, newshape: Tuple) -> torch.Tensor:
+        H = H.reshape(*reversed(newshape)).swapdims(0, 2)
+        return H
+
     def build_basis_svd(
         self, 
         F_k: torch.Tensor, 
@@ -511,23 +539,26 @@ class TTFunc():
         n_left, n_nodes, n_right = F_k.shape 
         r_0_next, n_nodes_next, r_1_next = core_next.shape
 
+        # Form unfolding matrix
         if self.data.direction == Direction.FORWARD:
-            F_k = F_k.permute(2, 0, 1).reshape(n_right, n_left * n_nodes).T
+            F_k = TTFunc.unfold_left(F_k)
             r_prev = n_left
         else: 
-            F_k = F_k.permute(0, 2, 1).reshape(n_left, n_nodes * n_right).T
+            F_k = TTFunc.unfold_right(F_k)
             r_prev = n_right
 
-        B, A, rank = self.truncate_local(F_k, k)
+        U, sVh, rank = self.truncate_local(F_k, k)
 
-        indices, core, interp_atx = self.select_points(B, k)
+        inds_k, B, interp_atx = self.select_points(U, k)
 
-        couple = reshape_matlab(interp_atx @ A, (rank, -1))
-        interp_x = self.get_local_index(poly, interp_x_prev, indices)
+        couple = (interp_atx @ sVh).T.reshape(-1, rank).T
+        interp_x = self.get_local_index(poly, interp_x_prev, inds_k)
 
         if self.data.direction == Direction.FORWARD:
             
-            core = core.T.reshape(rank, r_prev, n_nodes).permute(1, 2, 0)
+            A = TTFunc.fold_left(B, (r_prev, n_nodes, rank))
+            # A = B.T.reshape(rank, r_prev, n_nodes).permute(1, 2, 0)
+            # print((A-A_alt).abs().max())
 
             couple = couple[:, :r_0_next].T.reshape(r_0_next, -1).T
             
@@ -536,8 +567,9 @@ class TTFunc():
 
         else:
             
-            core = reshape_matlab(core, (n_nodes, r_prev, rank))
-            core = core.permute(2, 0, 1)
+            # A = reshape_matlab(B, (n_nodes, r_prev, rank))
+            # A = A.permute(2, 0, 1)
+            A = TTFunc.fold_right(B, (rank, n_nodes, r_prev))
 
             couple = couple[:, :r_1_next].T
             couple = reshape_matlab(couple, (r_1_next, -1))
@@ -546,7 +578,7 @@ class TTFunc():
             core_next = core_next @ couple 
             core_next = reshape_matlab(core_next, (r_0_next, n_nodes_next, rank))
 
-        self.data.cores[k] = core
+        self.data.cores[k] = A
         self.data.interp_ls[k] = interp_x 
         self.data.cores[k_next] = core_next
 
@@ -737,7 +769,7 @@ class TTFunc():
         r_p, n_k, r_k = A_k.shape
         n_l = ls.numel()
 
-        coeffs = A_k.permute(2, 0, 1).reshape(r_k * r_p, n_k).T
+        coeffs = A_k.permute(1, 2, 0).reshape(n_k, r_p * r_k)
 
         G_k = (poly_k.eval_radon(coeffs, ls).T
                .reshape(r_k, r_p, n_l)
