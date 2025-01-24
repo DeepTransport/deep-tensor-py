@@ -124,6 +124,11 @@ class TTSIRT(AbstractIRT):
     def z_func(self) -> torch.Tensor:
         return self._z_func
 
+    @z_func.setter
+    def z_func(self, value: torch.Tensor):
+        self._z_func = value
+        return
+
     def _marginalise_forward(self) -> None:
         """TODO: write docstring."""
 
@@ -132,17 +137,15 @@ class TTSIRT(AbstractIRT):
 
         for k in range(self.dim-1, -1, -1):
             
-            poly_k = self.approx.bases.polys[k]
-            A_k = self.approx.data.cores[k]
-            r_p, n_k, r_k = A_k.shape
+            poly = self.approx.bases.polys[k]
+            A = self.approx.data.cores[k]
 
-            B_k = A_k.swapdims(0, 2).reshape(r_k, r_p * n_k).T @ self.Rs[k+1]
-            self.Bs[k] = B_k.T.reshape(r_k, n_k, r_p).swapdims(0, 2)
-            B_k = self.Bs[k].swapdims(2, 1).reshape(r_p * r_k, n_k).T
-            C_k = poly_k.mass_r(B_k).T.reshape(r_p, n_k * r_k).T
+            self.Bs[k] = torch.einsum("ijl, lk", A, self.Rs[k+1])
+            C_k = torch.einsum("ilk, lj", self.Bs[k], poly.mass_R)
+            C_k = self.approx.unfold_right(C_k)
             self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
-        self._z_func = self.Rs[0].square().sum()
+        self.z_func = self.Rs[0].square().sum()
         return 
     
     def _marginalise_backward(self) -> None:
