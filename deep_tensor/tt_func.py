@@ -99,7 +99,8 @@ class TTFunc():
     
     @staticmethod 
     def unfold_right(H: torch.Tensor) -> torch.Tensor:
-        """Forms the right unfolding matrix associated with a tensor.
+        """Forms the (transpose of the) right unfolding matrix 
+        associated with a tensor.
         """
         r_p, n_k, r_k = H.shape
         H = H.swapdims(0, 2).reshape(n_k * r_k, r_p)
@@ -124,6 +125,8 @@ class TTFunc():
     
     @staticmethod 
     def fold_right(H: torch.Tensor, newshape: Tuple) -> torch.Tensor:
+        """Computes the inverse of the unfold_right operation.
+        """
         H = H.reshape(*reversed(newshape)).swapdims(0, 2)
         return H
 
@@ -348,9 +351,9 @@ class TTFunc():
             ls_left = self.data.interp_ls[int(k-1)]
             ls_right = self.data.interp_ls[int(k+1)]
             
-            F_k = self.build_block_local(ls_left, ls_right, k) 
-            self.errors[k] = self.get_error_local(F_k, k)
-            self.build_basis_svd(F_k, k)
+            H = self.build_block_local(ls_left, ls_right, k) 
+            self.errors[k] = self.get_error_local(H, k)
+            self.build_basis_svd(H, k)
 
         return
     
@@ -417,7 +420,7 @@ class TTFunc():
 
     def _select_points_piecewise(
         self,
-        H: torch.Tensor,
+        U: torch.Tensor,
         poly: Piecewise
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
@@ -427,31 +430,30 @@ class TTFunc():
             # interp_atx = H[indices]
 
         elif self.options.int_method == "deim":
-            indices, B = deim(H)
-            interp_atx = H[indices]
+            inds, B = deim(U)
+            U_interp = U[inds]
 
         elif self.options.int_method == "maxvol":
-            indices, B = maxvol(H)
-            interp_atx = H[indices]
+            inds, B = maxvol(U)
+            U_interp = U[inds]
         
-        if (cond := torch.linalg.cond(interp_atx)) > MAX_COND:
+        if (cond := torch.linalg.cond(U_interp)) > MAX_COND:
             msg = f"Poor condition number in interpolation: {cond}."
             warnings.warn(msg)
 
-        return indices, B, interp_atx
+        return inds, B, U_interp
     
     def _select_points_spectral(
         self,
-        H: torch.Tensor,
+        U: torch.Tensor,
         poly: Spectral
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
-        # TODO: this is probably available somewhere else.
-        rank_prev = torch.tensor(H.shape[0] / poly.cardinality)
-        rank_prev = rank_prev.round().int()
+        n_k = poly.cardinality
+        r_p = torch.tensor(U.shape[0] / n_k).round().int()
         
-        nodes = poly.basis2node @ reshape_matlab(H, (poly.cardinality, -1))
-        nodes = reshape_matlab(nodes, (poly.cardinality * rank_prev, -1))
+        nodes = poly.basis2node @ U.T.reshape(-1, n_k).T
+        nodes = nodes.T.reshape(-1, n_k * r_p).T
 
         if self.options.int_method == "qdeim":
             raise NotImplementedError()
@@ -461,15 +463,55 @@ class TTFunc():
             raise Exception(msg)
 
         elif self.options.int_method == "maxvol":
-            indices, _ = maxvol(nodes)
-            interp_atx = nodes[indices]
-            core = H @ torch.linalg.inv(interp_atx)
+            inds, _ = maxvol(nodes)
+            U_interp = nodes[inds]
+            B = U @ torch.linalg.inv(U_interp)
         
-        if (cond := torch.linalg.cond(interp_atx)) > 1e+5:
+        if (cond := torch.linalg.cond(U_interp)) > 1e+5:
             msg = f"Poor condition number in interpolation ({cond})."
             warnings.warn(msg)
 
-        return indices, core, interp_atx
+        return inds, B, U_interp
+
+    def select_points(
+        self,
+        U: torch.Tensor,
+        k: int
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Builds the cross indices.
+
+        Parameters
+        ----------
+        U:
+            The set of left singular vectors obtained from a truncated 
+            SVD of the unfolding matrix of tensor H (which contains a
+            set of evaluations of the target function at the current 
+            set of interpolation points).
+        k: 
+            The index of the current dimension.
+        
+        Returns
+        -------
+        inds:
+            The set of indices of the (approximate) maximum volume 
+            submatrix of H.
+        B:
+            The corresponding (unfolded) tensor core.
+        U_interp:
+            The nodes of the basis of the current dimension 
+            corresponding to the set of indices of the maximum volume
+            submatrix.
+        
+        """
+
+        poly = self.bases.polys[k]
+
+        if isinstance(poly, Piecewise):
+            return self._select_points_piecewise(U, poly)
+        elif isinstance(poly, Spectral):
+            return self._select_points_spectral(U, poly)
+    
+        raise Exception("Unknown polynomial encountered.")
 
     def compute_relative_error(self) -> None:
         """TODO: write docstring."""
@@ -515,68 +557,67 @@ class TTFunc():
         
         """
 
-        n_left = 1 if ls_left.numel() == 0 else ls_left.shape[0]
-        n_right = 1 if ls_right.numel() == 0 else ls_right.shape[0]
-
         poly = self.bases.polys[k]
         nodes = poly.nodes[:, None]
+
+        r_p = 1 if ls_left.numel() == 0 else ls_left.shape[0]
+        r_k = 1 if ls_right.numel() == 0 else ls_right.shape[0]
+        n_k = poly.cardinality
 
         # Form the Cartesian product of the index sets and the nodes
         # corresponding to the basis of the current dimension
         if ls_left.numel() == 0:
 
             ls = torch.hstack((
-                nodes.repeat_interleave(n_right, dim=0),
-                ls_right.repeat(poly.cardinality, 1)
+                nodes.repeat_interleave(r_k, dim=0),
+                ls_right.repeat(n_k, 1)
             ))
 
         elif ls_right.numel() == 0:
 
             ls = torch.hstack((
-                ls_left.repeat_interleave(poly.cardinality, dim=0),
-                nodes.repeat(n_left, 1)
+                ls_left.repeat_interleave(n_k, dim=0),
+                nodes.repeat(r_p, 1)
             ))
 
         else:
 
             ls = torch.hstack((
-                ls_left.repeat_interleave(poly.cardinality * n_right, dim=0),
-                nodes.repeat_interleave(n_right, dim=0).repeat(n_left, 1),
-                ls_right.repeat(n_left * poly.cardinality, 1)
+                ls_left.repeat_interleave(n_k * r_k, dim=0),
+                nodes.repeat_interleave(r_k, dim=0).repeat(r_p, 1),
+                ls_right.repeat(r_p * n_k, 1)
             ))
         
-        H = self.target_func(ls).reshape(n_left, poly.cardinality, n_right)
+        H = self.target_func(ls).reshape(r_p, n_k, r_k)
 
         # TODO: could be a separate method eventually
         if isinstance(poly, Spectral): 
-            H = H.permute(2, 0, 1).reshape(n_left * n_right, -1).T
-            H = poly.node2basis @ H
-            H = H.T.reshape(n_right, n_left, -1).permute(1, 2, 0)
+            H = torch.einsum("jl, ilk", poly.node2basis, H)
 
         self.num_eval += ls.shape[0]
         return H
 
     def truncate_local(
         self,
-        F: torch.Tensor,
+        H: torch.Tensor,
         k: int
     ) -> Tuple[torch.Tensor, torch.Tensor, int]:
         """Truncates the SVD for a given TT block, F.
 
         Parameters
         ----------
-        F:
-            An r_{k_next} * (n_{k} * r_{k_prev}) matrix containing 
-            the coefficients associated with the kth tensor core.
+        H:
+            The unfolding matrix of evaluations of the target function 
+            evaluated at a set of interpolation points.
         k:
             The index of the current dimension.
         
         Returns
         -------
-        B:
+        U:
             Matrix containing the left singular vectors of F after 
             truncation.
-        A: 
+        sVh: 
             Matrix containing the transpose of the product of the 
             singular values and the right-hand singular vectors after
             truncation. 
@@ -584,14 +625,8 @@ class TTFunc():
             The number of singular values of F that were retained.
 
         """
-
-        poly = self.bases.polys[k]
-        if isinstance(poly, Piecewise):
-            nr_prev = F.shape[0]
-            F = poly.mass_R @ F.T.reshape(-1, poly.cardinality).T
-            F = F.T.reshape(-1, nr_prev).T
             
-        U, s, Vh = torch.linalg.svd(F, full_matrices=False)
+        U, s, Vh = torch.linalg.svd(H, full_matrices=False)
             
         energies = torch.flip(s**2, dims=(0,)).cumsum(dim=0)
         tol = 0.1 * energies[-1] * self.options.local_tol ** 2
@@ -599,15 +634,10 @@ class TTFunc():
         rank = torch.sum(energies > tol)
         rank = torch.clamp(rank, 1, self.options.max_rank)
 
-        B = U[:, :rank]
-        A = (s[:rank] * Vh[:rank].T).T
-
-        if isinstance(poly, Piecewise):
-            B = B.T.reshape(-1, poly.cardinality).T
-            B = torch.linalg.solve(poly.mass_R, B)
-            B = B.T.reshape(-1, nr_prev).T
+        U = U[:, :rank]
+        sVh = (s[:rank] * Vh[:rank].T).T
  
-        return B, A, rank
+        return U, sVh, rank
 
     def build_basis_svd(
         self, 
@@ -637,32 +667,43 @@ class TTFunc():
         
         poly = self.bases.polys[k]
         interp_ls_prev = self.data.interp_ls[k_prev]
-        core_next = self.data.cores[k_next]
+        A_next = self.data.cores[k_next]
 
         r_p, n_k, r_k = H.shape 
-        r_p_next, n_k_next, r_k_next = core_next.shape
+        r_p_next, n_k_next, r_k_next = A_next.shape
 
         H = TTFunc.unfold(H, self.data.direction)
 
-        U, sVh, rank = self.truncate_local(H, k)
-        inds_k, B, interp_atx = self.select_points(U, k)
+        if isinstance(poly, Piecewise):
+            nr_k = H.shape[0]
+            H = poly.mass_R @ H.T.reshape(-1, poly.cardinality).T
+            H = H.T.reshape(-1, nr_k).T
 
-        couple = (interp_atx @ sVh).T.reshape(-1, rank)
+        U, sVh, rank = self.truncate_local(H, k)
+
+        if isinstance(poly, Piecewise):
+            U = U.T.reshape(-1, poly.cardinality).T
+            U = torch.linalg.solve(poly.mass_R, U)
+            U = U.T.reshape(-1, nr_k).T
+
+        inds_k, B, U_interp = self.select_points(U, k)
         interp_ls = self.get_local_index(poly, interp_ls_prev, inds_k)
+
+        couple = (U_interp @ sVh).T.reshape(-1, rank)
 
         # Form current coefficient tensor and update next one
         if self.data.direction == Direction.FORWARD:
             A = TTFunc.fold_left(B, (r_p, n_k, rank))
             couple = couple[:r_p_next, :]
-            core_next = torch.einsum("ji, jkl", couple, core_next)
+            A_next = torch.einsum("ji, jkl", couple, A_next)
         else:
             A = TTFunc.fold_right(B, (rank, n_k, r_k))
             couple = couple[:r_k_next, :]
-            core_next = torch.einsum("ijl, lk", core_next, couple)
+            A_next = torch.einsum("lk, ijl", couple, A_next)
 
         self.data.cores[k] = A
+        self.data.cores[k_next] = A_next
         self.data.interp_ls[k] = interp_ls 
-        self.data.cores[k_next] = core_next
         return
     
     def build_basis_amen(
@@ -777,12 +818,32 @@ class TTFunc():
 
     def get_error_local(
         self,
-        F: torch.Tensor,
+        H: torch.Tensor,
         k: torch.Tensor
     ) -> torch.Tensor:
-        """Returns the ..."""
+        """Returns the error between the current core and the tensor 
+        formed by evaluating the target function at the current set of 
+        interpolation points corresponding to the core.
+
+        Parameters
+        ----------
+        H:
+            The tensor formed by evaluating the target function at the 
+            current set of interpolation points corresponding to the 
+            kth core.
+        k:
+            The current dimension.
+
+        Returns
+        -------
+        error:
+            The greatest absolute difference between an element of H 
+            and the corresponding element of the core divided by the 
+            absolute value of the element of H.
+
+        """
         core = self.data.cores[int(k)]
-        return (core-F).abs().max() / F.abs().max()
+        return (core-H).abs().max() / H.abs().max()
 
     def get_local_index(
         self,
@@ -988,43 +1049,6 @@ class TTFunc():
                 self.build_basis_svd(self.data.cores[int(k)], k)
 
         return
-
-    def select_points(
-        self,
-        H: torch.Tensor,
-        k: int
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Builds the cross indices.
-
-        Parameters
-        ----------
-        H:
-            TODO: write this
-        k: 
-            The index of the current dimension.
-        
-        Returns
-        -------
-        indices:
-            The set of indices of the (approximate) maximum volume 
-            submatrix of H.
-        core:
-            The corresponding (unfolded) tensor core.
-        interp_atx:
-            The nodes of the basis of the current dimension 
-            corresponding to the set of indices of the maximum volume
-            submatrix.
-        
-        """
-
-        poly = self.bases.polys[k]
-
-        if isinstance(poly, Piecewise):
-            return self._select_points_piecewise(H, poly)
-        elif isinstance(poly, Spectral):
-            return self._select_points_spectral(H, poly)
-    
-        raise Exception("Unknown polynomial encountered.")
 
     def is_finished(
         self, 
