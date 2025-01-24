@@ -161,10 +161,10 @@ class TTFunc():
 
         coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
 
-        Gs = (poly.eval_radon(coeffs, ls).T
-             .reshape(r_k, r_p, n_ls)
-             .swapdims(1, 2)
-             .reshape(r_k, r_p * n_ls).T)
+        Gs = (poly.eval_radon(coeffs, ls)
+              .reshape(n_ls, r_k, r_p)
+              .swapdims(1, 2)
+              .reshape(r_p * n_ls, r_k))
         return Gs
 
     @staticmethod
@@ -199,10 +199,10 @@ class TTFunc():
 
         coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
 
-        dGdls = (poly.eval_radon(coeffs, ls).T
-                 .reshape(r_k, r_p, n_ls)
+        dGdls = (poly.eval_radon_deriv(coeffs, ls)
+                 .reshape(n_ls, r_k, r_p)
                  .swapdims(1, 2)
-                 .reshape(r_k, r_p * n_ls).T)
+                 .reshape(r_p * n_ls, r_k))
         return dGdls
 
     @staticmethod
