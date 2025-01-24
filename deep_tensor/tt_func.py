@@ -132,96 +132,153 @@ class TTFunc():
 
     @staticmethod
     def eval_oned_core_213(
-        poly_k: Basis1D, 
-        A_k: torch.Tensor, 
+        poly: Basis1D, 
+        A: torch.Tensor, 
         ls: torch.Tensor 
     ) -> torch.Tensor:
         """Evaluates the kth tensor core at a given set of values.
 
         Parameters
         ----------
-        poly_k:
+        poly:
             The basis functions associated with the current dimension.
-        A_k:
+        A:
             The coefficient tensor associated with the current core.
         ls: 
             A vector of points at which to evaluate the current core.
 
         Returns
         -------
-        G_k:
+        Gs:
             A matrix of dimension r_{k-1}n_{k} * r_{k}, corresponding 
             to evaluations of the kth core at each value of ls stacked 
             on top of one another.
         
         """
         
-        r_p, n_k, r_k = A_k.shape
-        n_l = ls.numel()
+        r_p, n_k, r_k = A.shape
+        n_ls = ls.numel()
 
-        coeffs = A_k.permute(1, 2, 0).reshape(n_k, r_p * r_k)
+        coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
 
-        G_k = (poly_k.eval_radon(coeffs, ls).T
-               .reshape(r_k, r_p, n_l)
-               .swapdims(1, 2)
-               .reshape(r_k, r_p * n_l).T)
-        return G_k
-
-    def eval_oned_core_213_deriv(
-        self, 
-        poly: Basis1D, 
-        core: torch.Tensor, 
-        xs: torch.Tensor 
-    ) -> torch.Tensor:
-
-        raise NotImplementedError()
+        Gs = (poly.eval_radon(coeffs, ls).T
+             .reshape(r_k, r_p, n_ls)
+             .swapdims(1, 2)
+             .reshape(r_k, r_p * n_ls).T)
+        return Gs
 
     @staticmethod
-    def eval_oned_core_231(
+    def eval_oned_core_213_deriv(
         poly: Basis1D, 
-        A_k: torch.Tensor, 
-        ls: torch.Tensor
+        A: torch.Tensor, 
+        ls: torch.Tensor 
     ) -> torch.Tensor:
-        """Evaluates the kth tensor core at a given set of values.
+        """Evaluates the derivative of the kth tensor core at a given 
+        set of values.
 
         Parameters
         ----------
-        poly_k:
+        poly:
             The basis functions associated with the current dimension.
-        A_k:
+        A:
             The coefficient tensor associated with the current core.
         ls: 
             A vector of points at which to evaluate the current core.
 
         Returns
         -------
-        G_k:
+        dGdls:
+            A matrix of dimension r_{k-1}n_{k} * r_{k}, corresponding 
+            to evaluations of the derivative of the kth core at each 
+            value of ls stacked on top of one another.
+        
+        """
+
+        r_p, n_k, r_k = A.shape 
+        n_ls = ls.numel()
+
+        coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
+
+        dGdls = (poly.eval_radon(coeffs, ls).T
+                 .reshape(r_k, r_p, n_ls)
+                 .swapdims(1, 2)
+                 .reshape(r_k, r_p * n_ls).T)
+        return dGdls
+
+    @staticmethod
+    def eval_oned_core_231(
+        poly: Basis1D, 
+        A: torch.Tensor, 
+        ls: torch.Tensor
+    ) -> torch.Tensor:
+        """Evaluates the kth tensor core at a given set of values.
+
+        Parameters
+        ----------
+        poly:
+            The basis functions associated with the current dimension.
+        A:
+            The coefficient tensor associated with the current core.
+        ls: 
+            A vector of points at which to evaluate the current core.
+
+        Returns
+        -------
+        Gs:
             A matrix of dimension r_{k}n_{k} * r_{k-1}, corresponding 
             to evaluations of the kth core at each value of ls stacked 
             on top of one another.
         
         """
         
-        r_p, n_k, r_k = A_k.shape
+        r_p, n_k, r_k = A.shape
         n_l = ls.numel()
 
-        coeffs = A_k.swapdims(1, 2).reshape(r_p * r_k, n_k).T
+        coeffs = A.swapdims(1, 2).reshape(r_p * r_k, n_k).T
 
-        G_k = (poly.eval_radon(coeffs, ls).T
-               .reshape(r_p, r_k, n_l)
-               .swapdims(1, 2)
-               .reshape(r_p, r_k * n_l).T)
-        return G_k
+        Gs = (poly.eval_radon(coeffs, ls).T
+              .reshape(r_p, r_k, n_l)
+              .swapdims(1, 2)
+              .reshape(r_p, r_k * n_l).T)
+        return Gs
     
     def eval_oned_core_231_deriv(
         self, 
         poly: Basis1D,
-        core: torch.Tensor,
-        xs: torch.Tensor
+        A: torch.Tensor,
+        ls: torch.Tensor
     ) -> torch.Tensor:
-        """TODO: write docstring."""
+        """Evaluates the derivative of the kth tensor core at a given 
+        set of values.
 
-        raise NotImplementedError()
+        Parameters
+        ----------
+        poly:
+            The basis functions associated with the current dimension.
+        A:
+            The coefficient tensor associated with the current core.
+        ls: 
+            A vector of points at which to evaluate the current core.
+
+        Returns
+        -------
+        dGdls:
+            A matrix of dimension r_{k}n_{k} * r_{k-1}, corresponding 
+            to evaluations of the derivative of the kth core at each 
+            value of ls stacked on top of one another.
+        
+        """
+        
+        r_p, n_k, r_k = A.shape
+        n_l = ls.numel()
+
+        coeffs = A.swapdims(1, 2).reshape(r_p * r_k, n_k).T
+
+        Gs = (poly.eval_radon_deriv(coeffs, ls).T
+              .reshape(r_p, r_k, n_l)
+              .swapdims(1, 2)
+              .reshape(r_p, r_k * n_l).T)
+        return Gs
 
     def initialise_cores(self) -> None:
         """Initialises the cores and interpolation points in each 

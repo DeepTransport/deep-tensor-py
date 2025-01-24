@@ -342,9 +342,22 @@ class AbstractIRT(abc.ABC):
         Z = R(X), where Z is the uniform random variable and X is the 
         target random variable.
 
-        TODO: finish
+        zs contains the points on the cdf correpsonding to each value 
+        of xs.
+
+        TODO: finish docstring.
         """
-        raise NotImplementedError()
+        ls, dldxs = self.approx.bases.approx2local(xs)
+        J = self.eval_rt_jac_local(ls, zs) # dzdl
+        # J - Jacobian, (d x d) x n, each d x d block is the Jabocian for X(:,j)
+        # J = J.*dbdx(:);
+        n_zs, dim_zs = zs.shape
+        for k in range(n_zs):
+            # TODO: check this.
+            inds = k * dim_zs + torch.arange(dim_zs)
+            J[:, inds] @= dldxs[k]
+
+        raise J
 
     def eval_irt_nograd(
         self, 

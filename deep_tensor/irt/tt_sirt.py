@@ -440,9 +440,68 @@ class TTSIRT(AbstractIRT):
 
     def eval_rt_jac_local(
         self, 
-        xs: torch.Tensor, 
+        ls: torch.Tensor, 
         zs: torch.Tensor
     ) -> torch.Tensor:
+        """TODO: write docstring."""
+        
+        # dim = self.dim
+        n_ls = ls.shape[0]
+
+        if ls.shape[1] != self.dim:
+            msg = ("Dimension of ls must be equal to dimension "
+                   + "of approximation.")
+            raise Exception(msg)
+
+        J = torch.zeros((self.dim, n_ls * self.dim))
+
+        if self.int_dir == Direction.FORWARD:
+            
+            block_ftt = {}
+            block_marginal = {}
+            neglogwls = {}
+            Ts = {}
+            block_ftt_d = {}
+
+            for k in range(self.dim):
+                
+                block_ftt[k] = self.approx.eval_oned_core_213(
+                    self.bases.polys[k],
+                    self.approx.data.cores[k],
+                    ls[:, k]
+                )
+
+                block_marginal[k] = self.approx.eval_oned_core_213(
+                    self.bases.polys[k], 
+                    self.Bs[k],
+                    ls[:, k]
+                )
+
+                r_p = self.approx.data.cores[k].shape[0]
+
+                Ts[k] = self.approx.eval_oned_core_213(
+                    self.approx.bases.polys[k],
+                    self.approx.data.cores[k],
+                    ls[:, k]
+                ).T.reshape(-1, r_p).T 
+
+                block_ftt_d[k] = self.approx.eval_oned_core_213_deriv(
+                    self.bases.polys[k], 
+                    self.approx.data.cores[k],
+                    ls[:, k]
+                )
+
+                neglogwls[k] = -self.bases.polys[k].eval_log_measure(ls[:, k])
+
+            Fs = {}  # accumulated FTT 
+            Gs = {}  # sum(G**2)is the marginal, each G{k} is nxr
+
+            Fs[0] = block_ftt[0]
+            Gs[0] = block_marginal[0]
+
+            for k in torch.arange(1, self.dim):
+                r_p = self.approx.data.cores[k].shape[0]
+
         raise NotImplementedError()
     
     def eval_rt_local(
@@ -879,3 +938,13 @@ class TTSIRT(AbstractIRT):
             ls_y, neglogfls_y = self._eval_cirt_local_backward(ls_x, zs)
 
         return ls_y, neglogfls_y
+    
+    def debug_jac(self, zs: torch.Tensor, direction: Direction):
+
+        if self.int_dir != direction: 
+            self.marginalise(direction)
+
+        xs = self.eval_irt_nograd(zs)[0]
+        z0 = self.eval_rt(xs)
+
+        J = self.eval_rt_jac(xs, z0)
