@@ -120,6 +120,11 @@ class TTSIRT(AbstractIRT):
     def z(self) -> torch.Tensor:
         return self._z 
     
+    @z.setter
+    def z(self, value: torch.Tensor):
+        self._z = value
+        return
+
     @property 
     def z_func(self) -> torch.Tensor:
         return self._z_func
@@ -146,6 +151,7 @@ class TTSIRT(AbstractIRT):
             self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
         self.z_func = self.Rs[0].square().sum()
+        self.z = self.z_func + self.tau
         return 
     
     def _marginalise_backward(self) -> None:
@@ -156,17 +162,16 @@ class TTSIRT(AbstractIRT):
 
         for k in range(self.dim):
             
-            poly_k = self.approx.bases.polys[k]
-            A_k = self.approx.data.cores[k]
-            r_p, n_k, r_k = A_k.shape
+            poly = self.approx.bases.polys[k]
+            A = self.approx.data.cores[k]
 
-            B_k = self.Rs[k-1] @ A_k.swapdims(0, 2).reshape(n_k * r_k, r_p).T
-            self.Bs[k] = B_k.T.reshape(r_k, n_k, r_p).swapdims(0, 2)
-            B_k = self.Bs[k].permute(2, 0, 1).reshape(r_p * r_k, n_k).T
-            C_k = poly_k.mass_r(B_k).T.reshape(r_k, n_k * r_p).T
+            self.Bs[k] = torch.einsum("il, ljk", self.Rs[k-1], A)
+            C_k = torch.einsum("jl, ilk", poly.mass_R, self.Bs[k])
+            C_k = self.approx.unfold_left(C_k)
             self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")[1]
 
-        self._z_func = self.Rs[self.dim-1].square().sum()
+        self.z_func = self.Rs[self.dim-1].square().sum()
+        self.z = self.z_func + self.tau
         return
 
     def _eval_irt_local_nograd_forward(
@@ -374,15 +379,11 @@ class TTSIRT(AbstractIRT):
         Updates self.Bs, self.z_func, self.z.
 
         """
-
-        self._int_dir = direction
-        
-        if self._int_dir == Direction.FORWARD:
+        self.int_dir = direction
+        if self.int_dir == Direction.FORWARD:
             self._marginalise_forward()
         else:
             self._marginalise_backward()
-        
-        self._z = self.z_func + self.tau
         return
     
     def eval_potential_local(
