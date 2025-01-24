@@ -743,7 +743,17 @@ class TTFunc():
             r_prev = n_right 
             r_next = r_1_next
 
+        if isinstance(poly, Piecewise):
+            nr_k = F.shape[0]
+            F = poly.mass_R @ F.T.reshape(-1, poly.cardinality).T
+            F = F.T.reshape(-1, nr_k).T    
+
         B, A, rank = self.truncate_local(F, k)
+
+        if isinstance(poly, Piecewise):
+            B = B.T.reshape(-1, poly.cardinality).T
+            B = torch.linalg.solve(poly.mass_R, B)
+            B = B.T.reshape(-1, nr_k).T
 
         if self.data.direction == Direction.FORWARD:
             
