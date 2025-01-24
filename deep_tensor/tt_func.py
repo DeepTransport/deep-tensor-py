@@ -89,6 +89,137 @@ class TTFunc():
         n *= self.dim
         return n
 
+    @staticmethod
+    def unfold_left(H: torch.Tensor) -> torch.Tensor:
+        """Forms the left unfolding matrix associated with a tensor.
+        """
+        r_p, n_k, r_k = H.shape
+        H = H.reshape(r_p * n_k, r_k)
+        return H
+    
+    @staticmethod 
+    def unfold_right(H: torch.Tensor) -> torch.Tensor:
+        """Forms the right unfolding matrix associated with a tensor.
+        """
+        r_p, n_k, r_k = H.shape
+        H = H.swapdims(0, 2).reshape(n_k * r_k, r_p)
+        return H
+    
+    @staticmethod 
+    def unfold(H: torch.Tensor, direction: Direction) -> torch.Tensor:
+        """Unfolds a tensor.
+        """
+        if direction == Direction.FORWARD:
+            H = TTFunc.unfold_left(H)
+        else: 
+            H = TTFunc.unfold_right(H)
+        return H
+    
+    @staticmethod 
+    def fold_left(H: torch.Tensor, newshape: Tuple) -> torch.Tensor:
+        """Computes the inverse of the unfold_left operation.
+        """
+        H = H.reshape(*newshape)
+        return H
+    
+    @staticmethod 
+    def fold_right(H: torch.Tensor, newshape: Tuple) -> torch.Tensor:
+        H = H.reshape(*reversed(newshape)).swapdims(0, 2)
+        return H
+
+    @staticmethod
+    def eval_oned_core_213(
+        poly_k: Basis1D, 
+        A_k: torch.Tensor, 
+        ls: torch.Tensor 
+    ) -> torch.Tensor:
+        """Evaluates the kth tensor core at a given set of values.
+
+        Parameters
+        ----------
+        poly_k:
+            The basis functions associated with the current dimension.
+        A_k:
+            The coefficient tensor associated with the current core.
+        ls: 
+            A vector of points at which to evaluate the current core.
+
+        Returns
+        -------
+        G_k:
+            A matrix of dimension r_{k-1}n_{k} * r_{k}, corresponding 
+            to evaluations of the kth core at each value of ls stacked 
+            on top of one another.
+        
+        """
+        
+        r_p, n_k, r_k = A_k.shape
+        n_l = ls.numel()
+
+        coeffs = A_k.permute(1, 2, 0).reshape(n_k, r_p * r_k)
+
+        G_k = (poly_k.eval_radon(coeffs, ls).T
+               .reshape(r_k, r_p, n_l)
+               .swapdims(1, 2)
+               .reshape(r_k, r_p * n_l).T)
+        return G_k
+
+    def eval_oned_core_213_deriv(
+        self, 
+        poly: Basis1D, 
+        core: torch.Tensor, 
+        xs: torch.Tensor 
+    ) -> torch.Tensor:
+
+        raise NotImplementedError()
+
+    @staticmethod
+    def eval_oned_core_231(
+        poly: Basis1D, 
+        A_k: torch.Tensor, 
+        ls: torch.Tensor
+    ) -> torch.Tensor:
+        """Evaluates the kth tensor core at a given set of values.
+
+        Parameters
+        ----------
+        poly_k:
+            The basis functions associated with the current dimension.
+        A_k:
+            The coefficient tensor associated with the current core.
+        ls: 
+            A vector of points at which to evaluate the current core.
+
+        Returns
+        -------
+        G_k:
+            A matrix of dimension r_{k}n_{k} * r_{k-1}, corresponding 
+            to evaluations of the kth core at each value of ls stacked 
+            on top of one another.
+        
+        """
+        
+        r_p, n_k, r_k = A_k.shape
+        n_l = ls.numel()
+
+        coeffs = A_k.swapdims(1, 2).reshape(r_p * r_k, n_k).T
+
+        G_k = (poly.eval_radon(coeffs, ls).T
+               .reshape(r_p, r_k, n_l)
+               .swapdims(1, 2)
+               .reshape(r_p, r_k * n_l).T)
+        return G_k
+    
+    def eval_oned_core_231_deriv(
+        self, 
+        poly: Basis1D,
+        core: torch.Tensor,
+        xs: torch.Tensor
+    ) -> torch.Tensor:
+        """TODO: write docstring."""
+
+        raise NotImplementedError()
+
     def initialise_cores(self) -> None:
         """Initialises the cores and interpolation points in each 
         dimension.
@@ -243,7 +374,7 @@ class TTFunc():
 
             self.build_basis_svd(F_full, k)
 
-        return None
+        return
     
     def _compute_cross_iter_amen(self, indices: torch.Tensor) -> None:
         
@@ -296,18 +427,18 @@ class TTFunc():
             # interp_atx = H[indices]
 
         elif self.options.int_method == "deim":
-            indices, A = deim(H)
+            indices, B = deim(H)
             interp_atx = H[indices]
 
         elif self.options.int_method == "maxvol":
-            indices, A = maxvol(H)
+            indices, B = maxvol(H)
             interp_atx = H[indices]
         
         if (cond := torch.linalg.cond(interp_atx)) > MAX_COND:
             msg = f"Poor condition number in interpolation: {cond}."
             warnings.warn(msg)
 
-        return indices, A, interp_atx
+        return indices, B, interp_atx
     
     def _select_points_spectral(
         self,
@@ -477,44 +608,6 @@ class TTFunc():
             B = B.T.reshape(-1, nr_prev).T
  
         return B, A, rank
-
-    @staticmethod
-    def unfold_left(H: torch.Tensor) -> torch.Tensor:
-        """Forms the left unfolding matrix associated with a tensor.
-        """
-        r_p, n_k, r_k = H.shape
-        H = H.reshape(r_p * n_k, r_k)
-        return H
-    
-    @staticmethod 
-    def unfold_right(H: torch.Tensor) -> torch.Tensor:
-        """Forms the right unfolding matrix associated with a tensor.
-        """
-        r_p, n_k, r_k = H.shape
-        H = H.swapdims(0, 2).reshape(n_k * r_k, r_p)
-        return H
-    
-    @staticmethod 
-    def unfold(H: torch.Tensor, direction: Direction) -> torch.Tensor:
-        """Unfolds a tensor.
-        """
-        if direction == Direction.FORWARD:
-            H = TTFunc.unfold_left(H)
-        else: 
-            H = TTFunc.unfold_right(H)
-        return H
-    
-    @staticmethod 
-    def fold_left(H: torch.Tensor, newshape: Tuple) -> torch.Tensor:
-        """Computes the inverse of the unfold_left operation.
-        """
-        H = H.reshape(*newshape)
-        return H
-    
-    @staticmethod 
-    def fold_right(H: torch.Tensor, newshape: Tuple) -> torch.Tensor:
-        H = H.reshape(*reversed(newshape)).swapdims(0, 2)
-        return H
 
     def build_basis_svd(
         self, 
@@ -727,99 +820,6 @@ class TTFunc():
             ))
 
         return interp_x
-
-    @staticmethod
-    def eval_oned_core_213(
-        poly_k: Basis1D, 
-        A_k: torch.Tensor, 
-        ls: torch.Tensor 
-    ) -> torch.Tensor:
-        """Evaluates the kth tensor core at a given set of values.
-
-        Parameters
-        ----------
-        poly_k:
-            The basis functions associated with the current dimension.
-        A_k:
-            The coefficient tensor associated with the current core.
-        ls: 
-            A vector of points at which to evaluate the current core.
-
-        Returns
-        -------
-        G_k:
-            A matrix of dimension r_{k-1}n_{k} * r_{k}, corresponding 
-            to evaluations of the kth core at each value of ls stacked 
-            on top of one another.
-        
-        """
-        
-        r_p, n_k, r_k = A_k.shape
-        n_l = ls.numel()
-
-        coeffs = A_k.permute(1, 2, 0).reshape(n_k, r_p * r_k)
-
-        G_k = (poly_k.eval_radon(coeffs, ls).T
-               .reshape(r_k, r_p, n_l)
-               .swapdims(1, 2)
-               .reshape(r_k, r_p * n_l).T)
-        return G_k
-
-    def eval_oned_core_213_deriv(
-        self, 
-        poly: Basis1D, 
-        core: torch.Tensor, 
-        xs: torch.Tensor 
-    ) -> torch.Tensor:
-
-        raise NotImplementedError()
-
-    @staticmethod
-    def eval_oned_core_231(
-        poly: Basis1D, 
-        A_k: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
-        """Evaluates the kth tensor core at a given set of values.
-
-        Parameters
-        ----------
-        poly_k:
-            The basis functions associated with the current dimension.
-        A_k:
-            The coefficient tensor associated with the current core.
-        ls: 
-            A vector of points at which to evaluate the current core.
-
-        Returns
-        -------
-        G_k:
-            A matrix of dimension r_{k}n_{k} * r_{k-1}, corresponding 
-            to evaluations of the kth core at each value of ls stacked 
-            on top of one another.
-        
-        """
-        
-        r_p, n_k, r_k = A_k.shape
-        n_l = ls.numel()
-
-        coeffs = A_k.swapdims(1, 2).reshape(r_p * r_k, n_k).T
-
-        G_k = (poly.eval_radon(coeffs, ls).T
-               .reshape(r_p, r_k, n_l)
-               .swapdims(1, 2)
-               .reshape(r_p, r_k * n_l).T)
-        return G_k
-    
-    def eval_oned_core_231_deriv(
-        self, 
-        poly: Basis1D,
-        core: torch.Tensor,
-        xs: torch.Tensor
-    ) -> torch.Tensor:
-        """TODO: write docstring."""
-
-        raise NotImplementedError()
 
     def _eval_local_forward(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the FTT approximation to the target function for 
