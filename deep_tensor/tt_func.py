@@ -954,10 +954,12 @@ class TTFunc():
         the first k variables.
         """
 
-        n_ls, dim_l = ls.shape
-        ps = torch.ones((1, 1, n_ls))
+        # TODO: maybe verify that the dimension of ls does not exceed 
+        # the dimension of the approximation
+        n_ls, dim_ls = ls.shape
+        ps = torch.ones((n_ls, 1, 1))
 
-        for k in range(min(dim_l, self.dim)):
+        for k in range(dim_ls):
 
             r_p, _, r_k = self.data.cores[k].shape
 
@@ -965,11 +967,12 @@ class TTFunc():
                 self.bases.polys[k], 
                 self.data.cores[k], 
                 ls[:, k]
-            ).reshape(n_ls, r_p, r_k).permute(1, 2, 0)
+            ).reshape(n_ls, r_p, r_k)
 
-            ps = torch.einsum("ilk, ljk -> ijk", ps, Gs)
+            ps = torch.einsum("ijl, ilk -> ijk", ps, Gs)
 
-        return ps.squeeze()
+        ps = ps.reshape(r_p*n_ls, r_k)
+        return ps
     
     def _eval_local_backward(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the FTT approximation to the target function for 
