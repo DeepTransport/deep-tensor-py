@@ -971,8 +971,8 @@ class TTFunc():
 
             ps = torch.einsum("ijl, ilk -> ijk", ps, Gs)
 
-        ps = ps.reshape(r_p*n_ls, r_k)
-        return ps
+        ps = ps.reshape(n_ls, r_k)
+        return ps.squeeze() # TODO: this could be an issue when n_ls=1
     
     def _eval_local_backward(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the FTT approximation to the target function for 
