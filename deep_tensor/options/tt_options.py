@@ -1,3 +1,6 @@
+from .verification import verify_method
+
+
 TT_METHODS = ["random", "amen", "fixed_rank"]
 INT_METHODS = ["qdeim", "deim", "maxvol"]
 
@@ -20,9 +23,8 @@ class TTOptions():
 
         tt_method = tt_method.lower()
         int_method = int_method.lower()
-
-        self._verify_method(tt_method, TT_METHODS)
-        self._verify_method(int_method, INT_METHODS)
+        verify_method(tt_method, TT_METHODS)
+        verify_method(int_method, INT_METHODS)
         
         self.max_als = max_als
         self.als_tol = als_tol
@@ -34,18 +36,4 @@ class TTOptions():
         self.tt_method = "fixed_rank" if kick_rank == 0 else tt_method
         self.int_method = int_method
         self.verbose = verbose
-        
         return
-
-    def _verify_method(
-        self,
-        method: str,
-        accepted_methods: str
-    ) -> None:
-        
-        if method in accepted_methods:
-            return 
-        
-        msg = (f"Method '{method}' not recognised. Expected one of " 
-                + ", ".join(accepted_methods) + ".")
-        raise Exception(msg)

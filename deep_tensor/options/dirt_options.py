@@ -1,3 +1,6 @@
+from .verification import verify_method
+
+
 METHODS = ["eratio", "aratio"]
 
 
@@ -12,21 +15,12 @@ class DIRTOptions():
         defensive: float=1e-8
     ):
         
-        self._verify_method(method)
-        
-        self.method = method.lower()
+        method = method.lower()
+        verify_method(method, METHODS)
+
+        self.method = method
         self.max_layers = max_layers
         self.num_samples = num_samples
         self.num_debugs = num_debugs 
         self.defensive = defensive 
-
         return
-    
-    def _verify_method(self, method: str) -> None:
-        
-        if method.lower() in METHODS:
-            return
-        
-        msg = (f"`{method}` is an invalid method. Valid "
-               + "methods are: " + ", ".join(METHODS) + ".")
-        raise Exception(msg)
