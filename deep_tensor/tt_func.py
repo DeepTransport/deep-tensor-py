@@ -701,7 +701,7 @@ class TTFunc():
         H: torch.Tensor, 
         k: torch.Tensor|int
     ) -> None:
-        """TODO: write docstring...
+        """Computes the coefficients of the kth tensor core.
         
         Parameters
         ----------
@@ -954,28 +954,20 @@ class TTFunc():
         the first k variables.
         """
 
-        n_l, dim_l = ls.shape
-        ps = torch.ones((n_l, 1))
+        n_ls, dim_l = ls.shape
+        ps = torch.ones((1, 1, n_ls))
 
         for k in range(min(dim_l, self.dim)):
 
-            r_p = self.data.cores[k].shape[0]
+            r_p, _, r_k = self.data.cores[k].shape
 
-            G_k = self.eval_oned_core_213(
-                self.bases.polys[k],
-                self.data.cores[k],
+            Gs = self.eval_oned_core_213(
+                self.bases.polys[k], 
+                self.data.cores[k], 
                 ls[:, k]
-            )
-            
-            ii = torch.arange(n_l).repeat(r_p)
-            jj = (torch.arange(r_p * n_l)
-                    .reshape(n_l, r_p).T
-                    .flatten())
-            indices = torch.vstack((ii[None, :], jj[None, :]))
-            size = (n_l, r_p * n_l)
-            B = torch.sparse_coo_tensor(indices, ps.T.flatten(), size)
+            ).reshape(n_ls, r_p, r_k).permute(1, 2, 0)
 
-            ps = B @ G_k
+            ps = torch.einsum("ilk, ljk -> ijk", ps, Gs)
 
         return ps.squeeze()
     
@@ -1165,19 +1157,15 @@ class TTFunc():
                 self._compute_cross_iter_amen(indices)
 
             als_iter += 1
-            finished = self.is_finished(als_iter, indices)
-
-            if finished: 
+            if (finished := self.is_finished(als_iter, indices)):
                 self._compute_final_block()
 
             self.compute_relative_error()
+            self._print_info(als_iter, indices)
 
             if finished:
-                self._print_info(als_iter, indices)
                 als_info(f"ALS complete.")
                 als_info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
                 return
-
             else:
-                self._print_info(als_iter, indices)
                 self.data.reverse_direction()
