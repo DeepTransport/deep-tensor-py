@@ -982,32 +982,30 @@ class TTFunc():
         the last k variables.
         """
 
-        n_l, dim_l = ls.shape
-        ps = torch.ones((n_l, 1))
+        n_ls, dim_ls = ls.shape
+        ps = torch.ones((n_ls, 1, 1))
 
-        x_inds = torch.arange(dim_l-1, -1, -1)
-        t_inds = torch.arange(self.dim-1, -1, -1)
+        inds_l = torch.arange(dim_ls-1, -1, -1)
+        inds_k = torch.arange(self.dim-1, -1, -1)
         
-        for i in range(min(dim_l, self.dim)):
+        for i in range(dim_ls):
             
-            j = int(t_inds[i])
-            r_j = self.data.cores[j].shape[-1]
+            k = int(inds_k[i])
+            r_p, _, r_k = self.data.cores[k].shape
 
-            G_k = self.eval_oned_core_231(
-                self.bases.polys[j],
-                self.data.cores[j],
-                ls[:, x_inds[i]]
-            )
+            Gs = self.eval_oned_core_231(
+                self.bases.polys[k],
+                self.data.cores[k],
+                ls[:, inds_l[i]]
+            ).reshape(n_ls, r_k, r_p)
 
-            ii = torch.arange(n_l * r_j)
-            jj = torch.arange(n_l).repeat_interleave(r_j)
-            indices = torch.vstack((ii[None, :], jj[None, :]))
-            size = (r_j * n_l, n_l)
-            B = torch.sparse_coo_tensor(indices, ps.T.flatten(), size)
+            ps = torch.einsum("ijl, ilk -> ijk", ps, Gs)
 
-            ps = G_k.T @ B
-
-        return ps.squeeze()
+        if dim_ls == self.dim:
+            return ps.squeeze()
+        
+        ps = ps.reshape(n_ls, r_p).T
+        return ps
 
     def eval_local(
         self, 
