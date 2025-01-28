@@ -43,8 +43,8 @@ class Recurr(Spectral, abc.ABC):
         basis[:, 0] = 1.0
         basis[:, 1] = self.a[0] * x + self.b[0]
         for j in range(1, self.order):
-            basis[:, j+1] = ((self.a[j] * x + self.b[j]) * basis[:, j] 
-                             - self.c[j] * basis[:, j-1])
+            basis[:, j+1] = ((self.a[j] * x + self.b[j]) * basis[:, j].clone() 
+                             - self.c[j] * basis[:, j-1].clone())
         
         return basis * self.normalising_const
         

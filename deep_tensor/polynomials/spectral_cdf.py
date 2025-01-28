@@ -216,21 +216,16 @@ class SpectralCDF(CDF1D, abc.ABC):
 
     def eval_int_deriv(
         self, 
-        pk: torch.Tensor, 
-        r: torch.Tensor
+        ps: torch.Tensor, 
+        ls: torch.Tensor
     ) -> torch.Tensor:
         """REWRITE"""
         
-        coef = self.node2basis @ pk 
+        coef = self.node2basis @ ps 
         base = self.cdf_basis2node[0] @ coef
 
-        if pk.shape[1] == 1:
-            z = self.eval_int(self, coef, r) - base 
-        else:
-            tmp = self.eval_int(coef, r)
-            z = tmp - base
-        
-        return z
+        zs = self.eval_int(coef, ls) - base
+        return zs
     
     def invert_cdf(
         self, 

@@ -242,8 +242,8 @@ class TTFunc():
               .reshape(r_p, r_k * n_l).T)
         return Gs
     
+    @staticmethod
     def eval_oned_core_231_deriv(
-        self, 
         poly: Basis1D,
         A: torch.Tensor,
         ls: torch.Tensor

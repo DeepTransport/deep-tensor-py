@@ -345,19 +345,21 @@ class AbstractIRT(abc.ABC):
         zs contains the points on the cdf correpsonding to each value 
         of xs.
 
+        J = dzdx
+
         TODO: finish docstring.
         """
         ls, dldxs = self.approx.bases.approx2local(xs)
         J = self.eval_rt_jac_local(ls, zs) # dzdl
-        # J - Jacobian, (d x d) x n, each d x d block is the Jabocian for X(:,j)
+        # J - Jacobian, (d x d) x n, each d x d block is the Jacobian for X(:,j)
         # J = J.*dbdx(:);
         n_zs, dim_zs = zs.shape
         for k in range(n_zs):
             # TODO: check this.
             inds = k * dim_zs + torch.arange(dim_zs)
-            J[:, inds] @= dldxs[k]
+            J[:, inds] *= dldxs[k]  # TODO: check whether this multiplication is being done the right way
 
-        raise J
+        return J
 
     def eval_irt_nograd(
         self, 
