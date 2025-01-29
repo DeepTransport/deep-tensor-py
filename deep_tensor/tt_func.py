@@ -90,6 +90,22 @@ class TTFunc():
         return n
 
     @staticmethod
+    def _check_sample_dim(xs: torch.Tensor, dim: int) -> None:
+        """Checks that a set of samples is two-dimensional and that the 
+        dimension does not exceed the expected dimension.
+        """
+
+        if xs.ndim != 2:
+            msg = "Samples should be two-dimensional."
+            raise Exception(msg)
+        if xs.shape[1] > dim:
+            msg = ("Dimension of samples should not exceed "
+                   + "dimension of approximation.")
+            raise Exception(msg)
+
+        return
+
+    @staticmethod
     def unfold_left(H: torch.Tensor) -> torch.Tensor:
         """Forms the left unfolding matrix associated with a tensor.
         """
@@ -571,7 +587,10 @@ class TTFunc():
         raise Exception("Unknown polynomial encountered.")
 
     def compute_relative_error(self) -> None:
-        """TODO: write docstring."""
+        """Computes the relative error between the value of the FTT 
+        approximation to the target function and the true value for the 
+        set of debugging samples.
+        """
 
         if not self.input_data.is_debug:
             return
@@ -727,7 +746,7 @@ class TTFunc():
         A_next = self.data.cores[k_next]
 
         r_p, n_k, r_k = H.shape 
-        r_p_next, n_k_next, r_k_next = A_next.shape
+        r_p_next, _, r_k_next = A_next.shape
 
         H = TTFunc.unfold(H, self.data.direction)
 
@@ -954,8 +973,7 @@ class TTFunc():
         the first k variables.
         """
 
-        # TODO: maybe verify that the dimension of ls does not exceed 
-        # the dimension of the approximation
+        self._check_sample_dim(ls, self.dim)
         n_ls, dim_ls = ls.shape
         ps = torch.ones((n_ls, 1, 1))
 

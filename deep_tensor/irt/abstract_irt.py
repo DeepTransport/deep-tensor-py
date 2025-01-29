@@ -351,8 +351,7 @@ class AbstractIRT(abc.ABC):
         """
         ls, dldxs = self.approx.bases.approx2local(xs)
         J = self.eval_rt_jac_local(ls, zs) # dzdl
-        # J - Jacobian, (d x d) x n, each d x d block is the Jacobian for X(:,j)
-        # J = J.*dbdx(:);
+
         n_zs, dim_zs = zs.shape
         for k in range(n_zs):
             # TODO: check this.

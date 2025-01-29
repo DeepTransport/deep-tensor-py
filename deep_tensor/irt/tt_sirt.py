@@ -466,6 +466,8 @@ class TTSIRT(AbstractIRT):
 
             for k in range(self.dim):
                 
+                r_p = self.approx.data.cores[k].shape[0]
+
                 block_ftt[k] = self.approx.eval_oned_core_213(
                     self.bases.polys[k],
                     self.approx.data.cores[k],
@@ -477,8 +479,6 @@ class TTSIRT(AbstractIRT):
                     self.Bs[k],
                     ls[:, k]
                 )
-
-                r_p = self.approx.data.cores[k].shape[0]
 
                 Ts[k] = self.approx.eval_oned_core_213(
                     self.approx.bases.polys[k],
@@ -524,7 +524,7 @@ class TTSIRT(AbstractIRT):
                 
                 # the diagonal
                 if j == 0:
-                    J[0, inds] = Fm[0] / self.z # TODO: make Fm[-1] = self.z
+                    J[j, inds] = Fm[j] / self.z # TODO: make Fm[-1] = self.z
                 else:
                     J[j, inds] = Fm[j] / Fm[j-1]
                 J[j, inds] *= torch.exp(-neglogwls[j])
@@ -557,7 +557,7 @@ class TTSIRT(AbstractIRT):
                         mrl = B @ mrl
 
                     # First sub, the second term, for the d(j+1)/dj term
-                    J[j+1, inds] = J[j+1, inds] - 2 * torch.sum(Gs[j]*mrl, dim=1) * zs[:, j+1]
+                    J[j+1, inds] = J[j+1, inds] - 2 * torch.sum(Gs[j] * mrl, dim=1) * zs[:, j+1]
 
                     for k in range(j+1, self.dim):
                         

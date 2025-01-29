@@ -118,16 +118,16 @@ class SpectralCDF(CDF1D, abc.ABC):
     def eval_int(
         self, 
         coef: torch.Tensor, 
-        x: torch.Tensor
+        ls: torch.Tensor
     ) -> torch.Tensor:
         
-        basis_vals = self.eval_int_basis(x)
+        basis_vals = self.eval_int_basis(ls)
 
         if coef.shape[1] == 1:
             f = (basis_vals @ coef).flatten()
             return f
 
-        if coef.shape[1] != x.numel():
+        if coef.shape[1] != ls.numel():
             raise Exception("Dimension mismatch.")
 
         # TODO: check dimension of sum
@@ -219,7 +219,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         ps: torch.Tensor, 
         ls: torch.Tensor
     ) -> torch.Tensor:
-        """REWRITE"""
+        """TODO: rewrite. zs should be renamed."""
         
         coef = self.node2basis @ ps 
         base = self.cdf_basis2node[0] @ coef
