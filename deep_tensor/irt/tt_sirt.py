@@ -1150,8 +1150,8 @@ class TTSIRT(AbstractIRT):
             self.marginalise(direction)
 
         xs = self.eval_irt_nograd(zs)[0]
-        z0 = self.eval_rt(xs)
 
+        z0 = self.eval_rt(xs)
         J = self.eval_rt_jac(xs, z0)
 
         tol = 1.0e-6
@@ -1166,8 +1166,10 @@ class TTSIRT(AbstractIRT):
         zt = self.eval_rt(ut)
         zm = self.eval_rt(um)
 
-        Jd = ( zt - zm ) / (2 * tol)
+        Jd = (zt - zm) / (2 * tol)
         Jd = Jd.T
+
+        # print(Jd.shape)
         
         print((J-Jd).abs().max())
         # print(J[:self.dim, :self.dim].diag())
@@ -1183,21 +1185,38 @@ class TTSIRT(AbstractIRT):
     
     def debug_jac_autodiff(self, zs: torch.Tensor, direction: Direction):
 
-        torch.autograd.set_detect_anomaly(True)
+        # zs = torch.rand((5, self.dim))
 
         if self.int_dir != direction: 
             self.marginalise(direction)
+
+        xs = self.eval_irt_nograd(zs)[0]
+
+        # NOTE: this actually seems to be quicker just looping over the 
+        # elements of xs
+        J: torch.Tensor = torch.autograd.functional.jacobian(self.eval_rt, xs)
+        J = J.diagonal(dim1=0, dim2=2).permute(0, 2, 1).reshape(self.dim, -1)
+
+        tol = 1.0e-6
+
+        n_xs, d_xs = xs.shape
+        dxs = torch.tile(tol * torch.eye(d_xs), (n_xs, 1))
+        xs_tiled = torch.tile(xs, (1, d_xs)).reshape(-1, d_xs)
         
-        # xs = self.eval_irt_nograd(zs)[0]
+        ut = xs_tiled + dxs
+        um = xs_tiled - dxs 
 
-        x0 = torch.rand(self.dim, requires_grad=True)
-        x0.retain_grad()
+        zt = self.eval_rt(ut)
+        zm = self.eval_rt(um)
 
-        # x0 = torch.tensor(xs[0].tolist(), requires_grad=True)
-        x0 = x0[None, :]
+        Jd = (zt - zm) / (2 * tol)
+        Jd = Jd.T
+        
+        print((J-Jd).abs().max())
 
-        zs = self.eval_rt(x0)
+        from matplotlib import pyplot as plt 
+        plt.scatter(J.flatten(), Jd.flatten())
+        plt.show()
 
-        zs[0].backward(torch.ones_like(zs[0]))
-        print(x0.grad)
+        return
 
