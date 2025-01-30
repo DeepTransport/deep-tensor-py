@@ -16,6 +16,8 @@ class TestLinearDomain(unittest.TestCase):
         return domain
 
     def test_linear_domain(self):
+        """Tests basic properties of a LinearDomain object.
+        """
 
         domain = self.setup_domain()
 
@@ -29,6 +31,9 @@ class TestLinearDomain(unittest.TestCase):
         return
     
     def test_approx2local(self):
+        """Tests the approx2local and approx2local_log_density methods 
+        of a LinearDomain object.
+        """
 
         domain = self.setup_domain()
 
@@ -40,9 +45,20 @@ class TestLinearDomain(unittest.TestCase):
 
         self.assertTrue((ls - ls_true).abs().max() < 1e-8)
         self.assertTrue((dldxs - dldxs_true).abs().max() < 1e-8)
+
+        logdldxs, logdldx2s = domain.approx2local_log_density(xs)
+
+        logdldxs_true = torch.log(dldxs_true)
+        logdldx2s_true = torch.zeros_like(xs)
+
+        self.assertTrue((logdldxs - logdldxs_true).abs().max() < 1e-8)
+        self.assertTrue((logdldx2s - logdldx2s_true).abs().max() < 1e-8)
         return 
     
     def test_local2approx(self):
+        """Tests the local2approx and local2approx_log_density methods 
+        of a LinearDomain object.
+        """
 
         domain = self.setup_domain()
 
@@ -54,4 +70,12 @@ class TestLinearDomain(unittest.TestCase):
 
         self.assertTrue((xs - xs_true).abs().max() < 1e-8)
         self.assertTrue((dxdls - dxdls_true).abs().max() < 1e-8)
+
+        logdxdls, logdxdl2s = domain.local2approx_log_density(xs)
+
+        logdxdls_true = torch.log(dxdls_true)
+        logdxdl2s_true = torch.zeros_like(ls)
+
+        self.assertTrue((logdxdls - logdxdls_true).abs().max() < 1e-8)
+        self.assertTrue((logdxdl2s - logdxdl2s_true).abs().max() < 1e-8)
         return 
