@@ -417,80 +417,6 @@ class TTFunc():
         als_info(" | ".join(diagnostics))
         return
 
-    def _compute_cross_iter_fixed_rank(self, indices: torch.Tensor) -> None:
-
-        for k in indices:
-                    
-            ls_left = self.data.interp_ls[int(k-1)]
-            ls_right = self.data.interp_ls[int(k+1)]
-            
-            H = self.build_block_local(ls_left, ls_right, k) 
-            self.errors[k] = self.get_error_local(H, k)
-            self.build_basis_svd(H, k)
-
-        return
-    
-    def _compute_cross_iter_random(self, indices: torch.Tensor) -> None:
-        
-        for k in indices:
-            
-            ls_left = self.data.interp_ls[int(k-1)].clone()
-            ls_right = self.data.interp_ls[int(k+1)].clone()
-            enrich = self.input_data.get_samples(self.options.kick_rank)
-
-            F_k = self.build_block_local(ls_left, ls_right, k)
-            self.errors[k] = self.get_error_local(F_k, k)
-
-            if self.data.direction == Direction.FORWARD:
-                F_enrich = self.build_block_local(ls_left, enrich[:, k+1:], k)
-                F_full = torch.concatenate((F_k, F_enrich), dim=2)
-            else:
-                F_enrich = self.build_block_local(enrich[:, :k], ls_right, k)
-                F_full = torch.concatenate((F_k, F_enrich), dim=0)
-
-            self.build_basis_svd(F_full, k)
-
-        return
-    
-    def _compute_cross_iter_amen(self, indices: torch.Tensor) -> None:
-        
-        for k in indices:
-            
-            ls_left = self.data.interp_ls[int(k-1)]
-            ls_right = self.data.interp_ls[int(k+1)]
-            r_left = self.data.res_x[int(k-1)]
-            r_right = self.data.res_x[int(k+1)]
-
-            # Evaluate the interpolant function at x_k nodes
-            F = self.build_block_local(ls_left, ls_right, k)
-            self.errors[k] = self.get_error_local(F, k)
-
-            # Evaluate residual function at x_k nodes
-            F_res = self.build_block_local(r_left, r_right, k)
-
-            if self.data.direction == Direction.FORWARD and k > 0:
-                F_up = self.build_block_local(ls_left, r_right, k)
-            elif self.data.direction == Direction.BACKWARD and k < self.dim-1: 
-                F_up = self.build_block_local(r_left, ls_right, k)
-            else:
-                F_up = F_res.clone()
-
-            self.build_basis_amen(F, F_res, F_up, k)
-
-        return 
-
-    def _compute_final_block(self) -> None:
-
-        if self.data.direction == Direction.FORWARD:
-            k = self.dim-1 
-        else:
-            k = 0
-
-        ls_left = self.data.interp_ls[int(k-1)]
-        ls_right = self.data.interp_ls[int(k+1)]
-        self.data.cores[k] = self.build_block_local(ls_left, ls_right, k)
-        return
-
     def _select_points_piecewise(
         self,
         U: torch.Tensor,
@@ -975,6 +901,173 @@ class TTFunc():
 
         return interp_ls
 
+    def is_finished(
+        self, 
+        als_iter: int,
+        indices: torch.Tensor
+    ) -> bool:
+        """Returns True if the maximum number of ALS iterations has 
+        been reached or the desired error tolerance is met, and False 
+        otherwise.
+        """
+        
+        max_iters = als_iter == self.options.max_als
+        max_error_tol = torch.max(self.errors[indices]) < self.options.als_tol
+        # TODO: check where l2_err actually gets updated
+        l2_error_tol = self.l2_err < self.options.als_tol
+
+        return max_iters or max_error_tol or l2_error_tol
+
+    def _compute_cross_iter_fixed_rank(
+        self, 
+        indices: torch.Tensor
+    ) -> None:
+
+        for k in indices:
+                    
+            ls_left = self.data.interp_ls[int(k-1)]
+            ls_right = self.data.interp_ls[int(k+1)]
+            
+            H = self.build_block_local(ls_left, ls_right, k) 
+            self.errors[k] = self.get_error_local(H, k)
+            self.build_basis_svd(H, k)
+
+        return
+    
+    def _compute_cross_iter_random(
+        self, 
+        indices: torch.Tensor
+    ) -> None:
+        
+        for k in indices:
+            
+            ls_left = self.data.interp_ls[int(k-1)].clone()
+            ls_right = self.data.interp_ls[int(k+1)].clone()
+            enrich = self.input_data.get_samples(self.options.kick_rank)
+
+            F_k = self.build_block_local(ls_left, ls_right, k)
+            self.errors[k] = self.get_error_local(F_k, k)
+
+            if self.data.direction == Direction.FORWARD:
+                F_enrich = self.build_block_local(ls_left, enrich[:, k+1:], k)
+                F_full = torch.concatenate((F_k, F_enrich), dim=2)
+            else:
+                F_enrich = self.build_block_local(enrich[:, :k], ls_right, k)
+                F_full = torch.concatenate((F_k, F_enrich), dim=0)
+
+            self.build_basis_svd(F_full, k)
+
+        return
+    
+    def _compute_cross_iter_amen(
+        self, 
+        indices: torch.Tensor
+    ) -> None:
+        
+        for k in indices:
+            
+            ls_left = self.data.interp_ls[int(k-1)]
+            ls_right = self.data.interp_ls[int(k+1)]
+            r_left = self.data.res_x[int(k-1)]
+            r_right = self.data.res_x[int(k+1)]
+
+            # Evaluate the interpolant function at x_k nodes
+            F = self.build_block_local(ls_left, ls_right, k)
+            self.errors[k] = self.get_error_local(F, k)
+
+            # Evaluate residual function at x_k nodes
+            F_res = self.build_block_local(r_left, r_right, k)
+
+            if self.data.direction == Direction.FORWARD and k > 0:
+                F_up = self.build_block_local(ls_left, r_right, k)
+            elif self.data.direction == Direction.BACKWARD and k < self.dim-1: 
+                F_up = self.build_block_local(r_left, ls_right, k)
+            else:
+                F_up = F_res.clone()
+
+            self.build_basis_amen(F, F_res, F_up, k)
+
+        return 
+
+    def _compute_final_block(self) -> None:
+        """Computes the final block of the FTT approximation to the 
+        target function.
+        """
+
+        if self.data.direction == Direction.FORWARD:
+            k = self.dim-1 
+        else:
+            k = 0
+
+        ls_left = self.data.interp_ls[int(k-1)]
+        ls_right = self.data.interp_ls[int(k+1)]
+        self.data.cores[k] = self.build_block_local(ls_left, ls_right, k)
+        return
+
+    def cross(self) -> None:
+        """Builds the FTT using cross iterations.
+        """
+
+        self._print_info_header()
+        als_iter = 0
+
+        if self.data.cores == {}:
+            self.data.direction = Direction.FORWARD 
+            self.initialise_cores()
+        else:
+            # Prepare for the next iteration
+            self.data.reverse_direction()
+        
+        if self.use_amen:
+            self.initialise_amen()
+
+        while True:
+
+            if self.data.direction == Direction.FORWARD:
+                indices = torch.arange(self.dim-1)
+            else:
+                indices = torch.arange(self.dim-1, 0, -1)
+            
+            if self.options.tt_method == "fixed_rank":
+                self._compute_cross_iter_fixed_rank(indices)
+            elif self.options.tt_method == "random":
+                self._compute_cross_iter_random(indices)
+            elif self.options.tt_method == "amen":
+                self._compute_cross_iter_amen(indices)
+
+            als_iter += 1
+            if (finished := self.is_finished(als_iter, indices)):
+                self._compute_final_block()
+
+            self.compute_relative_error()
+            self._print_info(als_iter, indices)
+
+            if finished:
+                als_info(f"ALS complete.")
+                als_info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
+                return
+            else:
+                self.data.reverse_direction()
+
+    def round(self):
+        """Rounds the TT cores. Applies double rounding to get back to 
+        the starting direction.
+        """
+
+        for _ in range(2):
+            
+            self.data.reverse_direction()
+
+            if self.data.direction == Direction.FORWARD:
+                indices = torch.arange(self.dim-1)
+            else:
+                indices = torch.arange(self.dim-1, 0, -1)
+
+            for k in indices:
+                self.build_basis_svd(self.data.cores[int(k)], k)
+
+        return
+    
     def _eval_local_forward(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the FTT approximation to the target function for 
         the first k variables.
@@ -1080,7 +1173,7 @@ class TTFunc():
         ls = self.bases.approx2local(xs)[0]
         ps = self.eval_local(ls, self.data.direction)
         return ps
-    
+
     def grad_reference(
         self, 
         zs: torch.Tensor
@@ -1117,85 +1210,3 @@ class TTFunc():
         reference domain (TODO: check this).
         """
         raise NotImplementedError()
-
-    def round(self):
-        """Rounds the TT cores.
-        
-        TODO: finish docstring.
-        """
-
-        # Apply double rounding to get back to the starting direction
-        for _ in range(2):
-            
-            self.data.reverse_direction()
-
-            if self.data.direction == Direction.FORWARD:
-                indices = torch.arange(self.dim-1)
-            else:
-                indices = torch.arange(self.dim-1, 0, -1)
-
-            for k in indices:
-                self.build_basis_svd(self.data.cores[int(k)], k)
-
-        return
-
-    def is_finished(
-        self, 
-        als_iter: int,
-        indices: torch.Tensor
-    ) -> bool:
-        """Returns True if the maximum number of ALS iterations has 
-        been reached or the desired error tolerance is met, and False 
-        otherwise.
-        """
-        
-        max_iters = als_iter == self.options.max_als
-        max_error_tol = torch.max(self.errors[indices]) < self.options.als_tol
-        l2_error_tol = self.l2_err < self.options.als_tol # TODO: check where l2_err actually gets updated.
-
-        return max_iters or max_error_tol or l2_error_tol
-
-    def cross(self) -> None:
-        """Builds the FTT using cross iterations.
-        """
-
-        self._print_info_header()
-        als_iter = 0
-
-        if self.data.cores == {}:
-            self.data.direction = Direction.FORWARD 
-            self.initialise_cores()
-        else:
-            # Prepare for the next iteration
-            self.data.reverse_direction()
-        
-        if self.use_amen:
-            self.initialise_amen()
-
-        while True:
-
-            if self.data.direction == Direction.FORWARD:
-                indices = torch.arange(self.dim-1)
-            else:
-                indices = torch.arange(self.dim-1, 0, -1)
-            
-            if self.options.tt_method == "fixed_rank":
-                self._compute_cross_iter_fixed_rank(indices)
-            elif self.options.tt_method == "random":
-                self._compute_cross_iter_random(indices)
-            elif self.options.tt_method == "amen":
-                self._compute_cross_iter_amen(indices)
-
-            als_iter += 1
-            if (finished := self.is_finished(als_iter, indices)):
-                self._compute_final_block()
-
-            self.compute_relative_error()
-            self._print_info(als_iter, indices)
-
-            if finished:
-                als_info(f"ALS complete.")
-                als_info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
-                return
-            else:
-                self.data.reverse_direction()
