@@ -19,7 +19,7 @@ class BoundedDomain(LinearDomain):
 
         self._bounds = bounds
         self._mean = self.bounds.mean()
-        self._dxdr = 0.5 * (self.bounds[1] - self.bounds[0])
+        self._dxdl = 0.5 * (self.bounds[1] - self.bounds[0])
         
         self._left = self.bounds[0]
         self._right = self.bounds[1]
@@ -43,5 +43,5 @@ class BoundedDomain(LinearDomain):
         return self._mean
     
     @property
-    def dxdr(self):
-        return self._dxdr
+    def dxdl(self):
+        return self._dxdl

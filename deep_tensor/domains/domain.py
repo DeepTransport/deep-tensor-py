@@ -28,14 +28,14 @@ class Domain(abc.ABC):
     @abc.abstractmethod
     def local2approx(
         self, 
-        rs: torch.Tensor
+        ls: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Maps a set of points in the reference domain to the 
         approximation domain.
         
         Parameters
         ----------
-        rs: 
+        ls: 
             An n-dimensional vector containing points from the reference 
             domain.
 
@@ -44,7 +44,7 @@ class Domain(abc.ABC):
         xs:
             An n-dimensional vector containing the corresponding points
             in the approximation domain.
-        dxdrs:
+        dxdls:
             An n-dimensional vector containing the gradient of the 
             mapping from the reference domain to the approximation 
             domain evaluated at each point in xs.
@@ -68,10 +68,10 @@ class Domain(abc.ABC):
 
         Returns
         -------
-        rs:
+        ls:
             An n-dimensional vector containing the corresponding points 
             in the reference domain.
-        drdxs:
+        dldxs:
             An n-dimensional vector containing the gradient of the 
             mapping from the approximation domain to the reference 
             domain evaluated at each point in rs.
@@ -82,7 +82,7 @@ class Domain(abc.ABC):
     @abc.abstractmethod
     def local2approx_log_density(
         self, 
-        rs: torch.Tensor
+        ls: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Computes the logarithm of the derivative of the mapping from 
         the reference domain to the approximation domain and its
@@ -90,17 +90,17 @@ class Domain(abc.ABC):
 
         Parameters
         ----------
-        rs: 
+        ls: 
             An n-dimensional vector containing a set of points from the 
             reference domain.
         
         Returns
         -------
-        logdxdrs:
+        logdxdls:
             An n-dimensional vector containing the logarithm of the 
             gradient of the mapping from the reference domain to the 
             approximation domain.
-        logdxdr2s:
+        logdxdl2s:
             An n-dimensional vector containing the logarithm of the 
             derivative of the gradient of the mapping from the 
             reference domain to the approximation domain.
@@ -125,11 +125,11 @@ class Domain(abc.ABC):
         
         Returns
         -------
-        logdrdxs:
+        logdldxs:
             An n-dimensional vector containing the logarithm of the 
             gradient of the mapping from the approximation domain to 
             the reference domain.
-        logdrdx2s:
+        logdldx2s:
             An n-dimensional vector containing the logarithm of the 
             derivative of the gradient of the mapping from the 
             approximation domain to the reference domain.

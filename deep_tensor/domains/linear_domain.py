@@ -16,7 +16,7 @@ class LinearDomain(Domain, abc.ABC):
     
     @property 
     @abc.abstractmethod
-    def dxdr(self):
+    def dxdl(self):
         """The gradient of the mapping from the reference domain to 
         the approximation domain.
         """
@@ -24,36 +24,36 @@ class LinearDomain(Domain, abc.ABC):
 
     def local2approx(
         self, 
-        rs: torch.Tensor
+        ls: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         
-        xs = rs * self.dxdr + self.mean
-        dxdrs = torch.full(rs.shape, self.dxdr)
-        return xs, dxdrs
+        xs = ls * self.dxdl + self.mean
+        dxdls = torch.full(ls.shape, self.dxdl)
+        return xs, dxdls
     
     def approx2local(
         self, 
         xs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
 
-        rs = (xs - self.mean) / self.dxdr
-        drdxs = torch.full(xs.shape, 1.0 / self.dxdr)
-        return rs, drdxs
+        ls = (xs - self.mean) / self.dxdl
+        dldxs = torch.full(xs.shape, 1.0 / self.dxdl)
+        return ls, dldxs
     
     def local2approx_log_density(
         self, 
-        rs: torch.Tensor
+        ls: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         
-        logdxdrs = torch.full(rs.shape, torch.log(self.dxdr))
-        logdxdr2s = torch.zeros_like(rs)
-        return logdxdrs, logdxdr2s
+        logdxdls = torch.full(ls.shape, torch.log(self.dxdl))
+        logdxdl2s = torch.zeros_like(ls)
+        return logdxdls, logdxdl2s
     
     def approx2local_log_density(
         self, 
         xs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         
-        logdrdxs = torch.full(xs.shape, -torch.log(self.dxdr))
-        logdrdx2s = torch.zeros_like(xs)
-        return logdrdxs, logdrdx2s
+        logdldxs = torch.full(xs.shape, -torch.log(self.dxdl))
+        logdldx2s = torch.zeros_like(xs)
+        return logdldxs, logdldx2s
