@@ -1075,7 +1075,7 @@ class TTFunc():
 
         self._check_sample_dim(ls, self.dim)
         n_ls, dim_ls = ls.shape
-        ps = torch.ones((n_ls, 1, 1))
+        ps = torch.ones((n_ls, 1))
 
         for k in range(dim_ls):
 
@@ -1087,12 +1087,11 @@ class TTFunc():
                 ls[:, k]
             ).reshape(n_ls, r_p, r_k)
 
-            ps = torch.einsum("ijl, ilk -> ijk", ps, Gs)
+            ps = torch.einsum("il, ilk -> ik", ps, Gs)
 
         if dim_ls == self.dim:
             return ps.squeeze()
         
-        ps = ps.reshape(n_ls, r_k)
         return ps
     
     def _eval_local_backward(self, ls: torch.Tensor) -> torch.Tensor:
@@ -1102,7 +1101,7 @@ class TTFunc():
 
         self._check_sample_dim(ls, self.dim)
         n_ls, dim_ls = ls.shape
-        ps = torch.ones((n_ls, 1, 1))
+        ps = torch.ones((n_ls, 1))
 
         inds_l = torch.arange(dim_ls-1, -1, -1)
         inds_k = torch.arange(self.dim-1, -1, -1)
@@ -1118,13 +1117,12 @@ class TTFunc():
                 ls[:, inds_l[i]]
             ).reshape(n_ls, r_k, r_p)
 
-            ps = torch.einsum("ijl, ilk -> ijk", ps, Gs)
+            ps = torch.einsum("il, ilk -> ik", ps, Gs)
 
         if dim_ls == self.dim:
             return ps.squeeze()
         
-        ps = ps.reshape(n_ls, r_p).T
-        return ps
+        return ps.T
 
     def eval_local(
         self, 

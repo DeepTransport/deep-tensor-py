@@ -174,64 +174,136 @@ class TTSIRT(AbstractIRT):
         self.z = self.z_func + self.tau
         return
 
+    def marginalise(
+        self, 
+        direction: Direction=Direction.FORWARD
+    ) -> None:
+        """Computes each coefficient tensor (B_k) required to evaluate 
+        the marginal functions in each dimension, as well as the 
+        normalising constant, z. 
+
+        Parameters
+        ----------
+        direction:
+            The direction in which to iterate over the tensor cores.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Updates self.Bs, self.z_func, self.z.
+
+        """
+        self.int_dir = direction
+        if self.int_dir == Direction.FORWARD:
+            self._marginalise_forward()
+        else:
+            self._marginalise_backward()
+        return
+
     def _eval_irt_local_nograd_forward(
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Evaluates the inverse Rosenblatt transport by iterating over
         the dimensions from first to last.
+
+        Parameters
+        ----------
+        zs:
+            An n * d matrix of samples from [0, 1]^d.
+
+        Returns
+        -------
+        ls: 
+            An n * d matrix containing a set of samples from the local 
+            domain, obtained by applying the IRT to each sample in zs.
+        ps_sq:
+            An n-dimensional vector containing the square of the FTT 
+            approximation to the square root of the target function, 
+            evaluated at each sample in zs.
+        
         """
 
-        num_z, dim_z = zs.shape
+        n_zs, d_zs = zs.shape
         ls = torch.zeros_like(zs)
-        fls_leq = torch.ones((num_z, 1))
+        ps = torch.ones((n_zs, 1))
 
-        for k in range(dim_z):
+        for k in range(d_zs):
 
-            rank_p = self.approx.data.cores[k].shape[0]
-            rank_k = self.approx.data.cores[k].shape[-1]
+            rank_p, _, rank_k = self.approx.data.cores[k].shape
             num_nodes = self.oned_cdfs[k].cardinality
 
             # Evaluate the current core at each node of the current CDF
-            G_ks = self.approx.eval_oned_core_213(
+            Gs_cdf = self.approx.eval_oned_core_213(
                 self.approx.bases.polys[k], 
                 self.Bs[k], 
                 self.oned_cdfs[k].nodes
             ).T.reshape(rank_k * num_nodes, rank_p).T
 
-            gls_sq = ((fls_leq @ G_ks).T
-                      .reshape(-1, num_z * num_nodes).T
+            gls_sq = ((ps @ Gs_cdf).T
+                      .reshape(-1, n_zs * num_nodes).T
                       .square()
                       .sum(dim=1)
-                      .reshape(num_nodes, num_z))
+                      .reshape(num_nodes, n_zs))
 
             ls[:, k] = self.oned_cdfs[k].invert_cdf(
                 gls_sq + self.tau, 
                 zs[:, k]
             )
 
-            T2 = self.approx.eval_oned_core_213(
+            Gs = self.approx.eval_oned_core_213(
                 self.approx.bases.polys[k], 
                 self.approx.data.cores[k], 
                 ls[:, k]
-            )
+            ).reshape(n_zs, rank_p, rank_k)
 
-            ii = torch.arange(num_z).repeat(rank_p)
-            jj = (torch.arange(rank_p * num_z)
-                  .reshape(num_z, rank_p).T
-                  .flatten())
-
-            indices = torch.vstack((ii[None, :], jj[None, :]))
-            values = fls_leq.T.flatten()
-            size = (num_z, rank_p * num_z)
-            B = torch.sparse_coo_tensor(indices, values, size)
-            
-            fls_leq = B @ T2
-            fls_leq[fls_leq.isnan()] = 0.0
+            ps = torch.einsum("il, ilk -> ik", ps, Gs)
         
-        pi_ls = (fls_leq @ self.Rs[dim_z]).square().sum(dim=1)
+        ps_sq = (ps @ self.Rs[d_zs]).square().sum(dim=1)
 
-        return ls, pi_ls
+        return ls, ps_sq
+    
+    def eval_irt_local_nograd(
+        self, 
+        zs: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Converts a set of realisations of a standard uniform 
+        random variable, Z, to the corresponding realisations of the 
+        local (i.e., defined on [-1, 1]) target random variable, by 
+        applying the inverse Rosenblatt transport.
+        
+        Parameters
+        ----------
+        zs: 
+            An n * d matrix containing values on [0, 1]^d.
+
+        Returns
+        -------
+        ls:
+            An n * d matrix containing the corresponding samples of the 
+            target random variable mapped into the local domain.
+        neglogfls:
+            The local potential function associated with the 
+            approximation to the target density, evaluated at each 
+            sample.
+
+        """
+
+        if self.int_dir == Direction.FORWARD:
+            ls, ps_sq = self._eval_irt_local_nograd_forward(zs)
+        else:
+            ls, ps_sq = self._eval_irt_local_nograd_backward(zs)
+        
+        indices = self.get_transform_indices(zs.shape[1])
+        
+        neglogpls = -(ps_sq + self.tau).log()
+        neglogwls = self.bases.eval_measure_potential_local(ls, indices)
+        neglogfls = self.z.log() + neglogpls + neglogwls
+
+        return ls, neglogfls
     
     def _eval_irt_local_nograd_backward(
         self, 
@@ -358,34 +430,6 @@ class TTSIRT(AbstractIRT):
 
         return approx
 
-    def marginalise(
-        self, 
-        direction: Direction=Direction.FORWARD
-    ) -> None:
-        """Computes each coefficient tensor (B_k) required to evaluate 
-        the marginal functions in each dimension, as well as the 
-        normalising constant, z. 
-
-        Parameters
-        ----------
-        TODO
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        Updates self.Bs, self.z_func, self.z.
-
-        """
-        self.int_dir = direction
-        if self.int_dir == Direction.FORWARD:
-            self._marginalise_forward()
-        else:
-            self._marginalise_backward()
-        return
-    
     def eval_potential_local(
         self, 
         ls: torch.Tensor
@@ -874,45 +918,6 @@ class TTSIRT(AbstractIRT):
         else:  # from right to left
             raise NotImplementedError("TODO")
     
-    def eval_irt_local_nograd(
-        self, 
-        zs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Converts a set of realisations of a standard uniform 
-        random variable, Z, to the corresponding realisations of the 
-        local (i.e., defined on [-1, 1]) target random variable, by 
-        applying the inverse Rosenblatt transport.
-        
-        Parameters
-        ----------
-        zs: 
-            An n * d matrix containing values on [0, 1]^d.
-
-        Returns
-        -------
-        ls:
-            An n * d matrix containing the corresponding samples of the 
-            target random variable mapped into the local domain.
-        neglogfls:
-            The local potential function associated with the 
-            approximation to the target density, evaluated at each 
-            sample.
-
-        """
-
-        if self.int_dir == Direction.FORWARD:
-            ls, gls_sq = self._eval_irt_local_nograd_forward(zs)
-        else:
-            ls, gls_sq = self._eval_irt_local_nograd_backward(zs)
-        
-        indices = self.get_transform_indices(zs.shape[1])
-        
-        neglogpls = -(gls_sq + self.tau).log()
-        neglogwls = self.bases.eval_measure_potential_local(ls, indices)
-        neglogfls = self.z.log() + neglogpls + neglogwls
-
-        return ls, neglogfls
-
     def _eval_cirt_local_forward(
         self, 
         ls_x: torch.Tensor, 
