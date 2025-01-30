@@ -762,8 +762,8 @@ class TTFunc():
             U = torch.linalg.solve(poly.mass_R, U)
             U = U.T.reshape(-1, nr_k).T
 
-        inds_k, B, U_interp = self.select_points(U, k)
-        interp_ls = self.get_local_index(poly, interp_ls_prev, inds_k)
+        inds, B, U_interp = self.select_points(U, k)
+        interp_ls = self.get_local_index(poly, interp_ls_prev, inds)
 
         couple = (U_interp @ sVh).T.reshape(-1, rank)
 
@@ -934,39 +934,46 @@ class TTFunc():
     def get_local_index(
         self,
         poly: Basis1D, 
-        interp_x_prev: torch.Tensor,
-        indices: torch.Tensor
+        interp_ls_prev: torch.Tensor,
+        inds: torch.Tensor
     ) -> torch.Tensor:
-        """Builds the local nested index set.
+        """Updates the set of interpolation points for the current 
+        dimension.
         
-        TODO: write docstring for this.
+        Parameters
+        ----------
+        poly:
+            The polynomial basis for the current dimension of the 
+            approximation.
+        interp_ls_prev: 
+            The previous set of interpolation points.
+        inds:
+            The set of indices of the maximum-volume submatrix of the 
+            current (unfolded) tensor core.
+        
+        Returns
+        -------
+        interp_ls:
+            The set of updated interpolation points for the current 
+            dimension.
+            
         """
 
-        if interp_x_prev.numel() == 0:
-            interp_x = poly.nodes[indices][:, None]
-            return interp_x
+        if interp_ls_prev.numel() == 0:
+            interp_ls = poly.nodes[inds][:, None]
+            return interp_ls
 
-        rank_prev = interp_x_prev.shape[0]
+        n_k = poly.cardinality
 
-        # Form the full Cartesian product of something...
-        i_pair = torch.vstack((
-            torch.arange(rank_prev).repeat_interleave(poly.cardinality),
-            torch.arange(poly.cardinality).repeat(rank_prev)
-        ))
-        i_select = i_pair[:, indices]
+        ls_prev = interp_ls_prev[inds // n_k]
+        ls_nodes = poly.nodes[inds % n_k][:, None]
 
         if self.data.direction == Direction.FORWARD:
-            interp_x = torch.hstack((
-                interp_x_prev[i_select[0]],
-                poly.nodes[i_select[1]][:, None]
-            ))
+            interp_ls = torch.hstack((ls_prev, ls_nodes))
         else:
-            interp_x = torch.hstack((
-                poly.nodes[i_select[1]][:, None],
-                interp_x_prev[i_select[0]]
-            ))
+            interp_ls = torch.hstack((ls_nodes, ls_prev))
 
-        return interp_x
+        return interp_ls
 
     def _eval_local_forward(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the FTT approximation to the target function for 
@@ -1000,6 +1007,7 @@ class TTFunc():
         the last k variables.
         """
 
+        self._check_sample_dim(ls, self.dim)
         n_ls, dim_ls = ls.shape
         ps = torch.ones((n_ls, 1, 1))
 
