@@ -8,7 +8,7 @@ import deep_tensor as dt
 torch.manual_seed(0)
 
 
-class TestSpectralPolynomials(unittest.TestCase):
+class TestPiecewisePolynomials(unittest.TestCase):
 
     def test_lagrange_1d(self):
         """Verifies that some simple operations with Lagrange1 
