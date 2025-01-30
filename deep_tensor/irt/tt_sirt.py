@@ -135,7 +135,10 @@ class TTSIRT(AbstractIRT):
         return
 
     def _marginalise_forward(self) -> None:
-        """TODO: write docstring."""
+        """Computes each coefficient tensor required to evaluate the 
+        marginal functions in each dimension, by iterating over the 
+        dimensions of the approximation from first to last.
+        """
 
         self.order = torch.arange(self.dim)
         self.Rs[self.dim] = torch.tensor([[1.0]])
@@ -155,7 +158,10 @@ class TTSIRT(AbstractIRT):
         return 
     
     def _marginalise_backward(self) -> None:
-        """TODO: write docstring."""
+        """Computes each coefficient tensor required to evaluate the 
+        marginal functions in each dimension, by iterating over the 
+        dimensions of the approximation from last to first.
+        """
         
         self.order = torch.arange(self.dim-1, -1, -1)
         self.Rs[-1] = torch.tensor([[1.0]])

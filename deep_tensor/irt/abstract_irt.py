@@ -253,11 +253,11 @@ class AbstractIRT(abc.ABC):
         if self.int_dir == Direction.FORWARD:
             return torch.arange(dim_z)
         elif self.int_dir == Direction.BACKWARD:
-            return torch.arange(self.approx.dim-dim_z, self.approx.dim)
+            return torch.arange(self.dim-dim_z, self.dim)
         elif self.order.numel() != 0:
             return self.order[:dim_z]
         
-        msg = "Either `order` or `int_dir` must be specified."
+        msg = "Either 'order' or 'int_dir' must be specified."
         raise Exception(msg)
 
     def eval_potential(self, xs: torch.Tensor):
