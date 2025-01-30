@@ -5,14 +5,14 @@ import warnings
 import torch
 
 from .tt_sirt import TTSIRT
-from ..approx_bases import ApproxBases
+from ..ftt.approx_bases import ApproxBases
 from ..bridging_densities import Bridge, Tempering1
 from ..domains import BoundedDomain
-from ..input_data import InputData
+from ..ftt.input_data import InputData
 from ..options import DIRTOptions, TTOptions
 from ..references import Reference, GaussianReference
 from ..tools import compute_f_divergence
-from ..utils import dirt_info
+from ..tools.printing import dirt_info
 
 
 class TTDIRT():

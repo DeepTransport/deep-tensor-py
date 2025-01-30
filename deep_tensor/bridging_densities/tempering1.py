@@ -5,7 +5,7 @@ import torch
 from .single_beta import SingleBeta
 from ..references import Reference
 from ..tools import compute_ess_ratio, compute_f_divergence
-from ..utils import dirt_info
+from ..tools.printing import dirt_info
 
 
 class Tempering1(SingleBeta):

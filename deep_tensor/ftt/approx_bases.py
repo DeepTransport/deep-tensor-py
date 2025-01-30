@@ -2,8 +2,8 @@ from typing import Tuple
 
 import torch
 
-from .domains import Domain
-from .polynomials import Basis1D
+from ..domains import Domain
+from ..polynomials import Basis1D
 
 
 PolyType = Basis1D | list[Basis1D]

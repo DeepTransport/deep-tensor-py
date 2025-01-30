@@ -3,13 +3,13 @@ from typing import Callable, Tuple
 import torch
 
 from .abstract_irt import AbstractIRT
-from ..approx_bases import ApproxBases
-from ..directions import Direction
-from ..input_data import InputData
+from ..ftt.approx_bases import ApproxBases
+from ..ftt.directions import Direction
+from ..ftt.input_data import InputData
 from ..options import TTOptions
 from ..polynomials import CDF1D, construct_cdf
-from ..tt_data import TTData
-from ..tt_func import TTFunc
+from ..ftt.tt_data import TTData
+from ..ftt.tt_func import TTFunc
 from ..tools import reshape_matlab
 
 

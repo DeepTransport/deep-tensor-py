@@ -6,11 +6,11 @@ import torch
 from .approx_bases import ApproxBases
 from .directions import Direction
 from .input_data import InputData
-from .options import TTOptions
-from .polynomials import Basis1D, Piecewise, Spectral
-from .tools import deim, maxvol, reshape_matlab
+from ..options import TTOptions
+from ..polynomials import Basis1D, Piecewise, Spectral
+from ..tools import deim, maxvol, reshape_matlab
 from .tt_data import TTData
-from .utils import als_info
+from ..tools.printing import als_info
 
 MAX_COND = 1.0e+5
 
@@ -768,7 +768,7 @@ class TTFunc():
             temp_l = res_w_prev @ temp_l
             temp_l = reshape_matlab(temp_l, (n_r_left * n_nodes, rank))
 
-            F_res = reshape_matlab(F_res, (n_r_left, n_nodes, n_r_right)) - reshape_matlab(temp_l @ temp_r, (n_r_left, n_nodes, n_r_right))
+            F_res = F_res - reshape_matlab(temp_l @ temp_r, (n_r_left, n_nodes, n_r_right))
             F_res = reshape_matlab(F_res.permute(1, 0, 2), (n_nodes * n_r_left, -1))
             r_r_prev = n_r_left
         
