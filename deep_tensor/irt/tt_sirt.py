@@ -242,8 +242,8 @@ class TTSIRT(AbstractIRT):
                 self.oned_cdfs[k].nodes
             ).reshape(n_k, r_p, r_k)
 
-            gls_sq = torch.einsum("jl, ilk -> ijk", ps, Gs_cdf)
-            gls_sq = gls_sq.square().sum(dim=2)
+            gls = torch.einsum("jl, ilk -> ijk", ps, Gs_cdf)
+            gls_sq = gls.square().sum(dim=2)
 
             ls[:, k] = self.oned_cdfs[k].invert_cdf(
                 gls_sq + self.tau, 
@@ -259,64 +259,67 @@ class TTSIRT(AbstractIRT):
             ps = torch.einsum("il, ilk -> ik", ps, Gs)
         
         ps_sq = (ps @ self.Rs[d_zs]).square().sum(dim=1)
-
         return ls, ps_sq
     
     def _eval_irt_local_nograd_backward(
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """TODO: write docstring."""
+        """Evaluates the inverse Rosenblatt transport by iterating over
+        the dimensions from last to first.
+
+        Parameters
+        ----------
+        zs:
+            An n * d matrix of samples from [0, 1]^d.
+
+        Returns
+        -------
+        ls: 
+            An n * d matrix containing a set of samples from the local 
+            domain, obtained by applying the IRT to each sample in zs.
+        ps_sq:
+            An n-dimensional vector containing the square of the FTT 
+            approximation to the square root of the target function, 
+            evaluated at each sample in zs.
+        
+        """
 
         n_zs, d_zs = zs.shape
         ls = torch.zeros_like(zs)
-        frg = torch.ones((1, n_zs))
-        ps = torch.ones((1, n_zs))
+        ps = torch.ones((n_zs, 1))
         i_min = self.dim - d_zs
         
         for k in range(self.dim-1, i_min-1, -1):
             
             k_ind = k - i_min
-            rank_p = self.approx.data.cores[k].shape[0]
-            rank_k = self.approx.data.cores[k].shape[-1]
-            num_nodes = self.oned_cdfs[k].cardinality
+            r_p, _, r_k = self.approx.data.cores[k].shape
+            n_k = self.oned_cdfs[k].cardinality
 
             Gs_cdf = TTFunc.eval_oned_core_231(
                 self.bases.polys[k],
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
-            ).reshape(num_nodes, rank_k, rank_p)
+            ).reshape(n_k, r_k, r_p)
 
-            pdf_vals = torch.einsum("ilk, lj -> ijk", Gs_cdf, frg)
-            pdf_vals = pdf_vals.square().sum(dim=2)
+            gls = torch.einsum("ilk, jl -> ijk", Gs_cdf, ps)
+            gls_sq = gls.square().sum(dim=2)
 
             ls[:, k_ind] = self.oned_cdfs[k].invert_cdf(
-                pdf_vals + self.tau, 
+                gls_sq + self.tau, 
                 zs[:, k_ind]
             )
 
-            T2 = self.approx.eval_oned_core_231(
-                self.approx.bases.polys[k], 
+            Gs = TTFunc.eval_oned_core_231(
+                self.bases.polys[k],
                 self.approx.data.cores[k],
                 ls[:, k_ind]
-            )
+            ).reshape(n_zs, r_k, r_p)
 
-            ii = torch.arange(rank_k * n_zs)
-            jj = torch.arange(n_zs).repeat_interleave(rank_k)
-            indices = torch.vstack((ii[None, :], jj[None, :]))
-            values = frg.T.flatten()
-            size = (rank_k * n_zs, n_zs)
-            
-            B = torch.sparse_coo_tensor(indices, values, size)
-            frg = T2.T @ B 
-            frg[torch.isnan(frg)] = 0.0
+            ps = torch.einsum("il, ilk -> ik", ps, Gs)
 
-        if d_zs < self.approx.bases.dim:
-            frs = (self.Rs[i_min-1] @ frg).square().sum(dim=0)
-        else:
-            frs = frg.flatten().square()
-            
-        return ls, frs
+        ps_sq = (self.Rs[i_min-1] @ ps.T).square().sum(dim=0)
+        return ls, ps_sq
 
     def eval_irt_local_nograd(
         self, 
