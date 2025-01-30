@@ -136,6 +136,3 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
 
         dzs = torch.sum(temp * cdf_data.poly_coef[:, i_inds].T, dim=1)
         return zs, dzs
-
-    def eval_int_deriv(self):
-        raise NotImplementedError()

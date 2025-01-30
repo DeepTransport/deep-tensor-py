@@ -191,15 +191,15 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         zs = torch.clamp(zs, EPS, 1-EPS)
         return zs
         
-    def eval_int_deri(
+    def eval_int_deriv(
         self, 
-        pdf_vals: torch.Tensor, 
-        rs: torch.Tensor
+        ps: torch.Tensor, 
+        ls: torch.Tensor
     ) -> torch.Tensor:
         
-        data = self.pdf2cdf(pdf_vals)
-        zs = self.eval_int_lag(data, rs)
-        zs = torch.reshape(zs, rs.shape)
+        data = self.pdf2cdf(ps)
+        zs = self.eval_int_lag(data, ls)
+        zs = torch.reshape(zs, ls.shape)  # TODO: is this necessary?
         return zs
     
     def invert_cdf(

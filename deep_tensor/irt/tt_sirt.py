@@ -606,7 +606,7 @@ class TTSIRT(AbstractIRT):
         # the gradient but cannot be used for the marginals
         num_z, dim_z = zs.shape
 
-        if dim_z != self.approx.bases.dim:
+        if dim_z != self.dim:
             msg = "Grad not implemented for marginals."
             raise Exception(msg)
         
@@ -910,25 +910,26 @@ class TTSIRT(AbstractIRT):
                 
                 r_p = self.approx.data.cores[k].shape[0]
 
-                block_ftt[k] = self.approx.eval_oned_core_213(
+                block_ftt[k] = TTFunc.eval_oned_core_213(
                     self.bases.polys[k],
                     self.approx.data.cores[k],
                     ls[:, k]
                 )
 
-                block_marginal[k] = self.approx.eval_oned_core_213(
+                # Good
+                block_marginal[k] = TTFunc.eval_oned_core_213(
                     self.bases.polys[k], 
                     self.Bs[k],
                     ls[:, k]
                 )
 
-                Ts[k] = self.approx.eval_oned_core_213(
+                Ts[k] = TTFunc.eval_oned_core_213(
                     self.approx.bases.polys[k],
                     self.Bs[k],
                     self.oned_cdfs[k].nodes
                 ).T.reshape(-1, r_p).T 
 
-                block_ftt_d[k] = self.approx.eval_oned_core_213_deriv(
+                block_ftt_d[k] = TTFunc.eval_oned_core_213_deriv(
                     self.bases.polys[k], 
                     self.approx.data.cores[k],
                     ls[:, k]
@@ -940,7 +941,7 @@ class TTSIRT(AbstractIRT):
             Gs = {}  # sum(G**2)is the marginal, each G{k} is nxr
 
             Fs[0] = block_ftt[0].clone()
-            Gs[0] = block_marginal[0].clone()
+            Gs[0] = block_marginal[0].clone() # good
 
             for k in range(1, self.dim):
                 
@@ -958,6 +959,7 @@ class TTSIRT(AbstractIRT):
                 Gs[k] = B @ block_marginal[k]
             
             # accumulated ftt
+            # Fm is good
             Fm = {k: Gs[k].square().sum(dim=1) + self.tau for k in range(self.dim)} 
 
             for j in range(self.dim):
@@ -1009,11 +1011,10 @@ class TTSIRT(AbstractIRT):
                         pk = reshape_matlab(torch.sum(reshape_matlab((Fs[k-1] @ Ts[k]) * (drl @ Ts[k]), (n_ls * n_k, -1)), 1), (n_ls, n_k)).T
 
                         # the first term
-                        if self.approx.bases.polys[k].constant_weight:
+                        if self.bases.polys[k].constant_weight:
                             tmp = self.approx.bases.polys[k].eval_measure(self.oned_cdfs[k].nodes)
                             pk *= tmp[:, None]
-                        
-                        # print(reshape_matlab(self.oned_cdfs[k].eval_int_deriv(pk, ls[:, k]), (1, -1)).shape)
+
                         J[k, inds] += 2 * reshape_matlab(
                             self.oned_cdfs[k].eval_int_deriv(pk, ls[:, k]), 
                             (1, -1)
@@ -1160,6 +1161,8 @@ class TTSIRT(AbstractIRT):
 
         z0 = self.eval_rt(xs)
         J = self.eval_rt_jac(xs, z0)
+
+        print(J[:5, :5])
 
         tol = 1.0e-6
 
