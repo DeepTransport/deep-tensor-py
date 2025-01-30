@@ -31,9 +31,9 @@ input_data = dt.InputData(sample_x, debug_x)
 domain = dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0]))
 
 polys_dict = {
-    "legendre": dt.Legendre(order=40),
-    "fourier": dt.Fourier(order=20),
     "lagrange1": dt.Lagrange1(num_elems=40),
+    "legendre": dt.Legendre(order=40),  # NOTE: eval_int_deriv method has a bug
+    "fourier": dt.Fourier(order=20),
     # "lagrangep": dt.LagrangeP(order=5, num_elems=8)
 }
 
@@ -50,7 +50,7 @@ tt_methods_list = ["fixed_rank", "random", "amen"]
 options_dict = {
     method: dt.TTOptions(
         tt_method=method,
-        max_rank=20, 
+        max_rank=19, 
         max_als=1
     ) for method in tt_methods_list
 }
