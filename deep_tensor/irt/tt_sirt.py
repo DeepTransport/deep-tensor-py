@@ -233,21 +233,17 @@ class TTSIRT(AbstractIRT):
 
         for k in range(d_zs):
 
-            rank_p, _, rank_k = self.approx.data.cores[k].shape
-            num_nodes = self.oned_cdfs[k].cardinality
-
-            # Evaluate the current core at each node of the current CDF
+            r_p, _, r_k = self.approx.data.cores[k].shape
+            n_k = self.oned_cdfs[k].cardinality
+            
             Gs_cdf = self.approx.eval_oned_core_213(
                 self.approx.bases.polys[k], 
                 self.Bs[k], 
                 self.oned_cdfs[k].nodes
-            ).T.reshape(rank_k * num_nodes, rank_p).T
+            ).reshape(n_k, r_p, r_k)
 
-            gls_sq = ((ps @ Gs_cdf).T
-                      .reshape(-1, n_zs * num_nodes).T
-                      .square()
-                      .sum(dim=1)
-                      .reshape(num_nodes, n_zs))
+            gls_sq = torch.einsum("jl, ilk -> ijk", ps, Gs_cdf)
+            gls_sq = gls_sq.square().sum(dim=2)
 
             ls[:, k] = self.oned_cdfs[k].invert_cdf(
                 gls_sq + self.tau, 
@@ -258,52 +254,13 @@ class TTSIRT(AbstractIRT):
                 self.approx.bases.polys[k], 
                 self.approx.data.cores[k], 
                 ls[:, k]
-            ).reshape(n_zs, rank_p, rank_k)
+            ).reshape(n_zs, r_p, r_k)
 
             ps = torch.einsum("il, ilk -> ik", ps, Gs)
         
         ps_sq = (ps @ self.Rs[d_zs]).square().sum(dim=1)
 
         return ls, ps_sq
-    
-    def eval_irt_local_nograd(
-        self, 
-        zs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Converts a set of realisations of a standard uniform 
-        random variable, Z, to the corresponding realisations of the 
-        local (i.e., defined on [-1, 1]) target random variable, by 
-        applying the inverse Rosenblatt transport.
-        
-        Parameters
-        ----------
-        zs: 
-            An n * d matrix containing values on [0, 1]^d.
-
-        Returns
-        -------
-        ls:
-            An n * d matrix containing the corresponding samples of the 
-            target random variable mapped into the local domain.
-        neglogfls:
-            The local potential function associated with the 
-            approximation to the target density, evaluated at each 
-            sample.
-
-        """
-
-        if self.int_dir == Direction.FORWARD:
-            ls, ps_sq = self._eval_irt_local_nograd_forward(zs)
-        else:
-            ls, ps_sq = self._eval_irt_local_nograd_backward(zs)
-        
-        indices = self.get_transform_indices(zs.shape[1])
-        
-        neglogpls = -(ps_sq + self.tau).log()
-        neglogwls = self.bases.eval_measure_potential_local(ls, indices)
-        neglogfls = self.z.log() + neglogpls + neglogwls
-
-        return ls, neglogfls
     
     def _eval_irt_local_nograd_backward(
         self, 
@@ -364,6 +321,45 @@ class TTSIRT(AbstractIRT):
 
         return rs, frs
 
+    def eval_irt_local_nograd(
+        self, 
+        zs: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Converts a set of realisations of a standard uniform 
+        random variable, Z, to the corresponding realisations of the 
+        local (i.e., defined on [-1, 1]) target random variable, by 
+        applying the inverse Rosenblatt transport.
+        
+        Parameters
+        ----------
+        zs: 
+            An n * d matrix containing values on [0, 1]^d.
+
+        Returns
+        -------
+        ls:
+            An n * d matrix containing the corresponding samples of the 
+            target random variable mapped into the local domain.
+        neglogfls:
+            The local potential function associated with the 
+            approximation to the target density, evaluated at each 
+            sample.
+
+        """
+
+        if self.int_dir == Direction.FORWARD:
+            ls, ps_sq = self._eval_irt_local_nograd_forward(zs)
+        else:
+            ls, ps_sq = self._eval_irt_local_nograd_backward(zs)
+        
+        indices = self.get_transform_indices(zs.shape[1])
+        
+        neglogpls = -(ps_sq + self.tau).log()
+        neglogwls = self.bases.eval_measure_potential_local(ls, indices)
+        neglogfls = self.z.log() + neglogpls + neglogwls
+
+        return ls, neglogfls
+    
     def get_potential2density(
         self, 
         ys: torch.Tensor, 
