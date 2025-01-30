@@ -732,7 +732,7 @@ class TTFunc():
 
         n_left, n_nodes, n_right = F.shape
         n_r_left, _, n_r_right = F_res.shape
-        r_0_next, _, r_1_next = core_next.shape
+        r_0_next, n_nodes_next, r_1_next = core_next.shape
 
         if self.data.direction == Direction.FORWARD:
             F = TTFunc.unfold_left(F)
@@ -773,7 +773,19 @@ class TTFunc():
             r_r_prev = n_r_left
         
         else: 
-            raise NotImplementedError()
+            
+            tmp_lt = res_w_prev @ reshape_matlab(torch.permute(reshape_matlab(A, (rank, r_1_next)), (1, 0)), (r_1_next, -1))
+            # % r x nr_l x m
+            tmp_lt = reshape_matlab(torch.permute(reshape_matlab(tmp_lt, (-1, rank)), (1, 0)), (rank, -1))
+            # % Fu is aligned with F
+            F_up = F_up - B @ tmp_lt
+            # % for the right projection
+            tmp_r = reshape_matlab(torch.permute(reshape_matlab(B, (n_nodes, r_prev, rank)), (2, 0, 1)), (-1, r_prev)) @ res_w_next
+            tmp_r   = reshape_matlab(tmp_r, (rank, n_nodes * n_r_right))
+            # align Fr as rnew (nrleft), nodes, rold (nrright), m
+            F_res = reshape_matlab(F_res, (n_r_left, n_nodes, n_r_right)) - reshape_matlab(tmp_lt.T @ tmp_r, (n_r_left, n_nodes, n_r_right))
+            F_res = reshape_matlab(torch.permute(F_res, (1, 2, 0)), (n_nodes * n_r_right, -1))
+            r_r_prev = n_r_right
         
         # Enrich basis
         T = torch.cat((B, F_up), dim=1)
@@ -809,7 +821,7 @@ class TTFunc():
             couple = couple[:, :r_next]
             couple = reshape_matlab(couple, (-1, r_next))
             core_next = couple @ reshape_matlab(core_next, (r_next, -1))
-            core_next = reshape_matlab(core_next, (r_new, n_nodes, r_1_next))
+            core_next = reshape_matlab(core_next, (r_new, n_nodes_next, r_1_next))
 
             temp = res_w_prev @ reshape_matlab(core, (r_prev, n_nodes * r_new))
             temp = reshape_matlab(temp, (r_r_prev, n_nodes, r_new))
@@ -818,7 +830,14 @@ class TTFunc():
             res_w = temp[indices_r, :]
 
         else:
-            raise NotImplementedError()
+            core = torch.permute(reshape_matlab(core, (n_nodes, r_prev, r_new)), (2, 0, 1))
+            # the right factor is r x (rn2+enrich) x m, only push the r x rn2 x m
+            # block to the next block, first permute the block to rn2 x r x m
+            core_next = reshape_matlab(core_next, (-1, r_next)) @ reshape_matlab(torch.permute(couple[:, :r_next], (1, 0)), (r_next, -1))
+            core_next = reshape_matlab(core_next, (r_0_next, n_nodes_next, r_new))
+            # %
+            tmp = reshape_matlab(reshape_matlab(core, (-1, r_prev)) @ res_w_next, (r_new, -1))
+            res_w = tmp[:, indices_r]
 
         self.data.cores[k] = core 
         self.data.cores[k_next] = core_next
