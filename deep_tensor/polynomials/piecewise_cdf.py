@@ -10,7 +10,6 @@ from ..constants import EPS
 
 
 class PiecewiseCDF(CDF1D, abc.ABC):
-    """TODO: write."""
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -92,8 +91,6 @@ class PiecewiseCDF(CDF1D, abc.ABC):
 
         inds_left = torch.sum(self.grid < ls[:, None], dim=1) - 1
         inds_left = torch.clamp(inds_left, 0, self.num_elems-1)
-        # inds_left[inds_left == -1] = 0
-        # inds_left[inds_left == self.num_elems] = self.num_elems - 1
         
         zs = self.eval_int_lag_local(cdf_data, inds_left, ls)
         return zs
@@ -191,71 +188,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         zs = self.eval_int_lag(cdf_data, ls) / cdf_data.poly_norm
         zs = torch.clamp(zs, EPS, 1.0-EPS)
         return zs
-        
-    def eval_int_deriv(
-        self, 
-        ps: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
-        
-        data = self.pdf2cdf(ps)
-        zs = self.eval_int_lag(data, ls)
-        zs = torch.reshape(zs, ls.shape)  # TODO: is this necessary?
-        return zs
     
-    def invert_cdf(
-        self, 
-        pls: torch.Tensor, 
-        zs: torch.Tensor
-    ) -> torch.Tensor:
-
-        self.check_pdf_positive(pls)
-        cdf_data = self.pdf2cdf(pls)
-        ls = torch.zeros_like(zs)
-
-        zs_cdf = zs * cdf_data.poly_norm
-        inds_left = (cdf_data.cdf_poly_grid <= zs_cdf).sum(dim=0) - 1
-
-        inds_left[inds_left == -1] = 0
-        inds_left[inds_left == self.num_elems] = self.num_elems - 1
-
-        ls = self.invert_cdf_local(cdf_data, inds_left, zs_cdf)
-        return ls
-    
-    def invert_cdf_local(
-        self, 
-        cdf_data: CDFData, 
-        inds_left: torch.Tensor,
-        zs_cdf: torch.Tensor
-    ) -> torch.Tensor:
-        """Evaluates the inverse of the CDF corresponding to the 
-        (unnormalised) target PDF at a given set of values.
-        
-        Parameters
-        ----------
-        cdf_data:
-            An object containing information about the properties of 
-            the CDF.
-        inds_left:
-            An n-dimensional vector containing the indices of the 
-            points of the grid on which the target PDF is discretised 
-            that are immediately to the left of each value in ls.
-        zs_cdf:
-            An n-dimensional vector of values in the range [0, Z], 
-            where Z is the normalising constant associated with the 
-            (unnormalised) target PDF.
-
-        Returns
-        -------
-        ls:
-            An n-dimensional vector containing the inverse of the CDF 
-            evaluated at each element in zs_cdf.
-        
-        """
-        l0s, l1s = self.grid[inds_left], self.grid[inds_left+1]
-        ls = self.newton(cdf_data, inds_left, zs_cdf, l0s, l1s)
-        return ls
-
     def newton(
         self, 
         cdf_data: CDFData, 
@@ -382,4 +315,65 @@ class PiecewiseCDF(CDF1D, abc.ABC):
             
         msg = "Regula falsi did not converge in 100 iterations."
         warnings.warn(msg)
+        return ls
+    
+    def eval_int_deriv(
+        self, 
+        pls: torch.Tensor, 
+        ls: torch.Tensor
+    ) -> torch.Tensor:
+        
+        cdf_data = self.pdf2cdf(pls)
+        zs = self.eval_int_lag(cdf_data, ls)
+        return zs
+    
+    def invert_cdf_local(
+        self, 
+        cdf_data: CDFData, 
+        inds_left: torch.Tensor,
+        zs_cdf: torch.Tensor
+    ) -> torch.Tensor:
+        """Evaluates the inverse of the CDF corresponding to the 
+        (unnormalised) target PDF at a given set of values.
+        
+        Parameters
+        ----------
+        cdf_data:
+            An object containing information about the properties of 
+            the CDF.
+        inds_left:
+            An n-dimensional vector containing the indices of the 
+            points of the grid on which the target PDF is discretised 
+            that are immediately to the left of each value in ls.
+        zs_cdf:
+            An n-dimensional vector of values in the range [0, Z], 
+            where Z is the normalising constant associated with the 
+            (unnormalised) target PDF.
+
+        Returns
+        -------
+        ls:
+            An n-dimensional vector containing the inverse of the CDF 
+            evaluated at each element in zs_cdf.
+        
+        """
+        l0s, l1s = self.grid[inds_left], self.grid[inds_left+1]
+        ls = self.newton(cdf_data, inds_left, zs_cdf, l0s, l1s)
+        return ls
+
+    def invert_cdf(
+        self, 
+        pls: torch.Tensor, 
+        zs: torch.Tensor
+    ) -> torch.Tensor:
+
+        self.check_pdf_positive(pls)
+        cdf_data = self.pdf2cdf(pls)
+        ls = torch.zeros_like(zs)
+
+        zs_cdf = zs * cdf_data.poly_norm
+        inds_left = (cdf_data.cdf_poly_grid <= zs_cdf).sum(dim=0) - 1
+        inds_left = torch.clamp(inds_left, 0, self.num_elems-1)
+
+        ls = self.invert_cdf_local(cdf_data, inds_left, zs_cdf)
         return ls

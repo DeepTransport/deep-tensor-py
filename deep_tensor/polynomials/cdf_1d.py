@@ -135,6 +135,20 @@ class CDF1D(abc.ABC):
     ) -> None:
         """Checks whether the function values at each side of the 
         initial interval of a rootfinding method have different signs.
+
+        Parameters
+        ----------
+        z0s:
+            An n-dimensional vector containing the values of the 
+            function evaluated at the left-hand side of the interval.
+        z1s:
+            An n-dimensional vector containing the values of the 
+            function evaluated at the right-hand side of the interval.
+        
+        Returns
+        -------
+        None
+
         """
         if (num_violations := torch.sum(z0s * z1s > 0)) > 0:
             msg = (f"Rootfinding: {num_violations} initial intervals "
@@ -142,10 +156,29 @@ class CDF1D(abc.ABC):
             warnings.warn(msg)
         return
     
-    def converged(self, fs: torch.Tensor, dxs: torch.Tensor) -> bool:
+    def converged(self, fs: torch.Tensor, dls: torch.Tensor) -> bool:
         """Returns a boolean that indicates whether a rootfinding 
         method has converged.
+
+        Parameters
+        ----------
+        fs:
+            An n-dimensional vector containing the current values of 
+            the functions we are aiming to find roots of.
+        
+        dls:
+            An n-dimensional vector containing the steps taken at the 
+            previous stage of the rootfinding method being used to find 
+            the roots.
+        
+        Returns
+        ------
+        converged:
+            Boolean that indicates whether the maximum absolute size of
+            either the function or stepsize values is less than the 
+            error tolerance.
+        
         """
-        error_f = fs.abs().max()
-        error_dx = dxs.abs().max()
-        return torch.min(error_f, error_dx) < self.error_tol
+        error_fs = fs.abs().max()
+        error_dls = dls.abs().max()
+        return torch.min(error_fs, error_dls) < self.error_tol

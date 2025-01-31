@@ -124,15 +124,8 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         
         zs = self.eval_int_lag_local(cdf_data, inds_left, ls)
 
-        dls = ls - self.grid[inds_left]
-
-        # TODO: figure out what this is
-        # (derivatives of the above)
-        temp = torch.hstack((
-            torch.ones((dls.shape[0], 1)),
-            dls[:, None],
-            dls[:, None] ** 2
-        ))
+        dls = (ls - self.grid[inds_left])[:, None]
+        dls_mat = torch.hstack((torch.ones_like(dls), dls, dls ** 2))
 
         if cdf_data.num_samples == 1:
             i_inds = inds_left
@@ -140,5 +133,5 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
             coi = torch.arange(ls.numel())
             i_inds = inds_left + coi * self.num_elems 
 
-        dzs = torch.sum(temp * cdf_data.poly_coef[:, i_inds].T, dim=1)
+        dzs = torch.sum(dls_mat * cdf_data.poly_coef[:, i_inds].T, dim=1)
         return zs, dzs
