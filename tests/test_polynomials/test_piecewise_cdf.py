@@ -74,15 +74,40 @@ class TestPiecewiseCDF(unittest.TestCase):
 
         cdf = self.setup_cdf()
 
-        pls = torch.tensor([1.0, 2.0, 3.0, 2.5, 2.0]).square()
         ls = torch.tensor([-0.5, 0.5])
-
         zs_true = torch.tensor([7.0/64.0, 195.0/256.0])
 
+        # Test case where there is a single PDF for all samples
+        pls = torch.tensor([1.0, 2.0, 3.0, 2.5, 2.0]).square()
         zs = cdf.eval_cdf(pls, ls)
+        self.assertTrue((zs - zs_true).abs().max() < 1e-8)
 
+        # Test case where there is an individual PDF for each sample
+        pls = torch.hstack((pls[:, None], pls[:, None]))
+        zs = cdf.eval_cdf(pls, ls)
         self.assertTrue((zs - zs_true).abs().max() < 1e-8)
         return
+
+    def test_invert_cdf(self):
+        """Checks that the inverse CDF method of a Lagrange1 polynomial 
+        is evaluated correctly.
+        """
+
+        cdf = self.setup_cdf()
+
+        zs = torch.tensor([7.0/64.0, 195.0/256.0])
+        ls_true = torch.tensor([-0.5, 0.5])
+
+        # Test case where there is a single PDF for all samples
+        pls = torch.tensor([1.0, 2.0, 3.0, 2.5, 2.0]).square()
+        ls = cdf.invert_cdf(pls, zs)
+        self.assertTrue((ls - ls_true).abs().max() < 1e-8)
+
+        pls = torch.hstack((pls[:, None], pls[:, None]))
+        ls = cdf.invert_cdf(pls, zs)
+        self.assertTrue((ls - ls_true).abs().max() < 1e-8)
+        return
+
 
 if __name__ == "__main__":
     unittest.main()

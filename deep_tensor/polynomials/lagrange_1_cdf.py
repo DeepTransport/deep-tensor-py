@@ -109,10 +109,9 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
             j_inds = inds_left + coi * (self.num_elems + 1)
 
         dls = (ls - self.grid[inds_left])[:, None]
-        # TODO: figure out what this is
-        x_mat = torch.hstack((dls, (dls**2) / 2.0, (dls**3) / 3.0))
+        dls_mat = torch.hstack((dls, (dls**2) / 2.0, (dls**3) / 3.0))
 
-        zs = torch.sum(x_mat * cdf_data.poly_coef[:, i_inds].T, 1)
+        zs = torch.sum(dls_mat * cdf_data.poly_coef[:, i_inds].T, 1)
         zs += cdf_data.cdf_poly_grid.T.flatten()[j_inds]
         return zs
 

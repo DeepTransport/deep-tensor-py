@@ -91,8 +91,9 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         zs = torch.zeros_like(ls)
 
         inds_left = torch.sum(self.grid < ls[:, None], dim=1) - 1
-        inds_left[inds_left == -1] = 0
-        inds_left[inds_left == self.num_elems] = self.num_elems - 1
+        inds_left = torch.clamp(inds_left, 0, self.num_elems-1)
+        # inds_left[inds_left == -1] = 0
+        # inds_left[inds_left == self.num_elems] = self.num_elems - 1
         
         zs = self.eval_int_lag_local(cdf_data, inds_left, ls)
         return zs
