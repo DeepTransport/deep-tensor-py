@@ -101,8 +101,8 @@ class Domain(abc.ABC):
             gradient of the mapping from the reference domain to the 
             approximation domain.
         logdxdl2s:
-            An n-dimensional vector containing the logarithm of the 
-            derivative of the gradient of the mapping from the 
+            An n-dimensional vector containing the derivative of the 
+            logarithm of the gradient of the mapping from the 
             reference domain to the approximation domain.
         
         """
@@ -130,8 +130,8 @@ class Domain(abc.ABC):
             gradient of the mapping from the approximation domain to 
             the reference domain.
         logdldx2s:
-            An n-dimensional vector containing the logarithm of the 
-            derivative of the gradient of the mapping from the 
+            An n-dimensional vector containing the derivative of the 
+            logarithm of the gradient of the mapping from the 
             approximation domain to the reference domain.
         
         """
