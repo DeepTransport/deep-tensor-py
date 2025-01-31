@@ -10,12 +10,15 @@ from .piecewise_cdf import PiecewiseCDF
 class Lagrange1CDF(Lagrange1, PiecewiseCDF):
 
     def __init__(self, poly: Lagrange1, **kwargs):
-        """TODO: write.
-        
-        References
+        """The CDF for piecewise linear Lagrange polynomials.
+
+        Parameters
         ----------
-        https://en.wikipedia.org/wiki/Finite_difference_coefficient
-        
+        poly:
+            The interpolating polynomial for the corresponding PDF.
+        **kwargs:
+            Arguments to pass into PiecewiseCDF.__init__.
+            
         """
         
         Lagrange1.__init__(self, num_elems=poly.num_elems)
@@ -31,12 +34,12 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         shape = (3 * self.num_elems, num_nodes)
         self._node2elem = torch.sparse_coo_tensor(indices, values, shape)
 
-        # Define set of forward finite difference operators
         dl = self.elem_size / 2.0
-        value = [1.0, 0.0, 0.0]
-        first_deriv = [-1.5/dl, 2.0/dl, -0.5/dl]
-        second_deriv = [0.5/(dl**2), -1.0/(dl**2), 0.5/(dl**2)]
-        self._diffs = torch.tensor([value, first_deriv, second_deriv])
+        self._V_inv = torch.tensor([
+            [1.0, 0.0, 0.0], 
+            [-1.5/dl, 2.0/dl, -0.5/dl], 
+            [0.5/(dl**2), -1.0/(dl**2), 0.5/(dl**2)]
+        ])
 
         return
 
@@ -54,8 +57,11 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         return self._node2elem
 
     @property
-    def diffs(self) -> torch.Tensor:
-        return self._diffs
+    def V_inv(self) -> torch.Tensor:
+        """The inverse of the Vandermonde matrix obtained by evaluating 
+        (1, x, x^2) at (0, dl/2, dl).
+        """
+        return self._V_inv
 
     def pdf2cdf(
         self, 
@@ -67,11 +73,10 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
             pls = pls[:, None]
 
         n_cdfs = pls.shape[1]
-            
-        # Compute value and first two derivatives of PDF at left-hand 
-        # side of each element
-        # print(self.T.to_dense()
-        poly_coef = self.diffs @ (self.node2elem @ pls).T.reshape(-1, 3).T 
+        
+        # Compute coefficients of (quadratic) polynomial used to define
+        # PDF in each element
+        poly_coef = self.V_inv @ (self.node2elem @ pls).T.reshape(-1, 3).T 
 
         temp = torch.tensor([
             self.elem_size, 
@@ -79,7 +84,9 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
             (self.elem_size ** 3) / 3.0
         ])
 
+        # Compute the integral of each quadratic polynomial over its element
         cdf_elems = (temp @ poly_coef).reshape(n_cdfs, self.num_elems).T
+
         cdf_poly_grid = torch.zeros(self.num_elems+1, n_cdfs)
         cdf_poly_grid[1:] = torch.cumsum(cdf_elems, dim=0)
         poly_norm = cdf_poly_grid[-1]
