@@ -188,7 +188,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         cdf_data = self.pdf2cdf(pls)
 
         zs = self.eval_int_lag(cdf_data, ls) / cdf_data.poly_norm
-        zs = torch.clamp(zs, EPS, 1-EPS)
+        zs = torch.clamp(zs, EPS, 1.0-EPS)
         return zs
         
     def eval_int_deriv(
