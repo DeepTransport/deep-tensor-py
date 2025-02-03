@@ -247,17 +247,13 @@ class AbstractIRT(abc.ABC):
 
     def get_transform_indices(self, dim_z: int) -> torch.Tensor:
         """TODO: write docstring."""
-        # TODO: I think there will be issues with the below (currently 
-        # there is no way to specify that int_dir is not FORWARD or BACKWARD)
 
         if self.int_dir == Direction.FORWARD:
             return torch.arange(dim_z)
         elif self.int_dir == Direction.BACKWARD:
             return torch.arange(self.dim-dim_z, self.dim)
-        elif self.order.numel() != 0:
-            return self.order[:dim_z]
         
-        msg = "Either 'order' or 'int_dir' must be specified."
+        msg = "int_dir must be specified."
         raise Exception(msg)
 
     def eval_potential(self, xs: torch.Tensor):
@@ -452,8 +448,6 @@ class AbstractIRT(abc.ABC):
         elif self.int_dir == Direction.BACKWARD:
             inds_x = torch.arange(dim_z, self.approx.dim)
             inds_z = torch.arange(dim_z)
-        else:
-            raise NotImplementedError()
         
         ls_x = self.approx.bases.approx2local(xs, inds_x)[0]
         ls_y, neglogfys = self.eval_cirt_local(ls_x, zs)
@@ -475,13 +469,13 @@ class AbstractIRT(abc.ABC):
 
         Returns
         -------
-        rs:
+        xs:
             The generated samples.
         
         """
-        us = torch.rand(n, self.dim)
-        rs = self.eval_irt(us)
-        return rs 
+        zs = torch.rand(n, self.dim)
+        xs = self.eval_irt(zs)
+        return xs 
     
     def sobol(self, n: int) -> torch.Tensor:
         """Generates a set of QMC samples from the approximation to the 
@@ -494,14 +488,14 @@ class AbstractIRT(abc.ABC):
         
         Returns
         -------
-        rs:
+        xs:
             The generated samples.
 
         """
         S = torch.quasirandom.SobolEngine(dimension=self.dim)
-        us = S.draw(n)
-        rs = self.eval_irt(us)
-        return rs
+        zs = S.draw(n)
+        xs = self.eval_irt(zs)
+        return xs
 
     def set_defensive(
         self, 

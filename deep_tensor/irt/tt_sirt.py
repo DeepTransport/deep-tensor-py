@@ -54,7 +54,6 @@ class TTSIRT(AbstractIRT):
         self.Rs: dict[int, torch.Tensor] = {} 
         
         self.int_dir = Direction.FORWARD # TEMP?
-        self.order = None
         self.tau = tau
 
         self.approx = self.build_approximation(
@@ -73,7 +72,6 @@ class TTSIRT(AbstractIRT):
             )
 
         self.marginalise()
-        self.order = None 
         return
 
     @property 
@@ -140,7 +138,6 @@ class TTSIRT(AbstractIRT):
         dimensions of the approximation from first to last.
         """
 
-        self.order = torch.arange(self.dim)
         self.Rs[self.dim] = torch.tensor([[1.0]])
 
         for k in range(self.dim-1, -1, -1):
@@ -163,7 +160,6 @@ class TTSIRT(AbstractIRT):
         dimensions of the approximation from last to first.
         """
         
-        self.order = torch.arange(self.dim-1, -1, -1)
         self.Rs[-1] = torch.tensor([[1.0]])
 
         for k in range(self.dim):
