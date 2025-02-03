@@ -83,7 +83,7 @@ class Chebyshev1st(Spectral):
     def eval_log_measure(self, x: torch.Tensor) -> torch.Tensor:
         t = 1.0 - x**2
         t[t < EPS] = EPS
-        return -0.5*torch.log(t) - torch.log(torch.pi)
+        return -0.5*torch.log(t) - torch.log(torch.tensor(torch.pi))
 
     def eval_log_measure_deriv(self, x: torch.Tensor) -> torch.Tensor:
         t = 1.0 - x**2
