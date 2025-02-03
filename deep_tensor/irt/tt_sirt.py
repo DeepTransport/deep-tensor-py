@@ -459,7 +459,7 @@ class TTSIRT(AbstractIRT):
 
             ps = self.approx.eval_local(ls, direction=self.int_dir)
 
-            if dim_l < self.approx.dim:
+            if dim_l < self.dim:
                 ps_sq = (ps @ self.Rs[dim_l]).square().sum(dim=1)
             else: 
                 ps_sq = ps.square()
@@ -469,9 +469,9 @@ class TTSIRT(AbstractIRT):
         else:
 
             ps = self.approx.eval_local(ls, direction=self.int_dir)
-            i_min = self.approx.dim - dim_l
+            i_min = self.dim - dim_l
 
-            if dim_l < self.approx.dim:
+            if dim_l < self.dim:
                 ps_sq = (self.Rs[i_min-1] @ ps).square().sum(dim=0)
             else:
                 ps_sq = ps.square()
