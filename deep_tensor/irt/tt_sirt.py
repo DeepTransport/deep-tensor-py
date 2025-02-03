@@ -1005,14 +1005,14 @@ class TTSIRT(AbstractIRT):
 
                     for k in range(j+1, self.dim):
                         
-                        # accumulate the j-th block and ealuate the integral
+                        # accumulate the j-th block and evaluate the integral
                         r_p = self.approx.data.cores[k].shape[0]
                         n_k = self.oned_cdfs[k].cardinality
                         pk = reshape_matlab(torch.sum(reshape_matlab((Fs[k-1] @ Ts[k]) * (drl @ Ts[k]), (n_ls * n_k, -1)), 1), (n_ls, n_k)).T
 
                         # the first term
                         if self.bases.polys[k].constant_weight:
-                            tmp = self.approx.bases.polys[k].eval_measure(self.oned_cdfs[k].nodes)
+                            tmp = self.bases.polys[k].eval_measure(self.oned_cdfs[k].nodes)
                             pk *= tmp[:, None]
 
                         J[k, inds] += 2 * reshape_matlab(
@@ -1149,84 +1149,3 @@ class TTSIRT(AbstractIRT):
                         J[k, inds] = J[k, inds] / Fm[k+1]
 
         return J
-
-    def debug_jac(self, zs: torch.Tensor, direction: Direction):
-
-        zs = torch.full((2, self.dim), 0.5)
-
-        if self.int_dir != direction: 
-            self.marginalise(direction)
-
-        xs = self.eval_irt_nograd(zs)[0]
-
-        z0 = self.eval_rt(xs)
-        J = self.eval_rt_jac(xs, z0)
-
-        print(J[:5, :5])
-
-        tol = 1.0e-6
-
-        n_xs, d_xs = xs.shape
-        dxs = torch.tile(tol * torch.eye(d_xs), (n_xs, 1))
-        xs_tiled = torch.tile(xs, (1, d_xs)).reshape(-1, d_xs)
-        
-        ut = xs_tiled + dxs
-        um = xs_tiled - dxs 
-
-        zt = self.eval_rt(ut)
-        zm = self.eval_rt(um)
-
-        Jd = (zt - zm) / (2 * tol)
-        Jd = Jd.T
-
-        # print(Jd.shape)
-        
-        print((J-Jd).abs().max())
-        # print(J[:self.dim, :self.dim].diag())
-        # print(Jd[:self.dim, :self.dim].diag())
-        # print(J[:5, :5])
-        # print(Jd[:5, :5])
-
-        from matplotlib import pyplot as plt 
-        plt.scatter(J.flatten(), Jd.flatten())
-        plt.show()
-
-        return
-    
-    def debug_jac_autodiff(self, zs: torch.Tensor, direction: Direction):
-
-        # zs = torch.rand((5, self.dim))
-
-        if self.int_dir != direction: 
-            self.marginalise(direction)
-
-        xs = self.eval_irt_nograd(zs)[0]
-
-        # NOTE: this actually seems to be quicker just looping over the 
-        # elements of xs
-        J: torch.Tensor = torch.autograd.functional.jacobian(self.eval_rt, xs)
-        J = J.diagonal(dim1=0, dim2=2).permute(0, 2, 1).reshape(self.dim, -1)
-
-        tol = 1.0e-6
-
-        n_xs, d_xs = xs.shape
-        dxs = torch.tile(tol * torch.eye(d_xs), (n_xs, 1))
-        xs_tiled = torch.tile(xs, (1, d_xs)).reshape(-1, d_xs)
-        
-        ut = xs_tiled + dxs
-        um = xs_tiled - dxs 
-
-        zt = self.eval_rt(ut)
-        zm = self.eval_rt(um)
-
-        Jd = (zt - zm) / (2 * tol)
-        Jd = Jd.T
-        
-        print((J-Jd).abs().max())
-
-        from matplotlib import pyplot as plt 
-        plt.scatter(J.flatten(), Jd.flatten())
-        plt.show()
-
-        return
-
