@@ -1,8 +1,14 @@
-"""TODO: write docstring."""
+"""Evaluates the quality of the FTT surrogate to the joint distribution 
+for the OU process.
+
+"""
+
+import time
 
 from torch.linalg import norm
 
 from examples.ou_process.setup_ou import * 
+
 
 headers = [
     "Polynomial",
@@ -10,7 +16,8 @@ headers = [
     "Transform Error",
     "Potential Error",
     "PDF Error",
-    "Covariance Error"
+    "Covariance Error",
+    "Time (s)"
 ]
 headers = [f"{h:16}" for h in headers]
 
@@ -25,8 +32,10 @@ for poly in polys_dict:
 
         sirt: dt.TTSIRT = sirts[poly][method]
 
+        t0 = time.time()
         xs, potential_xs = sirt.eval_irt_nograd(zs)
         z0 = sirt.eval_rt(xs)
+        t1 = time.time()
 
         transform_error = norm(zs-z0, ord="fro")
         potential_error = norm(potential_func(xs) - potential_xs)
@@ -42,7 +51,8 @@ for poly in polys_dict:
             f"{transform_error:=16.5e}",
             f"{potential_error:=16.5e}",
             f"{pdf_error:=16.5e}",
-            f"{cov_error:=16.5e}"
+            f"{cov_error:=16.5e}",
+            f"{t1-t0:=16.5f}"
         ]
         print(" | ".join(info))
 

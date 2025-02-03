@@ -1,4 +1,9 @@
-"""TODO: write docstring."""
+"""Evaluates the quality of the FTT surrogate to some of the 
+conditional distributions of the OU process.
+
+"""
+
+import time
 
 from torch.linalg import norm
 
@@ -15,7 +20,8 @@ headers = [
     "TT Method",
     "Direction",
     "Approx. Error",
-    "Cov. Error"
+    "Cov. Error",
+    "Time (s)"
 ]
 headers = [f"{h:16}" for h in headers]
 
@@ -50,10 +56,12 @@ for poly in polys_dict:
                 if sirt.int_dir == dt.Direction.FORWARD:
                     sirt.marginalise(dt.Direction.BACKWARD)
 
+            t0 = time.time()
             ys_cond_sirt, neglogfys_cond_sirt = sirt.eval_cirt(
                 xs_cond, 
                 zs_cond
             )
+            t1 = time.time()
             
             if directions[direction] == dt.Direction.FORWARD:
                 neglogfys_cond_true = model.eval_potential_cond(
@@ -81,7 +89,8 @@ for poly in polys_dict:
                 f"{method:16}",
                 f"{direction:16}",
                 f"{approx_error:=16.5e}",
-                f"{cov_error:=16.5e}"
+                f"{cov_error:=16.5e}",
+                f"{t1-t0:=16.5e}"
             ]
             print(" | ".join(info))
 
