@@ -70,23 +70,27 @@ for poly in polys_dict:
 
             t0 = time.time()
             if method == "manual":
-                J = sirt.eval_rt_jac(xs, zs)
+                Js = sirt.eval_rt_jac(xs, zs)
             else:
-                J: torch.Tensor = torch.autograd.functional.jacobian(sirt.eval_rt, xs)
-                J = J.diagonal(dim1=0, dim2=2).permute(0, 2, 1).reshape(sirt.dim, -1)
+                def _eval_rt(xs):
+                    return sirt.eval_rt(xs[None, :])
+                Js = [torch.autograd.functional.jacobian(_eval_rt, xs_i).squeeze() for xs_i in xs]
+                Js = torch.hstack(Js)
+                # Js: torch.Tensor = torch.autograd.functional.jacobian(sirt.eval_rt, xs)
+                # Js = Js.diagonal(dim1=0, dim2=2).permute(0, 2, 1).reshape(sirt.dim, -1)
             t1 = time.time()
 
-            J_fd = compute_finite_difference_jac(sirt, xs)
+            Js_fd = compute_finite_difference_jac(sirt, xs)
 
             plt.figure(figsize=(6, 6))
-            plt.scatter(J.flatten(), J_fd.flatten(), s=4)
+            plt.scatter(Js.flatten(), Js_fd.flatten(), s=4)
             plt.title("Jacobian Finite Difference Check")
             plt.ylabel(r"$J_{\mathrm{fd}}$")
             plt.xlabel(r"$J$")
             plt.savefig(f"examples/ou_process/figures/04_jacobian_{poly}_{method}_{direction}.pdf")
             plt.clf()
 
-            approx_error = norm(J - J_fd)
+            approx_error = norm(Js - Js_fd)
 
             info = [
                 f"{poly:16}",
