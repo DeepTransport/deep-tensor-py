@@ -66,7 +66,7 @@ for poly in polys_dict:
                 sirt.marginalise(directions[direction])
 
             # z0 = sirt.eval_rt(xs)
-            xs = sirt.eval_irt_nograd(zs)[0]
+            xs = sirt.eval_irt(zs)[0]
 
             t0 = time.time()
             if method == "manual":

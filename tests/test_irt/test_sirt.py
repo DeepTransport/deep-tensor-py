@@ -35,7 +35,7 @@ class TestSIRT(unittest.TestCase):
             with self.subTest(poly=poly, tt_method=tt_method):
                 
                 sirt = build_ou_sirt(poly, tt_method, dim)
-                xs = sirt.eval_irt_nograd(zs)[0]
+                xs = sirt.eval_irt(zs)[0]
                 z0 = sirt.eval_rt(xs)
                 transform_error = norm(zs-z0, ord="fro")
 
@@ -71,7 +71,7 @@ class TestSIRT(unittest.TestCase):
                     if sirt.int_dir != dt.Direction.BACKWARD:
                         sirt.marginalise(dt.Direction.BACKWARD)
                 
-                xs = sirt.eval_irt_nograd(zs[:, indices])[0]
+                xs = sirt.eval_irt(zs[:, indices])[0]
                 z0 = sirt.eval_rt(xs)
                 transform_error = norm(zs[:, indices]-z0, ord="fro")
 

@@ -1,7 +1,8 @@
-"""TODO: write docstring.
-TODO: add timing.
+"""Builds a set of TTSIRT approximations to the posterior distribution 
+associated with an OU process.
 
-Sets up the OU process"""
+"""
+
 
 from matplotlib import pyplot as plt
 import torch

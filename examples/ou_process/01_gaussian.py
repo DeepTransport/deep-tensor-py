@@ -33,7 +33,7 @@ for poly in polys_dict:
         sirt: dt.TTSIRT = sirts[poly][method]
 
         t0 = time.time()
-        xs, potential_xs = sirt.eval_irt_nograd(zs)
+        xs, potential_xs = sirt.eval_irt(zs)
         z0 = sirt.eval_rt(xs)
         t1 = time.time()
 

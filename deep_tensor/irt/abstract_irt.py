@@ -360,7 +360,7 @@ class AbstractIRT(abc.ABC):
 
         return J
 
-    def eval_irt_nograd(
+    def eval_irt(
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -480,7 +480,7 @@ class AbstractIRT(abc.ABC):
         
         """
         us = torch.rand(n, self.dim)
-        rs = self.eval_irt_nograd(us)
+        rs = self.eval_irt(us)
         return rs 
     
     def sobol(self, n: int) -> torch.Tensor:
@@ -500,7 +500,7 @@ class AbstractIRT(abc.ABC):
         """
         S = torch.quasirandom.SobolEngine(dimension=self.dim)
         us = S.draw(n)
-        rs = self.eval_irt_nograd(us)
+        rs = self.eval_irt(us)
         return rs
 
     def set_defensive(

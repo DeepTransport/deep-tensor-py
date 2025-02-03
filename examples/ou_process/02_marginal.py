@@ -52,7 +52,7 @@ for poly in polys_dict:
                     sirt.marginalise(dt.Direction.BACKWARD)
 
             t0 = time.time()
-            xs, potential_xs = sirt.eval_irt_nograd(zs[:, indices])
+            xs, potential_xs = sirt.eval_irt(zs[:, indices])
             fxs = sirt.eval_pdf(xs)
             z0 = sirt.eval_rt(xs)
             potential_true = model.eval_potential_marginal(indices, xs)

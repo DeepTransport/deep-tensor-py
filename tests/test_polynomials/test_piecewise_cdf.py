@@ -103,6 +103,7 @@ class TestPiecewiseCDF(unittest.TestCase):
         ls = cdf.invert_cdf(pls, zs)
         self.assertTrue((ls - ls_true).abs().max() < 1e-8)
 
+        # Test case where there is an individual PDF for each sample
         pls = torch.hstack((pls[:, None], pls[:, None]))
         ls = cdf.invert_cdf(pls, zs)
         self.assertTrue((ls - ls_true).abs().max() < 1e-8)

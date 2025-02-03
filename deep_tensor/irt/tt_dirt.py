@@ -454,7 +454,7 @@ class TTDIRT():
 
             # Evaluate the current mapping Q
             zs = self.reference.eval_cdf(xs)[0]
-            xs, neglogsirts = self.irts[i].eval_irt_nograd(zs)
+            xs, neglogsirts = self.irts[i].eval_irt(zs)
             neglogfxs += neglogsirts - neglogrefs
 
         return xs, neglogfxs
