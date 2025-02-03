@@ -309,7 +309,7 @@ class TTFunc():
                 self.options.init_rank if k != self.dim-1 else 1
             ]
 
-            self.data.cores[k] = torch.rand(core_shape)
+            self.data.cores[k] = torch.zeros(core_shape)
 
             samples = self.input_data.get_samples(self.options.init_rank)
             self.data.interp_ls[k] = samples[:, k:]
@@ -641,6 +641,38 @@ class TTFunc():
  
         return U, sVh, rank
 
+    def apply_mass_R(
+        self, 
+        poly: Basis1D, 
+        H: torch.Tensor
+    ) -> torch.Tensor:
+
+        # Mass matrix for spectral polynomials is the identity
+        if isinstance(poly, Spectral):
+            return H
+        
+        nr_k = H.shape[0]
+        H = poly.mass_R @ H.T.reshape(-1, poly.cardinality).T
+        H = H.T.reshape(-1, nr_k).T
+        return H
+
+    def apply_mass_R_inv(
+        self,
+        poly: Basis1D,
+        U: torch.Tensor
+    ) -> torch.Tensor:
+        
+        # Mass matrix for spectral polynomials is the identity
+        if isinstance(poly, Spectral):
+            return U
+
+        nr_k = U.shape[0]
+        U = U.T.reshape(-1, poly.cardinality).T
+        U = torch.linalg.solve(poly.mass_R, U)
+        U = U.T.reshape(-1, nr_k).T
+        return U
+        
+
     def build_basis_svd(
         self, 
         H: torch.Tensor, 
@@ -675,25 +707,16 @@ class TTFunc():
         r_p_next, _, r_k_next = A_next.shape
 
         H = TTFunc.unfold(H, self.data.direction)
-
-        if isinstance(poly, Piecewise):
-            nr_k = H.shape[0]
-            H = poly.mass_R @ H.T.reshape(-1, poly.cardinality).T
-            H = H.T.reshape(-1, nr_k).T
-
+        H = self.apply_mass_R(poly, H)
         U, sVh, rank = self.truncate_local(H, k)
-
-        if isinstance(poly, Piecewise):
-            U = U.T.reshape(-1, poly.cardinality).T
-            U = torch.linalg.solve(poly.mass_R, U)
-            U = U.T.reshape(-1, nr_k).T
+        U = self.apply_mass_R_inv(poly, U)
 
         inds, B, U_interp = self.select_points(U, k)
         interp_ls = self.get_local_index(poly, interp_ls_prev, inds)
 
         couple = (U_interp @ sVh).T.reshape(-1, rank)
 
-        # Form current coefficient tensor and update next one
+        # Form current coefficient tensor and update dimensions of next one
         if self.data.direction == Direction.FORWARD:
             A = TTFunc.fold_left(B, (r_p, n_k, rank))
             couple = couple[:r_p_next, :]
@@ -734,28 +757,19 @@ class TTFunc():
         n_r_left, _, n_r_right = F_res.shape
         r_0_next, n_nodes_next, r_1_next = core_next.shape
 
+        F = TTFunc.unfold(F, self.data.direction)
+        F_up = TTFunc.unfold(F_up, self.data.direction)
+
         if self.data.direction == Direction.FORWARD:
-            F = TTFunc.unfold_left(F)
-            F_up = TTFunc.unfold_left(F_up)
             r_prev = n_left 
             r_next = r_0_next
         else:
-            F = TTFunc.unfold_right(F)
-            F_up = TTFunc.unfold_right(F_up)
             r_prev = n_right 
             r_next = r_1_next
 
-        if isinstance(poly, Piecewise):
-            nr_k = F.shape[0]
-            F = poly.mass_R @ F.T.reshape(-1, poly.cardinality).T
-            F = F.T.reshape(-1, nr_k).T    
-
+        F = self.apply_mass_R(poly, F)
         B, A, rank = self.truncate_local(F, k)
-
-        if isinstance(poly, Piecewise):
-            B = B.T.reshape(-1, poly.cardinality).T
-            B = torch.linalg.solve(poly.mass_R, B)
-            B = B.T.reshape(-1, nr_k).T
+        B = self.apply_mass_R_inv(poly, B)
 
         if self.data.direction == Direction.FORWARD:
             
@@ -1020,7 +1034,9 @@ class TTFunc():
 
         ls_left = self.data.interp_ls[int(k-1)]
         ls_right = self.data.interp_ls[int(k+1)]
-        self.data.cores[k] = self.build_block_local(ls_left, ls_right, k)
+        H = self.build_block_local(ls_left, ls_right, k)
+        self.errors[k] = self.get_error_local(H, k)
+        self.data.cores[k] = H
         return
 
     def cross(self) -> None:

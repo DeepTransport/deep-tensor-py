@@ -342,11 +342,10 @@ class ApproxBases():
         
         Returns
         -------
-        gs:
-            The gradient of the negative logarithm of the weighting 
-            functions coresponding to each sample in ls.
-
-        TODO: tidy up the returns of this docstring.
+        negloggradwls:
+            An n * d matrix containing the negative logarithm of the 
+            gradient of the weighting functions coresponding to each 
+            sample in ls.
             
         """
 
@@ -357,12 +356,12 @@ class ApproxBases():
             msg = "Samples do not have the correct dimension."
             raise Exception(msg)
         
-        gs = torch.empty_like(ls)
+        negloggradwls = torch.empty_like(ls)
         for i, ls_i in enumerate(ls.T):
             poly = self.polys[indices[i]]
-            gs[:, i] = -poly.eval_log_measure_deriv(ls_i)
+            negloggradwls[:, i] = -poly.eval_log_measure_deriv(ls_i)
 
-        return gs
+        return negloggradwls
 
     def sample_measure(
         self, 
@@ -412,10 +411,14 @@ class ApproxBases():
         Returns
         -------
         neglogwxs:
-            The weighting function evaluated at each element of xs.
-        gxs:
-            TODO: change the naming etc here.
-
+            An n-dimensional vector containing the weighting function 
+            evaluated at each element of xs.
+        negloggradwxs:
+            An n * d matrix containing the negative logarithm of the 
+            gradient of each weighting function evaluated at each 
+            element of xs.
+            
+        TODO: figure out what the gradient actually is
         """
         
         if indices is None:
@@ -428,12 +431,12 @@ class ApproxBases():
         ls, dldxs = self.approx2local(xs, indices)
         
         neglogwls = self.eval_measure_potential_local(ls, indices)
-        neglogwxs = neglogwls - dldxs.log().sum(dim=1)  # TODO: check this
+        neglogwxs = neglogwls - dldxs.log().sum(dim=1)
         
-        grs = self.eval_measure_potential_local_grad(ls, indices)
-        gxs = grs * dldxs
+        negloggradwls = self.eval_measure_potential_local_grad(ls, indices)
+        negloggradwxs = negloggradwls * dldxs  # TODO: check this
 
-        return neglogwxs, gxs
+        return neglogwxs, negloggradwxs
     
     def eval_measure(self, xs: torch.Tensor) -> torch.Tensor:
         """Computes the weighting function for a set of samples from 
