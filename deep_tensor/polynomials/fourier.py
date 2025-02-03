@@ -72,8 +72,18 @@ class Fourier(Spectral):
         
         return basis_vals
     
-    def eval_basis_deriv(self, x):
-        raise NotImplementedError()
+    def eval_basis_deriv(self, us: torch.Tensor):
+
+        tmp = torch.outer(us, self.c)
+
+        deriv_vals = torch.hstack((
+            torch.zeros((us.numel(), 1)),
+            self.c * 2 ** 0.5 * torch.cos(tmp),
+            self.c * 2 ** 0.5 * torch.sin(tmp),
+            self.m * torch.pi * 2 ** 0.5 * torch.cos(us[:, None] * self.m * torch.pi)
+        ))
+
+        return deriv_vals
      
     def eval(self, coeffs, xs):
         raise NotImplementedError()

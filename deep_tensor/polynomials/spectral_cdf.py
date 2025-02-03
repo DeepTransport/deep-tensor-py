@@ -129,8 +129,7 @@ class SpectralCDF(CDF1D, abc.ABC):
 
         if coef.shape[1] != ls.numel():
             raise Exception("Dimension mismatch.")
-
-        # TODO: check dimension of sum
+        
         f = torch.sum(basis_vals * coef.T, 1)
         return f
     
@@ -206,11 +205,6 @@ class SpectralCDF(CDF1D, abc.ABC):
                 zs[mask_right] = poly_norm[mask_right]
 
         zs = zs / poly_norm.flatten()
-
-        # z(isnan(z)) = eps;
-        # z(isinf(z)) = 1-eps;
-        # z(z>(1-eps)) = 1-eps;
-        # z(z<eps) = eps;
     
         return zs
 
