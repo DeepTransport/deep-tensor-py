@@ -962,13 +962,6 @@ class TTSIRT(AbstractIRT):
                 Gs[k] = torch.einsum("...ij, ...jk", Fs[k-1], block_marginal[k])
                 Fm[k] = Gs[k].square().sum(dim=[1, 2]) + self.tau
 
-            # TEMP
-            for k in range(self.dim):
-                r_p, _, r_k = self.approx.data.cores[k].shape
-                Fs[k] = Fs[k].reshape(n_ls, r_k)
-                block_ftt[k] = block_ftt[k].reshape(n_ls*r_p, r_k)
-                block_marginal[k] = block_marginal[k].reshape(n_ls*r_p, r_k)
-
             for j in range(self.dim):
                 
                 Js[j, :, j] = torch.exp(-neglogwls[j]) * Fm[j] / Fm[j-1]
@@ -978,32 +971,22 @@ class TTSIRT(AbstractIRT):
                 if j < self.dim-1:  # skip the (d, d) element
                     
                     # Derivative of the FTT
-                    drl = block_ftt_deriv[j].clone().reshape(n_ls*r_p, r_k)
+                    drl = block_ftt_deriv[j].clone()
 
                     # Derivative of the FTT, 2nd term, for the d(j+1)/dj term
                     mrl = TTFunc.eval_oned_core_213_deriv(
                         self.approx.bases.polys[j], 
                         self.Bs[j], 
                         ls[:, j]
-                    )
+                    ).reshape(n_ls, r_p, r_k)
 
                     if j > 0:
-                        
                         r_p = self.approx.data.cores[j].shape[0]
-                        
-                        ii = torch.arange(n_ls).repeat(r_p)
-                        jj = (torch.arange(r_p * n_ls)
-                                .reshape(n_ls, r_p).T
-                                .flatten())
-                        indices = torch.vstack((ii[None, :], jj[None, :]))
-                        size = (n_ls, r_p * n_ls)
-                        B = torch.sparse_coo_tensor(indices, Fs[j-1].T.flatten(), size)
-
-                        drl = B @ drl 
-                        mrl = B @ mrl
+                        drl = torch.einsum("...ij, ...jk", Fs[j-1], drl)
+                        mrl = torch.einsum("...ij, ...jk", Fs[j-1], mrl)
 
                     # First sub, the second term, for the d(j+1)/dj term
-                    Js[j+1, :, j] -= 2 * torch.sum(Gs[j].reshape(n_ls, r_k) * mrl.reshape(n_ls, r_k), dim=1) * zs[:, j+1]
+                    Js[j+1, :, j] -= 2 * torch.sum(Gs[j] * mrl, dim=(1, 2)) * zs[:, j+1]
 
                     for k in range(j+1, self.dim):
                         
@@ -1014,8 +997,8 @@ class TTSIRT(AbstractIRT):
 
                         # the first term
                         if self.bases.polys[k].constant_weight:
-                            tmp = self.bases.polys[k].eval_measure(self.oned_cdfs[k].nodes)
-                            pk *= tmp[:, None]
+                            wls = self.bases.polys[k].eval_measure(self.oned_cdfs[k].nodes)
+                            pk *= wls[:, None]
 
                         Js[k, :, j] += 2 * reshape_matlab(
                             self.oned_cdfs[k].eval_int_deriv(pk, ls[:, k]), 
@@ -1023,19 +1006,11 @@ class TTSIRT(AbstractIRT):
                         ).flatten()
 
                         if k < self.dim-1:
-
-                            ii = torch.arange(n_ls).repeat(r_p)
-                            jj = (torch.arange(r_p * n_ls)
-                                    .reshape(n_ls, r_p).T
-                                    .flatten())
-                            indices = torch.vstack((ii[None, :], jj[None, :]))
-                            size = (n_ls, r_p * n_ls)
-                            B = torch.sparse_coo_tensor(indices, drl.T.flatten(), size)
-                            # accumulate
-                            drl = B @ block_ftt[k]
                             # the second term, for the d(k+1)/dj term
-                            mrl = B @ block_marginal[k]
-                            Js[k+1, :, j] -= 2 * torch.sum(Gs[k].reshape(n_ls, r_k) * mrl.reshape(n_ls, r_k), dim=1) * zs[:, k+1]
+                            mrl = torch.einsum("...ij, ...jk", drl, block_marginal[k])
+                            # accumulate
+                            drl = torch.einsum("...ij, ...jk", drl, block_ftt[k])
+                            Js[k+1, :, j] -= 2 * torch.sum(Gs[k] * mrl, dim=(1, 2)) * zs[:, k+1]
 
                         Js[k, :, j] /= Fm[k-1]
             
