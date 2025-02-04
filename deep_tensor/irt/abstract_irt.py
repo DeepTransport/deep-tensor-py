@@ -346,15 +346,15 @@ class AbstractIRT(abc.ABC):
         TODO: finish docstring.
         """
         ls, dldxs = self.approx.bases.approx2local(xs)
-        J = self.eval_rt_jac_local(ls, zs) # dzdl
+        Js = self.eval_rt_jac_local(ls, zs) # dzdl
 
         n_zs, dim_zs = zs.shape
         for k in range(n_zs):
             # TODO: check this.
             inds = k * dim_zs + torch.arange(dim_zs)
-            J[:, inds] *= dldxs[k]  # TODO: check whether this multiplication is being done the right way
+            Js[:, inds] *= dldxs[k]  # TODO: check whether this multiplication is being done the right way
 
-        return J
+        return Js
 
     def eval_irt(
         self, 

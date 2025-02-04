@@ -90,7 +90,11 @@ class TTFunc():
         return n
 
     @staticmethod
-    def _check_sample_dim(xs: torch.Tensor, dim: int) -> None:
+    def _check_sample_dim(
+        xs: torch.Tensor, 
+        dim: int, 
+        strict: bool=False
+    ) -> None:
         """Checks that a set of samples is two-dimensional and that the 
         dimension does not exceed the expected dimension.
         """
@@ -98,9 +102,15 @@ class TTFunc():
         if xs.ndim != 2:
             msg = "Samples should be two-dimensional."
             raise Exception(msg)
+        
+        if xs.shape[1] != dim and strict == True:
+            msg = ("Dimension of samples must be equal to dimension "
+                   + "of approximation.")
+            raise Exception(msg)
+
         if xs.shape[1] > dim:
-            msg = ("Dimension of samples should not exceed "
-                   + "dimension of approximation.")
+            msg = ("Dimension of samples may not exceed dimension "
+                   + "of approximation.")
             raise Exception(msg)
 
         return

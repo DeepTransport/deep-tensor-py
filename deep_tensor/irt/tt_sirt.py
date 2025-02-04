@@ -881,26 +881,38 @@ class TTSIRT(AbstractIRT):
         ls: torch.Tensor, 
         zs: torch.Tensor
     ) -> torch.Tensor:
-        """TODO: write docstring."""
+        """Evaluates the Jacobian of the Rosenblatt transport.
         
-        # dim = self.dim
-        n_ls = ls.shape[0]
+        Parameters
+        ----------
+        ls:
+            An n * d set of samples from the local domain.
+        zs: 
+            An n * d matrix corresponding to evaluations of the 
+            Rosenblatt transport at each sample in ls.
+        
+        Returns
+        -------
+        Js:
+            A d * (d*n) matrix, where each d * d block contains the 
+            Jacobian of the Rosenblatt transport evaluated at a given 
+            sample: that is, J_ij = dz_i / dl_i.
 
-        if ls.shape[1] != self.dim:
-            msg = ("Dimension of ls must be equal to dimension "
-                   + "of approximation.")
-            raise Exception(msg)
+        """
+        
+        n_ls = ls.shape[0]
+        TTFunc._check_sample_dim(ls, self.dim, strict=True)
 
         # TODO: eventually layer this somehow
-        J = torch.zeros((self.dim, n_ls * self.dim))
+        J = torch.zeros((self.dim, self.dim * n_ls))
+
+        block_ftt = {}
+        block_marginal = {}
+        neglogwls = {}
+        Ts = {}
+        block_ftt_deriv = {}
 
         if self.int_dir == Direction.FORWARD:
-            
-            block_ftt = {}
-            block_marginal = {}
-            neglogwls = {}
-            Ts = {}
-            block_ftt_d = {}
 
             for k in range(self.dim):
                 
@@ -912,7 +924,12 @@ class TTSIRT(AbstractIRT):
                     ls[:, k]
                 )
 
-                # Good
+                block_ftt_deriv[k] = TTFunc.eval_oned_core_213_deriv(
+                    self.bases.polys[k], 
+                    self.approx.data.cores[k],
+                    ls[:, k]
+                )
+
                 block_marginal[k] = TTFunc.eval_oned_core_213(
                     self.bases.polys[k], 
                     self.Bs[k],
@@ -920,16 +937,10 @@ class TTSIRT(AbstractIRT):
                 )
 
                 Ts[k] = TTFunc.eval_oned_core_213(
-                    self.approx.bases.polys[k],
+                    self.bases.polys[k],
                     self.Bs[k],
                     self.oned_cdfs[k].nodes
                 ).T.reshape(-1, r_p).T 
-
-                block_ftt_d[k] = TTFunc.eval_oned_core_213_deriv(
-                    self.bases.polys[k], 
-                    self.approx.data.cores[k],
-                    ls[:, k]
-                )
 
                 neglogwls[k] = -self.bases.polys[k].eval_log_measure(ls[:, k])
 
@@ -972,7 +983,7 @@ class TTSIRT(AbstractIRT):
                 if j < self.dim-1:  # skip the (d, d) element
                     
                     # Derivative of the FTT
-                    drl = block_ftt_d[j].clone()
+                    drl = block_ftt_deriv[j].clone()
 
                     # Derivative of the FTT, 2nd term, for the d(j+1)/dj term
                     mrl = TTFunc.eval_oned_core_213_deriv(
@@ -1034,12 +1045,6 @@ class TTSIRT(AbstractIRT):
                         J[k, inds] = J[k, inds] / Fm[k-1]
 
         else:
-            
-            block_ftt = {}
-            block_marginal = {}
-            neglogwls = {}
-            Ts = {}
-            block_ftt_d = {}
 
             for k in range(self.dim):
                 
@@ -1057,7 +1062,7 @@ class TTSIRT(AbstractIRT):
 
                 r_k = self.approx.data.cores[k].shape[-1]
                 Ts[k] = reshape_matlab(TTFunc.eval_oned_core_213(self.bases.polys[k], self.Bs[k], self.oned_cdfs[k].nodes), (-1, r_k))
-                block_ftt_d[k] = TTFunc.eval_oned_core_231_deriv(self.bases.polys[k], self.approx.data.cores[k], ls[:, k])
+                block_ftt_deriv[k] = TTFunc.eval_oned_core_231_deriv(self.bases.polys[k], self.approx.data.cores[k], ls[:, k])
                 neglogwls[k] = -self.bases.polys[k].eval_log_measure(ls[:, k])
 
             Fs = {}
@@ -1091,11 +1096,11 @@ class TTSIRT(AbstractIRT):
                 else:
                     J[j, inds] = Fm[j] / Fm[j+1]
                 
-                J[j, inds] = J[j, inds] * torch.exp(-neglogwls[j])
+                J[j, inds] *= torch.exp(-neglogwls[j])
 
                 if j > 0:  # skip the (1, 1) element 
                     
-                    drg = block_ftt_d[j].T
+                    drg = block_ftt_deriv[j].T
                     mrg = TTFunc.eval_oned_core_231_deriv(
                         self.bases.polys[j], 
                         self.Bs[j], 
