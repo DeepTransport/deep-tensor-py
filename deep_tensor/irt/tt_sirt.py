@@ -925,19 +925,19 @@ class TTSIRT(AbstractIRT):
                     self.bases.polys[k],
                     self.approx.data.cores[k],
                     ls[:, k]
-                )#.reshape(n_ls, r_p, r_k)
+                ).reshape(n_ls, r_p, r_k)
 
                 block_ftt_deriv[k] = TTFunc.eval_oned_core_213_deriv(
                     self.bases.polys[k], 
                     self.approx.data.cores[k],
                     ls[:, k]
-                )#.reshape(n_ls, r_p, r_k)
+                ).reshape(n_ls, r_p, r_k)
 
                 block_marginal[k] = TTFunc.eval_oned_core_213(
                     self.bases.polys[k], 
                     self.Bs[k],
                     ls[:, k]
-                )#.reshape(n_ls, r_p, r_k)
+                ).reshape(n_ls, r_p, r_k)
 
                 Ts[k] = TTFunc.eval_oned_core_213(
                     self.bases.polys[k],
@@ -948,33 +948,31 @@ class TTSIRT(AbstractIRT):
                 neglogwls[k] = -self.bases.polys[k].eval_log_measure(ls[:, k])
 
             Fs = {}  # accumulated FTT 
-            Gs = {}  # sum(G**2)is the marginal, each G{k} is nxr
+            Gs = {}  # sum(G**2) is the marginal, each G{k} is nxr
+            Fm = {}  # accumulated FTT part II
 
-            Fs[0] = block_ftt[0].clone()
-            Gs[0] = block_marginal[0].clone() # good
-
-            for k in range(1, self.dim):
-                
-                r_p = self.approx.data.cores[k].shape[0]
-                
-                ii = torch.arange(n_ls).repeat(r_p)
-                jj = (torch.arange(r_p * n_ls)
-                        .reshape(n_ls, r_p).T
-                        .flatten())
-                indices = torch.vstack((ii[None, :], jj[None, :]))
-                size = (n_ls, r_p * n_ls)
-                B = torch.sparse_coo_tensor(indices, Fs[k-1].T.flatten(), size)
-
-                Fs[k] = B @ block_ftt[k]
-                Gs[k] = B @ block_marginal[k]
-            
-            # Accumulated FTT
-            Fm = {k: Gs[k].square().sum(dim=1) + self.tau for k in range(self.dim)} 
             Fm[-1] = self.z
 
-            for j in range(self.dim):
+            Fs[0] = block_ftt[0].clone()
+            Gs[0] = block_marginal[0].clone()
+            Fm[0] = Gs[0].square().sum(dim=(1, 2)) + self.tau
 
-                inds = torch.arange(0, n_ls * self.dim, self.dim) + j
+            for k in range(1, self.dim):
+                Fs[k] = torch.einsum("...ij, ...jk", Fs[k-1], block_ftt[k])
+                Gs[k] = torch.einsum("...ij, ...jk", Fs[k-1], block_marginal[k])
+                Fm[k] = Gs[k].square().sum(dim=[1, 2]) + self.tau
+
+            # TEMP
+            for k in range(self.dim):
+                r_p, _, r_k = self.approx.data.cores[k].shape
+                Fs[k] = Fs[k].reshape(n_ls, r_k)
+                Gs[k] = Gs[k].reshape(n_ls, r_k)
+                block_ftt[k] = block_ftt[k].reshape(n_ls*r_p, r_k)
+                block_ftt_deriv[k] = block_ftt_deriv[k].reshape(n_ls*r_p, r_k)
+                block_marginal[k] = block_marginal[k].reshape(n_ls*r_p, r_k)
+
+            for j in range(self.dim):
+                
                 Js[j, :, j] = torch.exp(-neglogwls[j]) * Fm[j] / Fm[j-1]
 
                 if j < self.dim-1:  # skip the (d, d) element
