@@ -914,27 +914,30 @@ class TTSIRT(AbstractIRT):
 
         if self.int_dir == Direction.FORWARD:
 
+            # TEMP
+            Js = torch.zeros((self.dim, n_ls, self.dim))
+
             for k in range(self.dim):
                 
-                r_p = self.approx.data.cores[k].shape[0]
+                r_p, _, r_k = self.approx.data.cores[k].shape
 
                 block_ftt[k] = TTFunc.eval_oned_core_213(
                     self.bases.polys[k],
                     self.approx.data.cores[k],
                     ls[:, k]
-                )
+                )#.reshape(n_ls, r_p, r_k)
 
                 block_ftt_deriv[k] = TTFunc.eval_oned_core_213_deriv(
                     self.bases.polys[k], 
                     self.approx.data.cores[k],
                     ls[:, k]
-                )
+                )#.reshape(n_ls, r_p, r_k)
 
                 block_marginal[k] = TTFunc.eval_oned_core_213(
                     self.bases.polys[k], 
                     self.Bs[k],
                     ls[:, k]
-                )
+                )#.reshape(n_ls, r_p, r_k)
 
                 Ts[k] = TTFunc.eval_oned_core_213(
                     self.bases.polys[k],
@@ -965,20 +968,14 @@ class TTSIRT(AbstractIRT):
                 Fs[k] = B @ block_ftt[k]
                 Gs[k] = B @ block_marginal[k]
             
-            # accumulated ftt
-            # Fm is good
+            # Accumulated FTT
             Fm = {k: Gs[k].square().sum(dim=1) + self.tau for k in range(self.dim)} 
+            Fm[-1] = self.z
 
             for j in range(self.dim):
 
                 inds = torch.arange(0, n_ls * self.dim, self.dim) + j
-                
-                # the diagonal
-                if j == 0:
-                    J[j, inds] = Fm[j] / self.z # TODO: make Fm[-1] = self.z
-                else:
-                    J[j, inds] = Fm[j] / Fm[j-1]
-                J[j, inds] *= torch.exp(-neglogwls[j])
+                Js[j, :, j] = torch.exp(-neglogwls[j]) * Fm[j] / Fm[j-1]
 
                 if j < self.dim-1:  # skip the (d, d) element
                     
@@ -1008,7 +1005,7 @@ class TTSIRT(AbstractIRT):
                         mrl = B @ mrl
 
                     # First sub, the second term, for the d(j+1)/dj term
-                    J[j+1, inds] = J[j+1, inds] - 2 * torch.sum(Gs[j] * mrl, dim=1) * zs[:, j+1]
+                    Js[j+1, :, j] -= 2 * torch.sum(Gs[j] * mrl, dim=1) * zs[:, j+1]
 
                     for k in range(j+1, self.dim):
                         
@@ -1022,7 +1019,7 @@ class TTSIRT(AbstractIRT):
                             tmp = self.bases.polys[k].eval_measure(self.oned_cdfs[k].nodes)
                             pk *= tmp[:, None]
 
-                        J[k, inds] += 2 * reshape_matlab(
+                        Js[k, :, j] += 2 * reshape_matlab(
                             self.oned_cdfs[k].eval_int_deriv(pk, ls[:, k]), 
                             (1, -1)
                         ).flatten()
@@ -1040,9 +1037,11 @@ class TTSIRT(AbstractIRT):
                             drl = B @ block_ftt[k]
                             # the second term, for the d(k+1)/dj term
                             mrl = B @ block_marginal[k]
-                            J[k+1, inds] = J[k+1, inds] - 2 * torch.sum(Gs[k] * mrl, dim=1) * zs[:, k+1]
+                            Js[k+1, :, j] -= 2 * torch.sum(Gs[k] * mrl, dim=1) * zs[:, k+1]
 
-                        J[k, inds] = J[k, inds] / Fm[k-1]
+                        Js[k, :, j] /= Fm[k-1]
+            
+            J = Js.reshape(self.dim, self.dim*n_ls) # TEMP
 
         else:
 
