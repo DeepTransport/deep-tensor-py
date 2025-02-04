@@ -137,9 +137,11 @@ class LagrangeP(Piecewise):
 
         # map the function value y to each local element
         j = torch.arange(self.local.cardinality-1, n_nodes, self.local.cardinality-1)
-        self.global2local = torch.hstack((
-            torch.arange(self.local.cardinality-1).reshape(self.num_elems, self.local.cardinality-1), 
-            j[:, None]))
+        self.global2local = torch.vstack((
+            torch.arange(self.cardinality-1).reshape(self.num_elems, self.local.cardinality-1).T, 
+            j[None, :]
+        )).T
+
         return
     
     def _compute_nodes(self, n_nodes):
@@ -187,6 +189,7 @@ class LagrangeP(Piecewise):
         coi = self.global2local[left_inds].T.flatten()
         roi = inside.nonzero().flatten().repeat(self.local.cardinality)
         
+        # Evaluation of the interal interpolation
         basis_vals[roi, coi] = lbs.T.flatten()
         return basis_vals
     
