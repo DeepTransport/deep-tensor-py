@@ -966,19 +966,19 @@ class TTSIRT(AbstractIRT):
             for k in range(self.dim):
                 r_p, _, r_k = self.approx.data.cores[k].shape
                 Fs[k] = Fs[k].reshape(n_ls, r_k)
-                Gs[k] = Gs[k].reshape(n_ls, r_k)
                 block_ftt[k] = block_ftt[k].reshape(n_ls*r_p, r_k)
-                block_ftt_deriv[k] = block_ftt_deriv[k].reshape(n_ls*r_p, r_k)
                 block_marginal[k] = block_marginal[k].reshape(n_ls*r_p, r_k)
 
             for j in range(self.dim):
                 
                 Js[j, :, j] = torch.exp(-neglogwls[j]) * Fm[j] / Fm[j-1]
 
+                r_p, _, r_k = self.approx.data.cores[j].shape
+
                 if j < self.dim-1:  # skip the (d, d) element
                     
                     # Derivative of the FTT
-                    drl = block_ftt_deriv[j].clone()
+                    drl = block_ftt_deriv[j].clone().reshape(n_ls*r_p, r_k)
 
                     # Derivative of the FTT, 2nd term, for the d(j+1)/dj term
                     mrl = TTFunc.eval_oned_core_213_deriv(
@@ -1003,14 +1003,14 @@ class TTSIRT(AbstractIRT):
                         mrl = B @ mrl
 
                     # First sub, the second term, for the d(j+1)/dj term
-                    Js[j+1, :, j] -= 2 * torch.sum(Gs[j] * mrl, dim=1) * zs[:, j+1]
+                    Js[j+1, :, j] -= 2 * torch.sum(Gs[j].reshape(n_ls, r_k) * mrl.reshape(n_ls, r_k), dim=1) * zs[:, j+1]
 
                     for k in range(j+1, self.dim):
                         
                         # accumulate the j-th block and evaluate the integral
-                        r_p = self.approx.data.cores[k].shape[0]
+                        r_p, _, r_k = self.approx.data.cores[k].shape
                         n_k = self.oned_cdfs[k].cardinality
-                        pk = reshape_matlab(torch.sum(reshape_matlab((Fs[k-1] @ Ts[k]) * (drl @ Ts[k]), (n_ls * n_k, -1)), 1), (n_ls, n_k)).T
+                        pk = reshape_matlab(torch.sum(reshape_matlab((Fs[k-1].reshape(n_ls, r_p) @ Ts[k]) * (drl.reshape(n_ls, r_p) @ Ts[k]), (n_ls * n_k, -1)), 1), (n_ls, n_k)).T
 
                         # the first term
                         if self.bases.polys[k].constant_weight:
@@ -1035,7 +1035,7 @@ class TTSIRT(AbstractIRT):
                             drl = B @ block_ftt[k]
                             # the second term, for the d(k+1)/dj term
                             mrl = B @ block_marginal[k]
-                            Js[k+1, :, j] -= 2 * torch.sum(Gs[k] * mrl, dim=1) * zs[:, k+1]
+                            Js[k+1, :, j] -= 2 * torch.sum(Gs[k].reshape(n_ls, r_k) * mrl.reshape(n_ls, r_k), dim=1) * zs[:, k+1]
 
                         Js[k, :, j] /= Fm[k-1]
             
