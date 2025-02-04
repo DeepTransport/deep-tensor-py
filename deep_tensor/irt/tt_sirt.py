@@ -876,6 +876,122 @@ class TTSIRT(AbstractIRT):
 
         return ls_y, neglogfls_y
     
+    def _eval_rt_jac_local_forward(
+        self, 
+        ls: torch.Tensor, 
+        zs: torch.Tensor
+    ) -> torch.Tensor:
+
+        block_ftt: dict[int, torch.Tensor] = {}
+        block_marginal: dict[int, torch.Tensor] = {}
+        neglogwls: dict[int, torch.Tensor] = {}
+        Ts: dict[int, torch.Tensor] = {}
+        block_ftt_deriv: dict[int, torch.Tensor] = {}
+
+        n_ls = ls.shape[0]
+        Js = torch.zeros((self.dim, n_ls, self.dim))
+
+        for k in range(self.dim):
+            
+            r_p, _, r_k = self.approx.data.cores[k].shape
+
+            block_ftt[k] = TTFunc.eval_oned_core_213(
+                self.bases.polys[k],
+                self.approx.data.cores[k],
+                ls[:, k]
+            ).reshape(n_ls, r_p, r_k)
+
+            block_ftt_deriv[k] = TTFunc.eval_oned_core_213_deriv(
+                self.bases.polys[k], 
+                self.approx.data.cores[k],
+                ls[:, k]
+            ).reshape(n_ls, r_p, r_k)
+
+            block_marginal[k] = TTFunc.eval_oned_core_213(
+                self.bases.polys[k], 
+                self.Bs[k],
+                ls[:, k]
+            ).reshape(n_ls, r_p, r_k)
+
+            Ts[k] = TTFunc.eval_oned_core_213(
+                self.bases.polys[k],
+                self.Bs[k],
+                self.oned_cdfs[k].nodes
+            ).T.reshape(-1, r_p).T 
+
+            neglogwls[k] = -self.bases.polys[k].eval_log_measure(ls[:, k])
+
+        Fs: dict[int, torch.Tensor] = {}  # accumulated FTT 
+        Gs: dict[int, torch.Tensor] = {}  # sum(G**2) is the marginal, each G{k} is nxr
+        Fm: dict[int, torch.Tensor] = {}  # accumulated FTT part II
+
+        Fm[-1] = self.z
+
+        Fs[0] = block_ftt[0].clone()
+        Gs[0] = block_marginal[0].clone()
+        Fm[0] = Gs[0].square().sum(dim=(1, 2)) + self.tau
+
+        for k in range(1, self.dim):
+            Fs[k] = torch.einsum("...ij, ...jk", Fs[k-1], block_ftt[k])
+            Gs[k] = torch.einsum("...ij, ...jk", Fs[k-1], block_marginal[k])
+            Fm[k] = Gs[k].square().sum(dim=(1, 2)) + self.tau
+
+        for j in range(self.dim):
+            
+            # Fill in diagonal elements
+            Js[j, :, j] = torch.exp(-neglogwls[j]) * Fm[j] / Fm[j-1]
+
+            r_p, _, r_k = self.approx.data.cores[j].shape
+
+            if j < self.dim-1:  # skip the (d, d) element
+                
+                # Derivative of the FTT
+                drl = block_ftt_deriv[j].clone()
+
+                # Derivative of the FTT, 2nd term, for the d(j+1)/dj term
+                mrl = TTFunc.eval_oned_core_213_deriv(
+                    self.approx.bases.polys[j], 
+                    self.Bs[j], 
+                    ls[:, j]
+                ).reshape(n_ls, r_p, r_k)
+
+                if j > 0:
+                    r_p = self.approx.data.cores[j].shape[0]
+                    drl = torch.einsum("...ij, ...jk", Fs[j-1], drl)
+                    mrl = torch.einsum("...ij, ...jk", Fs[j-1], mrl)
+
+                # First sub, the second term, for the d(j+1)/dj term
+                Js[j+1, :, j] -= 2 * torch.sum(Gs[j] * mrl, dim=(1, 2)) * zs[:, j+1]
+
+                for k in range(j+1, self.dim):
+                    
+                    # Accumulate the j-th block and evaluate the integral
+                    r_p, _, r_k = self.approx.data.cores[k].shape
+                    n_k = self.oned_cdfs[k].cardinality
+
+                    pk = (Fs[k-1].reshape(n_ls, r_p) @ Ts[k]) * (drl.reshape(n_ls, r_p) @ Ts[k])
+                    pk = pk.T.reshape(-1, n_ls * n_k).sum(dim=0).reshape(n_k, n_ls)
+
+                    # Compute the first term
+                    if self.bases.polys[k].constant_weight:
+                        wls = self.bases.polys[k].eval_measure(self.oned_cdfs[k].nodes)
+                        pk *= wls[:, None]
+
+                    # TODO: do a finite difference check for this?
+                    Js[k, :, j] += 2 * self.oned_cdfs[k].eval_int_deriv(pk, ls[:, k])
+
+                    if k < self.dim-1:
+                        # the second term, for the d(k+1)/dj term
+                        mrl = torch.einsum("...ij, ...jk", drl, block_marginal[k])
+                        # accumulate
+                        drl = torch.einsum("...ij, ...jk", drl, block_ftt[k])
+                        Js[k+1, :, j] -= 2 * (Gs[k] * mrl).sum(dim=(1, 2)) * zs[:, k+1]
+
+                    Js[k, :, j] /= Fm[k-1]
+        
+        Js = Js.reshape(self.dim, self.dim * n_ls) # TEMP
+        return Js
+    
     def eval_rt_jac_local(
         self, 
         ls: torch.Tensor, 
@@ -899,124 +1015,23 @@ class TTSIRT(AbstractIRT):
             sample: that is, J_ij = dz_i / dl_i.
 
         """
-        
-        n_ls = ls.shape[0]
+
         TTFunc._check_sample_dim(ls, self.dim, strict=True)
 
-        # TODO: eventually layer this somehow
-        J = torch.zeros((self.dim, self.dim * n_ls))
-
-        block_ftt = {}
-        block_marginal = {}
-        neglogwls = {}
-        Ts = {}
-        block_ftt_deriv = {}
-
         if self.int_dir == Direction.FORWARD:
-
-            # TEMP
-            Js = torch.zeros((self.dim, n_ls, self.dim))
-
-            for k in range(self.dim):
-                
-                r_p, _, r_k = self.approx.data.cores[k].shape
-
-                block_ftt[k] = TTFunc.eval_oned_core_213(
-                    self.bases.polys[k],
-                    self.approx.data.cores[k],
-                    ls[:, k]
-                ).reshape(n_ls, r_p, r_k)
-
-                block_ftt_deriv[k] = TTFunc.eval_oned_core_213_deriv(
-                    self.bases.polys[k], 
-                    self.approx.data.cores[k],
-                    ls[:, k]
-                ).reshape(n_ls, r_p, r_k)
-
-                block_marginal[k] = TTFunc.eval_oned_core_213(
-                    self.bases.polys[k], 
-                    self.Bs[k],
-                    ls[:, k]
-                ).reshape(n_ls, r_p, r_k)
-
-                Ts[k] = TTFunc.eval_oned_core_213(
-                    self.bases.polys[k],
-                    self.Bs[k],
-                    self.oned_cdfs[k].nodes
-                ).T.reshape(-1, r_p).T 
-
-                neglogwls[k] = -self.bases.polys[k].eval_log_measure(ls[:, k])
-
-            Fs = {}  # accumulated FTT 
-            Gs = {}  # sum(G**2) is the marginal, each G{k} is nxr
-            Fm = {}  # accumulated FTT part II
-
-            Fm[-1] = self.z
-
-            Fs[0] = block_ftt[0].clone()
-            Gs[0] = block_marginal[0].clone()
-            Fm[0] = Gs[0].square().sum(dim=(1, 2)) + self.tau
-
-            for k in range(1, self.dim):
-                Fs[k] = torch.einsum("...ij, ...jk", Fs[k-1], block_ftt[k])
-                Gs[k] = torch.einsum("...ij, ...jk", Fs[k-1], block_marginal[k])
-                Fm[k] = Gs[k].square().sum(dim=[1, 2]) + self.tau
-
-            for j in range(self.dim):
-                
-                Js[j, :, j] = torch.exp(-neglogwls[j]) * Fm[j] / Fm[j-1]
-
-                r_p, _, r_k = self.approx.data.cores[j].shape
-
-                if j < self.dim-1:  # skip the (d, d) element
-                    
-                    # Derivative of the FTT
-                    drl = block_ftt_deriv[j].clone()
-
-                    # Derivative of the FTT, 2nd term, for the d(j+1)/dj term
-                    mrl = TTFunc.eval_oned_core_213_deriv(
-                        self.approx.bases.polys[j], 
-                        self.Bs[j], 
-                        ls[:, j]
-                    ).reshape(n_ls, r_p, r_k)
-
-                    if j > 0:
-                        r_p = self.approx.data.cores[j].shape[0]
-                        drl = torch.einsum("...ij, ...jk", Fs[j-1], drl)
-                        mrl = torch.einsum("...ij, ...jk", Fs[j-1], mrl)
-
-                    # First sub, the second term, for the d(j+1)/dj term
-                    Js[j+1, :, j] -= 2 * torch.sum(Gs[j] * mrl, dim=(1, 2)) * zs[:, j+1]
-
-                    for k in range(j+1, self.dim):
-                        
-                        # accumulate the j-th block and evaluate the integral
-                        r_p, _, r_k = self.approx.data.cores[k].shape
-                        n_k = self.oned_cdfs[k].cardinality
-                        pk = reshape_matlab(torch.sum(reshape_matlab((Fs[k-1].reshape(n_ls, r_p) @ Ts[k]) * (drl.reshape(n_ls, r_p) @ Ts[k]), (n_ls * n_k, -1)), 1), (n_ls, n_k)).T
-
-                        # the first term
-                        if self.bases.polys[k].constant_weight:
-                            wls = self.bases.polys[k].eval_measure(self.oned_cdfs[k].nodes)
-                            pk *= wls[:, None]
-
-                        Js[k, :, j] += 2 * reshape_matlab(
-                            self.oned_cdfs[k].eval_int_deriv(pk, ls[:, k]), 
-                            (1, -1)
-                        ).flatten()
-
-                        if k < self.dim-1:
-                            # the second term, for the d(k+1)/dj term
-                            mrl = torch.einsum("...ij, ...jk", drl, block_marginal[k])
-                            # accumulate
-                            drl = torch.einsum("...ij, ...jk", drl, block_ftt[k])
-                            Js[k+1, :, j] -= 2 * torch.sum(Gs[k] * mrl, dim=(1, 2)) * zs[:, k+1]
-
-                        Js[k, :, j] /= Fm[k-1]
-            
-            J = Js.reshape(self.dim, self.dim*n_ls) # TEMP
+            J = self._eval_rt_jac_local_forward(ls, zs)
 
         else:
+
+            # TODO: eventually layer this
+            n_ls = ls.shape[0]
+            J = torch.zeros((self.dim, self.dim * n_ls))
+
+            block_ftt: dict[int, torch.Tensor] = {}
+            block_marginal: dict[int, torch.Tensor] = {}
+            neglogwls: dict[int, torch.Tensor] = {}
+            Ts: dict[int, torch.Tensor] = {}
+            block_ftt_deriv: dict[int, torch.Tensor] = {}
 
             for k in range(self.dim):
                 
