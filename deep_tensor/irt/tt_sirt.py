@@ -937,11 +937,11 @@ class TTSIRT(AbstractIRT):
             Fm[k] = Gs[k].square().sum(dim=(1, 2)) + self.tau
 
         for j in range(self.dim):
+
+            r_p, _, r_k = self.approx.data.cores[j].shape
             
             # Fill in diagonal elements
             Js[j, :, j] = torch.exp(-neglogwls[j]) * Fm[j] / Fm[j-1]
-
-            r_p, _, r_k = self.approx.data.cores[j].shape
 
             if j < self.dim-1:  # skip the (d, d) element
                 
@@ -956,7 +956,6 @@ class TTSIRT(AbstractIRT):
                 ).reshape(n_ls, r_p, r_k)
 
                 if j > 0:
-                    r_p = self.approx.data.cores[j].shape[0]
                     drl = torch.einsum("...ij, ...jk", Fs[j-1], drl)
                     mrl = torch.einsum("...ij, ...jk", Fs[j-1], mrl)
 
@@ -979,15 +978,15 @@ class TTSIRT(AbstractIRT):
 
                     # TODO: do a finite difference check for this?
                     Js[k, :, j] += 2 * self.oned_cdfs[k].eval_int_deriv(pk, ls[:, k])
+                    Js[k, :, j] /= Fm[k-1]
 
                     if k < self.dim-1:
                         # the second term, for the d(k+1)/dj term
                         mrl = torch.einsum("...ij, ...jk", drl, block_marginal[k])
                         # accumulate
                         drl = torch.einsum("...ij, ...jk", drl, block_ftt[k])
-                        Js[k+1, :, j] -= 2 * (Gs[k] * mrl).sum(dim=(1, 2)) * zs[:, k+1]
 
-                    Js[k, :, j] /= Fm[k-1]
+                        Js[k+1, :, j] -= 2 * (Gs[k] * mrl).sum(dim=(1, 2)) * zs[:, k+1]
         
         Js = Js.reshape(self.dim, self.dim * n_ls) # TEMP
         return Js

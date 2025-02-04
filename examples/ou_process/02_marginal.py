@@ -55,9 +55,9 @@ for poly in polys_dict:
             xs, potential_xs = sirt.eval_irt(zs[:, indices])
             fxs = sirt.eval_pdf(xs)
             z0 = sirt.eval_rt(xs)
-            potential_true = model.eval_potential_marginal(indices, xs)
             t1 = time.time()
 
+            potential_true = model.eval_potential_marginal(indices, xs)
             transform_error = norm(zs[:, indices] - z0, ord="fro")
             density_error = norm(torch.exp(-potential_xs) - fxs)
             approx_error = norm(torch.exp(-potential_xs) - torch.exp(-potential_true))

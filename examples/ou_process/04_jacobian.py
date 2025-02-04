@@ -54,13 +54,15 @@ directions = {
 
 methods = ["manual", "autodiff"]
 
-zs = torch.rand((100, dim))
+zs = torch.rand((10, dim))
+# zs = torch.full((2, dim), 1e-4)
 
 for poly in polys_dict:
     for method in methods:
         for direction in directions:
 
-            sirt: dt.TTSIRT = sirts[poly]["fixed_rank"]
+            sirt: dt.TTSIRT = sirts[poly]["random"]
+            # sirt.tau = 5e-2
 
             if sirt.int_dir != directions[direction]: 
                 sirt.marginalise(directions[direction])
