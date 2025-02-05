@@ -23,7 +23,8 @@ class TestSIRT(unittest.TestCase):
         polys = [
             dt.Legendre(order=40),
             dt.Fourier(order=20),
-            dt.Lagrange1(num_elems=40)
+            dt.Lagrange1(num_elems=40),
+            dt.LagrangeP(order=5, num_elems=8)
         ]
 
         tt_methods = ["fixed_rank", "random", "amen"]
@@ -48,7 +49,8 @@ class TestSIRT(unittest.TestCase):
         polys = [
             dt.Legendre(order=40),
             dt.Fourier(order=20),
-            dt.Lagrange1(num_elems=40)
+            dt.Lagrange1(num_elems=40),
+            dt.LagrangeP(order=5, num_elems=8)
         ]
 
         tt_methods = ["random", "fixed_rank"]
