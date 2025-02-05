@@ -84,7 +84,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         ls: torch.Tensor
     ) -> torch.Tensor:
 
-        if cdf_data.num_samples > 1 and cdf_data.num_samples != ls.numel():
+        if cdf_data.n_cdfs > 1 and cdf_data.n_cdfs != ls.numel():
             raise Exception("Data mismatch.")
 
         zs = torch.zeros_like(ls)
@@ -234,7 +234,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         self.check_initial_intervals(z0s, z1s)
 
         # Carry out the first iteration using the regula falsi method
-        ls = l0s - z1s * (l1s - l0s) / (z1s - z0s)
+        ls = l1s - z1s * (l1s - l0s) / (z1s - z0s)
 
         for _ in range(self.num_newton):  
             
@@ -242,6 +242,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
             
             dls = -zs / dzs 
             dls[torch.isinf(dls)] = 0.0
+            dls[torch.isnan(dls)] = 0.0
             ls += dls 
             ls = torch.clamp(ls, l0s, l1s)
 
@@ -367,9 +368,19 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         zs: torch.Tensor
     ) -> torch.Tensor:
 
+        # # TEMP
+        # pls = torch.zeros((8, 81))
+        # pls[:, :41] = torch.linspace(0, 1, 41)
+        # pls[:, 40:] = torch.linspace(1, 0, 41)
+        # pls = pls.T
+        # zs = torch.linspace(0.0, 1.0, 8)
+
         self.check_pdf_positive(pls)
         cdf_data = self.pdf2cdf(pls)
         ls = torch.zeros_like(zs)
+
+        # print(cdf_data.poly_coef[:, :, 0])
+        # print(cdf_data.poly_coef[:, :, 1])
 
         zs_cdf = zs * cdf_data.poly_norm
         inds_left = (cdf_data.cdf_poly_grid <= zs_cdf).sum(dim=0) - 1

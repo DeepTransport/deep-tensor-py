@@ -35,25 +35,21 @@ class BoundedPolyCDF(Chebyshev2ndUnweighted, SpectralCDF):
     
     def eval_int_basis_newton(
         self, 
-        rs: torch.Tensor
+        ls: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         
-        thetas = self.x2theta(rs)
+        thetas = self.x2theta(ls)
         basis_vals = (torch.cos(torch.outer(thetas, self.n+1)) 
                       * (self.normalising / (self.n+1)))
         deriv_vals = (torch.sin(torch.outer(self.n+1, thetas)) 
                       / (torch.sin(thetas) / self.normalising)).T
-            
-        # % deal with endpoints
         
-        # mask = abs(x+1) < eps;
-        # if sum(mask) > 0
-        #     db(mask,:) = repmat(((obj.n+1).*(-1).^obj.n).*obj.normalising, sum(mask), 1);
-        # end
+        mask_lhs = torch.abs(ls + 1.0) < EPS
+        if torch.sum(mask_lhs) > 0:
+            deriv_vals[mask_lhs, :] = (self.n+1) * torch.pow(-1.0, self.n) * self.normalising
         
-        # mask = abs(x-1) < eps;
-        # if sum(mask) > 0
-        #     db(mask,:) = repmat((obj.n+1).*obj.normalising, sum(mask), 1);
-        # end
+        mask_rhs = torch.abs(ls - 1.0) < EPS
+        if torch.sum(mask_rhs) > 0:
+            deriv_vals[mask_rhs, :] = (self.n+1) * self.normalising
 
         return basis_vals, deriv_vals

@@ -35,7 +35,7 @@ polys_dict = {
     "lagrange1": dt.Lagrange1(num_elems=40),
     "legendre": dt.Legendre(order=40),
     "fourier": dt.Fourier(order=20),
-    # "lagrangep": dt.LagrangeP(order=5, num_elems=8)
+    "lagrangep": dt.LagrangeP(order=5, num_elems=8)
 }
 
 bases_dict = {

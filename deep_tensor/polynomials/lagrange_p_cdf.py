@@ -65,13 +65,15 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         ref_nodes = [cheby.domain[0], *cheby_2nd.nodes, cheby.domain[1]]
         ref_nodes = torch.tensor(ref_nodes)
 
-        # Map reference nodes into [0, 1]
-        cheby.nodes = 0.5 * (ref_nodes + 1)
         cheby.basis2node = cheby.eval_basis(ref_nodes)
         cheby.node2basis = torch.linalg.inv(cheby.basis2node)  # TODO: tidy this up
 
         cheby.mass_R = None 
         cheby.int_W = None
+
+        # Map reference nodes into [0, 1]
+        cheby.nodes = 0.5 * (ref_nodes + 1.0)
+
         cdf_basis2node = 0.5 * cheby.eval_int_basis(ref_nodes)
 
         return cheby, cdf_basis2node
@@ -92,7 +94,8 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         # Compute the coefficients of each Chebyshev polynomial (i) in 
         # each element (k) for each PDF (j)
         poly_coef = torch.einsum("il, ljk -> ijk", self.cheby.node2basis, ps_local)
-        
+        # print(poly_coef[3, 4, 5])
+
         cdf_poly_grid = torch.zeros(self.num_elems+1, n_cdfs)
         cdf_poly_nodes = torch.zeros(self.cardinality, n_cdfs)
         poly_base = torch.zeros(self.num_elems, n_cdfs)
@@ -101,8 +104,8 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
 
         for i in range(self.num_elems):
 
-            # Compute nodal values of each CDF polynomial for current 
-            # element
+            # Compute values of integral of Chebyshev polynomial over 
+            # current element
             tmp = (self.cdf_basis2node @ poly_coef[:, :, i]) * self.jac
             
             # print(self.cheby.eval_int_basis(tmp[0] / self.jac))
@@ -150,19 +153,49 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         
         else:
 
-            pi = torch.arange(cdf_data.n_cdfs)
-            basis_vals = self.cheby.eval_int_basis(ls)  # TODO: check this
+            inds = torch.arange(cdf_data.n_cdfs)
+            basis_vals = self.cheby.eval_int_basis(ls)
             basis_vals *= x2z[:, None]  # Plays similar role to Jacobian?
-            tmp = (basis_vals * cdf_data.poly_coef[:, pi, inds_left].T).sum(dim=1)
-            F = tmp - cdf_data.poly_base[inds_left, pi] + cdf_data.cdf_poly_grid[inds_left+1, pi]
+            tmp = (basis_vals * cdf_data.poly_coef[:, inds, inds_left].T).sum(dim=1)
+            F = tmp - cdf_data.poly_base[inds_left, inds] + cdf_data.cdf_poly_grid[inds_left, inds]
 
-            print(tmp - cdf_data.poly_base[inds_left, pi])
-            print((tmp - cdf_data.poly_base[inds_left, pi]).min())
+        # print(cdf_data.poly_base[inds_left, inds])
+        # print(cdf_data.cdf_poly_grid[inds_left, inds])
 
         return F
     
-    def eval_int_lag_local_deriv(self, cdf_data, inds_left, ls):
-        raise NotImplementedError()
+    def eval_int_lag_local_deriv(
+        self, 
+        cdf_data: CDFDataLagrangeP, 
+        inds_left: torch.Tensor, 
+        ls: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        
+        # Define the domain on which to evaluate the section of the CDF
+        domains = torch.hstack((
+            self.grid[inds_left][:, None],
+            self.grid[inds_left+1][:, None]
+        ))
+
+        # Rescale each element of ls to interval [-1, 1]
+        x2z = 0.5 * (domains[:, 1] - domains[:, 0])
+        mid = 0.5 * (domains[:, 1] + domains[:, 0])
+        ls = (ls - mid) / x2z
+
+        if cdf_data.n_cdfs == 1:
+            raise NotImplementedError()
+        
+        else:
+
+            inds = torch.arange(cdf_data.n_cdfs)
+            basis_vals, deriv_vals = self.cheby.eval_int_basis_newton(ls)
+            basis_vals *= x2z[:, None]  # Plays similar role to Jacobian?
+            tmp = (basis_vals * cdf_data.poly_coef[:, inds, inds_left].T).sum(dim=1)
+            F = tmp - cdf_data.poly_base[inds_left, inds] + cdf_data.cdf_poly_grid[inds_left, inds]
+            
+            df = (deriv_vals * cdf_data.poly_coef[:, inds, inds_left].T).sum(dim=1)
+
+        return F, df
     
     def invert_cdf_local(
         self, 

@@ -30,7 +30,7 @@ class CDFData():
         
         """
         
-        self.num_samples = n_cdfs
+        self.n_cdfs = n_cdfs
         self.poly_coef = poly_coef
         self.cdf_poly_grid = cdf_poly_grid
         self.poly_norm = poly_norm

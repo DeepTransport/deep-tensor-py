@@ -100,7 +100,7 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         ls: torch.Tensor
     ) -> torch.Tensor:
         
-        if cdf_data.num_samples == 1:
+        if cdf_data.n_cdfs == 1:
             i_inds = inds_left
             j_inds = inds_left 
         else:
@@ -127,7 +127,7 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         dls = (ls - self.grid[inds_left])[:, None]
         dls_mat = torch.hstack((torch.ones_like(dls), dls, dls ** 2))
 
-        if cdf_data.num_samples == 1:
+        if cdf_data.n_cdfs == 1:
             i_inds = inds_left
         else:
             coi = torch.arange(ls.numel())

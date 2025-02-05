@@ -101,7 +101,7 @@ class LagrangeRef():
 
         temp_m = self.omega.repeat(n_in, 1) / diffs
 
-        # evaluation of the internal interpolation
+        # Evaluation of the internal interpolation
         f[inside] = (fls.repeat(n_in, 1) * temp_m).sum(dim=1) / temp_m.sum(dim=1)
         return f
 
@@ -123,16 +123,17 @@ class LagrangeP(Piecewise):
 
         self._nodes = self._compute_nodes(n_nodes)
 
-        mass = torch.zeros((self.cardinality, self.cardinality))
-        self.jac = self.elem_size / self.domain_size
+        unweighed_mass = torch.zeros((self.cardinality, self.cardinality))
+        self.jac = self.elem_size / (self.local.domain[1] - self.local.domain[0])
         self._int_W = torch.zeros(self.cardinality)
 
         for i in range(self.num_elems):
             ind = (torch.arange(self.local.cardinality) 
                    + i * (self.local.cardinality-1))
-            mass[ind[:, None], ind[None, :]] += self.local.mass * self.jac
+            unweighed_mass[ind[:, None], ind[None, :]] += self.local.mass * self.jac
             self._int_W[ind] += self.local.weights * self.jac
 
+        mass = unweighed_mass / self.domain_size
         self._mass_R = torch.linalg.cholesky(mass).T
 
         # map the function value y to each local element
@@ -204,7 +205,7 @@ class LagrangeP(Piecewise):
         coi = self.global2local[left_inds].T.flatten()
         roi = inside.nonzero().flatten().repeat(self.local.cardinality)
         
-        # Evaluation of the interal interpolation
+        # Evaluation of the internal interpolation
         basis_vals[roi, coi] = lbs.T.flatten()
         return basis_vals
     
