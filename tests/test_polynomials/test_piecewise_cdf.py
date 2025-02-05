@@ -61,7 +61,7 @@ class TestPiecewiseCDF(unittest.TestCase):
 
         cdf_data = cdf.pdf2cdf(pls)
 
-        self.assertTrue(cdf_data.num_samples == 1)
+        self.assertTrue(cdf_data.n_cdfs == 1)
         self.assertTrue((poly_coef_true - cdf_data.poly_coef).abs().max() < 1e-8)
         self.assertTrue((cdf_poly_grid_true - cdf_data.cdf_poly_grid).abs().max() < 1e-8)
         self.assertTrue((poly_norm_true - cdf_data.poly_norm).abs().max() < 1e-8)

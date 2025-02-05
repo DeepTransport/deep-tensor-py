@@ -2,7 +2,7 @@ from typing import Tuple
 
 import torch
 
-from .cdf_data import CDFData
+from .cdf_data import CDFDataLagrange1
 from .lagrange_1 import Lagrange1
 from .piecewise_cdf import PiecewiseCDF
 
@@ -66,7 +66,7 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
     def pdf2cdf(
         self, 
         pls: torch.Tensor
-    ) -> CDFData:
+    ) -> CDFDataLagrange1:
 
         # Handle case where a vector for a single PDF is passed in
         if pls.ndim == 1:
@@ -91,11 +91,11 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         cdf_poly_grid[1:] = torch.cumsum(cdf_elems, dim=0)
         poly_norm = cdf_poly_grid[-1]
 
-        return CDFData(n_cdfs, poly_coef, cdf_poly_grid, poly_norm) 
+        return CDFDataLagrange1(n_cdfs, poly_coef, cdf_poly_grid, poly_norm) 
 
     def eval_int_lag_local(
         self, 
-        cdf_data: CDFData,
+        cdf_data: CDFDataLagrange1,
         inds_left: torch.Tensor,
         ls: torch.Tensor
     ) -> torch.Tensor:
@@ -117,7 +117,7 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
 
     def eval_int_lag_local_deriv(
         self, 
-        cdf_data: CDFData, 
+        cdf_data: CDFDataLagrange1, 
         inds_left: torch.Tensor,
         ls: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:

@@ -373,14 +373,10 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         # pls[:, :41] = torch.linspace(0, 1, 41)
         # pls[:, 40:] = torch.linspace(1, 0, 41)
         # pls = pls.T
-        # zs = torch.linspace(0.0, 1.0, 8)
 
         self.check_pdf_positive(pls)
         cdf_data = self.pdf2cdf(pls)
         ls = torch.zeros_like(zs)
-
-        # print(cdf_data.poly_coef[:, :, 0])
-        # print(cdf_data.poly_coef[:, :, 1])
 
         zs_cdf = zs * cdf_data.poly_norm
         inds_left = (cdf_data.cdf_poly_grid <= zs_cdf).sum(dim=0) - 1

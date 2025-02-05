@@ -128,7 +128,7 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         # plt.plot(cdf_poly_nodes[:, 0])
         # plt.show()
 
-        return CDFDataLagrangeP(n_cdfs, poly_coef, cdf_poly_nodes, cdf_poly_grid, poly_norm, poly_base)
+        return CDFDataLagrangeP(n_cdfs, poly_coef, cdf_poly_grid, poly_norm, cdf_poly_nodes, poly_base)
 
     def eval_int_lag_local(
         self, 
