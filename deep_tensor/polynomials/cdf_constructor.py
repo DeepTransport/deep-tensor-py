@@ -2,16 +2,19 @@ from .basis_1d import Basis1D
 
 from .fourier import Fourier
 from .lagrange_1 import Lagrange1
+from .lagrange_p import LagrangeP
 from .legendre import Legendre
 
 from .bounded_poly_cdf import BoundedPolyCDF
 from .fourier_cdf import FourierCDF
 from .lagrange_1_cdf import Lagrange1CDF
+from .lagrange_p_cdf import LagrangePCDF
 
 
-POLY_CDFS = {  # TODO: finish this
+POLY_CDFS = {
     Fourier: FourierCDF,
     Lagrange1: Lagrange1CDF,
+    LagrangeP: LagrangePCDF,
     Legendre: BoundedPolyCDF,
 }
 

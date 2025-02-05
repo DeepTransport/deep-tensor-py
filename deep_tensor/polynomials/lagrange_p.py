@@ -124,14 +124,14 @@ class LagrangeP(Piecewise):
         self._nodes = self._compute_nodes(n_nodes)
 
         mass = torch.zeros((self.cardinality, self.cardinality))
-        jac = self.elem_size / self.domain_size
+        self.jac = self.elem_size / self.domain_size
         self._int_W = torch.zeros(self.cardinality)
 
         for i in range(self.num_elems):
             ind = (torch.arange(self.local.cardinality) 
                    + i * (self.local.cardinality-1))
-            mass[ind[:, None], ind[None, :]] += self.local.mass * jac
-            self._int_W[ind] += self.local.weights * jac
+            mass[ind[:, None], ind[None, :]] += self.local.mass * self.jac
+            self._int_W[ind] += self.local.weights * self.jac
 
         self._mass_R = torch.linalg.cholesky(mass).T
 
@@ -159,13 +159,28 @@ class LagrangeP(Piecewise):
     def int_W(self) -> torch.Tensor:
         return self._int_W
     
+    @int_W.setter
+    def int_W(self, value: torch.Tensor) -> None:
+        self._int_W = value 
+        return
+    
     @property 
     def nodes(self) -> torch.Tensor:
         return self._nodes 
+
+    @nodes.setter 
+    def nodes(self, value: torch.Tensor) -> None:
+        self._nodes = value 
+        return
     
     @property 
     def mass_R(self) -> torch.Tensor:
         return self._mass_R
+    
+    @mass_R.setter
+    def mass_R(self, value: torch.Tensor) -> None:
+        self._mass_R = value 
+        return
 
     def eval_basis(self, ls: torch.Tensor) -> torch.Tensor:
         

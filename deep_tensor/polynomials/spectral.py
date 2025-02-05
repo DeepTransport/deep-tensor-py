@@ -27,41 +27,63 @@ class Spectral(Basis1D, abc.ABC):
         collocation point.
         """
         return self._basis2node
+    
+    @basis2node.setter
+    def basis2node(self, value: torch.Tensor) -> None:
+        self._basis2node = value 
+        return
 
     @property 
     def node2basis(self) -> torch.Tensor:
         """The inverse of basis2node."""
         return self._node2basis
     
+    @node2basis.setter 
+    def node2basis(self, value: torch.Tensor) -> None:
+        self._node2basis = value 
+        return
+    
     @property 
     def mass_R(self) -> torch.Tensor:
         return self._mass_R 
+    
+    @mass_R.setter
+    def mass_R(self, value: torch.Tensor) -> None: 
+        self._mass_R = value
+        return
     
     @property 
     def int_W(self) -> torch.Tensor: 
         return self._int_W
     
-    def x2theta(self, xs: torch.Tensor) -> torch.Tensor:
+    @int_W.setter 
+    def int_W(self, value: torch.Tensor) -> None:
+        self._int_W = value
+        return 
+    
+    def x2theta(self, ls: torch.Tensor) -> torch.Tensor:
         """Converts a set of x values (on the interval [-1, 1]) to a 
         set of theta values (theta = arccos(x)), adjusting the 
         endpoints in case of singularities.
 
         Parameters
         ----------
-        xs: 
-            Set of input points.
+        ls: 
+            An n-dimensional vector containing a set of points from the 
+            local domain.
         
         Returns
         -------
-        : 
-            The corresponding set of theta values (theta = arccos(x)).
+        thetas: 
+            An n-dimensional vector containing the corresponding theta 
+            values (theta = arccos(x)).
         
         """
 
-        theta = torch.acos(xs)
-        theta[torch.abs(xs+1.0) <= EPS] = torch.pi
-        theta[torch.abs(xs-1.0) <= EPS] = 0.0
-        return theta
+        thetas = torch.acos(ls)
+        thetas[torch.abs(ls + 1.0) <= EPS] = torch.pi
+        thetas[torch.abs(ls - 1.0) <= EPS] = 0.0
+        return thetas
 
     def post_construction(self):
 

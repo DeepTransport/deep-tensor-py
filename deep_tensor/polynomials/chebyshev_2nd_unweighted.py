@@ -31,6 +31,11 @@ class Chebyshev2ndUnweighted(Spectral):
     def nodes(self) -> torch.Tensor:
         return self._nodes 
     
+    @nodes.setter
+    def nodes(self, value: torch.Tensor) -> None: 
+        self._nodes = value 
+        return
+    
     @property
     def weights(self) -> torch.Tensor:
         return self._weights
@@ -77,13 +82,18 @@ class Chebyshev2ndUnweighted(Spectral):
     def eval_log_measure_deriv(self, rs: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError("Not implemented.")
 
-    def eval_basis(self, rs: torch.Tensor) -> torch.Tensor:
+    def eval_basis(self, ls: torch.Tensor) -> torch.Tensor:
 
-        thetas = self.x2theta(rs)
+        thetas = self.x2theta(ls)
         fs = (torch.sin(torch.outer(self.n+1, thetas)) 
               * (self.normalising / torch.sin(thetas))).T
+
+        if (mask_lhs := torch.abs(ls+1) < EPS).sum() > 0:
+            fs[mask_lhs, :] = (self.n+1) * self.normalising * torch.pow(-1.0, self.n)
         
-        # TODO: deal with the endpoints
+        if (mask_rhs := torch.abs(ls-1) < EPS).sum() > 0:
+            fs[mask_rhs, :] = (self.n+1) * self.normalising
+        
         return fs
 
     def eval_basis_deriv(self, rs: torch.Tensor) -> torch.Tensor:

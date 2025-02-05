@@ -11,6 +11,8 @@ class CDFData():
         poly_norm: torch.Tensor
     ):
         """Class containing information on a single CDF or set of CDFs.
+
+        TODO: rename to CDFDataLagrange1
         
         Parameters
         ----------
@@ -32,4 +34,25 @@ class CDFData():
         self.poly_coef = poly_coef
         self.cdf_poly_grid = cdf_poly_grid
         self.poly_norm = poly_norm
+        return
+    
+class CDFDataLagrangeP():
+
+    def __init__(
+        self,
+        n_cdfs: int,
+        poly_coef: torch.Tensor,
+        cdf_poly_nodes: torch.Tensor,
+        cdf_poly_grid: torch.Tensor,
+        poly_norm: torch.Tensor,
+        poly_base: torch.Tensor
+    ):
+        """TODO: write docstring."""
+        
+        self.n_cdfs = n_cdfs 
+        self.poly_coef = poly_coef
+        self.cdf_poly_nodes = cdf_poly_nodes 
+        self.cdf_poly_grid = cdf_poly_grid
+        self.poly_norm = poly_norm
+        self.poly_base = poly_base
         return
