@@ -95,15 +95,6 @@ class TTSIRT(AbstractIRT):
     def int_dir(self, value: Direction):
         self._int_dir = value
         return
-    
-    @property
-    def order(self) -> torch.Tensor:
-        return self._order
-    
-    @order.setter 
-    def order(self, value: torch.Tensor):
-        self._order = value
-        return
 
     @property 
     def tau(self) -> torch.Tensor:

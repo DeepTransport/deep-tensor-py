@@ -77,14 +77,6 @@ class AbstractIRT(abc.ABC):
         """
         return
 
-    @property 
-    @abc.abstractmethod
-    def order(self) -> torch.Tensor:
-        """The order in which to compute the marginals in each 
-        dimension.
-        """
-        return
-
     @property
     @abc.abstractmethod
     def int_dir(self) -> Direction:
