@@ -5,10 +5,9 @@ import warnings
 import torch
 
 from .tt_sirt import TTSIRT
-from ..ftt.approx_bases import ApproxBases
+from ..ftt import ApproxBases, InputData
 from ..bridging_densities import Bridge, Tempering1
 from ..domains import BoundedDomain
-from ..ftt.input_data import InputData
 from ..options import DIRTOptions, TTOptions
 from ..references import Reference, GaussianReference
 from ..tools import compute_f_divergence

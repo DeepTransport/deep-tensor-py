@@ -3,14 +3,10 @@ from typing import Callable, Tuple
 
 import torch
 
-from ..ftt.approx_bases import ApproxBases
-from ..ftt.tt_func import TTFunc
 from ..constants import EPS
-from ..ftt.directions import Direction
-from ..ftt.input_data import InputData
+from ..ftt import ApproxBases, TTFunc, Direction, InputData, TTData
 from ..options import TTOptions
 from ..polynomials import CDF1D
-from ..ftt.tt_data import TTData
 
 
 Z_MIN = torch.tensor(EPS)
