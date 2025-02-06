@@ -135,7 +135,7 @@ class TTSIRT(AbstractIRT):
     def _marginalise_forward(self) -> None:
         """Computes each coefficient tensor required to evaluate the 
         marginal functions in each dimension, by iterating over the 
-        dimensions of the approximation from first to last.
+        dimensions of the approximation from last to first.
         """
 
         self.Rs[self.dim] = torch.tensor([[1.0]])
@@ -157,7 +157,7 @@ class TTSIRT(AbstractIRT):
     def _marginalise_backward(self) -> None:
         """Computes each coefficient tensor required to evaluate the 
         marginal functions in each dimension, by iterating over the 
-        dimensions of the approximation from last to first.
+        dimensions of the approximation from first to last.
         """
         
         self.Rs[-1] = torch.tensor([[1.0]])
@@ -196,6 +196,11 @@ class TTSIRT(AbstractIRT):
         Notes
         -----
         Updates self.Bs, self.z_func, self.z.
+
+        References
+        ----------
+        Cui and Dolgov (2022, Sec. 3.1). Deep composition of tensor 
+        trains using squared inverse Rosenblatt transports.
 
         """
         self.int_dir = direction
@@ -480,7 +485,7 @@ class TTSIRT(AbstractIRT):
         neglogfls = self.z.log() - (ps_sq + self.tau).log() + neglogwls
         return neglogfls
 
-    def eval_rt_local(
+    def eval_rt_local_alt(
         self, 
         ls: torch.Tensor
     ) -> torch.Tensor:
@@ -572,6 +577,85 @@ class TTSIRT(AbstractIRT):
                 B = torch.sparse_coo_tensor(indices, values, size)
                 frg = T2.T @ B
 
+        return zs
+    
+    def _eval_rt_local_forward(self, ls: torch.Tensor):
+
+        n_ls, d_ls = ls.shape
+        zs = torch.zeros_like(ls)
+        frl = torch.ones((n_ls, 1))
+            
+        for k in range(d_ls):
+            
+            r_p, _, r_k = self.approx.data.cores[k].shape
+            n_k = self.oned_cdfs[k].cardinality
+            
+            Gs_B = TTFunc.eval_oned_core_213(
+                self.bases.polys[k],
+                self.Bs[k],
+                self.oned_cdfs[k].nodes
+            ).reshape(n_k, r_p, r_k)
+
+            ps_sq = torch.einsum("jl, ilk -> ijk", frl, Gs_B).square().sum(dim=2)
+
+            zs[:, k] = self.oned_cdfs[k].eval_cdf(ps_sq + self.tau, ls[:, k])
+
+            Gs_A = TTFunc.eval_oned_core_213(
+                self.bases.polys[k], 
+                self.approx.data.cores[k], 
+                ls[:, k]
+            ).reshape(n_ls, r_p, r_k)
+
+            frl = torch.einsum("il, ilk -> ik", frl, Gs_A)
+
+        return zs
+    
+    def _eval_rt_local_backward(
+        self, 
+        ls: torch.Tensor
+    ) -> torch.Tensor:
+
+        n_ls, d_ls = ls.shape
+        zs = torch.zeros_like(ls)
+
+        k_min = self.approx.dim - d_ls
+        frg = torch.ones((1, n_ls))
+
+        for k in range(self.dim-1, k_min-1, -1):
+            
+            k_ind = k - k_min
+            r_p, _, r_k = self.approx.data.cores[k].shape
+            n_k = self.oned_cdfs[k].cardinality
+
+            Gs_B = self.approx.eval_oned_core_213(
+                self.bases.polys[k],
+                self.Bs[k],
+                self.oned_cdfs[k].nodes
+            ).reshape(n_k, r_p, r_k)
+            
+            ps_sq = torch.einsum("ijl, lk -> ijk", Gs_B, frg).square().sum(dim=1)
+
+            zs[:, k_ind] = self.oned_cdfs[k].eval_cdf(ps_sq + self.tau, ls[:, k_ind])
+            
+            Gs_A = TTFunc.eval_oned_core_213(
+                self.bases.polys[k], 
+                self.approx.data.cores[k], 
+                ls[:, k_ind]
+            ).reshape(n_ls, r_p, r_k)
+
+            frg = torch.einsum("ijl, li -> ji", Gs_A, frg)
+
+        return zs
+
+    def eval_rt_local(
+        self, 
+        ls: torch.Tensor
+    ) -> torch.Tensor:
+
+        if self.int_dir == Direction.FORWARD:
+            zs = self._eval_rt_local_forward(ls)
+        else:
+            zs = self._eval_rt_local_backward(ls)
         return zs
 
     def eval_irt_local_grad(
