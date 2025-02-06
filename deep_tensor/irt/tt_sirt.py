@@ -53,7 +53,7 @@ class TTSIRT(AbstractIRT):
         self.Bs: dict[int, torch.Tensor] = {}
         self.Rs: dict[int, torch.Tensor] = {} 
         
-        self.int_dir = Direction.FORWARD # TEMP?
+        self.int_dir = Direction.FORWARD
         self.tau = tau
 
         self.approx = self.build_approximation(
@@ -71,7 +71,7 @@ class TTSIRT(AbstractIRT):
                 error_tol=self.approx.options.cdf_tol
             )
 
-        self.marginalise()
+        self.marginalise(direction=self.int_dir)
         return
 
     @property 
@@ -201,7 +201,7 @@ class TTSIRT(AbstractIRT):
             self._marginalise_backward()
         return
 
-    def _eval_irt_local_nograd_forward(
+    def _eval_irt_local_forward(
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -259,7 +259,7 @@ class TTSIRT(AbstractIRT):
         ps_sq = (ps @ self.Rs[d_zs]).square().sum(dim=1)
         return ls, ps_sq
     
-    def _eval_irt_local_nograd_backward(
+    def _eval_irt_local_backward(
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -319,7 +319,7 @@ class TTSIRT(AbstractIRT):
         ps_sq = (self.Rs[i_min-1] @ ps.T).square().sum(dim=0)
         return ls, ps_sq
 
-    def eval_irt_local_nograd(
+    def eval_irt_local(
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -346,9 +346,9 @@ class TTSIRT(AbstractIRT):
         """
 
         if self.int_dir == Direction.FORWARD:
-            ls, ps_sq = self._eval_irt_local_nograd_forward(zs)
+            ls, ps_sq = self._eval_irt_local_forward(zs)
         else:
-            ls, ps_sq = self._eval_irt_local_nograd_backward(zs)
+            ls, ps_sq = self._eval_irt_local_backward(zs)
         
         indices = self.get_transform_indices(zs.shape[1])
         
@@ -428,22 +428,6 @@ class TTSIRT(AbstractIRT):
         self, 
         ls: torch.Tensor
     ) -> torch.Tensor:
-        """Evaluates the normalised (marginal) PDF represented by the 
-        squared FTT.
-        
-        Parameters
-        ----------
-        ls:
-            An n * d matrix containing a set of samples from the local 
-            domain.
-
-        Returns
-        -------
-        fs:
-            The approximation to the target PDF (transformed into the 
-            local domain) at each element in ls.
-        
-        """
 
         dim_l = ls.shape[1]
 
@@ -476,7 +460,10 @@ class TTSIRT(AbstractIRT):
         neglogfls = self.z.log() - (ps_sq + self.tau).log() + neglogwls
         return neglogfls
 
-    def _eval_rt_local_forward(self, ls: torch.Tensor):
+    def _eval_rt_local_forward(
+        self, 
+        ls: torch.Tensor
+    ) -> torch.Tensor:
 
         n_ls, d_ls = ls.shape
         zs = torch.zeros_like(ls)
@@ -487,7 +474,7 @@ class TTSIRT(AbstractIRT):
             r_p, _, r_k = self.approx.data.cores[k].shape
             n_k = self.oned_cdfs[k].cardinality
             
-            # Compute marginal PDF for each sample
+            # Compute (unnormalised) conditional PDF for each sample
             Ps = TTFunc.eval_oned_core_213(
                 self.bases.polys[k],
                 self.Bs[k],
@@ -528,7 +515,7 @@ class TTSIRT(AbstractIRT):
             r_p, _, r_k = self.approx.data.cores[k].shape
             n_k = self.oned_cdfs[k].cardinality
 
-            # Compute marginal PDF for each sample
+            # Compute (unnormalised) conditional PDF for each sample
             Ps = self.approx.eval_oned_core_213(
                 self.bases.polys[k],
                 self.Bs[k],
@@ -557,22 +544,6 @@ class TTSIRT(AbstractIRT):
         self, 
         ls: torch.Tensor
     ) -> torch.Tensor:
-        """Evaluates the Rosenblatt transport Z = R(L), where L is the 
-        target random variable mapped into the local domain, and Z is 
-        uniform.
-
-        Parameters
-        ----------
-        ls:
-            An n * d matrix containing samples from the local domain.
-        
-        Returns
-        -------
-        zs:
-            An n * d matrix containing the result of applying the 
-            inverse Rosenblatt transport to each sample in ls.
-        
-        """
         if self.int_dir == Direction.FORWARD:
             zs = self._eval_rt_local_forward(ls)
         else:

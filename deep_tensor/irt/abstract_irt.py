@@ -182,17 +182,47 @@ class AbstractIRT(abc.ABC):
     @abc.abstractmethod 
     def eval_potential_local(
         self, 
-        zs: torch.Tensor
+        ls: torch.Tensor
     ) -> torch.Tensor:
-        """TODO: write docstring."""
+        """Evaluates the normalised (marginal) PDF represented by the 
+        squared FTT.
+        
+        Parameters
+        ----------
+        ls:
+            An n * d matrix containing a set of samples from the local 
+            domain.
+
+        Returns
+        -------
+        fs:
+            The approximation to the target PDF (transformed into the 
+            local domain) at each element in ls.
+        
+        """
         return
 
     @abc.abstractmethod
     def eval_rt_local(
         self, 
-        zs: torch.Tensor
+        ls: torch.Tensor
     ) -> torch.Tensor:
-        """TODO: write docstring."""
+        """Evaluates the Rosenblatt transport Z = R(L), where L is the 
+        target random variable mapped into the local domain, and Z is 
+        uniform.
+
+        Parameters
+        ----------
+        ls:
+            An n * d matrix containing samples from the local domain.
+        
+        Returns
+        -------
+        zs:
+            An n * d matrix containing the result of applying the 
+            inverse Rosenblatt transport to each sample in ls.
+        
+        """
         return
 
     @abc.abstractmethod 
@@ -204,7 +234,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_irt_local_nograd(
+    def eval_irt_local(
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -313,10 +343,8 @@ class AbstractIRT(abc.ABC):
             Rosenblatt transport.
         
         """
-
-        dim_x = xs.shape[1]
-        indices = self.get_transform_indices(dim_x)
-        
+        d_xs = xs.shape[1]
+        indices = self.get_transform_indices(d_xs)
         ls = self.approx.bases.approx2local(xs, indices)[0]
         zs = self.eval_rt_local(ls)
         return zs
@@ -377,7 +405,7 @@ class AbstractIRT(abc.ABC):
         zs = torch.clamp(zs, Z_MIN, Z_MAX)
         indices = self.get_transform_indices(zs.shape[1])
 
-        ls, neglogfls = self.eval_irt_local_nograd(zs)
+        ls, neglogfls = self.eval_irt_local(zs)
         xs, dxdls = self.approx.bases.local2approx(ls, indices)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
 
