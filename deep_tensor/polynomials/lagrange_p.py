@@ -213,5 +213,32 @@ class LagrangeP(Piecewise):
         self, 
         ls: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]: 
-        raise NotImplementedError()
-    
+        
+        deriv_vals = torch.zeros((ls.numel(), self.cardinality))
+
+        if not torch.all(inside := self.in_domain(ls)):
+            warnings.warn("Some points are outside the domain.")
+
+        if not torch.any(inside):
+            return deriv_vals
+        
+        left_inds = self.get_left_hand_inds(ls[inside])
+
+        ls_local = (ls[inside] - self.grid[left_inds]) / self.elem_size
+        
+        diffs = ls_local.repeat(self.local.cardinality, 1).T - self.local.nodes.repeat(inside.sum(), 1)
+        diffs[diffs.abs() < EPS] = EPS
+
+        temp_m1 = self.local.omega.repeat(inside.sum(), 1) / diffs
+        temp_m2 = self.local.omega.repeat(inside.sum(), 1) / (diffs ** 2)
+
+        a = 1.0 / torch.sum(temp_m1, dim=1, keepdim=True)
+        b = torch.sum(temp_m2, dim=1, keepdim=True) * torch.pow(a, 2)
+
+        lbs = (temp_m1 * b - temp_m2 * a) / self.jac
+        coi = self.global2local[left_inds].T.flatten()
+        roi = inside.nonzero().flatten().repeat(self.local.cardinality)
+        
+        # Evaluation of the internal interpolation
+        deriv_vals[roi, coi] = lbs.T.flatten()
+        return deriv_vals

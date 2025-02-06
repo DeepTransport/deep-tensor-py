@@ -66,13 +66,11 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         ref_nodes = torch.tensor(ref_nodes)
 
         cheby.basis2node = cheby.eval_basis(ref_nodes)
-        cheby.node2basis = torch.linalg.inv(cheby.basis2node)  # TODO: tidy this up
-
-        cheby.mass_R = None 
-        cheby.int_W = None
-
+        cheby.node2basis = torch.linalg.inv(cheby.basis2node)
         # Map reference nodes into [0, 1]
         cheby.nodes = 0.5 * (ref_nodes + 1.0)
+        cheby.mass_R = None 
+        cheby.int_W = None
 
         cdf_basis2node = 0.5 * cheby.eval_int_basis(ref_nodes)
 
@@ -94,7 +92,6 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         # Compute the coefficients of each Chebyshev polynomial (i) in 
         # each element (k) for each PDF (j)
         poly_coef = torch.einsum("il, ljk -> ijk", self.cheby.node2basis, ps_local)
-        # print(poly_coef[3, 4, 5])
 
         cdf_poly_grid = torch.zeros(self.num_elems+1, n_cdfs)
         cdf_poly_nodes = torch.zeros(self.cardinality, n_cdfs)
@@ -107,11 +104,6 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
             # Compute values of integral of Chebyshev polynomial over 
             # current element
             tmp = (self.cdf_basis2node @ poly_coef[:, :, i]) * self.jac
-            
-            # print(self.cheby.eval_int_basis(tmp[0] / self.jac))
-
-            assert torch.min(tmp-tmp[0]) >= -1e-10, "Mistake"  # TODO: move elsewhere
-
             # Compute value of CDF poly at LHS of element
             poly_base[i] = tmp[0]
             # Compute value of poly at nodes of CDF corresponding to 
@@ -123,12 +115,16 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         # Compute normalising constant
         poly_norm = cdf_poly_grid[-1]
 
-        # from matplotlib import pyplot as plt
-        # # plt.plot(ps[:, 0])
-        # plt.plot(cdf_poly_nodes[:, 0])
-        # plt.show()
+        data = CDFDataLagrangeP(
+            n_cdfs, 
+            poly_coef, 
+            cdf_poly_grid, 
+            poly_norm, 
+            cdf_poly_nodes, 
+            poly_base
+        )
 
-        return CDFDataLagrangeP(n_cdfs, poly_coef, cdf_poly_grid, poly_norm, cdf_poly_nodes, poly_base)
+        return data
 
     def eval_int_lag_local(
         self, 
@@ -158,9 +154,6 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
             basis_vals *= x2z[:, None]  # Plays similar role to Jacobian?
             tmp = (basis_vals * cdf_data.poly_coef[:, inds, inds_left].T).sum(dim=1)
             F = tmp - cdf_data.poly_base[inds_left, inds] + cdf_data.cdf_poly_grid[inds_left, inds]
-
-        # print(cdf_data.poly_base[inds_left, inds])
-        # print(cdf_data.cdf_poly_grid[inds_left, inds])
 
         return F
     
@@ -210,8 +203,8 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
             inds = (cdf_data.cdf_poly_nodes < zs_cdf).sum(dim=0) - 1
         
         inds = torch.clamp(inds, 0, self.cardinality-2)
+        
         l0s = self.nodes[inds]
         l1s = self.nodes[inds+1]
-
         ls = self.newton(cdf_data, inds_left, zs_cdf, l0s, l1s)
         return ls

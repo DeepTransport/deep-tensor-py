@@ -16,7 +16,7 @@ torch.manual_seed(0)
 
 
 dim = 20
-a = 0.5
+a = 0.95
 
 model = OU(dim, a)
 
@@ -35,7 +35,7 @@ polys_dict = {
     "lagrange1": dt.Lagrange1(num_elems=40),
     "legendre": dt.Legendre(order=40),
     "fourier": dt.Fourier(order=20),
-    "lagrangep": dt.LagrangeP(order=5, num_elems=8)
+    # "lagrangep": dt.LagrangeP(order=5, num_elems=8)
 }
 
 bases_dict = {
@@ -52,7 +52,7 @@ options_dict = {
     method: dt.TTOptions(
         tt_method=method,
         max_rank=19, 
-        max_als=1
+        max_als=4
     ) for method in tt_methods_list
 }
 
