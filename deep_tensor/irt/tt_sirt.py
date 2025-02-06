@@ -502,10 +502,14 @@ class TTSIRT(AbstractIRT):
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
             ).reshape(n_k, r_p, r_k)
-            ps_sq = torch.einsum("jl, ilk -> ijk", Gs_prod, Ps).square().sum(dim=2)
+            ps_sq = torch.einsum("jl, ilk -> ijk", Gs_prod, Ps)
+            ps_sq = ps_sq.square().sum(dim=2)
 
             # Evaluate CDF to obtain corresponding uniform variates
-            zs[:, k] = self.oned_cdfs[k].eval_cdf(ps_sq + self.tau, ls[:, k])
+            zs[:, k] = self.oned_cdfs[k].eval_cdf(
+                ps_sq + self.tau, 
+                ls[:, k]
+            )
 
             # Compute incremental product of tensor cores for each sample
             Gs = TTFunc.eval_oned_core_213(
@@ -539,10 +543,14 @@ class TTSIRT(AbstractIRT):
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
             ).reshape(n_k, r_p, r_k)
-            ps_sq = torch.einsum("ijl, lk -> ijk", Ps, Gs_prod).square().sum(dim=1)
+            ps_sq = torch.einsum("ijl, lk -> ijk", Ps, Gs_prod)
+            ps_sq = ps_sq.square().sum(dim=1)
 
             # Evaluate CDF to obtain corresponding uniform variates
-            zs[:, k_ind] = self.oned_cdfs[k].eval_cdf(ps_sq + self.tau, ls[:, k_ind])
+            zs[:, k_ind] = self.oned_cdfs[k].eval_cdf(
+                ps_sq + self.tau, 
+                ls[:, k_ind]
+            )
             
             # Compute incremental product of tensor cores for each sample
             Gs = TTFunc.eval_oned_core_213(
