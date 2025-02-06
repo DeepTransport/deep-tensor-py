@@ -485,128 +485,35 @@ class TTSIRT(AbstractIRT):
         neglogfls = self.z.log() - (ps_sq + self.tau).log() + neglogwls
         return neglogfls
 
-    def eval_rt_local_alt(
-        self, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
-
-        num_r, dim_r = ls.shape
-        zs = torch.zeros_like(ls)
-
-        if self.int_dir == Direction.FORWARD:
-
-            frl = torch.ones((num_r, 1))
-            
-            for k in range(dim_r):
-                
-                rank_p = self.approx.data.cores[k].shape[0]
-                rank_k = self.approx.data.cores[k].shape[-1]
-                num_nodes = self.oned_cdfs[k].cardinality
-
-                T1 = self.approx.eval_oned_core_213(
-                    self.bases.polys[k],
-                    self.Bs[k],
-                    self.oned_cdfs[k].nodes
-                ).T.reshape(rank_k * num_nodes, rank_p).T
-
-                # Squared TT
-                pdf_vals = ((frl @ T1).T.reshape(-1, num_r * num_nodes).T 
-                                      .square()
-                                      .sum(dim=1)
-                                      .reshape(num_nodes, num_r))
-                
-                zs[:, k] = self.oned_cdfs[k].eval_cdf(pdf_vals+self.tau, ls[:, k])
-
-                # Evaluate the updated basis function
-                T2 = self.approx.eval_oned_core_213(
-                    self.bases.polys[k], 
-                    self.approx.data.cores[k], 
-                    ls[:, k]
-                )
-
-                ii = torch.arange(num_r).repeat(rank_p)
-                jj = (torch.arange(rank_p * num_r)
-                           .reshape(num_r, rank_p).T
-                           .flatten())
-
-                indices = torch.vstack((ii[None, :], jj[None, :]))
-                values = frl.T.flatten()
-                size = (num_r, rank_p * num_r)
-
-                B = torch.sparse_coo_tensor(indices, values, size)
-                frl = B @ T2
-        
-        else:
-            
-            # TODO: check this
-
-            k_min = self.approx.dim - dim_r
-            frg = torch.ones((1, num_r))
-
-            for k in range(self.approx.dim-1, k_min-1, -1):
-                
-                k_ind = k - k_min
-                rank_k = self.approx.data.cores[k].shape[-1]
-                num_nodes = self.oned_cdfs[k].cardinality
-
-                T1 = self.approx.eval_oned_core_213(
-                    self.bases.polys[k],
-                    self.Bs[k],
-                    self.oned_cdfs[k].nodes
-                )
-                T1 = reshape_matlab(T1, (-1, rank_k))
-
-                pk = reshape_matlab(T1 @ frg, (-1, num_nodes * num_r))
-                pk = reshape_matlab(pk.square().sum(dim=0), (num_nodes, num_r))
-
-                zs[:, k_ind] = self.oned_cdfs[k].eval_cdf(pk + self.tau, ls[:, k_ind])
-
-                T2 = self.approx.eval_oned_core_231(
-                    self.bases.polys[k], 
-                    self.approx.data.cores[k],
-                    ls[:, k_ind]
-                )
-
-                ii = torch.arange(rank_k * num_r)
-                jj = torch.arange(num_r).repeat_interleave(rank_k)
-
-                indices = torch.vstack((ii[None, :], jj[None, :]))
-                values = frg.T.flatten()
-                size = (rank_k * num_r, num_r)
-                
-                B = torch.sparse_coo_tensor(indices, values, size)
-                frg = T2.T @ B
-
-        return zs
-    
     def _eval_rt_local_forward(self, ls: torch.Tensor):
 
         n_ls, d_ls = ls.shape
         zs = torch.zeros_like(ls)
-        frl = torch.ones((n_ls, 1))
+        Gs_prod = torch.ones((n_ls, 1))
             
         for k in range(d_ls):
             
             r_p, _, r_k = self.approx.data.cores[k].shape
             n_k = self.oned_cdfs[k].cardinality
             
-            Gs_B = TTFunc.eval_oned_core_213(
+            # Compute marginal PDF for each sample
+            Ps = TTFunc.eval_oned_core_213(
                 self.bases.polys[k],
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
             ).reshape(n_k, r_p, r_k)
+            ps_sq = torch.einsum("jl, ilk -> ijk", Gs_prod, Ps).square().sum(dim=2)
 
-            ps_sq = torch.einsum("jl, ilk -> ijk", frl, Gs_B).square().sum(dim=2)
-
+            # Evaluate CDF to obtain corresponding uniform variates
             zs[:, k] = self.oned_cdfs[k].eval_cdf(ps_sq + self.tau, ls[:, k])
 
-            Gs_A = TTFunc.eval_oned_core_213(
+            # Compute incremental product of tensor cores for each sample
+            Gs = TTFunc.eval_oned_core_213(
                 self.bases.polys[k], 
                 self.approx.data.cores[k], 
                 ls[:, k]
             ).reshape(n_ls, r_p, r_k)
-
-            frl = torch.einsum("il, ilk -> ik", frl, Gs_A)
+            Gs_prod = torch.einsum("il, ilk -> ik", Gs_prod, Gs)
 
         return zs
     
@@ -617,9 +524,8 @@ class TTSIRT(AbstractIRT):
 
         n_ls, d_ls = ls.shape
         zs = torch.zeros_like(ls)
-
-        k_min = self.approx.dim - d_ls
-        frg = torch.ones((1, n_ls))
+        k_min = self.dim - d_ls
+        Gs_prod = torch.ones((1, n_ls))
 
         for k in range(self.dim-1, k_min-1, -1):
             
@@ -627,23 +533,24 @@ class TTSIRT(AbstractIRT):
             r_p, _, r_k = self.approx.data.cores[k].shape
             n_k = self.oned_cdfs[k].cardinality
 
-            Gs_B = self.approx.eval_oned_core_213(
+            # Compute marginal PDF for each sample
+            Ps = self.approx.eval_oned_core_213(
                 self.bases.polys[k],
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
             ).reshape(n_k, r_p, r_k)
-            
-            ps_sq = torch.einsum("ijl, lk -> ijk", Gs_B, frg).square().sum(dim=1)
+            ps_sq = torch.einsum("ijl, lk -> ijk", Ps, Gs_prod).square().sum(dim=1)
 
+            # Evaluate CDF to obtain corresponding uniform variates
             zs[:, k_ind] = self.oned_cdfs[k].eval_cdf(ps_sq + self.tau, ls[:, k_ind])
             
-            Gs_A = TTFunc.eval_oned_core_213(
+            # Compute incremental product of tensor cores for each sample
+            Gs = TTFunc.eval_oned_core_213(
                 self.bases.polys[k], 
                 self.approx.data.cores[k], 
                 ls[:, k_ind]
             ).reshape(n_ls, r_p, r_k)
-
-            frg = torch.einsum("ijl, li -> ji", Gs_A, frg)
+            Gs_prod = torch.einsum("ijl, li -> ji", Gs, Gs_prod)
 
         return zs
 
@@ -651,7 +558,22 @@ class TTSIRT(AbstractIRT):
         self, 
         ls: torch.Tensor
     ) -> torch.Tensor:
+        """Evaluates the Rosenblatt transport Z = R(L), where L is the 
+        target random variable mapped into the local domain, and Z is 
+        uniform.
 
+        Parameters
+        ----------
+        ls:
+            An n * d matrix containing samples from the local domain.
+        
+        Returns
+        -------
+        zs:
+            An n * d matrix containing the result of applying the 
+            inverse Rosenblatt transport to each sample in ls.
+        
+        """
         if self.int_dir == Direction.FORWARD:
             zs = self._eval_rt_local_forward(ls)
         else:

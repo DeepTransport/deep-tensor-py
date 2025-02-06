@@ -1135,7 +1135,7 @@ class TTFunc():
             ps = torch.einsum("il, ilk -> ik", ps, Gs)
 
         if dim_ls == self.dim:
-            return ps.squeeze()
+            return ps.squeeze()  # TODO: avoid this
         
         return ps
     
@@ -1165,7 +1165,7 @@ class TTFunc():
             ps = torch.einsum("il, ilk -> ik", ps, Gs)
 
         if dim_ls == self.dim:
-            return ps.squeeze()
+            return ps.squeeze()  # TODO: avoid this
         
         return ps.T
 
