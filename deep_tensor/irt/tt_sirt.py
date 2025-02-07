@@ -429,24 +429,24 @@ class TTSIRT(AbstractIRT):
 
         if self.int_dir == Direction.FORWARD:
 
-            ps = self.approx.eval_local(ls, direction=self.int_dir)
+            gs = self.approx.eval_local(ls, direction=self.int_dir)
 
             if dim_l < self.dim:
-                ps_sq = (ps @ self.Rs[dim_l]).square().sum(dim=1)
+                ps_sq = (gs @ self.Rs[dim_l]).square().sum(dim=1)
             else: 
-                ps_sq = ps.square()
+                ps_sq = gs.square()
 
             indices = torch.arange(dim_l)
             
         else:
 
-            ps = self.approx.eval_local(ls, direction=self.int_dir)
+            gs = self.approx.eval_local(ls, direction=self.int_dir)
             i_min = self.dim - dim_l
 
             if dim_l < self.dim:
-                ps_sq = (self.Rs[i_min-1] @ ps).square().sum(dim=0)
+                ps_sq = (self.Rs[i_min-1] @ gs).square().sum(dim=0)
             else:
-                ps_sq = ps.square()
+                ps_sq = gs.square()
 
             indices = torch.arange(self.dim-1, self.dim-dim_l-1, -1)
             
@@ -476,14 +476,11 @@ class TTSIRT(AbstractIRT):
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
             ).reshape(n_k, r_p, r_k)
-            ps_sq = torch.einsum("jl, ilk -> ijk", Gs_prod, Ps)
-            ps_sq = ps_sq.square().sum(dim=2)
+            gs = torch.einsum("jl, ilk -> ijk", Gs_prod, Ps)
+            ps = gs.square().sum(dim=2) + self.tau
 
             # Evaluate CDF to obtain corresponding uniform variates
-            zs[:, k] = self.oned_cdfs[k].eval_cdf(
-                ps_sq + self.tau, 
-                ls[:, k]
-            )
+            zs[:, k] = self.oned_cdfs[k].eval_cdf(ps, ls[:, k])
 
             # Compute incremental product of tensor cores for each sample
             Gs = TTFunc.eval_oned_core_213(
@@ -963,7 +960,7 @@ class TTSIRT(AbstractIRT):
         Js = Js.reshape(self.dim, self.dim * n_ls) # TEMP
         return Js
     
-    def eval_rt_jac_local(
+    def eval_rt_jac_local_alt(
         self, 
         ls: torch.Tensor, 
         zs: torch.Tensor
@@ -1108,3 +1105,46 @@ class TTSIRT(AbstractIRT):
                         J[k, inds] = J[k, inds] / Fm[k+1]
 
         return J
+
+    def eval_rt_jac_local(
+        self,
+        ls: torch.Tensor
+    ) -> torch.Tensor:
+        
+        TTFunc._check_sample_dim(ls, self.dim, strict=True)
+        n_ls = ls.shape[0]
+
+        Jacs = torch.zeros((self.dim, n_ls, self.dim))
+
+        Gs = {}
+
+        ps_marg = {}
+        ps_marg[-1] = self.z
+        wls = {}
+
+        gs = torch.ones((n_ls, 1))
+
+        for k in range(self.dim):
+
+            r_p, _, r_k = self.approx.data.cores[k].shape
+
+            wls[k] = self.bases.polys[k].eval_measure(ls[:, k])
+
+            # Evaluate kth tensor core
+            Gs[k] = TTFunc.eval_oned_core_213(
+                self.bases.polys[k], 
+                self.approx.data.cores[k], 
+                ls[:, k]
+            ).reshape(n_ls, r_p, r_k)
+
+            # Compute the marginal probability for the first k elements 
+            # of each sample
+            gs = torch.einsum("il, ilk -> ik", gs, Gs[k])
+            ps = (gs @ self.Rs[k+1]).square().sum(dim=1) + self.tau
+            ps_marg[k] = ps
+        
+        # Compute diagonal elements
+        for k in range(self.dim):
+            Jacs[k, :, k] = ps_marg[k] / ps_marg[k-1] * wls[k]
+            
+        return Jacs.reshape(self.dim, self.dim*n_ls)

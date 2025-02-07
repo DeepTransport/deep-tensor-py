@@ -178,12 +178,12 @@ class PiecewiseCDF(CDF1D, abc.ABC):
 
     def eval_cdf(
         self, 
-        pls: torch.Tensor, 
+        ps: torch.Tensor, 
         ls: torch.Tensor
     ) -> torch.Tensor:
 
-        self.check_pdf_positive(pls)
-        cdf_data = self.pdf2cdf(pls)
+        self.check_pdf_positive(ps)
+        cdf_data = self.pdf2cdf(ps)
 
         zs = self.eval_int_lag(cdf_data, ls) / cdf_data.poly_norm
         zs = torch.clamp(zs, EPS, 1.0-EPS)

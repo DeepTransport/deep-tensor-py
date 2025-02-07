@@ -4,7 +4,7 @@ from typing import Callable, Tuple
 import torch
 
 from ..constants import EPS
-from ..ftt import ApproxBases, TTFunc, Direction, InputData, TTData
+from ..ftt import ApproxBases, Direction, InputData, TTData, TTFunc
 from ..options import TTOptions
 from ..polynomials import CDF1D
 
@@ -362,7 +362,7 @@ class AbstractIRT(abc.ABC):
         TODO: finish docstring.
         """
         ls, dldxs = self.approx.bases.approx2local(xs)
-        Js = self.eval_rt_jac_local(ls, zs) # dzdl
+        Js = self.eval_rt_jac_local(ls)#, zs) # dzdl
 
         n_zs, dim_zs = zs.shape
         for k in range(n_zs):

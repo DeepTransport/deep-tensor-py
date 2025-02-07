@@ -1120,7 +1120,7 @@ class TTFunc():
 
         self._check_sample_dim(ls, self.dim)
         n_ls, dim_ls = ls.shape
-        ps = torch.ones((n_ls, 1))
+        gs = torch.ones((n_ls, 1))
 
         for k in range(dim_ls):
 
@@ -1132,12 +1132,12 @@ class TTFunc():
                 ls[:, k]
             ).reshape(n_ls, r_p, r_k)
 
-            ps = torch.einsum("il, ilk -> ik", ps, Gs)
+            gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
         if dim_ls == self.dim:
-            return ps.squeeze()  # TODO: avoid this
+            return gs.squeeze()  # TODO: avoid this
         
-        return ps
+        return gs
     
     def _eval_local_backward(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the FTT approximation to the target function for 
@@ -1146,7 +1146,7 @@ class TTFunc():
 
         self._check_sample_dim(ls, self.dim)
         n_ls, dim_ls = ls.shape
-        ps = torch.ones((n_ls, 1))
+        gs = torch.ones((n_ls, 1))
 
         inds_l = torch.arange(dim_ls-1, -1, -1)
         inds_k = torch.arange(self.dim-1, -1, -1)
@@ -1162,12 +1162,12 @@ class TTFunc():
                 ls[:, inds_l[i]]
             ).reshape(n_ls, r_k, r_p)
 
-            ps = torch.einsum("il, ilk -> ik", ps, Gs)
+            gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
         if dim_ls == self.dim:
-            return ps.squeeze()  # TODO: avoid this
+            return gs.squeeze()  # TODO: avoid this
         
-        return ps.T
+        return gs.T
 
     def eval_local(
         self, 
@@ -1185,20 +1185,20 @@ class TTFunc():
         
         Returns
         -------
-        ps:
-            The value of the FTT approximation to the target function
-            at each point in ls.
+        gs:
+            The value of the FTT approximation to the square root of 
+            the  target function at each point in ls.
             
         """
         if direction == Direction.FORWARD:
-            ps = self._eval_local_forward(ls)
+            gs = self._eval_local_forward(ls)
         else: 
-            ps = self._eval_local_backward(ls)
-        return ps
+            gs = self._eval_local_backward(ls)
+        return gs
 
     def eval(self, xs: torch.Tensor) -> torch.Tensor:
-        """Evaluates the approximated function at a set of points in 
-        the approximation domain.
+        """Evaluates the target function at a set of points in the 
+        approximation domain.
         
         Parameters
         ----------
@@ -1214,8 +1214,8 @@ class TTFunc():
             function at each x value.
         """
         ls = self.bases.approx2local(xs)[0]
-        ps = self.eval_local(ls, self.data.direction)
-        return ps
+        gs = self.eval_local(ls, self.data.direction)
+        return gs
 
     def grad_reference(
         self, 
