@@ -1116,19 +1116,27 @@ class TTSIRT(AbstractIRT):
 
         Jacs = torch.zeros((self.dim, n_ls, self.dim))
 
-        Gs = {}
+        Gs = {}  # Evaluations of kth tensor core at kth element of each sample
+        Gs_deriv = {}
+        Ps = {}
+        Ps_deriv = {}
+        Ps_grid = {}
 
         ps_marg = {}
         ps_marg[-1] = self.z
+        ps_marg_derivs = {}
+        ps_grid = {}
+        ps_grid_derivs = {}
         wls = {}
 
-        gs = torch.ones((n_ls, 1))
+        gs = torch.ones((n_ls, 1, 1))
+        Gs_prod = {} 
+        Gs_prod[-1] = torch.ones((n_ls, 1, 1))
 
         for k in range(self.dim):
 
             r_p, _, r_k = self.approx.data.cores[k].shape
-
-            wls[k] = self.bases.polys[k].eval_measure(ls[:, k])
+            n_k = self.oned_cdfs[k].cardinality
 
             # Evaluate kth tensor core
             Gs[k] = TTFunc.eval_oned_core_213(
@@ -1137,14 +1145,119 @@ class TTSIRT(AbstractIRT):
                 ls[:, k]
             ).reshape(n_ls, r_p, r_k)
 
-            # Compute the marginal probability for the first k elements 
-            # of each sample
-            gs = torch.einsum("il, ilk -> ik", gs, Gs[k])
-            ps = (gs @ self.Rs[k+1]).square().sum(dim=1) + self.tau
-            ps_marg[k] = ps
-        
-        # Compute diagonal elements
+            # Evaluate derivative of kth tensor core
+            Gs_deriv[k] = TTFunc.eval_oned_core_213_deriv(
+                self.bases.polys[k], 
+                self.approx.data.cores[k], 
+                ls[:, k]
+            ).reshape(n_ls, r_p, r_k)
+
+            # Evaluate kth marginalisation core at samples
+            Ps[k] = TTFunc.eval_oned_core_213(
+                self.bases.polys[k],
+                self.Bs[k],
+                ls[:, k]
+            ).reshape(n_ls, r_p, r_k)
+
+            # Evaluate derivative of kth marginalisation core at samples
+            Ps_deriv[k] = TTFunc.eval_oned_core_213_deriv(
+                self.bases.polys[k],
+                self.Bs[k],
+                ls[:, k]
+            ).reshape(n_ls, r_p, r_k)
+
+            # Evaluate kth marginalisation core at nodes of current CDF
+            Ps_grid[k] = TTFunc.eval_oned_core_213(
+                self.bases.polys[k],
+                self.Bs[k],
+                self.oned_cdfs[k].nodes
+            ).reshape(n_k, r_p, r_k)
+
+            Gs_prod[k] = torch.einsum("...ij, ...jk", Gs_prod[k-1], Gs[k])
+
+        # Weighting function and marginal probabilities
+        for k in range(self.dim):
+
+            # Evaluate weighting function for current dimension
+            wls[k] = self.bases.polys[k].eval_measure(ls[:, k])
+
+            # Evaluate marginal probability for the first k elements of 
+            # each sample
+            gs = torch.einsum("...ij, ...jk", Gs_prod[k-1], Ps[k])
+            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.tau  # dim 1 should have dimension 1 anyway
+
+        # Off-diagonal stuff (marginal CDF on grid)
+        for k in range(self.dim):
+            # Compute (unnormalised) marginal PDF at each point on grid for each sample
+            gs = torch.einsum("mij, ljk -> lmik", Gs_prod[k-1], Ps_grid[k])
+            ps_grid[k] = gs.square().sum(dim=(2, 3)) + self.tau  # dim 2 should have dimension 1 anyway. Will end up with a grid of PDF values
+
+        # Derivatives of marginal PDF
+        for k in range(self.dim):  # marginal PDF
+            
+            ps_marg_derivs[k] = {}
+
+            for j in range(k+1):  # index of derivative
+                
+                # Compute product of G_{<k} and P_{k}^{:, l}
+                prod = torch.einsum("...ij, ...jk", Gs_prod[k-1], Ps[k])
+
+                # Initialise derivative term
+                prod_deriv = torch.ones((n_ls, 1, 1))
+
+                for kk in range(k):
+
+                    # Take product of tensor cores (making sure to use the derivative one at the correct time)
+                    if kk == j:
+                        prod_deriv = torch.einsum("...ij, ...jk", prod_deriv, Gs_deriv[kk])
+                    else:
+                        prod_deriv = torch.einsum("...ij, ...jk", prod_deriv, Gs[kk])
+
+                # Take product with final marginalisation core
+                if k == j:
+                    prod_deriv = torch.einsum("...ij, ...jk", prod_deriv, Ps_deriv[k])
+                else:
+                    prod_deriv = torch.einsum("...ij, ...jk", prod_deriv, Ps[k])
+                
+                # Take elementwise product with product of cores
+                ps_marg_derivs[k][j] = 2 * (prod * prod_deriv).sum(dim=(1, 2))  # dim 1 should be 1 anyway
+
+        # Derivatives of marginal grid PDF (TODO: fix the indexing here.)
+        for k in range(1, self.dim):
+            
+            ps_grid_derivs[k] = {}
+
+            for j in range(k):  # index of derivative:
+
+                # Compute product of G_{<k} and P_{k}^{:, l}
+                prod = torch.einsum("mij, ljk -> lmik", Gs_prod[k-1], Ps_grid[k])
+
+                # Initialise derivative term
+                prod_deriv = torch.ones((n_ls, 1, 1))
+
+                # Compute derivative of pi(l_1, ..., l_k) w.r.t. l_j
+                for kk in range(k):
+
+                    # Take product of cores (making sure to use the derivative at the correct time)
+                    if kk == j:
+                        prod_deriv = torch.einsum("...ij, ...jk", prod_deriv, Gs_deriv[kk])
+                    else:
+                        prod_deriv = torch.einsum("...ij, ...jk", prod_deriv, Gs[kk])
+
+                # Take product with final marginalisation core
+                prod_deriv = torch.einsum("mij, ljk -> lmik", prod_deriv, Ps_grid[k])
+                
+                ps_grid_derivs[k][j] = 2 * (prod * prod_deriv).sum(dim=(2, 3))  # dim 2 should be 1 anyway
+
+        # Populate diagonal elements
         for k in range(self.dim):
             Jacs[k, :, k] = ps_marg[k] / ps_marg[k-1] * wls[k]
+
+        # TODO: populate off-diagonal elements
+        for k in range(1, self.dim):
+            for j in range(k):
+                grad_cond = (ps_grid_derivs[k][j] * ps_marg[k-1] - ps_grid[k] * ps_marg_derivs[k-1][j]) / ps_marg[k-1].square()
+                Jacs[k, :, j] = self.oned_cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
+                Jacs[k, :, j] *= wls[k]
             
         return Jacs.reshape(self.dim, self.dim*n_ls)
