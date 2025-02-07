@@ -50,8 +50,8 @@ class TestSIRT(unittest.TestCase):
         self.assertTrue((G_231-G_231_true).max().abs() < 1e-8)
         return
     
-    def test_eval_block(self):
-        """Verifies that eval_block is working as intended (when 
+    def test_eval_local(self):
+        """Verifies that eval_local is working as intended (when 
         evaluating the marginal PDF).
         """
 
@@ -97,7 +97,10 @@ class TestSIRT(unittest.TestCase):
         ps_forward = tt_func.eval_local(ls_marg, dt.Direction.FORWARD)
         ps_backward = tt_func.eval_local(ls_marg, dt.Direction.BACKWARD)
 
-        ps_true = torch.tensor([33.1250, 24.5])
+        ps_true = torch.tensor([[33.1250], [24.5]])
+
+        # print(ps_backward)
+        # print(ps_true)
 
         self.assertTrue(norm(ps_forward - ps_true) < 1e-8)
         self.assertTrue(norm(ps_backward - ps_true) < 1e-8)

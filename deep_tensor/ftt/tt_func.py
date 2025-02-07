@@ -1174,7 +1174,7 @@ class TTFunc():
         # if dim_ls == self.dim:
         #     return gs.squeeze()  # TODO: avoid this
         
-        return gs.T
+        return gs
 
     def eval_local(
         self, 
