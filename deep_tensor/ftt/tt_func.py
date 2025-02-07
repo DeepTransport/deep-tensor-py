@@ -116,6 +116,12 @@ class TTFunc():
         return
 
     @staticmethod
+    def batch_mul(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
+        """Batch-multiplies two sets of matrices together.
+        """
+        return torch.einsum("...ij, ...jk", A, B)
+
+    @staticmethod
     def unfold_left(H: torch.Tensor) -> torch.Tensor:
         """Forms the left unfolding matrix associated with a tensor.
         """
