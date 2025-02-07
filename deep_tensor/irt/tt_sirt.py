@@ -214,7 +214,7 @@ class TTSIRT(AbstractIRT):
         ls: 
             An n * d matrix containing a set of samples from the local 
             domain, obtained by applying the IRT to each sample in zs.
-        ps_sq:
+        gs_sq:
             An n-dimensional vector containing the square of the FTT 
             approximation to the square root of the target function, 
             evaluated at each sample in zs.
@@ -223,7 +223,7 @@ class TTSIRT(AbstractIRT):
 
         n_zs, d_zs = zs.shape
         ls = torch.zeros_like(zs)
-        ps = torch.ones((n_zs, 1))
+        gs = torch.ones((n_zs, 1))
 
         for k in range(d_zs):
 
@@ -236,7 +236,7 @@ class TTSIRT(AbstractIRT):
                 self.oned_cdfs[k].nodes
             ).reshape(n_k, r_p, r_k)
 
-            gls = torch.einsum("jl, ilk -> ijk", ps, Gs_cdf)
+            gls = torch.einsum("jl, ilk -> ijk", gs, Gs_cdf)
             gls_sq = gls.square().sum(dim=2)
 
             ls[:, k] = self.oned_cdfs[k].invert_cdf(
@@ -250,10 +250,10 @@ class TTSIRT(AbstractIRT):
                 ls[:, k]
             ).reshape(n_zs, r_p, r_k)
 
-            ps = torch.einsum("il, ilk -> ik", ps, Gs)
+            gs = torch.einsum("il, ilk -> ik", gs, Gs)
         
-        ps_sq = (ps @ self.Rs[d_zs]).square().sum(dim=1)
-        return ls, ps_sq
+        gs_sq = (gs @ self.Rs[d_zs]).square().sum(dim=1)
+        return ls, gs_sq
     
     def _eval_irt_local_backward(
         self, 
@@ -272,7 +272,7 @@ class TTSIRT(AbstractIRT):
         ls: 
             An n * d matrix containing a set of samples from the local 
             domain, obtained by applying the IRT to each sample in zs.
-        ps_sq:
+        gs_sq:
             An n-dimensional vector containing the square of the FTT 
             approximation to the square root of the target function, 
             evaluated at each sample in zs.
@@ -281,7 +281,7 @@ class TTSIRT(AbstractIRT):
 
         n_zs, d_zs = zs.shape
         ls = torch.zeros_like(zs)
-        ps = torch.ones((n_zs, 1))
+        gs = torch.ones((n_zs, 1))
         i_min = self.dim - d_zs
         
         for k in range(self.dim-1, i_min-1, -1):
@@ -296,7 +296,7 @@ class TTSIRT(AbstractIRT):
                 self.oned_cdfs[k].nodes
             ).reshape(n_k, r_k, r_p)
 
-            gls = torch.einsum("ilk, jl -> ijk", Gs_cdf, ps)
+            gls = torch.einsum("ilk, jl -> ijk", Gs_cdf, gs)
             gls_sq = gls.square().sum(dim=2)
 
             ls[:, k_ind] = self.oned_cdfs[k].invert_cdf(
@@ -310,10 +310,10 @@ class TTSIRT(AbstractIRT):
                 ls[:, k_ind]
             ).reshape(n_zs, r_k, r_p)
 
-            ps = torch.einsum("il, ilk -> ik", ps, Gs)
+            gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
-        ps_sq = (self.Rs[i_min-1] @ ps.T).square().sum(dim=0)
-        return ls, ps_sq
+        gs_sq = (self.Rs[i_min-1] @ gs.T).square().sum(dim=0)
+        return ls, gs_sq
 
     def eval_irt_local(
         self, 
@@ -342,13 +342,13 @@ class TTSIRT(AbstractIRT):
         """
 
         if self.int_dir == Direction.FORWARD:
-            ls, ps_sq = self._eval_irt_local_forward(zs)
+            ls, gs_sq = self._eval_irt_local_forward(zs)
         else:
-            ls, ps_sq = self._eval_irt_local_backward(zs)
+            ls, gs_sq = self._eval_irt_local_backward(zs)
         
         indices = self.get_transform_indices(zs.shape[1])
         
-        neglogpls = -(ps_sq + self.tau).log()
+        neglogpls = -(gs_sq + self.tau).log()
         neglogwls = self.bases.eval_measure_potential_local(ls, indices)
         neglogfls = self.z.log() + neglogpls + neglogwls
 
@@ -432,9 +432,9 @@ class TTSIRT(AbstractIRT):
             gs = self.approx.eval_local(ls, direction=self.int_dir)
 
             if dim_l < self.dim:
-                ps_sq = (gs @ self.Rs[dim_l]).square().sum(dim=1)
+                gs_sq = (gs @ self.Rs[dim_l]).square().sum(dim=1)
             else: 
-                ps_sq = gs.square()
+                gs_sq = gs.square()
 
             indices = torch.arange(dim_l)
             
@@ -444,16 +444,16 @@ class TTSIRT(AbstractIRT):
             i_min = self.dim - dim_l
 
             if dim_l < self.dim:
-                ps_sq = (self.Rs[i_min-1] @ gs).square().sum(dim=0)
+                gs_sq = (self.Rs[i_min-1] @ gs).square().sum(dim=0)
             else:
-                ps_sq = gs.square()
+                gs_sq = gs.square()
 
             indices = torch.arange(self.dim-1, self.dim-dim_l-1, -1)
             
         # TODO: check that indices go backwards. This could be an issue 
         # if different bases are used in each dimension.
         neglogwls = self.approx.bases.eval_measure_potential_local(ls, indices)
-        neglogfls = self.z.log() - (ps_sq + self.tau).log() + neglogwls
+        neglogfls = self.z.log() - (gs_sq + self.tau).log() + neglogwls
         return neglogfls
 
     def _eval_rt_local_forward(
@@ -514,14 +514,11 @@ class TTSIRT(AbstractIRT):
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
             ).reshape(n_k, r_p, r_k)
-            ps_sq = torch.einsum("ijl, lk -> ijk", Ps, Gs_prod)
-            ps_sq = ps_sq.square().sum(dim=1)
+            gs = torch.einsum("ijl, lk -> ijk", Ps, Gs_prod)
+            ps = gs.square().sum(dim=1) + self.tau
 
             # Evaluate CDF to obtain corresponding uniform variates
-            zs[:, k_ind] = self.oned_cdfs[k].eval_cdf(
-                ps_sq + self.tau, 
-                ls[:, k_ind]
-            )
+            zs[:, k_ind] = self.oned_cdfs[k].eval_cdf(ps, ls[:, k_ind])
             
             # Compute incremental product of tensor cores for each sample
             Gs = TTFunc.eval_oned_core_213(
