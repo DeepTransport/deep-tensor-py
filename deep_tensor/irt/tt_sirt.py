@@ -9,6 +9,12 @@ from ..polynomials import CDF1D, construct_cdf
 from ..tools import reshape_matlab
 
 
+def batch_mul(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
+    """Batch-multiplies two sets of matrices together.
+    """
+    return torch.einsum("...ij, ...jk", A, B)
+
+
 class TTSIRT(AbstractIRT):
 
     def __init__(
@@ -845,7 +851,7 @@ class TTSIRT(AbstractIRT):
 
         return ls_y, neglogfls_y
     
-    def _eval_rt_jac_local_forward(
+    def _eval_rt_jac_local_forward_alt(
         self, 
         ls: torch.Tensor, 
         zs: torch.Tensor
@@ -960,7 +966,7 @@ class TTSIRT(AbstractIRT):
         Js = Js.reshape(self.dim, self.dim * n_ls) # TEMP
         return Js
     
-    def eval_rt_jac_local_alt(
+    def eval_rt_jac_local(
         self, 
         ls: torch.Tensor, 
         zs: torch.Tensor
@@ -987,7 +993,7 @@ class TTSIRT(AbstractIRT):
         TTFunc._check_sample_dim(ls, self.dim, strict=True)
 
         if self.int_dir == Direction.FORWARD:
-            J = self._eval_rt_jac_local_forward(ls, zs)
+            J = self._eval_rt_jac_local_forward(ls)
 
         else:
 
@@ -1106,17 +1112,17 @@ class TTSIRT(AbstractIRT):
 
         return J
 
-    def eval_rt_jac_local(
+    def _eval_rt_jac_local_forward(
         self,
         ls: torch.Tensor
     ) -> torch.Tensor:
         
-        TTFunc._check_sample_dim(ls, self.dim, strict=True)
         n_ls = ls.shape[0]
+        TTFunc._check_sample_dim(ls, self.dim, strict=True)
 
         Jacs = torch.zeros((self.dim, n_ls, self.dim))
 
-        Gs = {}  # Evaluations of kth tensor core at kth element of each sample
+        Gs = {}
         Gs_deriv = {}
         Ps = {}
         Ps_deriv = {}
@@ -1124,9 +1130,9 @@ class TTSIRT(AbstractIRT):
 
         ps_marg = {}
         ps_marg[-1] = self.z
-        ps_marg_derivs = {}
+        ps_marg_deriv = {}
         ps_grid = {}
-        ps_grid_derivs = {}
+        ps_grid_deriv = {}
         wls = {}
 
         gs = torch.ones((n_ls, 1, 1))
@@ -1173,7 +1179,7 @@ class TTSIRT(AbstractIRT):
                 self.oned_cdfs[k].nodes
             ).reshape(n_k, r_p, r_k)
 
-            Gs_prod[k] = torch.einsum("...ij, ...jk", Gs_prod[k-1], Gs[k])
+            Gs_prod[k] = batch_mul(Gs_prod[k-1], Gs[k])
 
         # Weighting function and marginal probabilities
         for k in range(self.dim):
@@ -1183,71 +1189,46 @@ class TTSIRT(AbstractIRT):
 
             # Evaluate marginal probability for the first k elements of 
             # each sample
-            gs = torch.einsum("...ij, ...jk", Gs_prod[k-1], Ps[k])
-            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.tau  # dim 1 should have dimension 1 anyway
+            gs = batch_mul(Gs_prod[k-1], Ps[k])
+            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.tau
 
         # Off-diagonal stuff (marginal CDF on grid)
         for k in range(self.dim):
             # Compute (unnormalised) marginal PDF at each point on grid for each sample
             gs = torch.einsum("mij, ljk -> lmik", Gs_prod[k-1], Ps_grid[k])
-            ps_grid[k] = gs.square().sum(dim=(2, 3)) + self.tau  # dim 2 should have dimension 1 anyway. Will end up with a grid of PDF values
+            ps_grid[k] = gs.square().sum(dim=(2, 3)) + self.tau
 
         # Derivatives of marginal PDF
-        for k in range(self.dim):  # marginal PDF
+        for k in range(self.dim-1):
+            ps_marg_deriv[k] = {}
             
-            ps_marg_derivs[k] = {}
+            for j in range(k+1):
 
-            for j in range(k+1):  # index of derivative
-                
-                # Compute product of G_{<k} and P_{k}^{:, l}
-                prod = torch.einsum("...ij, ...jk", Gs_prod[k-1], Ps[k])
-
-                # Initialise derivative term
+                prod = batch_mul(Gs_prod[k-1], Ps[k])
                 prod_deriv = torch.ones((n_ls, 1, 1))
 
-                for kk in range(k):
+                for k_i in range(k):
+                    core = Gs_deriv[k_i] if k_i == j else Gs[k_i]
+                    prod_deriv = batch_mul(prod_deriv, core)
+                core = Ps_deriv[k] if k == j else Ps[k]
+                prod_deriv = batch_mul(prod_deriv, core)
 
-                    # Take product of tensor cores (making sure to use the derivative one at the correct time)
-                    if kk == j:
-                        prod_deriv = torch.einsum("...ij, ...jk", prod_deriv, Gs_deriv[kk])
-                    else:
-                        prod_deriv = torch.einsum("...ij, ...jk", prod_deriv, Gs[kk])
+                ps_marg_deriv[k][j] = 2 * (prod * prod_deriv).sum(dim=(1, 2))
 
-                # Take product with final marginalisation core
-                if k == j:
-                    prod_deriv = torch.einsum("...ij, ...jk", prod_deriv, Ps_deriv[k])
-                else:
-                    prod_deriv = torch.einsum("...ij, ...jk", prod_deriv, Ps[k])
-                
-                # Take elementwise product with product of cores
-                ps_marg_derivs[k][j] = 2 * (prod * prod_deriv).sum(dim=(1, 2))  # dim 1 should be 1 anyway
-
-        # Derivatives of marginal grid PDF (TODO: fix the indexing here.)
         for k in range(1, self.dim):
-            
-            ps_grid_derivs[k] = {}
+            ps_grid_deriv[k] = {}
 
-            for j in range(k):  # index of derivative:
+            for j in range(k):
 
-                # Compute product of G_{<k} and P_{k}^{:, l}
                 prod = torch.einsum("mij, ljk -> lmik", Gs_prod[k-1], Ps_grid[k])
-
-                # Initialise derivative term
                 prod_deriv = torch.ones((n_ls, 1, 1))
 
-                # Compute derivative of pi(l_1, ..., l_k) w.r.t. l_j
-                for kk in range(k):
-
-                    # Take product of cores (making sure to use the derivative at the correct time)
-                    if kk == j:
-                        prod_deriv = torch.einsum("...ij, ...jk", prod_deriv, Gs_deriv[kk])
-                    else:
-                        prod_deriv = torch.einsum("...ij, ...jk", prod_deriv, Gs[kk])
-
-                # Take product with final marginalisation core
+                for k_i in range(k):
+                    core = Gs_deriv[k_i] if k_i == j else Gs[k_i]
+                    prod_deriv = batch_mul(prod_deriv, core)
                 prod_deriv = torch.einsum("mij, ljk -> lmik", prod_deriv, Ps_grid[k])
                 
-                ps_grid_derivs[k][j] = 2 * (prod * prod_deriv).sum(dim=(2, 3))  # dim 2 should be 1 anyway
+                ps_grid_deriv[k][j] = 2 * (prod * prod_deriv).sum(dim=(2, 3))
 
         # Populate diagonal elements
         for k in range(self.dim):
@@ -1256,8 +1237,7 @@ class TTSIRT(AbstractIRT):
         # TODO: populate off-diagonal elements
         for k in range(1, self.dim):
             for j in range(k):
-                grad_cond = (ps_grid_derivs[k][j] * ps_marg[k-1] - ps_grid[k] * ps_marg_derivs[k-1][j]) / ps_marg[k-1].square()
+                grad_cond = (ps_grid_deriv[k][j] * ps_marg[k-1] - ps_grid[k] * ps_marg_deriv[k-1][j]) / ps_marg[k-1].square() * wls[k]
                 Jacs[k, :, j] = self.oned_cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
-                Jacs[k, :, j] *= wls[k]
             
         return Jacs.reshape(self.dim, self.dim*n_ls)
