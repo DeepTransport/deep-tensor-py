@@ -538,6 +538,7 @@ class TTFunc():
             return
         
         ps_approx = self.eval_local(self.input_data.ls_debug, self.data.direction)
+        ps_approx = ps_approx.flatten()
         self.l2_err, self.linf_err = self.input_data.relative_error(ps_approx)
         return
 
@@ -1140,8 +1141,8 @@ class TTFunc():
 
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
-        if dim_ls == self.dim:
-            return gs.squeeze()  # TODO: avoid this
+        # if dim_ls == self.dim:
+        #     return gs.squeeze()  # TODO: avoid this
         
         return gs
     
@@ -1170,8 +1171,8 @@ class TTFunc():
 
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
-        if dim_ls == self.dim:
-            return gs.squeeze()  # TODO: avoid this
+        # if dim_ls == self.dim:
+        #     return gs.squeeze()  # TODO: avoid this
         
         return gs.T
 
@@ -1215,7 +1216,7 @@ class TTFunc():
             
         Returns
         -------
-        ps:
+        gs:
             An n-dimensional vector containing the values of the 
             function at each x value.
         """

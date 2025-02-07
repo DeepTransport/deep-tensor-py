@@ -429,26 +429,18 @@ class TTSIRT(AbstractIRT):
 
         if self.int_dir == Direction.FORWARD:
 
-            gs = self.approx.eval_local(ls, direction=self.int_dir)
-
-            if dim_l < self.dim:
-                gs_sq = (gs @ self.Rs[dim_l]).square().sum(dim=1)
-            else: 
-                gs_sq = gs.square()
-
             indices = torch.arange(dim_l)
+            
+            gs = self.approx.eval_local(ls, direction=self.int_dir)
+            gs_sq = (gs @ self.Rs[dim_l]).square().sum(dim=1)
             
         else:
 
-            gs = self.approx.eval_local(ls, direction=self.int_dir)
             i_min = self.dim - dim_l
-
-            if dim_l < self.dim:
-                gs_sq = (self.Rs[i_min-1] @ gs).square().sum(dim=0)
-            else:
-                gs_sq = gs.square()
-
             indices = torch.arange(self.dim-1, self.dim-dim_l-1, -1)
+
+            gs = self.approx.eval_local(ls, direction=self.int_dir)
+            gs_sq = (self.Rs[i_min-1] @ gs).square().sum(dim=0)
             
         # TODO: check that indices go backwards. This could be an issue 
         # if different bases are used in each dimension.
