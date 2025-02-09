@@ -30,22 +30,25 @@ class TestSIRT(unittest.TestCase):
         G_213 = dt.TTFunc.eval_oned_core_213(poly, A, ls)
         G_231 = dt.TTFunc.eval_oned_core_231(poly, A, ls)
 
-        G_213_true = torch.tensor([[2.0, 1.5],
-                                   [2.0, 2.0],
-                                   [3.0, 1.0],
-                                   [1.0, 2.0],
-                                   [2.0, 2.5],
-                                   [1.5, 2.5]])
+        G_213_true = torch.tensor([[[2.0, 1.5],
+                                    [2.0, 2.0]],
+                                   [[3.0, 1.0],
+                                    [1.0, 2.0]],
+                                   [[2.0, 2.5],
+                                    [1.5, 2.5]]])
     
-        G_231_true = torch.tensor([[2.0, 2.0],
-                                   [1.5, 2.0],
-                                   [3.0, 1.0],
-                                   [1.0, 2.0],
-                                   [2.0, 1.5],
-                                   [2.5, 2.5]])
+        G_231_true = torch.tensor([[[2.0, 2.0],
+                                    [1.5, 2.0]],
+                                   [[3.0, 1.0],
+                                    [1.0, 2.0]],
+                                   [[2.0, 1.5],
+                                    [2.5, 2.5]]])
+        
+        print(G_231)
+        print(G_231_true)
 
-        self.assertTrue(G_213.shape == torch.Size([6, 2]))
-        self.assertTrue(G_231.shape == torch.Size([6, 2]))
+        self.assertTrue(G_213.shape == torch.Size([3, 2, 2]))
+        self.assertTrue(G_231.shape == torch.Size([3, 2, 2]))
         self.assertTrue((G_213-G_213_true).max().abs() < 1e-8)
         self.assertTrue((G_231-G_231_true).max().abs() < 1e-8)
         return
