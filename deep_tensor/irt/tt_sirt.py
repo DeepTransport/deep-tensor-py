@@ -430,7 +430,7 @@ class TTSIRT(AbstractIRT):
         if self.int_dir == Direction.FORWARD:
 
             indices = torch.arange(dim_l)
-            
+
             gs = self.approx.eval_local(ls, direction=self.int_dir)
             gs_sq = (gs @ self.Rs[dim_l]).square().sum(dim=1)
             
@@ -537,111 +537,76 @@ class TTSIRT(AbstractIRT):
         ls_x: torch.Tensor, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-
-        # from the last dimension, marginalise to the first
-        # order of the samples (x, r)
-        # first evaluate the marginal for x
-
-        num_x, dim_x = ls_x.shape
-        num_z, dim_z = zs.shape
-
+        
+        n_xs, d_xs = ls_x.shape
+        n_zs, d_zs = zs.shape
         ls_y = torch.zeros_like(zs)
         
-        frl = torch.ones(num_z, 1)
+        Gs_prod = torch.ones((n_xs, 1, 1))
 
-        for k in range(dim_x-1):
+        for k in range(d_xs-1):
             
-            rank_p = self.approx.data.cores[k].shape[0]
+            r_p, _, r_k = self.approx.data.cores[k].shape
             
-            T2 = self.approx.eval_oned_core_213(
-                self.approx.bases.polys[k],
+            Gs = TTFunc.eval_oned_core_213(
+                self.bases.polys[k],
                 self.approx.data.cores[k],
                 ls_x[:, k]
-            )
+            ).reshape(n_xs, r_p, r_k)
 
-            ii = torch.arange(num_x).repeat(rank_p)
-            jj = (torch.arange(rank_p * num_x)
-                    .reshape(num_x, rank_p).T
-                    .flatten())
-            indices = torch.vstack((ii[None, :], jj[None, :]))
-            values = frl.T.flatten()
-            size = (num_x, rank_p * num_x)
+            Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
 
-            B = torch.sparse_coo_tensor(indices, values, size)
-
-            frl = B @ T2
-
-        rank_p = self.approx.data.cores[dim_x-1].shape[0]
-
-        T2 = self.approx.eval_oned_core_213(
-            self.approx.bases.polys[dim_x-1], 
-            self.Bs[dim_x-1], 
-            ls_x[:, dim_x-1]
-        )
-
-        ii = torch.arange(num_x).repeat(rank_p)
-        jj = (torch.arange(rank_p * num_x)
-                .reshape(num_x, rank_p).T
-                .flatten())
-        indices = torch.vstack((ii[None, :], jj[None, :]))
-        values = frl.T.flatten()
-        size = (num_x, rank_p * num_x)
-        B = torch.sparse_coo_tensor(indices, values, size)
+        r_p, _, r_k = self.approx.data.cores[d_xs-1].shape
         
-        frl_m = B @ T2
-        fm = frl_m.square().sum(dim=1)
-        
-        T2 = self.approx.eval_oned_core_213(
-            self.approx.bases.polys[dim_x-1], 
-            self.approx.data.cores[dim_x-1], 
-            ls_x[:, dim_x-1]
-        )
+        Ps = TTFunc.eval_oned_core_213(
+            self.bases.polys[d_xs-1],
+            self.Bs[d_xs-1],
+            ls_x[:, d_xs-1]
+        ).reshape(n_xs, r_p, r_k)
 
-        frl = B @ T2
+        gs_marg = TTFunc.batch_mul(Gs_prod, Ps)
+        gs_sq_marg = gs_marg.square().sum(dim=(1, 2))
+
+        Gs = TTFunc.eval_oned_core_213(
+            self.bases.polys[d_xs-1],
+            self.approx.data.cores[d_xs-1],
+            ls_x[:, d_xs-1]
+        ).reshape(n_xs, r_p, r_k)
+
+        Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
 
         # Generate conditional samples
-        for j in range(dim_z):
+        for j in range(d_zs):
             
-            k = dim_x + j
+            k = d_xs + j
 
-            rank_p = self.approx.data.cores[k].shape[0]
-            num_nodes = self.oned_cdfs[k].nodes.numel()
-
-            T1 = self.approx.eval_oned_core_213(
-                self.approx.bases.polys[k], 
-                self.Bs[k], 
+            r_p, _, r_k = self.approx.data.cores[k].shape
+            n_k = self.oned_cdfs[k].nodes.numel()
+            
+            Ps = self.approx.eval_oned_core_213(
+                self.bases.polys[k],
+                self.Bs[k],
                 self.oned_cdfs[k].nodes
-            ).T.reshape(-1, rank_p).T
+            ).reshape(n_k, r_p, r_k)
 
-            pk = ((frl @ T1).T
-                  .reshape(-1, num_z*num_nodes)
-                  .square()
-                  .sum(dim=0)
-                  .reshape(num_nodes, num_z))
+            gs = torch.einsum("mij, ljk -> lmik", Gs_prod, Ps)
+            ps = gs.square().sum(dim=(2, 3)) + self.tau
 
-            ls_y[:, j] = self.oned_cdfs[k].invert_cdf(pk+self.tau, zs[:, j])
+            ls_y[:, j] = self.oned_cdfs[k].invert_cdf(ps, zs[:, j])
 
-            T2 = self.approx.eval_oned_core_213(
-                self.approx.bases.polys[k], 
+            Gs = TTFunc.eval_oned_core_213(
+                self.bases.polys[k],
                 self.approx.data.cores[k],
                 ls_y[:, j]
-            )
+            ).reshape(n_xs, r_p, r_k)
 
-            ii = torch.arange(num_z).repeat(rank_p)
-            jj = (torch.arange(rank_p * num_z)
-                    .reshape(num_x, rank_p).T
-                    .flatten())
-            indices = torch.vstack((ii[None, :], jj[None, :]))
-            values = frl.T.flatten()
-            size = (num_z, rank_p * num_z)
-            B = torch.sparse_coo_tensor(indices, values, size)
-            frl = B @ T2
+            Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
 
-        fs = frl.flatten().square()
+        gs_sq = Gs_prod.flatten().square()
 
-        indices = dim_x + torch.arange(dim_z)
-        neglogwls_y = self.approx.bases.eval_measure_potential_local(ls_y, indices)
-        neglogfls_y = (fm + self.tau).log() - (fs + self.tau).log() + neglogwls_y
+        indices = d_xs + torch.arange(d_zs)
+        neglogwls_y = self.bases.eval_measure_potential_local(ls_y, indices)
+        neglogfls_y = (gs_sq_marg + self.tau).log() - (gs_sq + self.tau).log() + neglogwls_y
 
         return ls_y, neglogfls_y
     
@@ -753,6 +718,8 @@ class TTSIRT(AbstractIRT):
         ls_x: torch.Tensor, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        
+        # TODO: add a dimension check in here.
 
         if self.int_dir == Direction.FORWARD:
             ls_y, neglogfls_y = self._eval_cirt_local_forward(ls_x, zs)

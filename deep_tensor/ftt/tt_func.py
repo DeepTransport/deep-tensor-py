@@ -103,7 +103,7 @@ class TTFunc():
             msg = "Samples should be two-dimensional."
             raise Exception(msg)
         
-        if xs.shape[1] != dim and strict == True:
+        if strict and xs.shape[1] != dim:
             msg = ("Dimension of samples must be equal to dimension "
                    + "of approximation.")
             raise Exception(msg)
@@ -322,7 +322,7 @@ class TTFunc():
             core_shape = [
                 1 if k == 0 else self.options.init_rank, 
                 self.bases.polys[k].cardinality,
-                self.options.init_rank if k != self.dim-1 else 1
+                1 if k == self.dim-1 else self.options.init_rank
             ]
 
             self.data.cores[k] = torch.zeros(core_shape)
@@ -1140,9 +1140,6 @@ class TTFunc():
             ).reshape(n_ls, r_p, r_k)
 
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
-
-        # if dim_ls == self.dim:
-        #     return gs.squeeze()  # TODO: avoid this
         
         return gs
     
@@ -1170,9 +1167,6 @@ class TTFunc():
             ).reshape(n_ls, r_k, r_p)
 
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
-
-        # if dim_ls == self.dim:
-        #     return gs.squeeze()  # TODO: avoid this
         
         return gs
 
