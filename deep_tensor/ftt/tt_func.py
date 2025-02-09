@@ -187,14 +187,10 @@ class TTFunc():
             of ls.
         
         """
-        
         r_p, n_k, r_k = A.shape
         n_ls = ls.numel()
-
-        coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
-        Gs = (poly.eval_radon(coeffs, ls)
-              .reshape(n_ls, r_k, r_p)
-              .swapdims(1, 2))
+        coeffs = A.permute(1, 0, 2).reshape(n_k, r_p * r_k)
+        Gs = poly.eval_radon(coeffs, ls).reshape(n_ls, r_p, r_k)
         return Gs
 
     @staticmethod
@@ -223,14 +219,10 @@ class TTFunc():
             core at each value of ls.
         
         """
-
         r_p, n_k, r_k = A.shape 
         n_ls = ls.numel()
-
-        coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
-        dGdls = (poly.eval_radon_deriv(coeffs, ls)
-                 .reshape(n_ls, r_k, r_p)
-                 .swapdims(1, 2))
+        coeffs = A.permute(1, 0, 2).reshape(n_k, r_p * r_k)
+        dGdls = poly.eval_radon_deriv(coeffs, ls).reshape(n_ls, r_p, r_k)
         return dGdls
 
     @staticmethod
@@ -258,10 +250,8 @@ class TTFunc():
             of ls.
         
         """
-        
         r_p, n_k, r_k = A.shape
         n_ls = ls.numel()
-
         coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
         Gs = poly.eval_radon(coeffs, ls).reshape(n_ls, r_k, r_p)
         return Gs
@@ -292,10 +282,8 @@ class TTFunc():
             core at each value of ls.
         
         """
-
         r_p, n_k, r_k = A.shape
         n_ls = ls.numel()
-
         coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
         Gs = poly.eval_radon_deriv(coeffs, ls).reshape(n_ls, r_k, r_p)
         return Gs
