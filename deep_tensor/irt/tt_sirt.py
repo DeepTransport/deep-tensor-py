@@ -234,7 +234,7 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k], 
                 self.Bs[k], 
                 self.oned_cdfs[k].nodes
-            ).reshape(n_k, r_p, r_k)
+            )
 
             gls = torch.einsum("jl, ilk -> ijk", gs, Gs_cdf)
             gls_sq = gls.square().sum(dim=2)
@@ -248,7 +248,7 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k], 
                 self.approx.data.cores[k], 
                 ls[:, k]
-            ).reshape(n_zs, r_p, r_k)
+            )
 
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
         
@@ -294,7 +294,7 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k],
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
-            ).reshape(n_k, r_k, r_p)
+            )
 
             gls = torch.einsum("ilk, jl -> ijk", Gs_cdf, gs)
             gls_sq = gls.square().sum(dim=2)
@@ -308,7 +308,7 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k],
                 self.approx.data.cores[k],
                 ls[:, k_ind]
-            ).reshape(n_zs, r_k, r_p)
+            )
 
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
@@ -440,7 +440,7 @@ class TTSIRT(AbstractIRT):
             indices = torch.arange(self.dim-1, self.dim-dim_l-1, -1)
 
             gs = self.approx.eval_local(ls, direction=self.int_dir)
-            gs_sq = (self.Rs[i_min-1] @ gs).square().sum(dim=0)
+            gs_sq = (self.Rs[i_min-1] @ gs.T).square().sum(dim=0)
             
         # TODO: check that indices go backwards. This could be an issue 
         # if different bases are used in each dimension.
@@ -467,7 +467,7 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k],
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
-            ).reshape(n_k, r_p, r_k)
+            )
             gs = torch.einsum("jl, ilk -> ijk", Gs_prod, Ps)
             ps = gs.square().sum(dim=2) + self.tau
 
@@ -479,7 +479,7 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k], 
                 self.approx.data.cores[k], 
                 ls[:, k]
-            ).reshape(n_ls, r_p, r_k)
+            )
             Gs_prod = torch.einsum("il, ilk -> ik", Gs_prod, Gs)
 
         return zs
@@ -505,7 +505,7 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k],
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
-            ).reshape(n_k, r_p, r_k)
+            )
             gs = torch.einsum("ijl, lk -> ijk", Ps, Gs_prod)
             ps = gs.square().sum(dim=1) + self.tau
 
@@ -517,7 +517,7 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k], 
                 self.approx.data.cores[k], 
                 ls[:, k_ind]
-            ).reshape(n_ls, r_p, r_k)
+            )
             Gs_prod = torch.einsum("ijl, li -> ji", Gs, Gs_prod)
 
         return zs
@@ -552,7 +552,7 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k],
                 self.approx.data.cores[k],
                 ls_x[:, k]
-            ).reshape(n_xs, r_p, r_k)
+            )
 
             Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
 
@@ -562,7 +562,7 @@ class TTSIRT(AbstractIRT):
             self.bases.polys[d_xs-1],
             self.Bs[d_xs-1],
             ls_x[:, d_xs-1]
-        ).reshape(n_xs, r_p, r_k)
+        )
 
         gs_marg = TTFunc.batch_mul(Gs_prod, Ps)
         gs_sq_marg = gs_marg.square().sum(dim=(1, 2))
@@ -571,7 +571,7 @@ class TTSIRT(AbstractIRT):
             self.bases.polys[d_xs-1],
             self.approx.data.cores[d_xs-1],
             ls_x[:, d_xs-1]
-        ).reshape(n_xs, r_p, r_k)
+        )
 
         Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
 
@@ -587,7 +587,7 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k],
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
-            ).reshape(n_k, r_p, r_k)
+            )
 
             gs = torch.einsum("mij, ljk -> lmik", Gs_prod, Ps)
             ps = gs.square().sum(dim=(2, 3)) + self.tau
@@ -598,7 +598,7 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k],
                 self.approx.data.cores[k],
                 ls_y[:, j]
-            ).reshape(n_xs, r_p, r_k)
+            )
 
             Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
 
@@ -632,7 +632,7 @@ class TTSIRT(AbstractIRT):
                 self.approx.bases.polys[k],
                 self.approx.data.cores[k],
                 ls_x[:, j]
-            )
+            ).reshape(rank_k*num_x, -1)
 
             ii = torch.arange(rank_k * num_x)
             jj = torch.arange(num_x).repeat_interleave(rank_k)
@@ -649,7 +649,7 @@ class TTSIRT(AbstractIRT):
             self.approx.bases.polys[dim_z], 
             self.Bs[dim_z], 
             ls_x[:, 0]
-        )
+        ).reshape(rank_k*num_x, -1)
 
         ii = torch.arange(rank_k * num_x)
         jj = torch.arange(num_x).repeat_interleave(rank_k)
@@ -665,7 +665,7 @@ class TTSIRT(AbstractIRT):
             self.approx.bases.polys[dim_z], 
             self.approx.data.cores[dim_z], 
             ls_x[:, 0]
-        )
+        ).reshape(rank_k*num_x, -1)
 
         frg = T2.T @ B
 
@@ -680,7 +680,7 @@ class TTSIRT(AbstractIRT):
                     self.approx.bases.polys[k], 
                     self.Bs[k], 
                     self.oned_cdfs[k].nodes
-                ), 
+                ).reshape(-1, rank_k), 
                 (-1, rank_k)
             )
 
@@ -695,7 +695,7 @@ class TTSIRT(AbstractIRT):
                 self.approx.bases.polys[k], 
                 self.approx.data.cores[k],
                 ls_y[:, k]
-            )
+            ).reshape(rank_k*num_x, -1)
 
             ii = torch.arange(rank_k * num_z)
             jj = torch.arange(num_z).repeat_interleave(rank_k)
@@ -751,25 +751,25 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k],
                 self.approx.data.cores[k],
                 ls[:, k]
-            ).reshape(n_ls, r_p, r_k)
+            )
 
             block_ftt_deriv[k] = TTFunc.eval_oned_core_213_deriv(
                 self.bases.polys[k], 
                 self.approx.data.cores[k],
                 ls[:, k]
-            ).reshape(n_ls, r_p, r_k)
+            )
 
             block_marginal[k] = TTFunc.eval_oned_core_213(
                 self.bases.polys[k], 
                 self.Bs[k],
                 ls[:, k]
-            ).reshape(n_ls, r_p, r_k)
+            )
 
             Ts[k] = TTFunc.eval_oned_core_213(
                 self.bases.polys[k],
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
-            ).T.reshape(-1, r_p).T 
+            ).reshape(-1, r_k).T.reshape(-1, r_p).T 
 
             neglogwls[k] = -self.bases.polys[k].eval_log_measure(ls[:, k])
 
@@ -805,7 +805,7 @@ class TTSIRT(AbstractIRT):
                     self.approx.bases.polys[j], 
                     self.Bs[j], 
                     ls[:, j]
-                ).reshape(n_ls, r_p, r_k)
+                )
 
                 if j > 0:
                     drl = torch.einsum("...ij, ...jk", Fs[j-1], drl)
@@ -885,22 +885,23 @@ class TTSIRT(AbstractIRT):
             block_ftt_deriv: dict[int, torch.Tensor] = {}
 
             for k in range(self.dim):
+
+                r_k = self.approx.data.cores[k].shape[-1]
                 
                 block_ftt[k] = TTFunc.eval_oned_core_231(
                     self.bases.polys[k], 
                     self.approx.data.cores[k],
                     ls[:, k]
-                )
+                ).reshape(r_k*n_ls, -1)
 
                 block_marginal[k] = TTFunc.eval_oned_core_231(
                     self.bases.polys[k], 
                     self.Bs[k],
                     ls[:, k]
-                )
+                ).reshape(r_k*n_ls, -1)
 
-                r_k = self.approx.data.cores[k].shape[-1]
-                Ts[k] = reshape_matlab(TTFunc.eval_oned_core_213(self.bases.polys[k], self.Bs[k], self.oned_cdfs[k].nodes), (-1, r_k))
-                block_ftt_deriv[k] = TTFunc.eval_oned_core_231_deriv(self.bases.polys[k], self.approx.data.cores[k], ls[:, k])
+                Ts[k] = reshape_matlab(TTFunc.eval_oned_core_213(self.bases.polys[k], self.Bs[k], self.oned_cdfs[k].nodes).reshape(-1, r_k), (-1, r_k))
+                block_ftt_deriv[k] = TTFunc.eval_oned_core_231_deriv(self.bases.polys[k], self.approx.data.cores[k], ls[:, k]).reshape(n_ls*r_k, -1)
                 neglogwls[k] = -self.bases.polys[k].eval_log_measure(ls[:, k])
 
             Fs = {}
@@ -937,16 +938,17 @@ class TTSIRT(AbstractIRT):
                 J[j, inds] *= torch.exp(-neglogwls[j])
 
                 if j > 0:  # skip the (1, 1) element 
+
+                    r_j = self.approx.data.cores[j].shape[-1]
                     
                     drg = block_ftt_deriv[j].T
                     mrg = TTFunc.eval_oned_core_231_deriv(
                         self.bases.polys[j], 
                         self.Bs[j], 
                         ls[:, j]
-                    ).T
+                    ).reshape(r_j*n_ls, -1).T
 
                     if j < self.dim-1:
-                        r_j = self.approx.data.cores[j].shape[-1]
                         ii = torch.arange(r_j*n_ls)
                         jj = torch.arange(n_ls).repeat_interleave(r_j)
                         indices = torch.vstack((ii[None, :], jj[None, :]))
@@ -1026,35 +1028,35 @@ class TTSIRT(AbstractIRT):
                 self.bases.polys[k], 
                 self.approx.data.cores[k], 
                 ls[:, k]
-            ).reshape(n_ls, r_p, r_k)
+            )
 
             # Evaluate derivative of kth tensor core
             Gs_deriv[k] = TTFunc.eval_oned_core_213_deriv(
                 self.bases.polys[k], 
                 self.approx.data.cores[k], 
                 ls[:, k]
-            ).reshape(n_ls, r_p, r_k)
+            )
 
             # Evaluate kth marginalisation core at samples
             Ps[k] = TTFunc.eval_oned_core_213(
                 self.bases.polys[k],
                 self.Bs[k],
                 ls[:, k]
-            ).reshape(n_ls, r_p, r_k)
+            )
 
             # Evaluate derivative of kth marginalisation core at samples
             Ps_deriv[k] = TTFunc.eval_oned_core_213_deriv(
                 self.bases.polys[k],
                 self.Bs[k],
                 ls[:, k]
-            ).reshape(n_ls, r_p, r_k)
+            )
 
             # Evaluate kth marginalisation core at nodes of current CDF
             Ps_grid[k] = TTFunc.eval_oned_core_213(
                 self.bases.polys[k],
                 self.Bs[k],
                 self.oned_cdfs[k].nodes
-            ).reshape(n_k, r_p, r_k)
+            )
 
             Gs_prod[k] = TTFunc.batch_mul(Gs_prod[k-1], Gs[k])
 

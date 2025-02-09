@@ -195,8 +195,8 @@ class TTFunc():
 
         Gs = (poly.eval_radon(coeffs, ls)
               .reshape(n_ls, r_k, r_p)
-              .swapdims(1, 2)
-              .reshape(r_p * n_ls, r_k))
+              .swapdims(1, 2))
+              #.reshape(r_p * n_ls, r_k))
         return Gs
 
     @staticmethod
@@ -233,8 +233,8 @@ class TTFunc():
 
         dGdls = (poly.eval_radon_deriv(coeffs, ls)
                  .reshape(n_ls, r_k, r_p)
-                 .swapdims(1, 2)
-                 .reshape(r_p * n_ls, r_k))
+                 .swapdims(1, 2))
+                 #.reshape(r_p * n_ls, r_k))
         return dGdls
 
     @staticmethod
@@ -266,12 +266,12 @@ class TTFunc():
         r_p, n_k, r_k = A.shape
         n_l = ls.numel()
 
-        coeffs = A.swapdims(1, 2).reshape(r_p * r_k, n_k).T
+        coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
 
-        Gs = (poly.eval_radon(coeffs, ls).T
-              .reshape(r_p, r_k, n_l)
-              .swapdims(1, 2)
-              .reshape(r_p, r_k * n_l).T)
+        Gs = (poly.eval_radon(coeffs, ls)#.T
+              .reshape(n_l, r_k, r_p))
+              # .swapdims(1, 2))
+              #.reshape(r_p, r_k * n_l).T)
         return Gs
     
     @staticmethod
@@ -304,12 +304,12 @@ class TTFunc():
         r_p, n_k, r_k = A.shape
         n_l = ls.numel()
 
-        coeffs = A.swapdims(1, 2).reshape(r_p * r_k, n_k).T
+        coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
 
-        Gs = (poly.eval_radon_deriv(coeffs, ls).T
-              .reshape(r_p, r_k, n_l)
-              .swapdims(1, 2)
-              .reshape(r_p, r_k * n_l).T)
+        Gs = (poly.eval_radon_deriv(coeffs, ls)# .T
+              .reshape(n_l, r_k, r_p))
+              # .swapdims(1, 2))
+              # .reshape(r_p, r_k * n_l).T)
         return Gs
 
     def initialise_cores(self) -> None:
@@ -1137,7 +1137,7 @@ class TTFunc():
                 self.bases.polys[k], 
                 self.data.cores[k], 
                 ls[:, k]
-            ).reshape(n_ls, r_p, r_k)
+            )
 
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
         
@@ -1164,7 +1164,7 @@ class TTFunc():
                 self.bases.polys[k],
                 self.data.cores[k],
                 ls[:, inds_l[i]]
-            ).reshape(n_ls, r_k, r_p)
+            )
 
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
         

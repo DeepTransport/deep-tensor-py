@@ -54,7 +54,7 @@ directions = {
 
 methods = ["manual"]#, "autodiff"]
 
-zs = torch.rand((1000, dim))
+zs = torch.rand((100, dim))
 # zs = torch.full((2, dim), 1e-4)
 
 for poly in polys_dict:
