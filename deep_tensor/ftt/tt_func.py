@@ -6,10 +6,10 @@ import torch
 from .approx_bases import ApproxBases
 from .directions import Direction
 from .input_data import InputData
+from .tt_data import TTData
 from ..options import TTOptions
 from ..polynomials import Basis1D, Piecewise, Spectral
 from ..tools import deim, maxvol, reshape_matlab
-from .tt_data import TTData
 from ..tools.printing import als_info
 
 MAX_COND = 1.0e+5
@@ -192,11 +192,9 @@ class TTFunc():
         n_ls = ls.numel()
 
         coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
-
         Gs = (poly.eval_radon(coeffs, ls)
               .reshape(n_ls, r_k, r_p)
               .swapdims(1, 2))
-              #.reshape(r_p * n_ls, r_k))
         return Gs
 
     @staticmethod
@@ -230,11 +228,9 @@ class TTFunc():
         n_ls = ls.numel()
 
         coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
-
         dGdls = (poly.eval_radon_deriv(coeffs, ls)
                  .reshape(n_ls, r_k, r_p)
                  .swapdims(1, 2))
-                 #.reshape(r_p * n_ls, r_k))
         return dGdls
 
     @staticmethod
@@ -267,11 +263,7 @@ class TTFunc():
         n_l = ls.numel()
 
         coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
-
-        Gs = (poly.eval_radon(coeffs, ls)#.T
-              .reshape(n_l, r_k, r_p))
-              # .swapdims(1, 2))
-              #.reshape(r_p, r_k * n_l).T)
+        Gs = poly.eval_radon(coeffs, ls).reshape(n_l, r_k, r_p)
         return Gs
     
     @staticmethod
@@ -300,16 +292,12 @@ class TTFunc():
             value of ls stacked on top of one another.
         
         """
-        
+
         r_p, n_k, r_k = A.shape
-        n_l = ls.numel()
+        n_ls = ls.numel()
 
         coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
-
-        Gs = (poly.eval_radon_deriv(coeffs, ls)# .T
-              .reshape(n_l, r_k, r_p))
-              # .swapdims(1, 2))
-              # .reshape(r_p, r_k * n_l).T)
+        Gs = poly.eval_radon_deriv(coeffs, ls).reshape(n_ls, r_k, r_p)
         return Gs
 
     def initialise_cores(self) -> None:
