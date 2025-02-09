@@ -163,7 +163,7 @@ class TTFunc():
         return H
 
     @staticmethod
-    def eval_oned_core_213(
+    def eval_core_213(
         poly: Basis1D, 
         A: torch.Tensor, 
         ls: torch.Tensor 
@@ -198,7 +198,7 @@ class TTFunc():
         return Gs
 
     @staticmethod
-    def eval_oned_core_213_deriv(
+    def eval_core_213_deriv(
         poly: Basis1D, 
         A: torch.Tensor, 
         ls: torch.Tensor 
@@ -234,7 +234,7 @@ class TTFunc():
         return dGdls
 
     @staticmethod
-    def eval_oned_core_231(
+    def eval_core_231(
         poly: Basis1D, 
         A: torch.Tensor, 
         ls: torch.Tensor
@@ -267,7 +267,7 @@ class TTFunc():
         return Gs
     
     @staticmethod
-    def eval_oned_core_231_deriv(
+    def eval_core_231_deriv(
         poly: Basis1D,
         A: torch.Tensor,
         ls: torch.Tensor
@@ -1121,7 +1121,7 @@ class TTFunc():
 
             r_p, _, r_k = self.data.cores[k].shape
 
-            Gs = self.eval_oned_core_213(
+            Gs = self.eval_core_213(
                 self.bases.polys[k], 
                 self.data.cores[k], 
                 ls[:, k]
@@ -1148,7 +1148,7 @@ class TTFunc():
             k = int(inds_k[i])
             r_p, _, r_k = self.data.cores[k].shape
 
-            Gs = self.eval_oned_core_231(
+            Gs = self.eval_core_231(
                 self.bases.polys[k],
                 self.data.cores[k],
                 ls[:, inds_l[i]]

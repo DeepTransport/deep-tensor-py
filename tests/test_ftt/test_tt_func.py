@@ -12,7 +12,7 @@ torch.manual_seed(0)
 class TestSIRT(unittest.TestCase):
 
     def test_eval_core(self):
-        """Verifies that the eval_oned_core_213 and eval_oned_core_231 
+        """Verifies that the eval_core_213 and eval_core_231 
         methods are working as intended.
         """
 
@@ -27,8 +27,8 @@ class TestSIRT(unittest.TestCase):
 
         ls = torch.tensor([-0.5, 0.0, 0.5])
 
-        G_213 = dt.TTFunc.eval_oned_core_213(poly, A, ls)
-        G_231 = dt.TTFunc.eval_oned_core_231(poly, A, ls)
+        G_213 = dt.TTFunc.eval_core_213(poly, A, ls)
+        G_231 = dt.TTFunc.eval_core_231(poly, A, ls)
 
         G_213_true = torch.tensor([[[2.0, 1.5],
                                     [2.0, 2.0]],
@@ -43,9 +43,6 @@ class TestSIRT(unittest.TestCase):
                                     [1.0, 2.0]],
                                    [[2.0, 1.5],
                                     [2.5, 2.5]]])
-        
-        print(G_231)
-        print(G_231_true)
 
         self.assertTrue(G_213.shape == torch.Size([3, 2, 2]))
         self.assertTrue(G_231.shape == torch.Size([3, 2, 2]))
