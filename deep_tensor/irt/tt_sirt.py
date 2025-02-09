@@ -124,15 +124,13 @@ class TTSIRT(AbstractIRT):
         """
 
         self.Rs[self.dim] = torch.tensor([[1.0]])
+        polys = self.bases.polys
+        cores = self.approx.data.cores
 
         for k in range(self.dim-1, -1, -1):
-            
-            poly = self.bases.polys[k]
-            A = self.approx.data.cores[k]
-
-            self.Bs[k] = torch.einsum("ijl, lk", A, self.Rs[k+1])
-            C_k = torch.einsum("ilk, lj", self.Bs[k], poly.mass_R)
-            C_k = self.approx.unfold_right(C_k)
+            self.Bs[k] = torch.einsum("ijl, lk", cores[k], self.Rs[k+1])
+            C_k = torch.einsum("ilk, lj", self.Bs[k], polys[k].mass_R)
+            C_k = TTFunc.unfold_right(C_k)
             self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
         self.z_func = self.Rs[0].square().sum()
@@ -146,15 +144,13 @@ class TTSIRT(AbstractIRT):
         """
         
         self.Rs[-1] = torch.tensor([[1.0]])
+        polys = self.bases.polys
+        cores = self.approx.data.cores
 
         for k in range(self.dim):
-            
-            poly = self.approx.bases.polys[k]
-            A = self.approx.data.cores[k]
-
-            self.Bs[k] = torch.einsum("il, ljk", self.Rs[k-1], A)
-            C_k = torch.einsum("jl, ilk", poly.mass_R, self.Bs[k])
-            C_k = self.approx.unfold_left(C_k)
+            self.Bs[k] = torch.einsum("il, ljk", self.Rs[k-1], cores[k])
+            C_k = torch.einsum("jl, ilk", polys[k].mass_R, self.Bs[k])
+            C_k = TTFunc.unfold_left(C_k)
             self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")[1]
 
         self.z_func = self.Rs[self.dim-1].square().sum()
@@ -470,9 +466,7 @@ class TTSIRT(AbstractIRT):
         Bs = self.Bs 
         cdfs = self.oned_cdfs
 
-        for k in range(self.dim-1, d_min-1, -1):
-            
-            j = k - d_min
+        for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
 
             # Compute (unnormalised) conditional PDF for each sample
             Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
@@ -480,10 +474,10 @@ class TTSIRT(AbstractIRT):
             ps = gs.square().sum(dim=1) + self.tau
 
             # Evaluate CDF to obtain corresponding uniform variates
-            zs[:, j] = self.oned_cdfs[k].eval_cdf(ps, ls[:, j])
+            zs[:, -i] = self.oned_cdfs[k].eval_cdf(ps, ls[:, -i])
             
             # Compute incremental product of tensor cores for each sample
-            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, j])
+            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, -i])
             Gs_prod = torch.einsum("ijl, li -> ji", Gs, Gs_prod)
 
         return zs
