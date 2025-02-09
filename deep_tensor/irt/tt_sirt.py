@@ -47,7 +47,7 @@ class TTSIRT(AbstractIRT):
 
         # Define coefficient tensors and marginalisation coefficents
         self.Bs: dict[int, torch.Tensor] = {}
-        self.Rs: dict[int, torch.Tensor] = {} 
+        self.Rs: dict[int, torch.Tensor] = {}
         
         self.int_dir = Direction.FORWARD
         self.tau = tau
@@ -226,9 +226,8 @@ class TTSIRT(AbstractIRT):
 
         for k in range(d_zs):
             
-            Gs_cdf = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
-
-            gls = torch.einsum("jl, ilk -> ijk", gs, Gs_cdf)
+            Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
+            gls = torch.einsum("jl, ilk", gs, Ps)
             ps = gls.square().sum(dim=2) + self.tau
             ls[:, k] = self.oned_cdfs[k].invert_cdf(ps, zs[:, k])
 
@@ -272,17 +271,14 @@ class TTSIRT(AbstractIRT):
         Bs = self.Bs 
         cdfs = self.oned_cdfs
         
-        for k in range(self.dim-1, d_min-1, -1):
-            
-            j = k - d_min
+        for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
 
             Ps = TTFunc.eval_core_231(polys[k], Bs[k], cdfs[k].nodes)
-            gls = torch.einsum("ilk, jl -> ijk", Ps, gs)
+            gls = torch.einsum("ilk, jl", Ps, gs)
             ps = gls.square().sum(dim=2) + self.tau
+            ls[:, -i] = self.oned_cdfs[k].invert_cdf(ps, zs[:, -i])
 
-            ls[:, j] = self.oned_cdfs[k].invert_cdf(ps, zs[:, j])
-
-            Gs = TTFunc.eval_core_231(polys[k], cores[k], ls[:, j])
+            Gs = TTFunc.eval_core_231(polys[k], cores[k], ls[:, -i])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
         gs_sq = (self.Rs[d_min-1] @ gs.T).square().sum(dim=0)
@@ -523,13 +519,11 @@ class TTSIRT(AbstractIRT):
         Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
 
         # Generate conditional samples
-        for j in range(d_zs):
-            
-            k = d_xs + j
+        for j, k in enumerate(range(d_xs, self.dim)):
             
             Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
-            gs = torch.einsum("mij, ljk -> lmik", Gs_prod, Ps)
-            ps = gs.square().sum(dim=(2, 3)) + self.tau
+            gs = torch.einsum("mij, ljk -> lmk", Gs_prod, Ps)
+            ps = gs.square().sum(dim=2) + self.tau
             ls_y[:, j] = self.oned_cdfs[k].invert_cdf(ps, zs[:, j])
 
             Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_y[:, j])

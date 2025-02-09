@@ -182,9 +182,9 @@ class TTFunc():
         Returns
         -------
         Gs:
-            A matrix of dimension r_{k-1}n_{k} * r_{k}, corresponding 
-            to evaluations of the kth core at each value of ls stacked 
-            on top of one another.
+            A matrix of dimension n_{k} * r_{k-1} * r_{k}, 
+            corresponding to evaluations the kth core at each value 
+            of ls.
         
         """
         
@@ -218,9 +218,9 @@ class TTFunc():
         Returns
         -------
         dGdls:
-            A matrix of dimension r_{k-1}n_{k} * r_{k}, corresponding 
-            to evaluations of the derivative of the kth core at each 
-            value of ls stacked on top of one another.
+            A matrix of dimension n_{k} * r_{k-1} * r_{k}, 
+            corresponding to evaluations of the derivative of the kth 
+            core at each value of ls.
         
         """
 
@@ -253,17 +253,17 @@ class TTFunc():
         Returns
         -------
         Gs:
-            A matrix of dimension r_{k}n_{k} * r_{k-1}, corresponding 
-            to evaluations of the kth core at each value of ls stacked 
-            on top of one another.
+            A tensor of dimension n_{k} * r_{k} * r_{k-1}, 
+            corresponding to evaluations of the kth core at each value 
+            of ls.
         
         """
         
         r_p, n_k, r_k = A.shape
-        n_l = ls.numel()
+        n_ls = ls.numel()
 
         coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
-        Gs = poly.eval_radon(coeffs, ls).reshape(n_l, r_k, r_p)
+        Gs = poly.eval_radon(coeffs, ls).reshape(n_ls, r_k, r_p)
         return Gs
     
     @staticmethod
@@ -287,9 +287,9 @@ class TTFunc():
         Returns
         -------
         dGdls:
-            A matrix of dimension r_{k}n_{k} * r_{k-1}, corresponding 
-            to evaluations of the derivative of the kth core at each 
-            value of ls stacked on top of one another.
+            A tensor of dimension n_{k} * r_{k} * r_{k-1}, 
+            corresponding to evaluations of the derivative of the kth 
+            core at each value of ls.
         
         """
 
@@ -429,13 +429,9 @@ class TTFunc():
 
         if self.options.int_method == "qdeim":
             raise NotImplementedError()
-            # indices, core = qdeim(H)
-            # interp_atx = H[indices]
-
         elif self.options.int_method == "deim":
             inds, B = deim(U)
             U_interp = U[inds]
-
         elif self.options.int_method == "maxvol":
             inds, B = maxvol(U)
             U_interp = U[inds]
@@ -460,11 +456,9 @@ class TTFunc():
 
         if self.options.int_method == "qdeim":
             raise NotImplementedError()
-        
         elif self.options.int_method == "deim":
             msg = "DEIM is not supported for spectral polynomials."
             raise Exception(msg)
-
         elif self.options.int_method == "maxvol":
             inds, _ = maxvol(nodes)
             U_interp = nodes[inds]
@@ -1113,50 +1107,32 @@ class TTFunc():
         the first k variables.
         """
 
-        self._check_sample_dim(ls, self.dim)
-        n_ls, dim_ls = ls.shape
-        gs = torch.ones((n_ls, 1))
+        n_ls, d_ls = ls.shape
+        polys = self.bases.polys
+        cores = self.data.cores
+        Gs_prod = torch.ones((n_ls, 1))
 
-        for k in range(dim_ls):
-
-            r_p, _, r_k = self.data.cores[k].shape
-
-            Gs = self.eval_core_213(
-                self.bases.polys[k], 
-                self.data.cores[k], 
-                ls[:, k]
-            )
-
-            gs = torch.einsum("il, ilk -> ik", gs, Gs)
+        for k in range(d_ls):
+            Gs = self.eval_core_213(polys[k], cores[k], ls[:, k])
+            Gs_prod = torch.einsum("il, ilk -> ik", Gs_prod, Gs)
         
-        return gs
+        return Gs_prod
     
     def _eval_local_backward(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the FTT approximation to the target function for 
         the last k variables.
         """
 
-        self._check_sample_dim(ls, self.dim)
-        n_ls, dim_ls = ls.shape
-        gs = torch.ones((n_ls, 1))
-
-        inds_l = torch.arange(dim_ls-1, -1, -1)
-        inds_k = torch.arange(self.dim-1, -1, -1)
+        n_ls, d_ls = ls.shape
+        polys = self.bases.polys 
+        cores = self.data.cores
+        Gs_prod = torch.ones((n_ls, 1))
         
-        for i in range(dim_ls):
-            
-            k = int(inds_k[i])
-            r_p, _, r_k = self.data.cores[k].shape
-
-            Gs = self.eval_core_231(
-                self.bases.polys[k],
-                self.data.cores[k],
-                ls[:, inds_l[i]]
-            )
-
-            gs = torch.einsum("il, ilk -> ik", gs, Gs)
+        for i, k in enumerate(range(self.dim-1, self.dim-d_ls-1, -1), start=1):
+            Gs = self.eval_core_231(polys[k], cores[k], ls[:, -i])
+            Gs_prod = torch.einsum("il, ilk -> ik", Gs_prod, Gs)
         
-        return gs
+        return Gs_prod
 
     def eval_local(
         self, 
@@ -1170,20 +1146,25 @@ class TTFunc():
         Parameters
         ----------
         ls:
-            A set of points in the local domain.
+            A n * d matrix containing a set of samples from the local 
+            domain.
+        direction:
+            The direction in which to iterate over the cores.
         
         Returns
         -------
-        gs:
-            The value of the FTT approximation to the square root of 
-            the  target function at each point in ls.
+        Gs_prod:
+            An n * n_k matrix, where each row contains the product of 
+            the first or last (depending on direction) k tensor cores 
+            evaluated at the corresponding sample in ls.
             
         """
+        self._check_sample_dim(ls, self.dim)
         if direction == Direction.FORWARD:
-            gs = self._eval_local_forward(ls)
+            Gs_prod = self._eval_local_forward(ls)
         else: 
-            gs = self._eval_local_backward(ls)
-        return gs
+            Gs_prod = self._eval_local_backward(ls)
+        return Gs_prod
 
     def eval(self, xs: torch.Tensor) -> torch.Tensor:
         """Evaluates the target function at a set of points in the 
@@ -1192,18 +1173,20 @@ class TTFunc():
         Parameters
         ----------
         xs:
-            A matrix containing n sets of d-dimensional input 
-            variables in the approximation domain. Each row contains a
-            single input variable.
+            An n * d matrix containing samples from the approximation 
+            domain.
             
         Returns
         -------
         gs:
             An n-dimensional vector containing the values of the 
-            function at each x value.
+            approximation to the target function function at each x 
+            value.
+        
         """
+        self._check_sample_dim(ls, self.dim, strict=True)
         ls = self.bases.approx2local(xs)[0]
-        gs = self.eval_local(ls, self.data.direction)
+        gs = self.eval_local(ls, self.data.direction).flatten()
         return gs
 
     def grad_reference(
