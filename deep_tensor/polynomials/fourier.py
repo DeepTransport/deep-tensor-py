@@ -79,8 +79,8 @@ class Fourier(Spectral):
         deriv_vals = torch.hstack((
             torch.zeros((us.numel(), 1)),
             self.c * 2 ** 0.5 * torch.cos(tmp),
-            self.c * 2 ** 0.5 * torch.sin(tmp),
-            self.m * torch.pi * 2 ** 0.5 * torch.cos(us[:, None] * self.m * torch.pi)
+            -self.c * 2 ** 0.5 * torch.sin(tmp),
+            -self.m * torch.pi * 2 ** 0.5 * torch.sin(us[:, None] * self.m * torch.pi)
         ))
 
         return deriv_vals

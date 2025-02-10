@@ -57,7 +57,7 @@ class Recurr(Spectral, abc.ABC):
         Parameters
         ----------
         a, b, c:
-            n-dimensional vectors (where n denotes the order of the 
+            {n+1}-dimensional vectors (where n denotes the order of the 
             polynomial) containing the coefficients of the recurrence 
             relation for the polynomial.
 
@@ -108,11 +108,17 @@ class Recurr(Spectral, abc.ABC):
             return torch.full((ls.numel(), 1), 0.0)
         
         dpdxs = torch.zeros((ls.numel(), self.order+1))
-        ps = self.eval_basis(ls)
+        ps = self.eval_basis(ls) / self.norm
         
         # Evaluate recurrence relation
         dpdxs[:, 1] = self.a[0] * ps[:, 0]
         for j in range(1, self.order):
+            # if j == 2:
+            #     print(self.a[j])
+            #     print(ps[:, j])
+            #     print(dpdxs[:, j])
+            #     print(dpdxs[:, j-1])
+            #     print(self.c[j])
             dpdxs[:, j+1] = (self.a[j] * ps[:, j] 
                              + (self.a[j] * ls + self.b[j]) * dpdxs[:, j]
                              - self.c[j] * dpdxs[:, j-1])
