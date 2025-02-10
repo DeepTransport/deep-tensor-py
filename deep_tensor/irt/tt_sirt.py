@@ -161,29 +161,7 @@ class TTSIRT(AbstractIRT):
         self, 
         direction: Direction=Direction.FORWARD
     ) -> None:
-        """Computes each coefficient tensor (B_k) required to evaluate 
-        the marginal functions in each dimension, as well as the 
-        normalising constant, z. 
 
-        Parameters
-        ----------
-        direction:
-            The direction in which to iterate over the tensor cores.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        Updates self.Bs, self.z_func, self.z.
-
-        References
-        ----------
-        Cui and Dolgov (2022, Sec. 3.1). Deep composition of tensor 
-        trains using squared inverse Rosenblatt transports.
-
-        """
         self.int_dir = direction
         if self.int_dir == Direction.FORWARD:
             self._marginalise_forward()
@@ -288,27 +266,6 @@ class TTSIRT(AbstractIRT):
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Converts a set of realisations of a standard uniform 
-        random variable, Z, to the corresponding realisations of the 
-        local (i.e., defined on [-1, 1]) target random variable, by 
-        applying the inverse Rosenblatt transport.
-        
-        Parameters
-        ----------
-        zs: 
-            An n * d matrix containing values on [0, 1]^d.
-
-        Returns
-        -------
-        ls:
-            An n * d matrix containing the corresponding samples of the 
-            target random variable mapped into the local domain.
-        neglogfls:
-            The local potential function associated with the 
-            approximation to the target density, evaluated at each 
-            sample.
-
-        """
 
         if self.int_dir == Direction.FORWARD:
             ls, gs_sq = self._eval_irt_local_forward(zs)
@@ -336,35 +293,14 @@ class TTSIRT(AbstractIRT):
         potential_func: Callable[[torch.Tensor], torch.Tensor], 
         ls: torch.Tensor
     ) -> torch.Tensor:
-        """Returns the square root of the target function evaluated at
-        a set of samples in the local domain.
-        
-        Parameters
-        ----------
-        ls:
-            An n * d matrix containing a set of n samples from the 
-            local domain ([-1, 1]^d).
-        potential_func:
-            A function that evaluates the potential (negative log) 
-            of the target function at a given set of samples from the 
-            approximation domain.
-
-        Returns
-        -------
-        ps:
-            An n-dimensional vector containing the square root of the 
-            ratio of the potential function and the weighting function, 
-            evaluated at each element of ls.
-
-        """
         
         xs = self.bases.local2approx(ls)[0]
         neglogfxs = potential_func(xs)
         neglogwxs = self.bases.eval_measure_potential(xs)[0]
 
         # The ratio of f and w is invariant to changes of coordinate
-        ps = torch.exp(-0.5 * (neglogfxs - neglogwxs))
-        return ps
+        gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
+        return gs
 
     def build_approximation(
         self, 
@@ -385,7 +321,7 @@ class TTSIRT(AbstractIRT):
         approx.cross()
 
         if approx.use_amen:
-            approx.round()
+            approx.round()  # why?
 
         return approx
 
@@ -645,8 +581,6 @@ class TTSIRT(AbstractIRT):
         ls_x: torch.Tensor, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        
-        # TODO: add a dimension check in here.
 
         if self.int_dir == Direction.FORWARD:
             ls_y, neglogfls_y = self._eval_cirt_local_forward(ls_x, zs)
@@ -775,24 +709,6 @@ class TTSIRT(AbstractIRT):
         ls: torch.Tensor, 
         zs: torch.Tensor
     ) -> torch.Tensor:
-        """Evaluates the Jacobian of the Rosenblatt transport.
-        
-        Parameters
-        ----------
-        ls:
-            An n * d set of samples from the local domain.
-        zs: 
-            An n * d matrix corresponding to evaluations of the 
-            Rosenblatt transport at each sample in ls.
-        
-        Returns
-        -------
-        Js:
-            A d * (d*n) matrix, where each d * d block contains the 
-            Jacobian of the Rosenblatt transport evaluated at a given 
-            sample: that is, J_ij = dz_i / dl_i.
-
-        """
 
         TTFunc._check_sample_dim(ls, self.dim, strict=True)
 
@@ -959,8 +875,8 @@ class TTSIRT(AbstractIRT):
 
             # Evaluate kth marginalisation core and derivative
             Ps[k] = TTFunc.eval_core_213(polys[k], Bs[k], ls[:, k])
-            Ps_grid[k] = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
             Ps_deriv[k] = TTFunc.eval_core_213_deriv(polys[k], Bs[k], ls[:, k])
+            Ps_grid[k] = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
 
         # Weighting function and marginal probabilities
         for k in range(self.dim):

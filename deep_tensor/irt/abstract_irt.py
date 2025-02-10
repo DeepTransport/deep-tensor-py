@@ -14,7 +14,6 @@ Z_MAX = torch.tensor(1.0-EPS)
 
 
 class AbstractIRT(abc.ABC):
-    """TODO: write docstring for this."""
 
     def __init__(
         self, 
@@ -37,7 +36,7 @@ class AbstractIRT(abc.ABC):
     @property
     @abc.abstractmethod 
     def approx(self) -> TTFunc:
-        """The approximation of the square root of the target density.
+        """The FTT approximation to the target function.
         """
         return
 
@@ -82,36 +81,66 @@ class AbstractIRT(abc.ABC):
 
     @property
     def dim(self) -> int:
+        """The dimension of the target PDF.
+        """
         return self.bases.dim
+
+    @abc.abstractmethod 
+    def marginalise(
+        self, 
+        direction: Direction=Direction.FORWARD
+    ) -> None:
+        """Computes each coefficient tensor (B_k) required to evaluate 
+        the marginal functions in each dimension, as well as the 
+        normalising constant, z. 
+
+        Parameters
+        ----------
+        direction:
+            The direction in which to iterate over the tensor cores.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Updates self.Bs, self.z_func, self.z.
+
+        References
+        ----------
+        Cui and Dolgov (2022, Sec. 3.1). Deep composition of tensor 
+        trains using squared inverse Rosenblatt transports.
+
+        """
+        return
 
     @abc.abstractmethod
     def potential2density(
         self,
-        func: Callable,
-        zs: torch.Tensor
+        func: Callable[[torch.Tensor], torch.Tensor],
+        ls: torch.Tensor
     ) -> torch.Tensor:
-        """Computes the density of a sample, or set of samples, from 
-        the reference domain.
+        """Computes the value of the target function being approximated 
+        by the FTT for a sample, or set of samples, from the local 
+        domain. 
 
         Parameters
         ----------
         potential_func:
             A function that returns the potential of the target density 
             function at a given point in the approximation domain.
-        zs:
-            A set of samples from the reference domain, of dimension 
-            n * d.
+        ls:
+            An n * d matrix containing a set of n samples from the 
+            local domain.
 
         Returns
         ------
-        ys:
-            An n-dimensional vector containing the square root of the 
-            (unnormalised) target density function evaluated at each 
-            (transformed) value of zs.
-            
-        TODO: I think this returns g(x) (i.e. square root of pi -- see 
-        Cui and Dolgov, Eq. 18).
-        TODO: figure out what the reference function is doing here.
+        gs:
+            An n-dimensional vector containing the value of the 
+            function being approximated by the FTT for each sample in 
+            ls.
+        
         """
         return
     
@@ -121,32 +150,13 @@ class AbstractIRT(abc.ABC):
         ys: torch.Tensor,
         zs: torch.Tensor
     ) -> torch.Tensor:
-        """Computes the density of a sample, or set of samples, from 
-        the reference domain.
-
-        Parameters
-        ----------
-        ys:
-            The potential function associated with the target density, 
-            evaluated at each (transformed) sample from zs.
-        zs:
-            A set of samples from the reference domain, of dimension 
-            n * d.
-
-        Returns
-        ------
-        ys:
-            An n-dimensional vector containing the square root of the 
-            (unnormalised) target density function evaluated at each 
-            (transformed) value of zs.
-        
-        """
+        """TODO: implement."""
         return
 
     @abc.abstractmethod
     def build_approximation(
         self, 
-        func: Callable, 
+        target_func: Callable[[torch.Tensor], torch.Tensor], 
         bases: ApproxBases, 
         options: TTOptions,
         input_data: InputData,
@@ -156,21 +166,22 @@ class AbstractIRT(abc.ABC):
 
         Parameters
         ----------
-        func:
-            A function that returns the square root of the target 
-            density for a sample from the reference domain.
+        target_func:
+            A function that returns the value of the target function 
+            evaluated at a set of samples from the local domain.
         bases:
-            The (polynomial) basis associated with each dimension.
+            The polynomial bases associated with each dimension.
         options:
-            Options used when constructing the approximation to the 
-            target density function.
+            Options used when constructing the FTT.
         input_data:
-            TODO:
+            An object containing samples used to initialise and 
+            evaluate the quality of the FTT approximation to the 
+            target function.
 
         Returns
         -------
         approx:
-            The functional approximation to the target density.
+            The FTT approximation to the target function.
 
         """
         return
@@ -191,9 +202,10 @@ class AbstractIRT(abc.ABC):
 
         Returns
         -------
-        fs:
-            The approximation to the target PDF (transformed into the 
-            local domain) at each element in ls.
+        neglogfls:
+            An n-dimensional vector containing the approximation to the 
+            target density function (transformed into the local domain) 
+            at each element in ls.
         
         """
         return
@@ -221,45 +233,88 @@ class AbstractIRT(abc.ABC):
         """
         return
 
-    @abc.abstractmethod 
-    def eval_rt_jac_local(
-        self,
-        zs: torch.Tensor
-    ) -> torch.Tensor:
-        """TODO: write docstring."""
-        return
-
     @abc.abstractmethod
     def eval_irt_local(
         self, 
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """TODO: write docstring for this."""
+        """Converts a set of realisations of a standard uniform 
+        random variable, Z, to the corresponding realisations of the 
+        local (i.e., defined on [-1, 1]) target random variable, by 
+        applying the inverse Rosenblatt transport.
+        
+        Parameters
+        ----------
+        zs: 
+            An n * d matrix containing values on [0, 1]^d.
+
+        Returns
+        -------
+        ls:
+            An n * d matrix containing the corresponding samples of the 
+            target random variable mapped into the local domain.
+        neglogfls:
+            The local potential function associated with the 
+            approximation to the target density, evaluated at each 
+            sample.
+
+        """
         return
 
     @abc.abstractmethod 
     def eval_cirt_local(
         self, 
+        ls_x: torch.Tensor,
         zs: torch.Tensor
     ) -> torch.Tensor:
-        """TODO: write docstring."""
-        return
-
-    @abc.abstractmethod 
-    def marginalise(self, dir) -> None:
-        """Marginalises the approximation to the target function.
+        """Evaluates the inverse of the conditional squared Rosenblatt 
+        transport.
         
         Parameters
         ----------
-        dir:
-            The direction in which to compute the marginalisation 
-            (i.e., whether the marginalise from the first to the last 
-            dimension or the last to the first).
-
+        ls_x:
+            An n * m matrix containing samples from the local domain.
+        zs:
+            An n * (d-m) matrix containing samples from [0, 1]^{d-m},
+            where m is the the dimension of the joint distribution of 
+            X and Y.
+        
         Returns
         -------
-        None 
-            
+        ys:
+            An n * (d-m) matrix containing the realisations of Y 
+            corresponding to the values of zs after applying the 
+            conditional inverse Rosenblatt transport.
+        neglogfys:
+            An n-dimensional vector containing the potential function 
+            of the approximation to the conditional density of Y|X 
+            evaluated at each sample in ys.
+    
+        """
+        return
+
+    @abc.abstractmethod 
+    def eval_rt_jac_local(
+        self,
+        zs: torch.Tensor
+    ) -> torch.Tensor:
+        """Evaluates the Jacobian of the Rosenblatt transport.
+        
+        Parameters
+        ----------
+        ls:
+            An n * d set of samples from the local domain.
+        zs: 
+            An n * d matrix corresponding to evaluations of the 
+            Rosenblatt transport at each sample in ls.
+        
+        Returns
+        -------
+        Js:
+            A d * (d*n) matrix, where each d * d block contains the 
+            Jacobian of the Rosenblatt transport evaluated at a given 
+            sample: that is, J_ij = dz_i / dl_i.
+
         """
         return
 
@@ -291,7 +346,7 @@ class AbstractIRT(abc.ABC):
 
         """
         indices = self.get_transform_indices(xs.shape[1])
-        ls, dldxs = self.approx.bases.approx2local(xs, indices)
+        ls, dldxs = self.bases.approx2local(xs, indices)
         neglogfls = self.eval_potential_local(ls)
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
@@ -321,7 +376,10 @@ class AbstractIRT(abc.ABC):
         fxs = torch.exp(-neglogfxs)
         return fxs
     
-    def eval_rt(self, xs: torch.Tensor) -> torch.Tensor:
+    def eval_rt(
+        self, 
+        xs: torch.Tensor
+    ) -> torch.Tensor:
         """Evaluates the Rosenblatt transport Z = R(X), where Z is a 
         (standard) uniform random variable and X is the target random 
         variable.
@@ -345,33 +403,6 @@ class AbstractIRT(abc.ABC):
         zs = self.eval_rt_local(ls)
         return zs
     
-    def eval_rt_jac(
-        self, 
-        xs: torch.Tensor,
-        zs: torch.Tensor 
-    ) -> torch.Tensor:
-        """Evaluates the Jacobian of the squared Rosenblatt transport 
-        Z = R(X), where Z is the uniform random variable and X is the 
-        target random variable.
-
-        zs contains the points on the cdf correpsonding to each value 
-        of xs.
-
-        J = dzdx
-
-        TODO: finish docstring.
-        """
-        ls, dldxs = self.approx.bases.approx2local(xs)
-        Js = self.eval_rt_jac_local(ls, zs)#, zs) # dzdl
-
-        n_zs, dim_zs = zs.shape
-        for k in range(n_zs):
-            # TODO: check this.
-            inds = k * dim_zs + torch.arange(dim_zs)
-            Js[:, inds] *= dldxs[k]  # TODO: check whether this multiplication is being done the right way
-
-        return Js
-
     def eval_irt(
         self, 
         zs: torch.Tensor
@@ -420,58 +451,78 @@ class AbstractIRT(abc.ABC):
         Parameters
         ----------
         xs:
-            An n * d matrix containing samples from the approximation 
+            An n * m matrix containing samples from the approximation 
             domain.
         zs:
-            An n * (m-d) matrix containing samples from [0, 1]^{m-d},
+            An n * (d-m) matrix containing samples from [0, 1]^{d-m},
             where m is the the dimension of the joint distribution of 
             X and Y.
         
         Returns
         -------
         ys:
-            An n * (m-d) matrix containing the realisations of Y 
+            An n * (d-m) matrix containing the realisations of Y 
             corresponding to the values of zs after applying the 
-            (conditional) inverse Rosenblatt transport.
+            conditional inverse Rosenblatt transport.
         neglogfys:
             An n-dimensional vector containing the potential function 
             of the approximation to the conditional density of Y|X 
-            evaluated at each value of ys.
+            evaluated at each sample in ys.
     
         """
         
-        num_z, dim_z = zs.shape
-        num_x, dim_x = xs.shape
+        n_zs, d_zs = zs.shape
+        n_xs, d_xs = xs.shape
 
-        if dim_z == 0 or dim_x == 0:
+        if d_zs == 0 or d_xs == 0:
             msg = "The dimensions of both X and Z should be at least 1."
             raise Exception(msg)
         
-        if dim_z + dim_x != self.approx.dim:
+        if d_zs + d_xs != self.dim:
             msg = ("The dimensions of X and Z should sum " 
                    + "to the dimension of the approximation.")
             raise Exception(msg)
         
-        if num_z != num_x: 
-            if num_x != 1:
+        if n_zs != n_xs: 
+            if n_xs != 1:
                 msg = "The number of samples of X and Z must be equal."
                 raise Exception(msg)
-            xs = xs.repeat(num_z, 1)
+            xs = xs.repeat(n_zs, 1)
 
         if self.int_dir == Direction.FORWARD:
-            inds_x = torch.arange(dim_x)
-            inds_z = torch.arange(dim_x, self.approx.dim)
+            inds_x = torch.arange(d_xs)
+            inds_z = torch.arange(d_xs, self.dim)
         elif self.int_dir == Direction.BACKWARD:
-            inds_x = torch.arange(dim_z, self.approx.dim)
-            inds_z = torch.arange(dim_z)
+            inds_x = torch.arange(d_zs, self.dim)
+            inds_z = torch.arange(d_zs)
         
-        ls_x = self.approx.bases.approx2local(xs, inds_x)[0]
+        ls_x = self.bases.approx2local(xs, inds_x)[0]
         ls_y, neglogfys = self.eval_cirt_local(ls_x, zs)
-        ys, dydlys = self.approx.bases.local2approx(ls_y, inds_z)
+        ys, dydlys = self.bases.local2approx(ls_y, inds_z)
         neglogfys += dydlys.log().sum(dim=1)
 
         return ys, neglogfys
     
+    def eval_rt_jac(
+        self, 
+        xs: torch.Tensor,
+        zs: torch.Tensor 
+    ) -> torch.Tensor:
+        """Evaluates the Jacobian of the squared Rosenblatt transport 
+        Z = R(X), where Z is the uniform random variable and X is the 
+        target random variable.
+        
+        """
+        ls, dldxs = self.bases.approx2local(xs)
+        Js = self.eval_rt_jac_local(ls, zs)#, zs) # dzdl
+
+        n_zs, d_zs = zs.shape
+        for k in range(n_zs):
+            inds = k * d_zs + torch.arange(d_zs)
+            Js[:, inds] *= dldxs[k]
+
+        return Js
+
     def random(self, n: int) -> torch.Tensor: 
         """Generates a set of random samples from the approximation to
         the target density function, by first sampling a set of 

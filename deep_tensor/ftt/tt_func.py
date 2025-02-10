@@ -285,8 +285,8 @@ class TTFunc():
         r_p, n_k, r_k = A.shape
         n_ls = ls.numel()
         coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
-        Gs = poly.eval_radon_deriv(coeffs, ls).reshape(n_ls, r_k, r_p)
-        return Gs
+        dGdls = poly.eval_radon_deriv(coeffs, ls).reshape(n_ls, r_k, r_p)
+        return dGdls
 
     def initialise_cores(self) -> None:
         """Initialises the cores and interpolation points in each 
