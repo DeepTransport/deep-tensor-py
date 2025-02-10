@@ -20,7 +20,7 @@ class Chebyshev2ndUnweighted(Spectral):
 
         self.normalising = torch.tensor([1.0])
 
-        self.post_construction()
+        self.__post_init__()
         return
     
     @property

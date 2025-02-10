@@ -24,7 +24,7 @@ class Chebyshev1st(Spectral):
             torch.full((self.order,), torch.sqrt(torch.tensor(2)))
         ))
 
-        self.post_construction()
+        self.__post_init__()
         return
     
     @property 

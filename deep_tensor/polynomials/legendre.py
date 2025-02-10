@@ -36,17 +36,17 @@ class Legendre(Recurr):
     def weights(self) -> torch.Tensor:
         return self._weights
 
-    def eval_measure(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.full(x.shape, 0.5)
+    def eval_measure(self, ls: torch.Tensor) -> torch.Tensor:
+        return torch.full(ls.shape, 0.5)
     
-    def eval_measure_deriv(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.zeros_like(x)
+    def eval_measure_deriv(self, ls: torch.Tensor) -> torch.Tensor:
+        return torch.zeros_like(ls)
 
-    def eval_log_measure(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.full(x.shape, torch.log(torch.tensor(0.5)))
+    def eval_log_measure(self, ls: torch.Tensor) -> torch.Tensor:
+        return torch.full(ls.shape, torch.log(torch.tensor(0.5)))
         
-    def eval_log_measure_deriv(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.zeros_like(x)
+    def eval_log_measure_deriv(self, ls: torch.Tensor) -> torch.Tensor:
+        return torch.zeros_like(ls)
     
     def sample_measure(self, n: int) -> torch.Tensor:
         return 2 * torch.rand(n) - 1

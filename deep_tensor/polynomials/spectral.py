@@ -61,6 +61,17 @@ class Spectral(Basis1D, abc.ABC):
         self._int_W = value
         return 
     
+    def __post_init__(self) -> None:
+
+        # See Cui and Dolgov (2022), p 1912.
+        self._basis2node = self.eval_basis(self.nodes)
+        self._node2basis = self.basis2node.T * self.weights
+        
+        # Basis functions are orthonormal w.r.t weights
+        self._mass_R = torch.eye(self.cardinality)
+        self._int_W = self.basis2node * self.weights
+        return
+    
     def x2theta(self, ls: torch.Tensor) -> torch.Tensor:
         """Converts a set of x values (on the interval [-1, 1]) to a 
         set of theta values (theta = arccos(x)), adjusting the 
@@ -84,15 +95,3 @@ class Spectral(Basis1D, abc.ABC):
         thetas[torch.abs(ls + 1.0) <= EPS] = torch.pi
         thetas[torch.abs(ls - 1.0) <= EPS] = 0.0
         return thetas
-
-    def post_construction(self):
-
-        # See Cui and Dolgov (2022), p 1912.
-        self._basis2node = self.eval_basis(self.nodes)
-        self._node2basis = self.basis2node.T * self.weights
-        
-        # Basis functions are orthonormal w.r.t weights so mass matrix 
-        # is very simple
-        self._mass_R = torch.eye(self.cardinality)
-        self._int_W = self.basis2node * self.weights
-        return

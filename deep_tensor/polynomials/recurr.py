@@ -1,6 +1,8 @@
 import abc
+from typing import Tuple
 
 import torch
+from torch import Tensor
 
 from .spectral import Spectral
 
@@ -10,63 +12,116 @@ class Recurr(Spectral, abc.ABC):
     def __init__(
         self, 
         order: int,
-        a: torch.Tensor,
-        b: torch.Tensor,
-        c: torch.Tensor,
+        a: Tensor,
+        b: Tensor,
+        c: Tensor,
         normalising_const: float
     ):
-        
+        """Class for spectral polynomials for which the three-term 
+        recurrence relation is known. This relation takes the form
+
+        p_{j}(x) = (a_{j}x + b_{j})p_{j-1}(x) - c_{j}p_{j-2}(x),
+
+        where a_{j}, b_{j} and c_{j} are constants.
+
+        Parameters
+        ----------
+        order:
+            The maximum degree of the polynomials.
+        a, b, c:
+            n-dimensional vectors (where n denotes the order of the 
+            polynomial) containing the coefficients of the recurrence 
+            relation for the polynomial.
+
+        """
+
+        self.order = order         
         self.a = a 
         self.b = b 
         self.c = c
-
-        T0 = -self.b / self.a
-        J1 = torch.sqrt(c[1:]/(a[:-1]*a[1:]))
-        J = torch.diag(T0) + torch.diag(J1, -1) + torch.diag(J1, 1)
-        eigvals, eigvecs = torch.linalg.eigh(J)
-
-        self.order = order 
-        self._nodes = eigvals
-        self._weights = eigvecs[0] ** 2
+        self._nodes, self._weights = self.compute_nodes_weights(a, b, c)
         self.normalising_const = normalising_const
-        
-        self.post_construction()
+
+        self.__post_init__()
         return
 
-    def eval_basis(self, x: torch.Tensor) -> torch.Tensor:
+    @staticmethod
+    def compute_nodes_weights(
+        a: Tensor,
+        b: Tensor,
+        c: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        """Computes the collocation points and the interpolation 
+        weights using the Golub-Welsch method.
+
+        Parameters
+        ----------
+        a, b, c:
+            n-dimensional vectors (where n denotes the order of the 
+            polynomial) containing the coefficients of the recurrence 
+            relation for the polynomial.
+
+        Returns
+        -------
+        nodes:
+            An n-dimensional vector containing the collocation points 
+            for the polynomial.
+        weights:
+            An n-dimensional vector containing the corresponding 
+            interpolation weights.
+        
+        References
+        ----------
+        Golub, GH and Welsch, JH (1969). Calculation of Gauss 
+        quadrature rules.
+
+        """
+        
+        # Build tridiagonal matrix
+        alpha = -b / a
+        beta = torch.sqrt(c[1:] / (a[:-1] * a[1:]))
+        J = torch.diag(alpha) + torch.diag(beta, -1) + torch.diag(beta, 1)
+
+        eigvals, eigvecs = torch.linalg.eigh(J)
+        weights = eigvecs[0] ** 2
+        return eigvals, weights
+
+    def eval_basis(self, ls: Tensor) -> Tensor:
 
         if self.order == 0:
-            return torch.full(x.shape, self.normalising_const)
+            return torch.full((ls.numel(), 1), self.normalising_const)
         
-        basis = torch.zeros((x.numel(), self.order+1))
+        ps = torch.zeros((ls.numel(), self.order+1))
         
-        basis[:, 0] = 1.0
-        basis[:, 1] = self.a[0] * x + self.b[0]
+        # Compute first two terms in recurrence relation
+        ps[:, 0] = 1.0
+        ps[:, 1] = self.a[0] * ls + self.b[0]
+
+        # Compute remaining terms
         for j in range(1, self.order):
-            basis[:, j+1] = ((self.a[j] * x + self.b[j]) * basis[:, j].clone() 
-                             - self.c[j] * basis[:, j-1].clone())
+            ps[:, j+1] = ((self.a[j] * ls + self.b[j]) * ps[:, j].clone() 
+                          - self.c[j] * ps[:, j-1].clone())
         
-        return basis * self.normalising_const
+        return ps * self.normalising_const
         
-    def eval_basis_deriv(self, x: torch.Tensor) -> torch.Tensor:
+    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
         
         if self.order == 0:
-            return torch.zeros_like(x)
+            return torch.full((ls.numel(), 1), 0.0)
         
-        basis = self.eval_basis(x)
+        ps = self.eval_basis(ls)
 
-        basis_deriv = torch.zeros((x.numel(), self.order+1))
+        dpdxs = torch.zeros((ls.numel(), self.order+1))
         
-        basis_deriv[:, 0] = 0.0
-        basis_deriv[:, 1] = self.a[0] * basis[:, 1]
+        # Compute first two terms in recurrence relation
+        dpdxs[:, 0] = 0.0
+        dpdxs[:, 1] = self.a[0] * ps[:, 1]
 
+        # Compute remaining terms
         for j in range(1, self.order):
-            
-            basis_deriv[:, j+1] = (
-                self.a[j] * basis[:, j] 
-                + (self.a[j] * x + self.b[j] * basis_deriv[:, j])
-                - self.c[j] * basis_deriv[:, j-1]
-            )
+            dpdxs[:, j+1] = (self.a[j] * ps[:, j] 
+                             + (self.a[j] * ls + self.b[j]) * dpdxs[:, j]
+                             - self.c[j] * dpdxs[:, j-1])
 
-        return basis_deriv * self.normalising_const
+        return dpdxs * self.normalising_const
 
