@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 
 from .recurr import Recurr
 
@@ -10,18 +11,17 @@ class Legendre(Recurr):
         self._domain = torch.tensor([-1.0, 1.0])
         self._constant_weight = True
 
-        k = torch.arange(order+1)
+        n = torch.arange(order+1)
+        a = (2*n + 1) / (n + 1)
+        b = torch.zeros(n.shape)
+        c = n / (n + 1)
+        norm = torch.sqrt(2*n + 1)
 
-        a = (2*k + 1) / (k + 1)
-        b = torch.zeros(k.shape)
-        c = k / (k+1)
-        normalising_const = torch.sqrt(2*k+1)
-
-        super().__init__(order, a, b, c, normalising_const)
+        super().__init__(order, a, b, c, norm)
         return
 
     @property
-    def domain(self) -> torch.Tensor:
+    def domain(self) -> Tensor:
         return self._domain
     
     @property
@@ -29,29 +29,29 @@ class Legendre(Recurr):
         return self._constant_weight
     
     @property 
-    def nodes(self) -> torch.Tensor:
+    def nodes(self) -> Tensor:
         return self._nodes
 
     @property
-    def weights(self) -> torch.Tensor:
+    def weights(self) -> Tensor:
         return self._weights
 
-    def eval_measure(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_measure(self, ls: Tensor) -> Tensor:
         return torch.full(ls.shape, 0.5)
     
-    def eval_measure_deriv(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)
 
-    def eval_log_measure(self, ls: torch.Tensor) -> torch.Tensor:
-        return torch.full(ls.shape, torch.log(torch.tensor(0.5)))
+    def eval_log_measure(self, ls: Tensor) -> Tensor:
+        return torch.full(ls.shape, torch.tensor(0.5).log())
         
-    def eval_log_measure_deriv(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)
     
-    def sample_measure(self, n: int) -> torch.Tensor:
+    def sample_measure(self, n: int) -> Tensor:
         return 2 * torch.rand(n) - 1
 
-    def sample_measure_skip(self, n: int) -> torch.Tensor:
+    def sample_measure_skip(self, n: int) -> Tensor:
         left  = (torch.min(self.nodes) - 1) / 2
         right = (torch.max(self.nodes) + 1) / 2
         return torch.rand(n) * right-left + left

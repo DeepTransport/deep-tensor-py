@@ -118,4 +118,3 @@ class Recurr(Spectral, abc.ABC):
                              - self.c[j] * dpdxs[:, j-1])
 
         return dpdxs * self.norm
-
