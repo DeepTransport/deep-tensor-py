@@ -15,7 +15,7 @@ class Recurr(Spectral, abc.ABC):
         a: Tensor,
         b: Tensor,
         c: Tensor,
-        normalising_const: float
+        norm: float
     ):
         """Class for spectral polynomials for which the three-term 
         recurrence relation is known. This relation takes the form
@@ -32,16 +32,16 @@ class Recurr(Spectral, abc.ABC):
             n-dimensional vectors (where n denotes the order of the 
             polynomial) containing the coefficients of the recurrence 
             relation for the polynomial.
+        norm: 
+            Normalising constant. TODO: finish this.
 
         """
-
         self.order = order         
         self.a = a 
         self.b = b 
         self.c = c
         self._nodes, self._weights = self.compute_nodes_weights(a, b, c)
-        self.normalising_const = normalising_const
-
+        self.norm = norm
         self.__post_init__()
         return
 
@@ -89,39 +89,33 @@ class Recurr(Spectral, abc.ABC):
     def eval_basis(self, ls: Tensor) -> Tensor:
 
         if self.order == 0:
-            return torch.full((ls.numel(), 1), self.normalising_const)
+            return torch.full((ls.numel(), 1), self.norm)
         
         ps = torch.zeros((ls.numel(), self.order+1))
         
-        # Compute first two terms in recurrence relation
+        # Evaluate recurrence relation
         ps[:, 0] = 1.0
         ps[:, 1] = self.a[0] * ls + self.b[0]
-
-        # Compute remaining terms
         for j in range(1, self.order):
             ps[:, j+1] = ((self.a[j] * ls + self.b[j]) * ps[:, j].clone() 
                           - self.c[j] * ps[:, j-1].clone())
         
-        return ps * self.normalising_const
+        return ps * self.norm
         
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
         
         if self.order == 0:
             return torch.full((ls.numel(), 1), 0.0)
         
-        ps = self.eval_basis(ls)
-
         dpdxs = torch.zeros((ls.numel(), self.order+1))
+        ps = self.eval_basis(ls)
         
-        # Compute first two terms in recurrence relation
-        dpdxs[:, 0] = 0.0
-        dpdxs[:, 1] = self.a[0] * ps[:, 1]
-
-        # Compute remaining terms
+        # Evaluate recurrence relation
+        dpdxs[:, 1] = self.a[0] * ps[:, 0]
         for j in range(1, self.order):
             dpdxs[:, j+1] = (self.a[j] * ps[:, j] 
                              + (self.a[j] * ls + self.b[j]) * dpdxs[:, j]
                              - self.c[j] * dpdxs[:, j-1])
 
-        return dpdxs * self.normalising_const
+        return dpdxs * self.norm
 
