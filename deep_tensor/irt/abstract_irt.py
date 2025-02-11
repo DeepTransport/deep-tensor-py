@@ -513,6 +513,9 @@ class AbstractIRT(abc.ABC):
         target random variable.
 
         """
+
+        TTFunc._check_sample_dim(ls, self.dim, strict=True)
+        
         ls, dldxs = self.bases.approx2local(xs)
         Js = self.eval_rt_jac_local(ls, zs)#, zs) # dzdl
 

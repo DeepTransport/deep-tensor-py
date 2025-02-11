@@ -1,6 +1,7 @@
 from typing import Callable, Tuple
 
 import torch
+from torch import Tensor
 
 from .abstract_irt import AbstractIRT
 from ..ftt import ApproxBases, Direction, InputData, TTData, TTFunc
@@ -13,12 +14,12 @@ class TTSIRT(AbstractIRT):
 
     def __init__(
         self, 
-        potential: Callable[[torch.Tensor], torch.Tensor], 
+        potential: Callable[[Tensor], Tensor], 
         bases: ApproxBases,
-        approx: TTFunc|None=None,
-        options: TTOptions|None=None, 
-        input_data: InputData|None=None, 
-        tt_data: TTData|None=None,
+        approx: TTFunc|None = None,
+        options: TTOptions|None = None, 
+        input_data: InputData|None = None, 
+        tt_data: TTData|None = None,
         tau: float=1e-8
     ):
         
@@ -28,7 +29,7 @@ class TTSIRT(AbstractIRT):
         if input_data is None:
             input_data = InputData()
         
-        def target_func(ls: torch.Tensor) -> torch.Tensor:
+        def target_func(ls: Tensor) -> Tensor:
             """Returns the square root of the ratio between the target 
             density and the weighting function evaluated at a set of 
             points in the local domain ([-1, 1]^d).
@@ -46,8 +47,8 @@ class TTSIRT(AbstractIRT):
         )
 
         # Define coefficient tensors and marginalisation coefficents
-        self.Bs: dict[int, torch.Tensor] = {}
-        self.Rs: dict[int, torch.Tensor] = {}
+        self.Bs: dict[int, Tensor] = {}
+        self.Rs: dict[int, Tensor] = {}
         
         self.int_dir = Direction.FORWARD
         self.tau = tau
@@ -77,7 +78,7 @@ class TTSIRT(AbstractIRT):
         return self._approx
 
     @approx.setter 
-    def approx(self, value: TTFunc):
+    def approx(self, value: TTFunc) -> None:
         self._approx = value
         return
 
@@ -86,34 +87,34 @@ class TTSIRT(AbstractIRT):
         return self._int_dir
     
     @int_dir.setter
-    def int_dir(self, value: Direction):
+    def int_dir(self, value: Direction) -> None:
         self._int_dir = value
         return
 
     @property 
-    def tau(self) -> torch.Tensor:
+    def tau(self) -> Tensor:
         return self._tau
     
     @tau.setter
-    def tau(self, value: torch.Tensor):
+    def tau(self, value: Tensor) -> None:
         self._tau = value 
         return
     
     @property 
-    def z(self) -> torch.Tensor:
+    def z(self) -> Tensor:
         return self._z 
     
     @z.setter
-    def z(self, value: torch.Tensor):
+    def z(self, value: Tensor) -> None:
         self._z = value
         return
 
     @property 
-    def z_func(self) -> torch.Tensor:
+    def z_func(self) -> Tensor:
         return self._z_func
 
     @z_func.setter
-    def z_func(self, value: torch.Tensor):
+    def z_func(self, value: Tensor) -> None:
         self._z_func = value
         return
 
@@ -169,10 +170,7 @@ class TTSIRT(AbstractIRT):
             self._marginalise_backward()
         return
 
-    def _eval_irt_local_forward(
-        self, 
-        zs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _eval_irt_local_forward(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
         """Evaluates the inverse Rosenblatt transport by iterating over
         the dimensions from first to last.
 
@@ -215,10 +213,7 @@ class TTSIRT(AbstractIRT):
         gs_sq = (gs @ self.Rs[d_zs]).square().sum(dim=1)
         return ls, gs_sq
     
-    def _eval_irt_local_backward(
-        self, 
-        zs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _eval_irt_local_backward(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
         """Evaluates the inverse Rosenblatt transport by iterating over
         the dimensions from last to first.
 
@@ -262,10 +257,7 @@ class TTSIRT(AbstractIRT):
         gs_sq = (self.Rs[d_min-1] @ gs.T).square().sum(dim=0)
         return ls, gs_sq
 
-    def eval_irt_local(
-        self, 
-        zs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def eval_irt_local(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
 
         if self.int_dir == Direction.FORWARD:
             ls, gs_sq = self._eval_irt_local_forward(zs)
@@ -280,19 +272,15 @@ class TTSIRT(AbstractIRT):
 
         return ls, neglogfls
     
-    def get_potential2density(
-        self, 
-        ys: torch.Tensor, 
-        zs: torch.Tensor
-    ) -> torch.Tensor:
+    def get_potential2density(self, ys: Tensor, zs: Tensor) -> Tensor:
         
         raise NotImplementedError()
 
     def potential2density(
         self, 
-        potential_func: Callable[[torch.Tensor], torch.Tensor], 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+        potential_func: Callable[[Tensor], Tensor], 
+        ls: Tensor
+    ) -> Tensor:
         
         xs = self.bases.local2approx(ls)[0]
         neglogfxs = potential_func(xs)
@@ -304,7 +292,7 @@ class TTSIRT(AbstractIRT):
 
     def build_approximation(
         self, 
-        target_func: Callable[[torch.Tensor], torch.Tensor], 
+        target_func: Callable[[Tensor], Tensor], 
         bases: ApproxBases, 
         options: TTOptions, 
         input_data: InputData,
@@ -325,10 +313,7 @@ class TTSIRT(AbstractIRT):
 
         return approx
 
-    def eval_potential_local(
-        self, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_potential_local(self, ls: Tensor) -> Tensor:
 
         dim_l = ls.shape[1]
 
@@ -353,10 +338,7 @@ class TTSIRT(AbstractIRT):
         neglogfls = self.z.log() - (gs_sq + self.tau).log() + neglogwls
         return neglogfls
 
-    def _eval_rt_local_forward(
-        self, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def _eval_rt_local_forward(self, ls: Tensor) -> Tensor:
 
         n_ls, d_ls = ls.shape
         zs = torch.zeros_like(ls)
@@ -383,10 +365,7 @@ class TTSIRT(AbstractIRT):
 
         return zs
     
-    def _eval_rt_local_backward(
-        self, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def _eval_rt_local_backward(self, ls: Tensor) -> Tensor:
 
         n_ls, d_ls = ls.shape
         zs = torch.zeros_like(ls)
@@ -414,10 +393,7 @@ class TTSIRT(AbstractIRT):
 
         return zs
 
-    def eval_rt_local(
-        self, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_rt_local(self, ls: Tensor) -> Tensor:
         if self.int_dir == Direction.FORWARD:
             zs = self._eval_rt_local_forward(ls)
         else:
@@ -426,9 +402,9 @@ class TTSIRT(AbstractIRT):
     
     def _eval_cirt_local_forward(
         self, 
-        ls_x: torch.Tensor, 
-        zs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        ls_x: Tensor, 
+        zs: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         
         n_xs, d_xs = ls_x.shape
         n_zs, d_zs = zs.shape
@@ -475,11 +451,11 @@ class TTSIRT(AbstractIRT):
     
     def _eval_cirt_local_backward(
         self, 
-        ls_x: torch.Tensor, 
-        zs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        ls_x: Tensor, 
+        zs: Tensor
+    ) -> Tuple[Tensor, Tensor]:
 
-        num_z, dim_z = zs.shape
+        n_zs, d_zs = zs.shape
         ls_y = torch.zeros_like(zs)
 
         polys = self.bases.polys
@@ -487,21 +463,21 @@ class TTSIRT(AbstractIRT):
         Bs = self.Bs
         cdfs = self.oned_cdfs
 
-        Gs_prod = torch.ones((num_z, 1, 1))
+        Gs_prod = torch.ones((n_zs, 1, 1))
 
-        for i, k in enumerate(range(self.dim-1, dim_z, -1), start=1):
+        for i, k in enumerate(range(self.dim-1, d_zs, -1), start=1):
             Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_x[:, -i])
             Gs_prod = TTFunc.batch_mul(Gs, Gs_prod)
 
-        Ps = TTFunc.eval_core_213(polys[dim_z], Bs[dim_z], ls_x[:, 0])
+        Ps = TTFunc.eval_core_213(polys[d_zs], Bs[d_zs], ls_x[:, 0])
         gs_marg = TTFunc.batch_mul(Ps, Gs_prod)
         ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.tau
 
-        Gs = TTFunc.eval_core_213(polys[dim_z], cores[dim_z], ls_x[:, 0])
+        Gs = TTFunc.eval_core_213(polys[d_zs], cores[d_zs], ls_x[:, 0])
         Gs_prod = TTFunc.batch_mul(Gs, Gs_prod)
 
         # Generate conditional samples
-        for k in range(dim_z-1, -1, -1):
+        for k in range(d_zs-1, -1, -1):
 
             Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
             gs = torch.einsum("lij, mjk -> lmi", Ps, Gs_prod)
@@ -513,7 +489,7 @@ class TTSIRT(AbstractIRT):
 
         ps = Gs_prod.flatten().square() + self.tau
 
-        indices = torch.arange(dim_z-1, -1, -1)
+        indices = torch.arange(d_zs-1, -1, -1)
         neglogwls_y = self.bases.eval_measure_potential_local(ls_y, indices)
         neglogfls_y = ps_marg.log() - ps.log() + neglogwls_y
 
@@ -521,9 +497,9 @@ class TTSIRT(AbstractIRT):
 
     def eval_cirt_local(
         self, 
-        ls_x: torch.Tensor, 
-        zs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        ls_x: Tensor, 
+        zs: Tensor
+    ) -> Tuple[Tensor, Tensor]:
 
         if self.int_dir == Direction.FORWARD:
             ls_y, neglogfls_y = self._eval_cirt_local_forward(ls_x, zs)
@@ -649,11 +625,9 @@ class TTSIRT(AbstractIRT):
     
     def eval_rt_jac_local(
         self, 
-        ls: torch.Tensor, 
-        zs: torch.Tensor
-    ) -> torch.Tensor:
-
-        TTFunc._check_sample_dim(ls, self.dim, strict=True)
+        ls: Tensor, 
+        zs: Tensor
+    ) -> Tensor:
 
         if self.int_dir == Direction.FORWARD:
             J = self._eval_rt_jac_local_forward(ls)
@@ -664,11 +638,11 @@ class TTSIRT(AbstractIRT):
             n_ls = ls.shape[0]
             J = torch.zeros((self.dim, self.dim * n_ls))
 
-            block_ftt: dict[int, torch.Tensor] = {}
-            block_marginal: dict[int, torch.Tensor] = {}
-            neglogwls: dict[int, torch.Tensor] = {}
-            Ts: dict[int, torch.Tensor] = {}
-            block_ftt_deriv: dict[int, torch.Tensor] = {}
+            block_ftt: dict[int, Tensor] = {}
+            block_marginal: dict[int, Tensor] = {}
+            neglogwls: dict[int, Tensor] = {}
+            Ts: dict[int, Tensor] = {}
+            block_ftt_deriv: dict[int, Tensor] = {}
 
             for k in range(self.dim):
 
@@ -777,10 +751,7 @@ class TTSIRT(AbstractIRT):
 
         return J
 
-    def _eval_rt_jac_local_forward(
-        self,
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def _eval_rt_jac_local_forward(self, ls: Tensor) -> Tensor:
         
         n_ls = ls.shape[0]
         TTFunc._check_sample_dim(ls, self.dim, strict=True)
