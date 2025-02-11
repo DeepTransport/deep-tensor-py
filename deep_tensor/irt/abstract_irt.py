@@ -2,6 +2,7 @@ import abc
 from typing import Callable, Tuple
 
 import torch
+from torch import Tensor
 
 from ..constants import EPS
 from ..ftt import ApproxBases, Direction, InputData, TTData, TTFunc
@@ -42,7 +43,7 @@ class AbstractIRT(abc.ABC):
 
     @property
     @abc.abstractmethod  
-    def tau(self) -> torch.Tensor:
+    def tau(self) -> Tensor:
         """The defensive term (used to ensure that the tails of the 
         approximation are sufficiently heavy).
         """
@@ -50,7 +51,7 @@ class AbstractIRT(abc.ABC):
 
     @property
     @abc.abstractmethod 
-    def z_func(self) -> torch.Tensor:
+    def z_func(self) -> Tensor:
         """The normalising constant of the function approximation part 
         of the target density.
         """
@@ -58,7 +59,7 @@ class AbstractIRT(abc.ABC):
     
     @property
     @abc.abstractmethod  
-    def z(self) -> torch.Tensor:
+    def z(self) -> Tensor:
         """The normalising constant associated with the approximation 
         to the target density.
         """
@@ -86,10 +87,7 @@ class AbstractIRT(abc.ABC):
         return self.bases.dim
 
     @abc.abstractmethod 
-    def marginalise(
-        self, 
-        direction: Direction=Direction.FORWARD
-    ) -> None:
+    def marginalise(self, direction: Direction=Direction.FORWARD) -> None:
         """Computes each coefficient tensor (B_k) required to evaluate 
         the marginal functions in each dimension, as well as the 
         normalising constant, z. 
@@ -118,9 +116,9 @@ class AbstractIRT(abc.ABC):
     @abc.abstractmethod
     def potential2density(
         self,
-        func: Callable[[torch.Tensor], torch.Tensor],
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+        func: Callable[[Tensor], Tensor],
+        ls: Tensor
+    ) -> Tensor:
         """Computes the value of the target function being approximated 
         by the FTT for a sample, or set of samples, from the local 
         domain. 
@@ -145,18 +143,14 @@ class AbstractIRT(abc.ABC):
         return
     
     @abc.abstractmethod
-    def get_potential2density(
-        self,
-        ys: torch.Tensor,
-        zs: torch.Tensor
-    ) -> torch.Tensor:
+    def get_potential2density(self, ys: Tensor, zs: Tensor) -> Tensor:
         """TODO: implement."""
         return
 
     @abc.abstractmethod
     def build_approximation(
         self, 
-        target_func: Callable[[torch.Tensor], torch.Tensor], 
+        target_func: Callable[[Tensor], Tensor], 
         bases: ApproxBases, 
         options: TTOptions,
         input_data: InputData,
@@ -187,10 +181,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod 
-    def eval_potential_local(
-        self, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_potential_local(self, ls: Tensor) -> Tensor:
         """Evaluates the normalised (marginal) PDF represented by the 
         squared FTT.
         
@@ -211,10 +202,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_rt_local(
-        self, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_rt_local(self, ls: Tensor) -> Tensor:
         """Evaluates the Rosenblatt transport Z = R(L), where L is the 
         target random variable mapped into the local domain, and Z is 
         uniform.
@@ -234,10 +222,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_irt_local(
-        self, 
-        zs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def eval_irt_local(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
         """Converts a set of realisations of a standard uniform 
         random variable, Z, to the corresponding realisations of the 
         local (i.e., defined on [-1, 1]) target random variable, by 
@@ -262,11 +247,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod 
-    def eval_cirt_local(
-        self, 
-        ls_x: torch.Tensor,
-        zs: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_cirt_local(self, ls_x: Tensor, zs: Tensor) -> Tensor:
         """Evaluates the inverse of the conditional squared Rosenblatt 
         transport.
         
@@ -294,10 +275,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod 
-    def eval_rt_jac_local(
-        self,
-        zs: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_rt_jac_local(self, zs: Tensor) -> Tensor:
         """Evaluates the Jacobian of the Rosenblatt transport.
         
         Parameters
@@ -318,7 +296,7 @@ class AbstractIRT(abc.ABC):
         """
         return
 
-    def get_transform_indices(self, dim_z: int) -> torch.Tensor:
+    def get_transform_indices(self, dim_z: int) -> Tensor:
         """TODO: write docstring."""
 
         if self.int_dir == Direction.FORWARD:
@@ -329,7 +307,7 @@ class AbstractIRT(abc.ABC):
         msg = "int_dir must be specified."
         raise Exception(msg)
 
-    def eval_potential(self, xs: torch.Tensor) -> torch.Tensor:
+    def eval_potential(self, xs: Tensor) -> Tensor:
         """Evaluates the (normalised) marginal potential function.
 
         Parameters
@@ -351,10 +329,7 @@ class AbstractIRT(abc.ABC):
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
 
-    def eval_pdf(
-        self, 
-        xs: torch.Tensor 
-    ) -> torch.Tensor: 
+    def eval_pdf(self, xs: Tensor) -> Tensor: 
         """Evaluates the normalised marginal PDF at a given set of x 
         values.
         
@@ -376,10 +351,7 @@ class AbstractIRT(abc.ABC):
         fxs = torch.exp(-neglogfxs)
         return fxs
     
-    def eval_rt(
-        self, 
-        xs: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_rt(self, xs: Tensor) -> Tensor:
         """Evaluates the Rosenblatt transport Z = R(X), where Z is a 
         (standard) uniform random variable and X is the target random 
         variable.
@@ -403,10 +375,7 @@ class AbstractIRT(abc.ABC):
         zs = self.eval_rt_local(ls)
         return zs
     
-    def eval_irt(
-        self, 
-        zs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def eval_irt(self, zs: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """Given a set of samples of a standard uniform random 
         variable, Z, computes the corresponding samples from the 
         approximation to the target PDF by applying the inverse 
@@ -433,16 +402,12 @@ class AbstractIRT(abc.ABC):
         indices = self.get_transform_indices(zs.shape[1])
 
         ls, neglogfls = self.eval_irt_local(zs)
-        xs, dxdls = self.approx.bases.local2approx(ls, indices)
+        xs, dxdls = self.bases.local2approx(ls, indices)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
 
         return xs, neglogfxs
     
-    def eval_cirt(
-        self, 
-        xs: torch.Tensor,
-        zs: torch.Tensor 
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def eval_cirt(self, xs: Tensor, zs: Tensor ) -> Tuple[Tensor, Tensor]:
         """Evaluates the inverse of the conditional squared Rosenblatt 
         transport Y|X = R^{-1}(Z, X), where X is given, (X, Y) jointly 
         follow the SIRT approximation of the target distribution, and 
@@ -503,9 +468,7 @@ class AbstractIRT(abc.ABC):
 
         return ys, neglogfys
     
-    def eval_rt_jac(
-        self, xs: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_rt_jac(self, xs: Tensor) -> Tensor:
         """Evaluates the Jacobian of the squared Rosenblatt transport 
         Z = R(X), where Z is the uniform random variable and X is the 
         target random variable.
