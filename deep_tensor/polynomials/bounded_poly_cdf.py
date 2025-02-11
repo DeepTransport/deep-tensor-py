@@ -27,7 +27,7 @@ class BoundedPolyCDF(Chebyshev2ndUnweighted, SpectralCDF):
     
     def eval_int_basis(self, ls: torch.Tensor) -> torch.Tensor:
         
-        thetas = self.x2theta(ls)
+        thetas = self.l2theta(ls)
         basis_vals = (torch.cos(torch.outer(thetas, self.n+1)) 
                       * (self.normalising / (self.n+1)))
         
@@ -38,7 +38,7 @@ class BoundedPolyCDF(Chebyshev2ndUnweighted, SpectralCDF):
         ls: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         
-        thetas = self.x2theta(ls)
+        thetas = self.l2theta(ls)
         basis_vals = (torch.cos(torch.outer(thetas, self.n+1)) 
                       * (self.normalising / (self.n+1)))
         deriv_vals = (torch.sin(torch.outer(self.n+1, thetas)) 

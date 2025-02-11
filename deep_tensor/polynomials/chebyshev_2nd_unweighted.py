@@ -84,7 +84,7 @@ class Chebyshev2ndUnweighted(Spectral):
 
     def eval_basis(self, ls: torch.Tensor) -> torch.Tensor:
 
-        thetas = self.x2theta(ls)
+        thetas = self.l2theta(ls)
         fs = (torch.sin(torch.outer(self.n+1, thetas)) 
               * (self.normalising / torch.sin(thetas))).T
 
@@ -98,7 +98,7 @@ class Chebyshev2ndUnweighted(Spectral):
 
     def eval_basis_deriv(self, rs: torch.Tensor) -> torch.Tensor:
         
-        theta = self.x2theta(rs)
+        theta = self.l2theta(rs)
             
         fs = (torch.cos(theta*(self.n+1)) * (self.n+1) - torch.sin(theta * (self.n+1)) * (rs / torch.sin(theta)) ) / (rs**2 - 1)
         fs = fs * self.normalising

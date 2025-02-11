@@ -41,7 +41,10 @@ class Basis1D(abc.ABC, object):
     @property 
     @abc.abstractmethod
     def int_W(self) -> torch.Tensor: 
-        """TODO: write."""
+        """Given a set of polynomial coefficients, this operator 
+        returns the values of the integrated function at each 
+        collocation point.
+        """
         return
 
     @abc.abstractmethod

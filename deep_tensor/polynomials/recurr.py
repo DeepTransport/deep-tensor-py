@@ -33,15 +33,17 @@ class Recurr(Spectral, abc.ABC):
             polynomial) containing the coefficients of the recurrence 
             relation for the polynomial.
         norm: 
-            Normalising constant. TODO: finish this.
+            Normalising constant, which ensures that the norm of each 
+            polynomial (with respect to the weight function) is equal 
+            to 1.
 
         """
-        self.order = order         
-        self.a = a 
-        self.b = b 
+        self.order = order
+        self.a = a
+        self.b = b
         self.c = c
-        self._nodes, self._weights = self.compute_nodes_weights(a, b, c)
         self.norm = norm
+        self._nodes, self._weights = self.compute_nodes_weights(a, b, c)
         self.__post_init__()
         return
 

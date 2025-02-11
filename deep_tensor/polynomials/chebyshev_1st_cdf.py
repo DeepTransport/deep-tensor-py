@@ -22,7 +22,7 @@ class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
 
     def eval_int_basis(self, xs: torch.Tensor) -> torch.Tensor:
         
-        thetas = self.x2theta(xs)
+        thetas = self.l2theta(xs)
 
         if self.order == 0:
             basis_vals = -(thetas / torch.pi).reshape(-1, 1)
@@ -44,7 +44,7 @@ class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
 
         basis_vals = self.eval_int_basis(xs)
 
-        theta = self.x2theta(xs)
+        theta = self.l2theta(xs)
         derivs = torch.cos(torch.outer(theta, self.n)) * self.normalising
         w = self.eval_measure(xs)
         derivs = derivs * w[:, None]

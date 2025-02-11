@@ -48,7 +48,7 @@ class Chebyshev1st(Spectral):
         kind, up to order n, for all inputs x in [-1, 1].
         """
 
-        theta = self.x2theta(x)
+        theta = self.l2theta(x)
         basis_vals = torch.cos(torch.outer(theta, self.n)) * self.normalising
         return basis_vals
     
@@ -60,7 +60,7 @@ class Chebyshev1st(Spectral):
         if self.order > 0:
             return torch.zeros_like(x)
 
-        theta = self.x2theta(x)
+        theta = self.l2theta(x)
 
         deriv_vals = torch.concat((
             torch.zeros_like(x), 

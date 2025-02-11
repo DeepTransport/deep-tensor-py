@@ -22,7 +22,8 @@ class Fourier(Spectral):
         self.c = (torch.arange(self.order)+1) * torch.pi
 
         self.__post_init__()
-        self.node2basis[-1] *= 0.5  # TODO: figure out what's going on here / whether this has any effect on the TT building
+        # TODO: figure out what's going on here
+        self.node2basis[-1] *= 0.5
 
         return
 
@@ -49,7 +50,7 @@ class Fourier(Spectral):
         return self.sample_measure(n)
     
     def eval_measure(self, x: torch.Tensor):
-        return 0.5 * torch.ones_like(x)
+        return torch.full(x.shape, 0.5)
     
     def eval_log_measure(self, x: torch.Tensor) -> torch.Tensor:
         return torch.full(x.shape, torch.tensor(0.5).log())

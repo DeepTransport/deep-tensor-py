@@ -329,7 +329,7 @@ class AbstractIRT(abc.ABC):
         msg = "int_dir must be specified."
         raise Exception(msg)
 
-    def eval_potential(self, xs: torch.Tensor):
+    def eval_potential(self, xs: torch.Tensor) -> torch.Tensor:
         """Evaluates the (normalised) marginal potential function.
 
         Parameters
@@ -511,7 +511,7 @@ class AbstractIRT(abc.ABC):
         """Evaluates the Jacobian of the squared Rosenblatt transport 
         Z = R(X), where Z is the uniform random variable and X is the 
         target random variable.
-        
+
         """
         ls, dldxs = self.bases.approx2local(xs)
         Js = self.eval_rt_jac_local(ls, zs)#, zs) # dzdl
