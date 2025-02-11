@@ -115,12 +115,6 @@ class Recurr(Spectral, abc.ABC):
         # Evaluate recurrence relation
         dpdxs[:, 1] = self.a[0] * ps[:, 0]
         for j in range(1, self.order):
-            # if j == 2:
-            #     print(self.a[j])
-            #     print(ps[:, j])
-            #     print(dpdxs[:, j])
-            #     print(dpdxs[:, j-1])
-            #     print(self.c[j])
             dpdxs[:, j+1] = (self.a[j] * ps[:, j] 
                              + (self.a[j] * ls + self.b[j]) * dpdxs[:, j]
                              - self.c[j] * dpdxs[:, j-1])
