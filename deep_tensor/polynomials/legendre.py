@@ -27,6 +27,7 @@ class Legendre(Recurr):
     @domain.setter
     def domain(self, value: Tensor) -> None:
         self._domain = value
+        return
     
     @property
     def constant_weight(self) -> bool:
@@ -35,6 +36,7 @@ class Legendre(Recurr):
     @constant_weight.setter
     def constant_weight(self, value: Tensor) -> None:
         self._constant_weight = value
+        return
     
     @property 
     def nodes(self) -> Tensor:
