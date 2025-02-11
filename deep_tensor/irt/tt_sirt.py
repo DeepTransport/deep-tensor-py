@@ -508,132 +508,13 @@ class TTSIRT(AbstractIRT):
 
         return ls_y, neglogfls_y
     
-    def eval_rt_jac_local(
-        self, 
-        ls: Tensor, 
-        zs: Tensor
-    ) -> Tensor:
+    def eval_rt_jac_local(self, ls: Tensor) -> Tensor:
 
         if self.int_dir == Direction.FORWARD:
             J = self._eval_rt_jac_local_forward(ls)
 
         else:
-
-            # TODO: eventually layer this
-            n_ls = ls.shape[0]
-            J = torch.zeros((self.dim, self.dim * n_ls))
-
-            block_ftt: dict[int, Tensor] = {}
-            block_marginal: dict[int, Tensor] = {}
-            neglogwls: dict[int, Tensor] = {}
-            Ts: dict[int, Tensor] = {}
-            block_ftt_deriv: dict[int, Tensor] = {}
-
-            for k in range(self.dim):
-
-                r_k = self.approx.data.cores[k].shape[-1]
-                
-                block_ftt[k] = TTFunc.eval_core_231(
-                    self.bases.polys[k], 
-                    self.approx.data.cores[k],
-                    ls[:, k]
-                ).reshape(r_k*n_ls, -1)
-
-                block_marginal[k] = TTFunc.eval_core_231(
-                    self.bases.polys[k], 
-                    self.Bs[k],
-                    ls[:, k]
-                ).reshape(r_k*n_ls, -1)
-
-                Ts[k] = TTFunc.eval_core_213(self.bases.polys[k], self.Bs[k], self.oned_cdfs[k].nodes).reshape(-1, r_k)
-                block_ftt_deriv[k] = TTFunc.eval_core_231_deriv(self.bases.polys[k], self.approx.data.cores[k], ls[:, k]).reshape(n_ls*r_k, -1)
-                neglogwls[k] = -self.bases.polys[k].eval_log_measure(ls[:, k])
-
-            Fs = {}
-            Gs = {}
-            Fs[self.dim-1] = block_ftt[self.dim-1].T.clone()
-            Gs[self.dim-1] = block_marginal[self.dim-1].T.clone()
-
-            for k in range(self.dim-2, -1, -1):
-                r_k = self.approx.data.cores[k].shape[-1]
-                
-                ii = torch.arange(r_k*n_ls)
-                jj = torch.arange(n_ls).repeat_interleave(r_k)
-                indices = torch.vstack((ii[None, :], jj[None, :]))
-                B = torch.sparse_coo_tensor(
-                    indices=indices, 
-                    values=Fs[k+1].T.flatten(), 
-                    size=(r_k*n_ls, n_ls)
-                )
-                Fs[k] = block_ftt[k].T @ B 
-                Gs[k] = block_marginal[k].T @ B 
-
-            Fm = {}
-            for k in range(self.dim):
-                Fm[k] = Gs[k].square().sum(dim=0) + self.tau 
-            
-            for j in range(self.dim-1, -1, -1):
-                inds = torch.arange(0, self.dim*n_ls, self.dim) + j 
-
-                if j == self.dim-1:
-                    J[j, inds] = Fm[j] / self.z
-                else:
-                    J[j, inds] = Fm[j] / Fm[j+1]
-                
-                J[j, inds] *= torch.exp(-neglogwls[j])
-
-                if j > 0:  # skip the (1, 1) element 
-
-                    r_j = self.approx.data.cores[j].shape[-1]
-                    
-                    drg = block_ftt_deriv[j].T
-                    mrg = TTFunc.eval_core_231_deriv(
-                        self.bases.polys[j], 
-                        self.Bs[j], 
-                        ls[:, j]
-                    ).reshape(r_j*n_ls, -1).T
-
-                    if j < self.dim-1:
-                        ii = torch.arange(r_j*n_ls)
-                        jj = torch.arange(n_ls).repeat_interleave(r_j)
-                        indices = torch.vstack((ii[None, :], jj[None, :]))
-                        B = torch.sparse_coo_tensor(
-                            indices=indices, 
-                            values=Fs[j+1].T.flatten(), 
-                            size=(r_j*n_ls, n_ls)
-                        )
-                        drg = drg @ B 
-                        mrg = mrg @ B 
-                    
-                    J[j-1, inds] = J[j-1, inds] - 2 * torch.sum(Gs[j] * mrg, dim=0) * zs[:, j-1]
-
-                    for k in range(j-1, -1, -1):
-                        
-                        r_k = self.approx.data.cores[k].shape[-1]
-                        n_k = self.oned_cdfs[k].nodes.numel()
-                        pk = reshape_matlab(torch.sum(reshape_matlab((Ts[k] @ Fs[k+1]) * (Ts[k] @ drg), (-1, n_k*n_ls)), dim=0), (n_k, n_ls))
-                        
-                        if self.bases.polys[k].constant_weight:
-                            tmp = self.bases.polys[k].eval_measure(self.oned_cdfs[k].nodes)[:, None]
-                            pk = pk * tmp
-                        
-                        J[k, inds] = J[k, inds] + 2 * reshape_matlab(self.oned_cdfs[k].eval_int_deriv(pk, ls[:, k]), (1, -1))
-
-                        if k > 0:
-                            ii = torch.arange(r_k*n_ls)
-                            jj = torch.arange(n_ls).repeat_interleave(r_k)
-                            indices = torch.vstack((ii[None, :], jj[None, :]))
-                            B = torch.sparse_coo_tensor(
-                                indices=indices, 
-                                values=drg.T.flatten(), 
-                                size=(r_k*n_ls, n_ls)
-                            )
-                            drg = block_ftt[k].T @ B 
-                            mrg = block_marginal[k].T @ B 
-                            J[k-1, inds] = J[k-1, inds] - 2 * torch.sum(Gs[k] * mrg, dim=0) * zs[:, k-1]
-                        
-                        J[k, inds] = J[k, inds] / Fm[k+1]
-
+            J = self._eval_rt_jac_local_backward(ls)
         return J
 
     def _eval_rt_jac_local_forward_alt(
@@ -774,7 +655,6 @@ class TTSIRT(AbstractIRT):
         n_ls = ls.shape[0]
         Jacs = torch.zeros((self.dim, n_ls, self.dim))
 
-        gs = torch.ones((n_ls, 1, 1))
         Gs_prod = {} 
         Gs_prod[-1] = torch.ones((n_ls, 1, 1))
 
@@ -845,3 +725,216 @@ class TTSIRT(AbstractIRT):
                 Jacs[k, :, j] = self.oned_cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
             
         return Jacs.reshape(self.dim, self.dim * n_ls)
+    
+    def _eval_rt_jac_local_backward(self, ls: Tensor) -> Tensor:
+
+        polys = self.bases.polys
+        cores = self.approx.data.cores
+        Bs = self.Bs
+        cdfs = self.oned_cdfs
+
+        Gs: dict[int, Tensor] = {}
+        Gs_deriv: dict[int, Tensor] = {}
+        Ps: dict[int, Tensor] = {}
+        Ps_deriv: dict[int, Tensor] = {}
+        Ps_grid: dict[int, Tensor] = {}
+
+        ps_marg: dict[int, Tensor] = {}
+        ps_marg[self.dim] = self.z
+        ps_marg_deriv: dict[int, Tensor] = {}
+        ps_grid: dict[int, Tensor] = {}
+        ps_grid_deriv: dict[int, Tensor] = {}
+        wls: dict[int, Tensor] = {}
+
+        n_ls = ls.shape[0]
+        Jacs = torch.zeros((self.dim, n_ls, self.dim))
+
+        Gs_prod = {} 
+        Gs_prod[self.dim] = torch.ones((n_ls, 1, 1))
+
+        for k in range(self.dim-1, -1, -1):
+
+            # Evaluate weighting function
+            wls[k] = polys[k].eval_measure(ls[:, k])
+
+            # Evaluate kth tensor core and derivative
+            Gs[k] = TTFunc.eval_core_231(polys[k], cores[k], ls[:, k])
+            Gs_deriv[k] = TTFunc.eval_core_231_deriv(polys[k], cores[k], ls[:, k])
+            Gs_prod[k] = TTFunc.batch_mul(Gs_prod[k+1], Gs[k])
+
+            # Evaluate kth marginalisation core and derivative
+            Ps[k] = TTFunc.eval_core_231(polys[k], Bs[k], ls[:, k])
+            Ps_deriv[k] = TTFunc.eval_core_231_deriv(polys[k], Bs[k], ls[:, k])
+            Ps_grid[k] = TTFunc.eval_core_231(polys[k], Bs[k], cdfs[k].nodes)
+
+            # Evaluate marginal probability for the first k elements of 
+            # each sample
+            gs = TTFunc.batch_mul(Gs_prod[k+1], Ps[k])
+            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.tau
+
+            # Compute (unnormalised) marginal PDF at CDF nodes for each sample
+            gs_grid = torch.einsum("mij, ljk -> lmik", Gs_prod[k+1], Ps_grid[k])
+            ps_grid[k] = gs_grid.square().sum(dim=(2, 3)) + self.tau
+
+        # Derivatives of marginal PDF
+        for k in range(1, self.dim):  # rows
+            ps_marg_deriv[k] = {}
+
+            for j in range(k, self.dim):  # cols
+
+                prod = TTFunc.batch_mul(Gs_prod[k+1], Ps[k])
+                prod_deriv = torch.ones((n_ls, 1, 1))
+
+                for k_i in range(self.dim-1, k, -1):
+                    core = Gs_deriv[k_i] if k_i == j else Gs[k_i]
+                    prod_deriv = TTFunc.batch_mul(prod_deriv, core)
+                core = Ps_deriv[k] if k == j else Ps[k] 
+                prod_deriv = TTFunc.batch_mul(prod_deriv, core)
+
+                ps_marg_deriv[k][j] = 2 * (prod * prod_deriv).sum(dim=(1, 2))
+
+        for k in range(self.dim-1):
+            ps_grid_deriv[k] = {}
+
+            for j in range(k+1, self.dim):
+
+                prod = torch.einsum("mij, ljk -> lmik", Gs_prod[k+1], Ps_grid[k])
+                prod_deriv = torch.ones((n_ls, 1, 1))
+
+                for k_i in range(self.dim-1, k, -1):
+                    core = Gs_deriv[k_i] if k_i == j else Gs[k_i]
+                    prod_deriv = TTFunc.batch_mul(prod_deriv, core)
+                prod_deriv = torch.einsum("mij, ljk -> lmik", prod_deriv, Ps_grid[k])
+                
+                ps_grid_deriv[k][j] = 2 * (prod * prod_deriv).sum(dim=(2, 3))
+
+        # Populate diagonal elements
+        for k in range(self.dim):
+            Jacs[k, :, k] = ps_marg[k] / ps_marg[k+1] * wls[k]
+
+        # Populate off-diagonal elements
+        for k in range(self.dim-1):
+            for j in range(k+1, self.dim):
+                grad_cond = (ps_grid_deriv[k][j] * ps_marg[k+1] - ps_grid[k] * ps_marg_deriv[k+1][j]) / ps_marg[k+1].square() * wls[k]
+                Jacs[k, :, j] = self.oned_cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
+            
+        return Jacs.reshape(self.dim, self.dim * n_ls)
+    
+    def _eval_rt_jac_local_backward_alt(self, ls, zs):
+
+        # TODO: eventually layer this
+        n_ls = ls.shape[0]
+        J = torch.zeros((self.dim, self.dim * n_ls))
+
+        block_ftt: dict[int, Tensor] = {}
+        block_marginal: dict[int, Tensor] = {}
+        neglogwls: dict[int, Tensor] = {}
+        Ts: dict[int, Tensor] = {}
+        block_ftt_deriv: dict[int, Tensor] = {}
+
+        for k in range(self.dim):
+
+            r_k = self.approx.data.cores[k].shape[-1]
+            
+            block_ftt[k] = TTFunc.eval_core_231(
+                self.bases.polys[k], 
+                self.approx.data.cores[k],
+                ls[:, k]
+            ).reshape(r_k*n_ls, -1)
+
+            block_marginal[k] = TTFunc.eval_core_231(
+                self.bases.polys[k], 
+                self.Bs[k],
+                ls[:, k]
+            ).reshape(r_k*n_ls, -1)
+
+            Ts[k] = TTFunc.eval_core_213(self.bases.polys[k], self.Bs[k], self.oned_cdfs[k].nodes).reshape(-1, r_k)
+            block_ftt_deriv[k] = TTFunc.eval_core_231_deriv(self.bases.polys[k], self.approx.data.cores[k], ls[:, k]).reshape(n_ls*r_k, -1)
+            neglogwls[k] = -self.bases.polys[k].eval_log_measure(ls[:, k])
+
+        Fs = {}
+        Gs = {}
+        Fs[self.dim-1] = block_ftt[self.dim-1].T.clone()
+        Gs[self.dim-1] = block_marginal[self.dim-1].T.clone()
+
+        for k in range(self.dim-2, -1, -1):
+            r_k = self.approx.data.cores[k].shape[-1]
+            
+            ii = torch.arange(r_k*n_ls)
+            jj = torch.arange(n_ls).repeat_interleave(r_k)
+            indices = torch.vstack((ii[None, :], jj[None, :]))
+            B = torch.sparse_coo_tensor(
+                indices=indices, 
+                values=Fs[k+1].T.flatten(), 
+                size=(r_k*n_ls, n_ls)
+            )
+            Fs[k] = block_ftt[k].T @ B 
+            Gs[k] = block_marginal[k].T @ B 
+
+        Fm = {}
+        for k in range(self.dim):
+            Fm[k] = Gs[k].square().sum(dim=0) + self.tau 
+        
+        for j in range(self.dim-1, -1, -1):
+            inds = torch.arange(0, self.dim*n_ls, self.dim) + j 
+
+            if j == self.dim-1:
+                J[j, inds] = Fm[j] / self.z
+            else:
+                J[j, inds] = Fm[j] / Fm[j+1]
+            
+            J[j, inds] *= torch.exp(-neglogwls[j])
+
+            if j > 0:  # skip the (1, 1) element 
+
+                r_j = self.approx.data.cores[j].shape[-1]
+                
+                drg = block_ftt_deriv[j].T
+                mrg = TTFunc.eval_core_231_deriv(
+                    self.bases.polys[j], 
+                    self.Bs[j], 
+                    ls[:, j]
+                ).reshape(r_j*n_ls, -1).T
+
+                if j < self.dim-1:
+                    ii = torch.arange(r_j*n_ls)
+                    jj = torch.arange(n_ls).repeat_interleave(r_j)
+                    indices = torch.vstack((ii[None, :], jj[None, :]))
+                    B = torch.sparse_coo_tensor(
+                        indices=indices, 
+                        values=Fs[j+1].T.flatten(), 
+                        size=(r_j*n_ls, n_ls)
+                    )
+                    drg = drg @ B 
+                    mrg = mrg @ B 
+                
+                J[j-1, inds] = J[j-1, inds] - 2 * torch.sum(Gs[j] * mrg, dim=0) * zs[:, j-1]
+
+                for k in range(j-1, -1, -1):
+                    
+                    r_k = self.approx.data.cores[k].shape[-1]
+                    n_k = self.oned_cdfs[k].nodes.numel()
+                    pk = reshape_matlab(torch.sum(reshape_matlab((Ts[k] @ Fs[k+1]) * (Ts[k] @ drg), (-1, n_k*n_ls)), dim=0), (n_k, n_ls))
+                    
+                    if self.bases.polys[k].constant_weight:
+                        tmp = self.bases.polys[k].eval_measure(self.oned_cdfs[k].nodes)[:, None]
+                        pk = pk * tmp
+                    
+                    J[k, inds] = J[k, inds] + 2 * reshape_matlab(self.oned_cdfs[k].eval_int_deriv(pk, ls[:, k]), (1, -1))
+
+                    if k > 0:
+                        ii = torch.arange(r_k*n_ls)
+                        jj = torch.arange(n_ls).repeat_interleave(r_k)
+                        indices = torch.vstack((ii[None, :], jj[None, :]))
+                        B = torch.sparse_coo_tensor(
+                            indices=indices, 
+                            values=drg.T.flatten(), 
+                            size=(r_k*n_ls, n_ls)
+                        )
+                        drg = block_ftt[k].T @ B 
+                        mrg = block_marginal[k].T @ B 
+                        J[k-1, inds] = J[k-1, inds] - 2 * torch.sum(Gs[k] * mrg, dim=0) * zs[:, k-1]
+                    
+                    J[k, inds] = J[k, inds] / Fm[k+1]
+
+        return J

@@ -504,9 +504,7 @@ class AbstractIRT(abc.ABC):
         return ys, neglogfys
     
     def eval_rt_jac(
-        self, 
-        xs: torch.Tensor,
-        zs: torch.Tensor 
+        self, xs: torch.Tensor
     ) -> torch.Tensor:
         """Evaluates the Jacobian of the squared Rosenblatt transport 
         Z = R(X), where Z is the uniform random variable and X is the 
@@ -517,11 +515,11 @@ class AbstractIRT(abc.ABC):
         TTFunc._check_sample_dim(xs, self.dim, strict=True)
 
         ls, dldxs = self.bases.approx2local(xs)
-        Js = self.eval_rt_jac_local(ls, zs)#, zs) # dzdl
+        Js = self.eval_rt_jac_local(ls)
 
-        n_zs, d_zs = zs.shape
-        for k in range(n_zs):
-            inds = k * d_zs + torch.arange(d_zs)
+        n_ls, d_ls = ls.shape
+        for k in range(n_ls):
+            inds = k * d_ls + torch.arange(d_ls)
             Js[:, inds] *= dldxs[k]
 
         return Js

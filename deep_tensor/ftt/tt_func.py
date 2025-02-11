@@ -117,7 +117,7 @@ class TTFunc():
 
     @staticmethod
     def batch_mul(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
-        """Batch-multiplies two sets of matrices together.
+        """Batch-multiplies two sets of tensors together.
         """
         return torch.einsum("...ij, ...jk", A, B)
 

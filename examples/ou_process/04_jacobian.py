@@ -72,7 +72,7 @@ for poly in polys_dict:
 
             t0 = time.time()
             if method == "manual":
-                Js = sirt.eval_rt_jac(xs, zs)
+                Js = sirt.eval_rt_jac(xs)
             else:
                 def _eval_rt(xs):
                     return sirt.eval_rt(xs[None, :])
