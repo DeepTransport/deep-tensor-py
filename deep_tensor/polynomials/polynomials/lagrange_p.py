@@ -5,8 +5,8 @@ import torch
 
 from .jacobi_11 import Jacobi11
 from .piecewise import Piecewise
-from ..constants import EPS
-from ..tools import integrate
+from ...constants import EPS
+from ...tools import integrate
 
 
 class LagrangeRef():

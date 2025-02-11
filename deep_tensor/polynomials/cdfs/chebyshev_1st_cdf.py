@@ -2,9 +2,9 @@ from typing import Tuple
 
 import torch
 
-from .chebyshev_1st import Chebyshev1st
 from .spectral_cdf import SpectralCDF
-from ..constants import EPS
+from ..polynomials.chebyshev_1st import Chebyshev1st
+from ...constants import EPS
 
 
 class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):

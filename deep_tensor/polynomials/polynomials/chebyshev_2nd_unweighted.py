@@ -1,7 +1,7 @@
 import torch 
 
 from .spectral import Spectral
-from ..constants import EPS
+from ...constants import EPS
 
 
 class Chebyshev2ndUnweighted(Spectral):

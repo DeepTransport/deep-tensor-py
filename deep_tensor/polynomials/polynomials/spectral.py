@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 
 from .basis_1d import Basis1D
-from ..constants import EPS
+from ...constants import EPS
 
 
 class Spectral(Basis1D, abc.ABC):

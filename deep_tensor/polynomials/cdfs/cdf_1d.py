@@ -3,7 +3,7 @@ import warnings
 
 import torch
 
-from ..constants import EPS
+from ...constants import EPS
 
 
 class CDF1D(abc.ABC):

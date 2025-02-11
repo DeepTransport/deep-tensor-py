@@ -2,10 +2,10 @@ from typing import Tuple
 
 import torch
 
-from .chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
-from .legendre import Legendre
 from .spectral_cdf import SpectralCDF
-from ..constants import EPS
+from ..polynomials.chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
+from ..polynomials.legendre import Legendre
+from ...constants import EPS
 
 
 class BoundedPolyCDF(Chebyshev2ndUnweighted, SpectralCDF):

@@ -6,7 +6,7 @@ import torch
 
 from .cdf_1d import CDF1D
 from .cdf_data import CDFData
-from ..constants import EPS
+from ...constants import EPS
 
 
 class PiecewiseCDF(CDF1D, abc.ABC):

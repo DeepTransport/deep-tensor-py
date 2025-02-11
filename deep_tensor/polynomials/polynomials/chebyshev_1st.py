@@ -1,7 +1,7 @@
 import torch
 
 from .spectral import Spectral 
-from ..constants import EPS
+from ...constants import EPS
 
 
 DEFAULT_DOMAIN = torch.tensor([-1.0, 1.0])

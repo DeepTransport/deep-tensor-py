@@ -4,8 +4,8 @@ import torch
 from torch import Tensor
 
 from .spectral_cdf import SpectralCDF
-from .fourier import Fourier
-from ..constants import EPS
+from ..polynomials.fourier import Fourier
+from ...constants import EPS
 
 
 class FourierCDF(SpectralCDF, Fourier):
