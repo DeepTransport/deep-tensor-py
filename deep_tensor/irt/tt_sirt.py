@@ -455,14 +455,14 @@ class TTSIRT(AbstractIRT):
         Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
 
         # Generate conditional samples
-        for j, k in enumerate(range(d_xs, self.dim)):
+        for i, k in enumerate(range(d_xs, self.dim)):
             
             Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
             gs = torch.einsum("mij, ljk -> lmk", Gs_prod, Ps)
             ps = gs.square().sum(dim=2) + self.tau
-            ls_y[:, j] = self.oned_cdfs[k].invert_cdf(ps, zs[:, j])
+            ls_y[:, i] = self.oned_cdfs[k].invert_cdf(ps, zs[:, i])
 
-            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_y[:, j])
+            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_y[:, i])
             Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
 
         ps = Gs_prod.flatten().square() + self.tau
@@ -479,100 +479,43 @@ class TTSIRT(AbstractIRT):
         zs: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
 
-        num_x, dim_x = ls_x.shape
         num_z, dim_z = zs.shape
-
         ls_y = torch.zeros_like(zs)
-        
-        frg = torch.ones(num_z, 1)
 
-        for j in range(dim_x-1, 0, -1):
-            
-            k = dim_z + j
-            rank_k = self.approx.data.cores[k].shape[-1]
-            
-            T2 = self.approx.eval_core_231(
-                self.approx.bases.polys[k],
-                self.approx.data.cores[k],
-                ls_x[:, j]
-            ).reshape(rank_k*num_x, -1)
+        polys = self.bases.polys
+        cores = self.approx.data.cores
+        Bs = self.Bs
+        cdfs = self.oned_cdfs
 
-            ii = torch.arange(rank_k * num_x)
-            jj = torch.arange(num_x).repeat_interleave(rank_k)
-            indices = torch.vstack((ii[None, :], jj[None, :]))
-            values = frg.T.flatten()
-            size = (rank_k * num_x, num_x)
+        Gs_prod = torch.ones((num_z, 1, 1))
 
-            B = torch.sparse_coo_tensor(indices, values, size)
-            frg = T2.T @ B
+        for i, k in enumerate(range(self.dim-1, dim_z, -1), start=1):
+            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_x[:, -i])
+            Gs_prod = TTFunc.batch_mul(Gs, Gs_prod)
 
-        rank_k = self.approx.data.cores[dim_z].shape[-1]
+        Ps = TTFunc.eval_core_213(polys[dim_z], Bs[dim_z], ls_x[:, 0])
+        gs_marg = TTFunc.batch_mul(Ps, Gs_prod)
+        ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.tau
 
-        T2 = self.approx.eval_core_231(
-            self.approx.bases.polys[dim_z], 
-            self.Bs[dim_z], 
-            ls_x[:, 0]
-        ).reshape(rank_k*num_x, -1)
-
-        ii = torch.arange(rank_k * num_x)
-        jj = torch.arange(num_x).repeat_interleave(rank_k)
-        indices = torch.vstack((ii[None, :], jj[None, :]))
-        values = frg.T.flatten()
-        size = (rank_k * num_x, num_x)
-        B = torch.sparse_coo_tensor(indices, values, size)
-        
-        frg_m = T2.T @ B
-        fm = frg_m.square().sum(dim=0)
-        
-        T2 = self.approx.eval_core_231(
-            self.approx.bases.polys[dim_z], 
-            self.approx.data.cores[dim_z], 
-            ls_x[:, 0]
-        ).reshape(rank_k*num_x, -1)
-
-        frg = T2.T @ B
+        Gs = TTFunc.eval_core_213(polys[dim_z], cores[dim_z], ls_x[:, 0])
+        Gs_prod = TTFunc.batch_mul(Gs, Gs_prod)
 
         # Generate conditional samples
         for k in range(dim_z-1, -1, -1):
 
-            rank_k = self.approx.data.cores[k].shape[-1]
-            num_nodes = self.oned_cdfs[k].nodes.numel()
+            Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
+            gs = torch.einsum("lij, mjk -> lmi", Ps, Gs_prod)
+            ps = gs.square().sum(dim=2) + self.tau
+            ls_y[:, k] = self.oned_cdfs[k].invert_cdf(ps, zs[:, k])
 
-            T1 = reshape_matlab(
-                self.approx.eval_core_213(
-                    self.approx.bases.polys[k], 
-                    self.Bs[k], 
-                    self.oned_cdfs[k].nodes
-                ).reshape(-1, rank_k), 
-                (-1, rank_k)
-            )
+            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_y[:, k])
+            Gs_prod = TTFunc.batch_mul(Gs, Gs_prod)
 
-            pk = reshape_matlab(
-                reshape_matlab(T1 @ frg, (-1, num_z*num_nodes)).square().sum(dim=0), 
-                (num_nodes, num_z)
-            )
-
-            ls_y[:, k] = self.oned_cdfs[k].invert_cdf(pk+self.tau, zs[:, k])
-
-            T2 = self.approx.eval_core_231(
-                self.approx.bases.polys[k], 
-                self.approx.data.cores[k],
-                ls_y[:, k]
-            ).reshape(rank_k*num_x, -1)
-
-            ii = torch.arange(rank_k * num_z)
-            jj = torch.arange(num_z).repeat_interleave(rank_k)
-            indices = torch.vstack((ii[None, :], jj[None, :]))
-            values = frg.T.flatten()
-            size = (rank_k * num_z, num_z)
-            B = torch.sparse_coo_tensor(indices, values, size)
-            frg = T2.T @ B
-
-        fs = frg.flatten().square()
+        ps = Gs_prod.flatten().square() + self.tau
 
         indices = torch.arange(dim_z-1, -1, -1)
-        neglogwls_y = self.approx.bases.eval_measure_potential_local(ls_y, indices)
-        neglogfls_y = (fm + self.tau).log() - (fs + self.tau).log() + neglogwls_y
+        neglogwls_y = self.bases.eval_measure_potential_local(ls_y, indices)
+        neglogfls_y = ps_marg.log() - ps.log() + neglogwls_y
 
         return ls_y, neglogfls_y
 
