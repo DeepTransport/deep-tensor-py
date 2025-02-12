@@ -51,7 +51,7 @@ directions = {
 
 methods = ["manual", "autodiff"]
 
-n_zs = 10
+n_zs = 1000
 zs = torch.rand((n_zs, dim))
 
 for poly in polys_dict:
@@ -68,16 +68,8 @@ for poly in polys_dict:
             xs = sirt.eval_irt(zs)[0]
 
             t0 = time.time()
-            if method == "manual":
-                Js = sirt.eval_rt_jac(xs)
-                Js = Js.reshape(dim, dim * n_zs)
-            else:
-                # def _eval_rt(xs):
-                #     return sirt.eval_rt(xs[None, :])
-                # Js = [torch.autograd.functional.jacobian(_eval_rt, xs_i).squeeze() for xs_i in xs]
-                # Js = torch.hstack(Js)
-                Js: torch.Tensor = torch.autograd.functional.jacobian(sirt.eval_rt, xs)
-                Js = Js.diagonal(dim1=0, dim2=2).permute(0, 2, 1).reshape(sirt.dim, -1)
+            Js = sirt.eval_rt_jac(xs, method=method)
+            Js = Js.reshape(dim, dim * n_zs)
             t1 = time.time()
 
             Js_fd = compute_finite_difference_jac(sirt, xs)

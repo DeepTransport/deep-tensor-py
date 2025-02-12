@@ -468,7 +468,23 @@ class AbstractIRT(abc.ABC):
 
         return ys, neglogfys
     
-    def eval_rt_jac(self, xs: Tensor) -> Tensor:
+    def _eval_rt_jac_autodiff(self, xs: Tensor) -> Tensor:
+
+        n_xs = xs.shape[0]
+
+        def _eval_rt(xs: Tensor) -> Tensor:
+            xs = xs.reshape(n_xs, self.dim)
+            return self.eval_rt(xs).sum(dim=0)
+        
+        Js: Tensor = torch.autograd.functional.jacobian(
+            _eval_rt, 
+            xs.flatten(), 
+            vectorize=True
+        )
+
+        return Js.reshape(self.dim, n_xs, self.dim)
+
+    def eval_rt_jac(self, xs: Tensor, method: str = "manual") -> Tensor:
         """Evaluates the Jacobian of the squared Rosenblatt transport 
         Z = R(X), where Z is the uniform random variable and X is the 
         target random variable.
@@ -487,7 +503,15 @@ class AbstractIRT(abc.ABC):
 
         """
 
+        method = method.lower()
+        if method not in ("manual", "autodiff"):
+            raise Exception("Unknown method.")
+
         TTFunc._check_sample_dim(xs, self.dim, strict=True)
+
+        if method == "autodiff":
+            Js = self._eval_rt_jac_autodiff(xs)
+            return Js
 
         ls, dldxs = self.bases.approx2local(xs)
         Js = self.eval_rt_jac_local(ls)

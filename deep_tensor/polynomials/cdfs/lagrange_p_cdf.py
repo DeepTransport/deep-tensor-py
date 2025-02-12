@@ -44,14 +44,19 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
 
         return
     
-    def lag2cheby(
-        self,
-        poly: LagrangeP
-    ) -> Tuple[BoundedPolyCDF, Tensor]:
+    def lag2cheby(self, poly: LagrangeP) -> Tuple[BoundedPolyCDF, Tensor]:
         """Defines a data structure which maps Lagrange polynomials to 
         Chebyshev polynomials with preserved boundary values. 
 
-        TODO: finish.
+        Parameters
+        ----------
+        poly:
+            A LagrangeP polynomial basis.
+        
+        Returns
+        -------
+        TODO
+        
         """
 
         cheby = BoundedPolyCDF(poly)
