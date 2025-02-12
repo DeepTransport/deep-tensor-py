@@ -164,10 +164,10 @@ class ApproxBases():
         Returns
         -------
         ls:
-            An n * d matrix containg the corresponding samples in the 
+            An n * d matrix containing the corresponding samples in the 
             local domain.
         dldxs: 
-            An n * d matrix containing the (diagonal of the) gradient 
+            An n * d matrix containing the diagonal of the gradient 
             of the mapping from the approximation domain to the 
             local domain evaluated at each element of ls.
 

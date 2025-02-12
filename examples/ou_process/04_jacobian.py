@@ -1,9 +1,6 @@
 """Verifies that the Jacobian, dz/dx, of the Rosenblatt transport is 
 being constructed correctly using a finite difference check.
 
-NOTE: there are currently some issues constructing the Jacobian 
-manually when Legendre / Fourier polynomials are used.
-
 """
 
 import time
@@ -52,10 +49,10 @@ directions = {
     "backward": dt.Direction.BACKWARD
 }
 
-methods = ["manual"]#, "autodiff"]
+methods = ["manual", "autodiff"]
 
-zs = torch.rand((100, dim))
-# zs = torch.full((2, dim), 1e-4)
+n_zs = 10
+zs = torch.rand((n_zs, dim))
 
 for poly in polys_dict:
     for method in methods:
@@ -73,13 +70,14 @@ for poly in polys_dict:
             t0 = time.time()
             if method == "manual":
                 Js = sirt.eval_rt_jac(xs)
+                Js = Js.reshape(dim, dim * n_zs)
             else:
-                def _eval_rt(xs):
-                    return sirt.eval_rt(xs[None, :])
-                Js = [torch.autograd.functional.jacobian(_eval_rt, xs_i).squeeze() for xs_i in xs]
-                Js = torch.hstack(Js)
-                # Js: torch.Tensor = torch.autograd.functional.jacobian(sirt.eval_rt, xs)
-                # Js = Js.diagonal(dim1=0, dim2=2).permute(0, 2, 1).reshape(sirt.dim, -1)
+                # def _eval_rt(xs):
+                #     return sirt.eval_rt(xs[None, :])
+                # Js = [torch.autograd.functional.jacobian(_eval_rt, xs_i).squeeze() for xs_i in xs]
+                # Js = torch.hstack(Js)
+                Js: torch.Tensor = torch.autograd.functional.jacobian(sirt.eval_rt, xs)
+                Js = Js.diagonal(dim1=0, dim2=2).permute(0, 2, 1).reshape(sirt.dim, -1)
             t1 = time.time()
 
             Js_fd = compute_finite_difference_jac(sirt, xs)

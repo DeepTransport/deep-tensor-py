@@ -159,7 +159,7 @@ class TTSIRT(AbstractIRT):
 
     def marginalise(
         self, 
-        direction: Direction=Direction.FORWARD
+        direction: Direction = Direction.FORWARD
     ) -> None:
 
         self.int_dir = direction
@@ -599,7 +599,7 @@ class TTSIRT(AbstractIRT):
                 grad_cond = (ps_grid_deriv[k][j] * ps_marg[k-1] - ps_grid[k] * ps_marg_deriv[k-1][j]) / ps_marg[k-1].square() * wls[k]
                 Jacs[k, :, j] = self.oned_cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
             
-        return Jacs.reshape(self.dim, self.dim * n_ls)
+        return Jacs
     
     def _eval_rt_jac_local_backward(self, ls: Tensor) -> Tensor:
 
@@ -693,7 +693,7 @@ class TTSIRT(AbstractIRT):
                 grad_cond = (ps_grid_deriv[k][j] * ps_marg[k+1] - ps_grid[k] * ps_marg_deriv[k+1][j]) / ps_marg[k+1].square() * wls[k]
                 Jacs[k, :, j] = self.oned_cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
             
-        return Jacs.reshape(self.dim, self.dim * n_ls)
+        return Jacs
 
     def eval_rt_jac_local(self, ls: Tensor) -> Tensor:
 

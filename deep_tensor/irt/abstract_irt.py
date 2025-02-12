@@ -473,18 +473,26 @@ class AbstractIRT(abc.ABC):
         Z = R(X), where Z is the uniform random variable and X is the 
         target random variable.
 
+        Parameters
+        ----------
+        xs:
+            An n * d matrix containing a set of samples from the 
+            approximation domain.
+
+        Returns
+        -------
+        Js:
+            A d * n * d matrix, where element i, j, k contains element
+            i, k of the Jacobian for the jth sample in xs.
+
         """
 
         TTFunc._check_sample_dim(xs, self.dim, strict=True)
 
         ls, dldxs = self.bases.approx2local(xs)
         Js = self.eval_rt_jac_local(ls)
-
-        n_ls, d_ls = ls.shape
-        for k in range(n_ls):
-            inds = k * d_ls + torch.arange(d_ls)
-            Js[:, inds] *= dldxs[k]
-
+        for k in range(self.dim):
+            Js[:, :, k] *= dldxs[:, k]
         return Js
 
     def random(self, n: int) -> torch.Tensor: 
