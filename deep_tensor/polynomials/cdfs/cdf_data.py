@@ -22,7 +22,8 @@ class CDFDataLagrange1(CDFData):
     n_cdfs:
         The number of CDFs the class contains information on.
     poly_coef:
-        TODO: figure out what is going on here. In 
+        A tensor containing coefficients of the cubic polynomials used 
+        to define each CDF in each element of the grid.
     cdf_poly_grid:
         A matrix where the number of rows is equal to the number 
         of nodes of the polynomial basis for the CDF, and the 
@@ -41,7 +42,11 @@ class CDFDataLagrange1(CDFData):
 
 @dataclasses.dataclass
 class CDFDataLagrangeP(CDFData):
-    """TODO: write docstring."""
+    """Class containing information on a single CDF, or set of CDFs, 
+    for a LagrangeP (piecewise) polynomial.
+    
+    TODO: finish.
+    """
 
     n_cdfs: int
     poly_coef: torch.Tensor
