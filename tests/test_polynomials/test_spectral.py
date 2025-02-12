@@ -71,6 +71,7 @@ class TestSpectralPolynomials(unittest.TestCase):
         self.assertTrue((ps - ps_true).abs().max() < 1e-8)
         self.assertTrue((dpdxs - dpdxs_true).abs().max() < 1e-8)
         return
-    
+
+
 if __name__ == "__main__":
     unittest.main()

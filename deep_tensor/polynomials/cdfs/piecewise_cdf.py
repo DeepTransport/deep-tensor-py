@@ -3,6 +3,7 @@ from typing import Tuple
 import warnings
 
 import torch
+from torch import Tensor
 
 from .cdf_1d import CDF1D
 from .cdf_data import CDFData
@@ -12,16 +13,16 @@ from ...constants import EPS
 class PiecewiseCDF(CDF1D, abc.ABC):
     
     def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+        CDF1D.__init__(self, **kwargs)
         return
 
     @abc.abstractmethod
     def eval_int_lag_local(
         self, 
         cdf_data: CDFData,
-        inds_left: torch.Tensor,
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+        inds_left: Tensor,
+        ls: Tensor
+    ) -> Tensor:
         """Evaluates the (unnormalised) CDF at a given set of values.
         
         Parameters
@@ -50,23 +51,49 @@ class PiecewiseCDF(CDF1D, abc.ABC):
     def eval_int_lag_local_deriv(
         self, 
         cdf_data: CDFData,
-        inds_left: torch.Tensor,
-        ls: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        inds_left: Tensor,
+        ls: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        """Evaluates the derivative of the unnormalised CDF at a given 
+        set of values.
+        
+        Parameters
+        ----------
+        cdf_data: 
+            An object containing information about the properties of 
+            the CDF.
+        inds_left:
+            An n-dimensional vector containing the indices of the 
+            points of the grid on which the target PDF is discretised 
+            that are immediately to the left of each value in ls.
+        ls:
+            An n-dimensional vector containing a set of points in the 
+            local domain at which to evaluate the CDF.
+
+        Returns
+        -------
+        zs:
+            An n-dimensional vector containing the value of the CDF 
+            evaluated at each element of ls.
+        dzdls:
+            An n-dimensional vector containing the value of the 
+            derivative of the CDF evaluated at each element of ls.
+        
+        """
         return
         
     @abc.abstractmethod
-    def pdf2cdf(self, pls: torch.Tensor) -> CDFData:
+    def pdf2cdf(self, ps: Tensor) -> CDFData:
         """Given evaluations of an (unnormalised) PDF (or set of 
         unnormalised PDFs), generates data on the corresponding CDF.
 
         Parameters
         ----------
-        pls:
+        ps:
             A matrix containing the values of the (unnormalised) target 
             PDF evaluated at each of the nodes of the basis for the 
             current CDF. The matrix may contain multiple columns if 
-            multiple PDFs are under consideration.
+            multiple PDFs are being evaluated.
 
         Returns
         -------
@@ -78,11 +105,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         """
         return
         
-    def eval_int_lag(
-        self, 
-        cdf_data: CDFData, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_int_lag(self, cdf_data: CDFData, ls: Tensor) -> Tensor:
 
         if cdf_data.n_cdfs > 1 and cdf_data.n_cdfs != ls.numel():
             raise Exception("Data mismatch.")

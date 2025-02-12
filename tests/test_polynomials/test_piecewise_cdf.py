@@ -22,18 +22,18 @@ class TestPiecewiseCDF(unittest.TestCase):
         
         cdf = self.setup_cdf()
 
-        nodes_true = torch.tensor([-1.0, -0.5, 0.0, 0.5, 1.0])
+        nodes_true = torch.tensor([-1., -0.5, 0., 0.5, 1.])
 
-        V_inv_true = torch.tensor([[ 1.0,  0.0,  0.0],
-                                   [-3.0,  4.0, -1.0],
-                                   [ 2.0, -4.0,  2.0]])
+        V_inv_true = torch.tensor([[ 1.,  0.,  0.],
+                                   [-3.,  4., -1.],
+                                   [ 2., -4.,  2.]])
 
-        node2elem_true = torch.tensor([[1.0, 0.0, 0.0, 0.0, 0.0], 
-                                       [0.0, 1.0, 0.0, 0.0, 0.0],
-                                       [0.0, 0.0, 1.0, 0.0, 0.0],
-                                       [0.0, 0.0, 1.0, 0.0, 0.0],
-                                       [0.0, 0.0, 0.0, 1.0, 0.0],
-                                       [0.0, 0.0, 0.0, 0.0, 1.0]])
+        node2elem_true = torch.tensor([[1., 0., 0., 0., 0.], 
+                                       [0., 1., 0., 0., 0.],
+                                       [0., 0., 1., 0., 0.],
+                                       [0., 0., 1., 0., 0.],
+                                       [0., 0., 0., 1., 0.],
+                                       [0., 0., 0., 0., 1.]])
 
         self.assertTrue((cdf.nodes - nodes_true).abs().max() < 1e-8)
         self.assertTrue((V_inv_true - cdf.V_inv).abs().max() < 1e-8)
@@ -47,19 +47,17 @@ class TestPiecewiseCDF(unittest.TestCase):
 
         cdf = self.setup_cdf()
 
-        pls = torch.tensor([1.0, 2.0, 3.0, 2.5, 2.0]).square()
+        ps = torch.tensor([1., 2., 3., 2.5, 2.]).square()
 
-        poly_coef_true = torch.tensor([[1.0,  9.0], 
-                                       [4.0, -6.0], 
-                                       [4.0,  1.0]])
+        poly_coef_true = torch.tensor([[[1., 4., 4.]], 
+                                        [[9., -6., 1.]]])
 
-        cdf_poly_grid_true = torch.tensor([[0.0],
-                                           [13.0/3.0], 
-                                           [32.0/3.0]])
+        cdf_poly_grid_true = torch.tensor([[0.],
+                                           [13./3.], 
+                                           [32./3.]])
         
-        poly_norm_true = torch.tensor([32.0/3.0])
-
-        cdf_data = cdf.pdf2cdf(pls)
+        poly_norm_true = torch.tensor([32./3.])
+        cdf_data = cdf.pdf2cdf(ps)
 
         self.assertTrue(cdf_data.n_cdfs == 1)
         self.assertTrue((poly_coef_true - cdf_data.poly_coef).abs().max() < 1e-8)
@@ -75,10 +73,10 @@ class TestPiecewiseCDF(unittest.TestCase):
         cdf = self.setup_cdf()
 
         ls = torch.tensor([-0.5, 0.5])
-        zs_true = torch.tensor([7.0/64.0, 195.0/256.0])
+        zs_true = torch.tensor([7./64., 195./256.])
 
         # Test case where there is a single PDF for all samples
-        pls = torch.tensor([1.0, 2.0, 3.0, 2.5, 2.0]).square()
+        pls = torch.tensor([1., 2., 3., 2.5, 2.]).square()
         zs = cdf.eval_cdf(pls, ls)
         self.assertTrue((zs - zs_true).abs().max() < 1e-8)
 
@@ -95,11 +93,11 @@ class TestPiecewiseCDF(unittest.TestCase):
 
         cdf = self.setup_cdf()
 
-        zs = torch.tensor([7.0/64.0, 195.0/256.0])
+        zs = torch.tensor([7./64., 195./256.])
         ls_true = torch.tensor([-0.5, 0.5])
 
         # Test case where there is a single PDF for all samples
-        pls = torch.tensor([1.0, 2.0, 3.0, 2.5, 2.0]).square()
+        pls = torch.tensor([1., 2., 3., 2.5, 2.]).square()
         ls = cdf.invert_cdf(pls, zs)
         self.assertTrue((ls - ls_true).abs().max() < 1e-8)
 
