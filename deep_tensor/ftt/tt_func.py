@@ -2,6 +2,7 @@ from typing import Callable, Tuple
 import warnings
 
 import torch
+from torch import Tensor
 
 from .approx_bases import ApproxBases
 from .directions import Direction
@@ -12,6 +13,7 @@ from ..polynomials import Basis1D, Piecewise, Spectral
 from ..tools import deim, maxvol, reshape_matlab
 from ..tools.printing import als_info
 
+
 MAX_COND = 1.0e+5
 
 
@@ -19,21 +21,21 @@ class TTFunc():
 
     def __init__(
         self, 
-        target_func: Callable[[torch.Tensor], torch.Tensor], 
+        target_func: Callable[[Tensor], Tensor], 
         bases: ApproxBases, 
         options: TTOptions, 
         input_data: InputData,
-        tt_data: TTData|None=None
+        tt_data: TTData|None = None
     ):
         """A functional tensor-train approximation for a function 
-        mapping from some subset of R^d to some subset of R.
+        mapping from some subset of R^d to R.
 
         Parameters
         ----------
         target_func:
             Maps an n * d matrix containing samples from the local 
-            domain ([-1, 1]^d) to an n-dimensional vector containing 
-            the values of the target function at each sample.
+            domain to an n-dimensional vector containing the values of 
+            the target function at each sample.
         bases:
             The bases associated with the approximation domain.
         options:
@@ -66,11 +68,10 @@ class TTFunc():
         self.errors = torch.zeros(self.dim)
         self.l2_err = torch.inf
         self.linf_err = torch.inf
-        
         return
         
     @property 
-    def rank(self) -> torch.Tensor:
+    def rank(self) -> Tensor:
         """The ranks of each tensor core."""
         return self.data.rank
 
@@ -90,11 +91,7 @@ class TTFunc():
         return n
 
     @staticmethod
-    def _check_sample_dim(
-        xs: torch.Tensor, 
-        dim: int, 
-        strict: bool=False
-    ) -> None:
+    def _check_sample_dim(xs: Tensor, dim: int, strict: bool = False) -> None:
         """Checks that a set of samples is two-dimensional and that the 
         dimension does not exceed the expected dimension.
         """
@@ -116,13 +113,13 @@ class TTFunc():
         return
 
     @staticmethod
-    def batch_mul(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
+    def batch_mul(A: Tensor, B: Tensor) -> Tensor:
         """Batch-multiplies two sets of tensors together.
         """
         return torch.einsum("...ij, ...jk", A, B)
 
     @staticmethod
-    def unfold_left(H: torch.Tensor) -> torch.Tensor:
+    def unfold_left(H: Tensor) -> Tensor:
         """Forms the left unfolding matrix associated with a tensor.
         """
         r_p, n_k, r_k = H.shape
@@ -130,7 +127,7 @@ class TTFunc():
         return H
     
     @staticmethod 
-    def unfold_right(H: torch.Tensor) -> torch.Tensor:
+    def unfold_right(H: Tensor) -> Tensor:
         """Forms the (transpose of the) right unfolding matrix 
         associated with a tensor.
         """
@@ -139,7 +136,7 @@ class TTFunc():
         return H
     
     @staticmethod 
-    def unfold(H: torch.Tensor, direction: Direction) -> torch.Tensor:
+    def unfold(H: Tensor, direction: Direction) -> Tensor:
         """Unfolds a tensor.
         """
         if direction == Direction.FORWARD:
@@ -149,25 +146,21 @@ class TTFunc():
         return H
     
     @staticmethod 
-    def fold_left(H: torch.Tensor, newshape: Tuple) -> torch.Tensor:
+    def fold_left(H: Tensor, newshape: Tuple) -> Tensor:
         """Computes the inverse of the unfold_left operation.
         """
         H = H.reshape(*newshape)
         return H
     
     @staticmethod 
-    def fold_right(H: torch.Tensor, newshape: Tuple) -> torch.Tensor:
+    def fold_right(H: Tensor, newshape: Tuple) -> Tensor:
         """Computes the inverse of the unfold_right operation.
         """
         H = H.reshape(*reversed(newshape)).swapdims(0, 2)
         return H
 
     @staticmethod
-    def eval_core_213(
-        poly: Basis1D, 
-        A: torch.Tensor, 
-        ls: torch.Tensor 
-    ) -> torch.Tensor:
+    def eval_core_213(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the kth tensor core at a given set of values.
 
         Parameters
@@ -194,11 +187,7 @@ class TTFunc():
         return Gs
 
     @staticmethod
-    def eval_core_213_deriv(
-        poly: Basis1D, 
-        A: torch.Tensor, 
-        ls: torch.Tensor 
-    ) -> torch.Tensor:
+    def eval_core_213_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the derivative of the kth tensor core at a given 
         set of values.
 
@@ -226,11 +215,7 @@ class TTFunc():
         return dGdls
 
     @staticmethod
-    def eval_core_231(
-        poly: Basis1D, 
-        A: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_core_231(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the kth tensor core at a given set of values.
 
         Parameters
@@ -257,11 +242,7 @@ class TTFunc():
         return Gs
     
     @staticmethod
-    def eval_core_231_deriv(
-        poly: Basis1D,
-        A: torch.Tensor,
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_core_231_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the derivative of the kth tensor core at a given 
         set of values.
 
@@ -383,11 +364,7 @@ class TTFunc():
         als_info(" | ".join(info_headers))
         return
 
-    def _print_info(
-        self,
-        als_iter: int,
-        indices: torch.Tensor
-    ) -> None:
+    def _print_info(self, als_iter: int, indices: Tensor) -> None:
         """Prints some diagnostic information about the current ALS 
         iteration.
         """
@@ -411,9 +388,9 @@ class TTFunc():
 
     def _select_points_piecewise(
         self,
-        U: torch.Tensor,
+        U: Tensor,
         poly: Piecewise
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
 
         if self.options.int_method == "qdeim":
             raise NotImplementedError()
@@ -432,9 +409,9 @@ class TTFunc():
     
     def _select_points_spectral(
         self,
-        U: torch.Tensor,
+        U: Tensor,
         poly: Spectral
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
 
         n_k = poly.cardinality
         r_p = torch.tensor(U.shape[0] / n_k).round().int()
@@ -458,11 +435,7 @@ class TTFunc():
 
         return inds, B, U_interp
 
-    def select_points(
-        self,
-        U: torch.Tensor,
-        k: int
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def select_points(self, U: Tensor, k: int) -> Tuple[Tensor, Tensor, Tensor]:
         """Builds the cross indices.
 
         Parameters
@@ -514,10 +487,10 @@ class TTFunc():
 
     def build_block_local(
         self, 
-        ls_left: torch.Tensor,
-        ls_right: torch.Tensor,
+        ls_left: Tensor,
+        ls_right: Tensor,
         k: int
-    ) -> torch.Tensor:
+    ) -> Tensor:
         """Evaluates the function being approximated at a (reduced) set 
         of interpolation points, and returns the corresponding
         local coefficient matrix.
@@ -586,11 +559,7 @@ class TTFunc():
         self.num_eval += ls.shape[0]
         return H
 
-    def truncate_local(
-        self,
-        H: torch.Tensor,
-        k: int
-    ) -> Tuple[torch.Tensor, torch.Tensor, int]:
+    def truncate_local(self, H: Tensor, k: int) -> Tuple[Tensor, Tensor, int]:
         """Truncates the SVD for a given TT block, F.
 
         Parameters
@@ -628,11 +597,7 @@ class TTFunc():
  
         return U, sVh, rank
 
-    def apply_mass_R(
-        self, 
-        poly: Basis1D, 
-        H: torch.Tensor
-    ) -> torch.Tensor:
+    def apply_mass_R(self, poly: Basis1D, H: Tensor) -> Tensor:
 
         # Mass matrix for spectral polynomials is the identity
         if isinstance(poly, Spectral):
@@ -643,11 +608,7 @@ class TTFunc():
         H = H.T.reshape(-1, nr_k).T
         return H
 
-    def apply_mass_R_inv(
-        self,
-        poly: Basis1D,
-        U: torch.Tensor
-    ) -> torch.Tensor:
+    def apply_mass_R_inv(self, poly: Basis1D, U: Tensor) -> Tensor:
         
         # Mass matrix for spectral polynomials is the identity
         if isinstance(poly, Spectral):
@@ -660,11 +621,7 @@ class TTFunc():
         return U
         
 
-    def build_basis_svd(
-        self, 
-        H: torch.Tensor, 
-        k: torch.Tensor|int
-    ) -> None:
+    def build_basis_svd(self, H: Tensor, k: Tensor|int) -> None:
         """Computes the coefficients of the kth tensor core.
         
         Parameters
@@ -720,10 +677,10 @@ class TTFunc():
     
     def build_basis_amen(
         self, 
-        F: torch.Tensor,
-        F_res: torch.Tensor,
-        F_up: torch.Tensor,
-        k: torch.Tensor|int
+        F: Tensor,
+        F_res: Tensor,
+        F_up: Tensor,
+        k: Tensor|int
     ) -> None:
         """TODO: finish"""
         
@@ -848,11 +805,7 @@ class TTFunc():
 
         return
 
-    def get_error_local(
-        self,
-        H: torch.Tensor,
-        k: torch.Tensor
-    ) -> torch.Tensor:
+    def get_error_local(self, H: Tensor, k: Tensor) -> Tensor:
         """Returns the error between the current core and the tensor 
         formed by evaluating the target function at the current set of 
         interpolation points corresponding to the core.
@@ -880,9 +833,9 @@ class TTFunc():
     def get_local_index(
         self,
         poly: Basis1D, 
-        interp_ls_prev: torch.Tensor,
-        inds: torch.Tensor
-    ) -> torch.Tensor:
+        interp_ls_prev: Tensor,
+        inds: Tensor
+    ) -> Tensor:
         """Updates the set of interpolation points for the current 
         dimension.
         
@@ -921,11 +874,7 @@ class TTFunc():
 
         return interp_ls
 
-    def is_finished(
-        self, 
-        als_iter: int,
-        indices: torch.Tensor
-    ) -> bool:
+    def is_finished(self, als_iter: int, indices: Tensor) -> bool:
         """Returns True if the maximum number of ALS iterations has 
         been reached or the desired error tolerance is met, and False 
         otherwise.
@@ -938,10 +887,7 @@ class TTFunc():
 
         return max_iters or max_error_tol or l2_error_tol
 
-    def _compute_cross_iter_fixed_rank(
-        self, 
-        indices: torch.Tensor
-    ) -> None:
+    def _compute_cross_iter_fixed_rank(self, indices: Tensor) -> None:
 
         for k in indices:
                     
@@ -954,10 +900,7 @@ class TTFunc():
 
         return
     
-    def _compute_cross_iter_random(
-        self, 
-        indices: torch.Tensor
-    ) -> None:
+    def _compute_cross_iter_random(self, indices: Tensor) -> None:
         
         for k in indices:
             
@@ -979,10 +922,7 @@ class TTFunc():
 
         return
     
-    def _compute_cross_iter_amen(
-        self, 
-        indices: torch.Tensor
-    ) -> None:
+    def _compute_cross_iter_amen(self, indices: Tensor) -> None:
         
         for k in indices:
             
@@ -1090,7 +1030,7 @@ class TTFunc():
 
         return
     
-    def _eval_local_forward(self, ls: torch.Tensor) -> torch.Tensor:
+    def _eval_local_forward(self, ls: Tensor) -> Tensor:
         """Evaluates the FTT approximation to the target function for 
         the first k variables.
         """
@@ -1106,7 +1046,7 @@ class TTFunc():
         
         return Gs_prod
     
-    def _eval_local_backward(self, ls: torch.Tensor) -> torch.Tensor:
+    def _eval_local_backward(self, ls: Tensor) -> Tensor:
         """Evaluates the FTT approximation to the target function for 
         the last k variables.
         """
@@ -1122,11 +1062,7 @@ class TTFunc():
         
         return Gs_prod
 
-    def eval_local(
-        self, 
-        ls: torch.Tensor,
-        direction: Direction
-    ) -> torch.Tensor:
+    def eval_local(self, ls: Tensor, direction: Direction) -> Tensor:
         """Evaluates the functional tensor train approximation to the 
         target function for either the first or last k variables, for a 
         set of points in the local domain ([-1, 1]).
@@ -1154,7 +1090,7 @@ class TTFunc():
             Gs_prod = self._eval_local_backward(ls)
         return Gs_prod
 
-    def eval(self, xs: torch.Tensor) -> torch.Tensor:
+    def eval(self, xs: Tensor) -> Tensor:
         """Evaluates the target function at a set of points in the 
         approximation domain.
         
@@ -1177,16 +1113,13 @@ class TTFunc():
         gs = self.eval_local(ls, self.data.direction).flatten()
         return gs
 
-    def grad_reference(
-        self, 
-        zs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def grad_reference(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
         """Evaluates the gradient of the approximation to the target 
         function for a set of reference variables.
         """
         raise NotImplementedError()
 
-    def grad(self, xs: torch.Tensor) -> torch.Tensor:
+    def grad(self, xs: Tensor) -> Tensor:
         """Evaluates the gradient of the approximation to the target 
         function at a set of points in the approximation domain.
         
