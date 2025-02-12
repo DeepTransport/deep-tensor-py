@@ -1,6 +1,7 @@
 import warnings
 
 import torch
+from torch import Tensor
 
 from .piecewise import Piecewise
 
@@ -15,40 +16,55 @@ class Lagrange1(Piecewise):
     def __init__(self, num_elems: int):
         
         super().__init__(order=1, num_elems=num_elems)
-        self._nodes = self.grid.clone()
+        self.nodes = self.grid.clone()
         
         mass = torch.zeros((self.cardinality, self.cardinality))
         jac = self.elem_size / self.domain_size
-        self._int_W = torch.zeros(self.cardinality)
+        self.int_W = torch.zeros(self.cardinality)
 
         for i in range(self.num_elems):
             ind = torch.tensor([i, i+1])
             mass[ind[:, None], ind[None, :]] += LOCAL_MASS * jac
-            self._int_W[ind] += LOCAL_WEIGHTS * jac
+            self.int_W[ind] += LOCAL_WEIGHTS * jac
 
-        self._mass_R = torch.linalg.cholesky(mass).T
+        self.mass_R = torch.linalg.cholesky(mass).T
         return
     
     @property
-    def nodes(self) -> torch.Tensor:
+    def nodes(self) -> Tensor:
         return self._nodes
     
+    @nodes.setter 
+    def nodes(self, value: Tensor) -> None:
+        self._nodes = value 
+        return
+    
     @property 
-    def mass_R(self) -> torch.Tensor:
+    def mass_R(self) -> Tensor:
         return self._mass_R
+    
+    @mass_R.setter 
+    def mass_R(self, value: Tensor) -> None:
+        self._mass_R = value 
+        return
 
     @property 
-    def int_W(self) -> torch.Tensor: 
+    def int_W(self) -> Tensor: 
         return self._int_W
+    
+    @int_W.setter 
+    def int_W(self, value: Tensor) -> None:
+        self._int_W = value 
+        return
 
-    def eval_basis(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_basis(self, ls: Tensor) -> Tensor:
 
         if not torch.all(inside := self.in_domain(ls)):
             warnings.warn("Some points are outside the domain.")
 
         if not torch.any(inside):
-            basis_vals = torch.zeros((ls.numel(), self.cardinality))
-            return basis_vals
+            ps = torch.zeros((ls.numel(), self.cardinality))
+            return ps
         
         inside_inds = inside.nonzero().flatten()
         left_inds = self.get_left_hand_inds(ls[inside])
@@ -56,42 +72,29 @@ class Lagrange1(Piecewise):
         # Convert to local coordinates
         ls_local = (ls[inside]-self.grid[left_inds]) / self.elem_size
 
-        row_inds = torch.hstack((inside_inds, inside_inds))
-        col_inds = torch.hstack((left_inds, left_inds+1))
-        indices = torch.vstack((row_inds, col_inds))
+        ii = torch.hstack((inside_inds, inside_inds))
+        jj = torch.hstack((left_inds, left_inds+1))
         vals = torch.hstack((1.0-ls_local, ls_local))
-
-        basis_vals = torch.sparse_coo_tensor(
-            indices=indices, 
-            values=vals, 
-            size=(ls.numel(), self.cardinality)
-        )
-
-        return basis_vals
+        ps = torch.zeros((ls.numel(), self.cardinality))
+        ps[ii, jj] = vals
+        return ps
         
-    def eval_basis_deriv(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
 
         if not torch.all(inside := self.in_domain(ls)):
             warnings.warn("Some points are outside the domain.")
 
         if not torch.any(inside):
-            deriv_vals = torch.zeros((ls.numel(), self.cardinality()))
-            return deriv_vals
+            dpdls = torch.zeros((ls.numel(), self.cardinality()))
+            return dpdls
         
         inside_inds = inside.nonzero().flatten()
         left_inds = self.get_left_hand_inds(ls[inside])
 
-        row_inds = torch.hstack((inside_inds, inside_inds))
-        col_inds = torch.hstack((left_inds, left_inds+1))
-        indices = torch.vstack((row_inds, col_inds))
-        
+        ii = torch.hstack((inside_inds, inside_inds))
+        jj = torch.hstack((left_inds, left_inds+1))
         derivs = torch.ones_like(ls[inside]) / self.elem_size
         vals = torch.hstack((-derivs, derivs))
-        
-        deriv_vals = torch.sparse_coo_tensor(
-            indices=indices, 
-            values=vals, 
-            size=(ls.numel(), self.cardinality)
-        )
-
-        return deriv_vals
+        dpdls = torch.zeros((ls.numel(), self.cardinality))
+        dpdls[ii, jj] = vals
+        return dpdls
