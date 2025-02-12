@@ -495,7 +495,7 @@ class AbstractIRT(abc.ABC):
             Js[:, :, k] *= dldxs[:, k]
         return Js
 
-    def random(self, n: int) -> torch.Tensor: 
+    def random(self, n: int) -> Tensor: 
         """Generates a set of random samples from the approximation to
         the target density function, by first sampling a set of 
         independent uniform variates and random, then applying the 
@@ -516,7 +516,7 @@ class AbstractIRT(abc.ABC):
         xs = self.eval_irt(zs)
         return xs 
     
-    def sobol(self, n: int) -> torch.Tensor:
+    def sobol(self, n: int) -> Tensor:
         """Generates a set of QMC samples from the approximation to the 
         target density function using a Sobol sequence.
         
@@ -536,10 +536,7 @@ class AbstractIRT(abc.ABC):
         xs = self.eval_irt(zs)
         return xs
 
-    def set_defensive(
-        self, 
-        tau: torch.Tensor
-    ) -> None:
+    def set_defensive(self, tau: Tensor) -> None:
         """Updates the value of tau and the normalising constant 
         associated with the approximation to the target density 
         function.

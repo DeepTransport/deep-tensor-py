@@ -3,11 +3,12 @@ from typing import Callable, Tuple
 import warnings
 
 import torch
+from torch import Tensor
 
 from .tt_sirt import TTSIRT
-from ..ftt import ApproxBases, InputData
 from ..bridging_densities import Bridge, Tempering1
 from ..domains import BoundedDomain
+from ..ftt import ApproxBases, InputData
 from ..options import DIRTOptions, TTOptions
 from ..references import Reference, GaussianReference
 from ..tools import compute_f_divergence
@@ -20,11 +21,11 @@ class TTDIRT():
         self, 
         func: Callable, 
         bases: ApproxBases, 
-        bridge: Bridge|None=None,
-        reference: Reference|None=None,
-        sirt_options: TTOptions|None=None,
-        dirt_options: DIRTOptions|None=None,
-        init_samples: torch.Tensor|None=None,
+        bridge: Bridge|None = None,
+        reference: Reference|None = None,
+        sirt_options: TTOptions|None = None,
+        dirt_options: DIRTOptions|None = None,
+        init_samples: Tensor|None = None,
         prev_approx=None  # TODO: fix this (set as None if not passed in) and add type annotation
     ):
         """Class that implements the deep inverse Rosenblatt transport.
@@ -147,7 +148,7 @@ class TTDIRT():
     def initialise(
         self, 
         bases: ApproxBases
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """Generates a set of samples to initialise the FTT with.
         
         Parameters
@@ -190,9 +191,9 @@ class TTDIRT():
     def get_potential_to_density(
         self, 
         bases: ApproxBases, 
-        neglogratios: torch.Tensor, 
-        rs: torch.Tensor
-    ) -> torch.Tensor:
+        neglogratios: Tensor, 
+        rs: Tensor
+    ) -> Tensor:
         """Returns the (square-rooted?) density we aim to approximate.
         """
         neglogwrs = bases.eval_measure_potential(rs)[0]
@@ -202,8 +203,8 @@ class TTDIRT():
     def get_inputdata(
         self, 
         bases: ApproxBases, 
-        xs: torch.Tensor, 
-        neglogratio: torch.Tensor 
+        xs: Tensor, 
+        neglogratio: Tensor 
     ) -> InputData:
         """Generates a set of input data and debugging samples used to 
         initialise DIRT.
@@ -251,8 +252,8 @@ class TTDIRT():
         func: Callable, 
         bases: list[ApproxBases], 
         sirt_options: TTOptions, 
-        xs: torch.Tensor, 
-        neglogratios: torch.Tensor
+        xs: Tensor, 
+        neglogratios: Tensor
     ) -> TTSIRT:
         """Constructs a new SIRT to add to the current composition of 
         SIRTs.
@@ -283,7 +284,7 @@ class TTDIRT():
         
         """
 
-        def updated_func(rs: torch.Tensor) -> torch.Tensor:
+        def updated_func(rs: Tensor) -> Tensor:
 
             return self.bridge.ratio_func(
                 func, 
@@ -325,9 +326,9 @@ class TTDIRT():
 
     def eval_potential(
         self, 
-        rs: torch.Tensor,
-        num_layers: torch.Tensor=torch.inf
-    ) -> torch.Tensor:
+        rs: Tensor,
+        num_layers: Tensor = torch.inf
+    ) -> Tensor:
         """Evaluates the potential function associated with the 
         pushforward of the reference measure under a given number of 
         layers of the current DIRT.
@@ -355,9 +356,9 @@ class TTDIRT():
 
     def eval_rt(
         self,
-        xs: torch.Tensor,
-        num_layers: torch.Tensor=torch.inf
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        xs: Tensor,
+        num_layers: Tensor = torch.inf
+    ) -> Tuple[Tensor, Tensor]:
         """Evaluates the deep Rosenblatt transport X = T(R), where 
         R is the reference random variable and X is the target random
         variable.
@@ -404,9 +405,9 @@ class TTDIRT():
 
     def eval_irt(
         self, 
-        rs: torch.Tensor, 
-        num_layers: int=torch.inf
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        rs: Tensor, 
+        num_layers: int = torch.inf
+    ) -> Tuple[Tensor, Tensor]:
         """Evaluates the deep inverse Rosenblatt transport X = T(R), 
         where R is the reference random variable and X is the target 
         random variable.
@@ -460,7 +461,7 @@ class TTDIRT():
 
     def build(
         self,
-        func: Callable, 
+        func: Callable[[Tensor], Tensor], 
         bases_list: list[ApproxBases]
     ) -> None:
         """Constructs a DIRT to approximate a given probability 
