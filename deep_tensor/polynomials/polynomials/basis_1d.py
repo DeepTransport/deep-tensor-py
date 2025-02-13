@@ -155,7 +155,7 @@ class Basis1D(abc.ABC, object):
 
     @abc.abstractmethod
     def eval_log_measure_deriv(self, ls: torch.Tensor) -> torch.Tensor:
-        """Evaluates the logarithm of the gradient of the (normalised) 
+        """Evaluates the gradient of the logarithm of the (normalised) 
         weighting function at a given set of points.
         
         Parameters
@@ -168,8 +168,8 @@ class Basis1D(abc.ABC, object):
         Returns
         -------
         loggradwls:
-            An n-dimensional vector containing the logarithm of the 
-            gradient of the weighting function evaluated at each point
+            An n-dimensional vector containing the gradient of the 
+            logarithm of the weighting function evaluated at each point
             in ls.
         
         """
