@@ -38,7 +38,7 @@ class LogarithmicMapping(MappedDomain):
         check_for_nans(dxdls)
         return xs, dxdls
     
-    def local2approx_log_density(self, ls: Tensor) -> Tensor:
+    def local2approx_log_density(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         ts = 1. - ls.square()
         ts[ts < EPS] = EPS 
         logdxdls = -torch.log(ts) + self.scale.log()
