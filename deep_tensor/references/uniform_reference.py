@@ -22,7 +22,7 @@ class UniformReference(Reference):
     def invert_cdf(self, zs: Tensor) -> Tensor:
         check_for_nans(zs)
         zs = torch.clamp(zs, EPS, 1.-EPS)
-        rs = self.domain[0] + rs / self.pdf
+        rs = self.domain[0] + zs / self.pdf
         return rs
     
     def eval_cdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
