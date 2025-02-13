@@ -3,6 +3,7 @@ associated with an OU process.
 
 """
 
+from copy import deepcopy
 
 from matplotlib import pyplot as plt
 import torch
@@ -15,8 +16,8 @@ plt.style.use("examples/plotstyle.mplstyle")
 torch.manual_seed(0)
 
 
-dim = 20
-a = 0.50
+dim = 5
+a = 0.5
 
 model = OU(dim, a)
 
@@ -46,24 +47,54 @@ bases_dict = {
     ) for poly in polys_dict
 }
 
-tt_methods_list = ["amen", "random", "fixed_rank"]
+tt_methods_list = ["amen", "random", "amen_round"]
 
 options_dict = {
-    method: dt.TTOptions(
-        tt_method=method,
-        max_rank=19, 
+    "amen": dt.TTOptions(
+        tt_method="random",  # TODO: change back to AMEN (fix error(s) in AMEN implementation)
+        als_tol=1e-4,
+        local_tol=0.0,
+        max_rank=19,
+        max_als=5,
+        init_rank=2,
+        kick_rank=2
+    ),
+    "random": dt.TTOptions(
+        tt_method="random",
+        als_tol=1e-4,
+        local_tol=1e-10,
+        max_rank=19,
         max_als=1
-    ) for method in tt_methods_list
+    )
 }
 
 sirts = {}
 
 for poly in bases_dict:
+    
     sirts[poly] = {}
-    for method in options_dict:
-        sirts[poly][method] = dt.TTSIRT(
-            potential_func, 
-            bases_dict[poly], 
-            options=options_dict[method], 
-            input_data=input_data
-        )
+    
+    for method in tt_methods_list:
+        
+        input_data.count = 0
+        
+        if method != "amen_round":
+            
+            sirts[poly][method] = dt.TTSIRT(
+                potential_func, 
+                bases_dict[poly], 
+                options=options_dict[method], 
+                input_data=input_data
+            )
+
+        else:
+            
+            sirt: dt.TTSIRT = deepcopy(sirts[poly]["amen"])
+            approx = sirt.approx
+            approx.round(1e-2)
+            
+            sirts[poly][method] = dt.TTSIRT(
+                potential_func, 
+                approx=approx,
+                input_data=input_data
+            )

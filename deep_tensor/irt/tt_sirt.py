@@ -14,19 +14,13 @@ class TTSIRT(AbstractIRT):
     def __init__(
         self, 
         potential: Callable[[Tensor], Tensor], 
-        bases: ApproxBases,
+        bases: ApproxBases|None = None,
         approx: TTFunc|None = None,
         options: TTOptions|None = None, 
         input_data: InputData|None = None, 
         tt_data: TTData|None = None,
         tau: float=1e-8
     ):
-        
-        if options is None:
-            options = TTOptions()
-        
-        if input_data is None:
-            input_data = InputData()
         
         def target_func(ls: Tensor) -> Tensor:
             """Returns the square root of the ratio between the target 
@@ -52,13 +46,25 @@ class TTSIRT(AbstractIRT):
         self.int_dir = Direction.FORWARD
         self.tau = tau
 
-        self.approx = self.build_approximation(
+        # self.approx = self.build_approximation(
+        #     target_func, 
+        #     bases,
+        #     approx,
+        #     options, 
+        #     input_data,
+        #     tt_data
+        # )
+
+        self.approx = TTFunc(
             target_func, 
-            bases,
-            options, 
-            input_data,
-            tt_data
+            self.bases,
+            options=self.options, 
+            input_data=self.input_data,
+            tt_data=self.tt_data
         )
+        self.approx.cross()
+        if self.approx.use_amen:
+            self.approx.round()  # why?
 
         self._oned_cdfs = {}
         tol = self.approx.options.cdf_tol
@@ -125,7 +131,7 @@ class TTSIRT(AbstractIRT):
 
         self.Rs[self.dim] = torch.tensor([[1.0]])
         polys = self.bases.polys
-        cores = self.approx.data.cores
+        cores = self.approx.tt_data.cores
 
         for k in range(self.dim-1, -1, -1):
             self.Bs[k] = torch.einsum("ijl, lk", cores[k], self.Rs[k+1])
@@ -145,7 +151,7 @@ class TTSIRT(AbstractIRT):
         
         self.Rs[-1] = torch.tensor([[1.0]])
         polys = self.bases.polys
-        cores = self.approx.data.cores
+        cores = self.approx.tt_data.cores
 
         for k in range(self.dim):
             self.Bs[k] = torch.einsum("il, ljk", self.Rs[k-1], cores[k])
@@ -190,7 +196,8 @@ class TTSIRT(AbstractIRT):
     def build_approximation(
         self, 
         target_func: Callable[[Tensor], Tensor], 
-        bases: ApproxBases, 
+        bases: ApproxBases|None, 
+        approx: TTFunc|None,
         options: TTOptions, 
         input_data: InputData,
         tt_data: TTData
@@ -242,7 +249,7 @@ class TTSIRT(AbstractIRT):
         Gs_prod = torch.ones((n_ls, 1))
 
         polys = self.bases.polys
-        cores = self.approx.data.cores
+        cores = self.approx.tt_data.cores
         Bs = self.Bs 
         cdfs = self.oned_cdfs
             
@@ -270,7 +277,7 @@ class TTSIRT(AbstractIRT):
         Gs_prod = torch.ones((1, n_ls))
 
         polys = self.bases.polys
-        cores = self.approx.data.cores
+        cores = self.approx.tt_data.cores
         Bs = self.Bs 
         cdfs = self.oned_cdfs
 
@@ -323,7 +330,7 @@ class TTSIRT(AbstractIRT):
         gs = torch.ones((n_zs, 1))
 
         polys = self.bases.polys
-        cores = self.approx.data.cores
+        cores = self.approx.tt_data.cores
         Bs = self.Bs 
         cdfs = self.oned_cdfs
 
@@ -367,7 +374,7 @@ class TTSIRT(AbstractIRT):
         d_min = self.dim - d_zs
 
         polys = self.bases.polys
-        cores = self.approx.data.cores
+        cores = self.approx.tt_data.cores
         Bs = self.Bs 
         cdfs = self.oned_cdfs
         
@@ -410,7 +417,7 @@ class TTSIRT(AbstractIRT):
         ls_y = torch.zeros_like(zs)
 
         polys = self.bases.polys
-        cores = self.approx.data.cores
+        cores = self.approx.tt_data.cores
         Bs = self.Bs
         cdfs = self.oned_cdfs
         
@@ -458,7 +465,7 @@ class TTSIRT(AbstractIRT):
         ls_y = torch.zeros_like(zs)
 
         polys = self.bases.polys
-        cores = self.approx.data.cores
+        cores = self.approx.tt_data.cores
         Bs = self.Bs
         cdfs = self.oned_cdfs
 
@@ -510,7 +517,7 @@ class TTSIRT(AbstractIRT):
     def _eval_rt_jac_local_forward(self, ls: Tensor) -> Tensor:
 
         polys = self.bases.polys
-        cores = self.approx.data.cores
+        cores = self.approx.tt_data.cores
         Bs = self.Bs
         cdfs = self.oned_cdfs
 
@@ -604,7 +611,7 @@ class TTSIRT(AbstractIRT):
     def _eval_rt_jac_local_backward(self, ls: Tensor) -> Tensor:
 
         polys = self.bases.polys
-        cores = self.approx.data.cores
+        cores = self.approx.tt_data.cores
         Bs = self.Bs
         cdfs = self.oned_cdfs
 

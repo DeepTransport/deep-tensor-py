@@ -49,31 +49,31 @@ class TTFunc():
             function.
 
         """
+
+        if tt_data is None:
+            tt_data = TTData()
         
         self.target_func = target_func
         self.bases = bases 
         self.dim = bases.dim
         self.options = options
         self.input_data = input_data
-        self.data = TTData() if tt_data is None else tt_data
-
-        self.input_data.set_samples(self.bases, self.sample_size)
-        if self.input_data.is_debug:
-            self.input_data.set_debug(self.target_func, self.bases)
-
-        # if isinstance(arg, ApproxFunc):
-        #     self.options = arg.options
-        
+        self.tt_data = tt_data
         self.num_eval = 0
         self.errors = torch.zeros(self.dim)
         self.l2_err = torch.inf
         self.linf_err = torch.inf
+
+        self.input_data.set_samples(self.bases, self.sample_size)
+        if self.input_data.is_debug:
+            self.input_data.set_debug(self.target_func, self.bases)
+        
         return
         
     @property 
     def rank(self) -> Tensor:
         """The ranks of each tensor core."""
-        return self.data.rank
+        return self.tt_data.rank
 
     @property
     def use_amen(self) -> bool:
@@ -282,13 +282,13 @@ class TTFunc():
                 1 if k == self.dim-1 else self.options.init_rank
             ]
 
-            self.data.cores[k] = torch.zeros(core_shape)
+            self.tt_data.cores[k] = torch.zeros(core_shape)
 
             samples = self.input_data.get_samples(self.options.init_rank)
-            self.data.interp_ls[k] = samples[:, k:]
+            self.tt_data.interp_ls[k] = samples[:, k:]
 
-        self.data.interp_ls[-1] = torch.tensor([])
-        self.data.interp_ls[self.dim] = torch.tensor([])
+        self.tt_data.interp_ls[-1] = torch.tensor([])
+        self.tt_data.interp_ls[self.dim] = torch.tensor([])
 
         return
 
@@ -297,51 +297,51 @@ class TTFunc():
 
         for k in range(self.dim-1, -1, -1):
             samples = self.input_data.get_samples(self.options.kick_rank)
-            if self.data.direction == Direction.FORWARD:
-                self.data.res_x[k] = samples[:, k:]
+            if self.tt_data.direction == Direction.FORWARD:
+                self.tt_data.res_x[k] = samples[:, k:]
             else:
-                self.data.res_x[k] = samples[:, :(k+1)]
+                self.tt_data.res_x[k] = samples[:, :(k+1)]
 
-        self.data.res_x[-1] = torch.tensor([])
-        self.data.res_x[self.dim] = torch.tensor([])
+        self.tt_data.res_x[-1] = torch.tensor([])
+        self.tt_data.res_x[self.dim] = torch.tensor([])
         return
     
     def _initialise_res_w(self) -> None:
         """Initialises the residual blocks for AMEN."""
 
-        if self.data.direction == Direction.FORWARD:
+        if self.tt_data.direction == Direction.FORWARD:
             
-            core_0 = self.data.cores[0]
+            core_0 = self.tt_data.cores[0]
             shape_0 = (self.options.kick_rank, core_0.shape[-1])
-            self.data.res_w[0] = torch.ones(shape_0)
+            self.tt_data.res_w[0] = torch.ones(shape_0)
             
             for k in range(1, self.dim):
-                core_k = self.data.cores[k].shape[0]
+                core_k = self.tt_data.cores[k].shape[0]
                 shape_k = (core_k, self.options.kick_rank)
-                self.data.res_w[k] = torch.ones(shape_k)
+                self.tt_data.res_w[k] = torch.ones(shape_k)
 
         else:
 
             for k in range(self.dim-1):
-                core_k = self.data.cores[k]
+                core_k = self.tt_data.cores[k]
                 shape_k = (self.options.kick_rank, core_k.shape[-1])
-                self.data.res_w[k] = torch.ones(shape_k)
+                self.tt_data.res_w[k] = torch.ones(shape_k)
 
-            core_d = self.data.cores[self.dim-1]
+            core_d = self.tt_data.cores[self.dim-1]
             shape_d = (core_d.shape[0], self.options.kick_rank)
-            self.data.res_w[self.dim-1] = torch.ones(shape_d)
+            self.tt_data.res_w[self.dim-1] = torch.ones(shape_d)
 
-        self.data.res_w[-1] = torch.tensor([[1.0]])
-        self.data.res_w[self.dim] = torch.tensor([[1.0]])
+        self.tt_data.res_w[-1] = torch.tensor([[1.0]])
+        self.tt_data.res_w[self.dim] = torch.tensor([[1.0]])
         return
 
     def initialise_amen(self) -> None:
         """Initialises the residual coordinates and residual blocks 
         for AMEN.
         """
-        if self.data.res_x == {}:
+        if self.tt_data.res_x == {}:
             self._initialise_res_x()
-        if self.data.res_w == {}:
+        if self.tt_data.res_w == {}:
             self._initialise_res_w()
         return
 
@@ -480,7 +480,7 @@ class TTFunc():
         if not self.input_data.is_debug:
             return
         
-        ps_approx = self.eval_local(self.input_data.ls_debug, self.data.direction)
+        ps_approx = self.eval_local(self.input_data.ls_debug, self.tt_data.direction)
         ps_approx = ps_approx.flatten()
         self.l2_err, self.linf_err = self.input_data.relative_error(ps_approx)
         return
@@ -559,7 +559,11 @@ class TTFunc():
         self.num_eval += ls.shape[0]
         return H
 
-    def truncate_local(self, H: Tensor, k: int) -> Tuple[Tensor, Tensor, int]:
+    def truncate_local(
+        self, 
+        H: Tensor, 
+        error_tol: float|Tensor|None = None
+    ) -> Tuple[Tensor, Tensor, int]:
         """Truncates the SVD for a given TT block, F.
 
         Parameters
@@ -567,8 +571,9 @@ class TTFunc():
         H:
             The unfolding matrix of evaluations of the target function 
             evaluated at a set of interpolation points.
-        k:
-            The index of the current dimension.
+        error_tol:
+            The error tolerance, used to truncate small singular 
+            values.
         
         Returns
         -------
@@ -583,11 +588,14 @@ class TTFunc():
             The number of singular values of F that were retained.
 
         """
+
+        if error_tol is None: 
+            error_tol = self.options.local_tol
             
         U, s, Vh = torch.linalg.svd(H, full_matrices=False)
             
         energies = torch.flip(s**2, dims=(0,)).cumsum(dim=0)
-        tol = 0.1 * energies[-1] * self.options.local_tol ** 2
+        tol = 0.1 * energies[-1] * error_tol ** 2
         
         rank = torch.sum(energies > tol)
         rank = torch.clamp(rank, 1, self.options.max_rank)
@@ -620,7 +628,12 @@ class TTFunc():
         U = U.T.reshape(-1, nr_k).T
         return U
     
-    def build_basis_svd(self, H: Tensor, k: Tensor|int) -> None:
+    def build_basis_svd(
+        self, 
+        H: Tensor, 
+        k: Tensor|int, 
+        tol: float|Tensor|None = None
+    ) -> None:
         """Computes the coefficients of the kth tensor core.
         
         Parameters
@@ -639,19 +652,19 @@ class TTFunc():
         """
 
         k = int(k)
-        k_prev = int(k - self.data.direction.value)
-        k_next = int(k + self.data.direction.value)
+        k_prev = int(k - self.tt_data.direction.value)
+        k_next = int(k + self.tt_data.direction.value)
         
         poly = self.bases.polys[k]
-        interp_ls_prev = self.data.interp_ls[k_prev]
-        A_next = self.data.cores[k_next]
+        interp_ls_prev = self.tt_data.interp_ls[k_prev]
+        A_next = self.tt_data.cores[k_next]
 
         r_p, n_k, r_k = H.shape 
         r_p_next, _, r_k_next = A_next.shape
 
-        H = TTFunc.unfold(H, self.data.direction)
+        H = TTFunc.unfold(H, self.tt_data.direction)
         H = self.apply_mass_R(poly, H)
-        U, sVh, rank = self.truncate_local(H, k)
+        U, sVh, rank = self.truncate_local(H, tol)
         U = self.apply_mass_R_inv(poly, U)
 
         inds, B, U_interp = self.select_points(U, k)
@@ -660,7 +673,7 @@ class TTFunc():
         couple = U_interp @ sVh
 
         # Form current coefficient tensor and update dimensions of next one
-        if self.data.direction == Direction.FORWARD:
+        if self.tt_data.direction == Direction.FORWARD:
             A = TTFunc.fold_left(B, (r_p, n_k, rank))
             couple = couple[:, :r_p_next]
             A_next = torch.einsum("il, ljk", couple, A_next)
@@ -669,9 +682,9 @@ class TTFunc():
             couple = couple[:, :r_k_next]
             A_next = torch.einsum("kl, ijl", couple, A_next)
 
-        self.data.cores[k] = A
-        self.data.cores[k_next] = A_next
-        self.data.interp_ls[k] = interp_ls 
+        self.tt_data.cores[k] = A
+        self.tt_data.cores[k_next] = A_next
+        self.tt_data.interp_ls[k] = interp_ls 
         return
     
     def build_basis_amen(
@@ -684,30 +697,30 @@ class TTFunc():
         """TODO: finish"""
         
         k = int(k)
-        k_prev = int(k - self.data.direction.value)
-        k_next = int(k + self.data.direction.value)
+        k_prev = int(k - self.tt_data.direction.value)
+        k_next = int(k + self.tt_data.direction.value)
         
         poly = self.bases.polys[k]
-        interp_ls_prev = self.data.interp_ls[k_prev]
-        res_x_prev = self.data.res_x[k_prev]
+        interp_ls_prev = self.tt_data.interp_ls[k_prev]
+        res_x_prev = self.tt_data.res_x[k_prev]
 
-        res_w_prev = self.data.res_w[k-1]
-        res_w_next = self.data.res_w[k+1]
+        res_w_prev = self.tt_data.res_w[k-1]
+        res_w_next = self.tt_data.res_w[k+1]
 
-        A_next = self.data.cores[k_next]
+        A_next = self.tt_data.cores[k_next]
 
         n_left, n_k, n_right = H.shape
         n_r_left, _, n_r_right = H_res.shape
         r_0_next, _, r_1_next = A_next.shape
 
-        H = TTFunc.unfold(H, self.data.direction)
+        H = TTFunc.unfold(H, self.tt_data.direction)
         H = self.apply_mass_R(poly, H)
-        U, sVh, rank = self.truncate_local(H, k)
+        U, sVh, rank = self.truncate_local(H)
         U = self.apply_mass_R_inv(poly, U)
 
-        H_up = TTFunc.unfold(H_up, self.data.direction)
+        H_up = TTFunc.unfold(H_up, self.tt_data.direction)
 
-        if self.data.direction == Direction.FORWARD:
+        if self.tt_data.direction == Direction.FORWARD:
             temp_l = TTFunc.fold_left(U, (n_left, n_k, rank))
             temp_l = torch.einsum("il, ljk", res_w_prev, temp_l)
             temp_r = sVh @ res_w_next
@@ -745,11 +758,11 @@ class TTFunc():
         interp_ls = self.get_local_index(poly, interp_ls_prev, indices)
         
         # TODO: it might be a good idea to add the error tolerance as an argument to this function.
-        U_res = self.truncate_local(H_res, k)[0]
+        U_res = self.truncate_local(H_res)[0]
         inds_res = self.select_points(U_res, k)[0]
         res_x = self.get_local_index(poly, res_x_prev, inds_res)
 
-        if self.data.direction == Direction.FORWARD:
+        if self.tt_data.direction == Direction.FORWARD:
             
             A = TTFunc.fold_left(B, (n_left, n_k, r_new))
 
@@ -771,11 +784,11 @@ class TTFunc():
             couple = couple[:, :r_1_next]
             A_next = torch.einsum("ijl, kl", A_next, couple)
 
-        self.data.cores[k] = A 
-        self.data.cores[k_next] = A_next
-        self.data.interp_ls[k] = interp_ls
-        self.data.res_w[k] = res_w 
-        self.data.res_x[k] = res_x
+        self.tt_data.cores[k] = A 
+        self.tt_data.cores[k_next] = A_next
+        self.tt_data.interp_ls[k] = interp_ls
+        self.tt_data.res_w[k] = res_w 
+        self.tt_data.res_x[k] = res_x
         return
 
     def get_error_local(self, H: Tensor, k: Tensor) -> Tensor:
@@ -800,7 +813,7 @@ class TTFunc():
             absolute value of the element of H.
 
         """
-        core = self.data.cores[int(k)]
+        core = self.tt_data.cores[int(k)]
         return (core-H).abs().max() / H.abs().max()
 
     def get_local_index(
@@ -840,7 +853,7 @@ class TTFunc():
         ls_prev = interp_ls_prev[inds // n_k]
         ls_nodes = poly.nodes[inds % n_k][:, None]
 
-        if self.data.direction == Direction.FORWARD:
+        if self.tt_data.direction == Direction.FORWARD:
             interp_ls = torch.hstack((ls_prev, ls_nodes))
         else:
             interp_ls = torch.hstack((ls_nodes, ls_prev))
@@ -864,8 +877,8 @@ class TTFunc():
 
         for k in indices:
                     
-            ls_left = self.data.interp_ls[int(k-1)]
-            ls_right = self.data.interp_ls[int(k+1)]
+            ls_left = self.tt_data.interp_ls[int(k-1)]
+            ls_right = self.tt_data.interp_ls[int(k+1)]
             
             H = self.build_block_local(ls_left, ls_right, k) 
             self.errors[k] = self.get_error_local(H, k)
@@ -877,14 +890,14 @@ class TTFunc():
         
         for k in indices:
             
-            ls_left = self.data.interp_ls[int(k-1)].clone()
-            ls_right = self.data.interp_ls[int(k+1)].clone()
+            ls_left = self.tt_data.interp_ls[int(k-1)].clone()
+            ls_right = self.tt_data.interp_ls[int(k+1)].clone()
             enrich = self.input_data.get_samples(self.options.kick_rank)
 
             F_k = self.build_block_local(ls_left, ls_right, k)
             self.errors[k] = self.get_error_local(F_k, k)
 
-            if self.data.direction == Direction.FORWARD:
+            if self.tt_data.direction == Direction.FORWARD:
                 F_enrich = self.build_block_local(ls_left, enrich[:, k+1:], k)
                 F_full = torch.concatenate((F_k, F_enrich), dim=2)
             else:
@@ -899,10 +912,10 @@ class TTFunc():
         
         for k in indices:
             
-            ls_left = self.data.interp_ls[int(k-1)]
-            ls_right = self.data.interp_ls[int(k+1)]
-            r_left = self.data.res_x[int(k-1)]
-            r_right = self.data.res_x[int(k+1)]
+            ls_left = self.tt_data.interp_ls[int(k-1)]
+            ls_right = self.tt_data.interp_ls[int(k+1)]
+            r_left = self.tt_data.res_x[int(k-1)]
+            r_right = self.tt_data.res_x[int(k+1)]
 
             # Evaluate the interpolant function at x_k nodes
             F = self.build_block_local(ls_left, ls_right, k)
@@ -911,9 +924,9 @@ class TTFunc():
             # Evaluate residual function at x_k nodes
             F_res = self.build_block_local(r_left, r_right, k)
 
-            if self.data.direction == Direction.FORWARD and k > 0:
+            if self.tt_data.direction == Direction.FORWARD and k > 0:
                 F_up = self.build_block_local(ls_left, r_right, k)
-            elif self.data.direction == Direction.BACKWARD and k < self.dim-1: 
+            elif self.tt_data.direction == Direction.BACKWARD and k < self.dim-1: 
                 F_up = self.build_block_local(r_left, ls_right, k)
             else:
                 F_up = F_res.clone()
@@ -927,16 +940,16 @@ class TTFunc():
         target function.
         """
 
-        if self.data.direction == Direction.FORWARD:
+        if self.tt_data.direction == Direction.FORWARD:
             k = self.dim-1 
         else:
             k = 0
 
-        ls_left = self.data.interp_ls[int(k-1)]
-        ls_right = self.data.interp_ls[int(k+1)]
+        ls_left = self.tt_data.interp_ls[int(k-1)]
+        ls_right = self.tt_data.interp_ls[int(k+1)]
         H = self.build_block_local(ls_left, ls_right, k)
         self.errors[k] = self.get_error_local(H, k)
-        self.data.cores[k] = H
+        self.tt_data.cores[k] = H
         return
 
     def cross(self) -> None:
@@ -946,19 +959,19 @@ class TTFunc():
         self._print_info_header()
         als_iter = 0
 
-        if self.data.cores == {}:
-            self.data.direction = Direction.FORWARD 
+        if self.tt_data.cores == {}:
+            self.tt_data.direction = Direction.FORWARD 
             self.initialise_cores()
         else:
             # Prepare for the next iteration
-            self.data.reverse_direction()
+            self.tt_data.reverse_direction()
         
         if self.use_amen:
             self.initialise_amen()
 
         while True:
 
-            if self.data.direction == Direction.FORWARD:
+            if self.tt_data.direction == Direction.FORWARD:
                 indices = torch.arange(self.dim-1)
             else:
                 indices = torch.arange(self.dim-1, 0, -1)
@@ -982,24 +995,27 @@ class TTFunc():
                 als_info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
                 return
             else:
-                self.data.reverse_direction()
+                self.tt_data.reverse_direction()
 
-    def round(self):
+    def round(self, tol: float|Tensor|None = None):
         """Rounds the TT cores. Applies double rounding to get back to 
         the starting direction.
         """
 
+        if tol is None:
+            tol = self.options.local_tol
+
         for _ in range(2):
             
-            self.data.reverse_direction()
+            self.tt_data.reverse_direction()
 
-            if self.data.direction == Direction.FORWARD:
+            if self.tt_data.direction == Direction.FORWARD:
                 indices = torch.arange(self.dim-1)
             else:
                 indices = torch.arange(self.dim-1, 0, -1)
 
             for k in indices:
-                self.build_basis_svd(self.data.cores[int(k)], k)
+                self.build_basis_svd(self.tt_data.cores[int(k)], k, tol)
 
         return
     
@@ -1010,7 +1026,7 @@ class TTFunc():
 
         n_ls, d_ls = ls.shape
         polys = self.bases.polys
-        cores = self.data.cores
+        cores = self.tt_data.cores
         Gs_prod = torch.ones((n_ls, 1))
 
         for k in range(d_ls):
@@ -1026,7 +1042,7 @@ class TTFunc():
 
         n_ls, d_ls = ls.shape
         polys = self.bases.polys 
-        cores = self.data.cores
+        cores = self.tt_data.cores
         Gs_prod = torch.ones((n_ls, 1))
         
         for i, k in enumerate(range(self.dim-1, self.dim-d_ls-1, -1), start=1):
@@ -1083,7 +1099,7 @@ class TTFunc():
         """
         self._check_sample_dim(ls, self.dim, strict=True)
         ls = self.bases.approx2local(xs)[0]
-        gs = self.eval_local(ls, self.data.direction).flatten()
+        gs = self.eval_local(ls, self.tt_data.direction).flatten()
         return gs
 
     def grad_reference(self, zs: Tensor) -> Tuple[Tensor, Tensor]:

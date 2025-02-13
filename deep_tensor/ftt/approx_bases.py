@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import torch
+from torch import Tensor
 
 from ..domains import Domain
 from ..polynomials import Basis1D
@@ -21,7 +22,7 @@ class ApproxBases():
         ----------
         polys:
             Tensor-product univariate polynomial basis functions, 
-            defined on a local domain (generally [-1, 1]).
+            defined on a local domain.
         domains:
             The approximation domain in each dimension.
         dim:
@@ -52,13 +53,9 @@ class ApproxBases():
         self.dim = dim
         self.domains = domains 
         self.polys = polys
-
         return
 
-    def get_cardinalities(
-        self, 
-        indices: torch.Tensor|None=None
-    ) -> torch.Tensor:
+    def get_cardinalities(self, indices: Tensor|None = None) -> Tensor:
         """Returns the cardinalities of (a subset of) the polynomials 
         that form the current basis.
 
@@ -85,7 +82,7 @@ class ApproxBases():
     def duplicate_bases(self):
         raise NotImplementedError()
     
-    def remove_bases(self, indices: torch.Tensor) -> None:
+    def remove_bases(self, indices: Tensor) -> None:
         """Removes a set of bases.
         
         Parameters
@@ -101,9 +98,9 @@ class ApproxBases():
 
     def local2approx(
         self, 
-        ls: torch.Tensor, 
-        indices: torch.Tensor|None=None
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+        ls: Tensor, 
+        indices: Tensor|None = None
+    ) -> tuple[Tensor, Tensor]:
         """Maps a set of samples drawn distributed in (a subset of) the 
         local domain to the approximation domain.
         
@@ -145,9 +142,9 @@ class ApproxBases():
 
     def approx2local(
         self, 
-        xs: torch.Tensor, 
-        indices: torch.Tensor|None=None
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        xs: Tensor, 
+        indices: Tensor|None = None
+    ) -> Tuple[Tensor, Tensor]:
         """Maps a set of samples from (a subset of) the approximation 
         domain to the local domain.
         
@@ -190,9 +187,9 @@ class ApproxBases():
 
     def local2approx_log_density(
         self,
-        ls: torch.Tensor,
-        indices: torch.Tensor|None=None
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        ls: Tensor,
+        indices: Tensor|None = None
+    ) -> Tuple[Tensor, Tensor]:
         """Computes the logarithm of the gradient, and derivative of 
         the gradient, of the transformation of a set of samples from 
         the local domain to the approximation domain.
@@ -227,9 +224,9 @@ class ApproxBases():
     
     def approx2local_log_density(
         self,
-        xs: torch.Tensor,
-        indices: torch.Tensor|None=None
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        xs: Tensor,
+        indices: Tensor|None = None
+    ) -> Tuple[Tensor, Tensor]:
         """TODO: write docstring."""
         
         if indices is None:
@@ -249,10 +246,7 @@ class ApproxBases():
 
         return dlogldxs, d2logldx2s
 
-    def sample_measure_local(
-        self, 
-        n: int
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def sample_measure_local(self, n: int) -> Tuple[Tensor, Tensor]:
         """Generates a set of random variates from the local weighting 
         function.
 
@@ -283,9 +277,9 @@ class ApproxBases():
 
     def eval_measure_potential_local(
         self, 
-        ls: torch.Tensor, 
-        indices: torch.Tensor|None=None
-    ) -> torch.Tensor:
+        ls: Tensor, 
+        indices: Tensor|None = None
+    ) -> Tensor:
         """Computes the negative logarithm of the weighting function 
         associated with (a subset of) the basis functions (defined in 
         the local domain).
@@ -323,8 +317,8 @@ class ApproxBases():
 
     def eval_measure_potential_local_grad(
         self, 
-        ls: torch.Tensor,
-        indices: torch.Tensor|None=None
+        ls: Tensor,
+        indices: Tensor|None = None
     ):
         """Computes the gradient of the negative logarithm of the 
         weighting functions of (a subset of) the basis functions for a 
@@ -363,10 +357,7 @@ class ApproxBases():
 
         return negloggradwls
 
-    def sample_measure(
-        self, 
-        n: int
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def sample_measure(self, n: int) -> Tuple[Tensor, Tensor]:
         """Generates a set of samples from the approximation domain.
         
         Parameters
@@ -392,9 +383,9 @@ class ApproxBases():
     
     def eval_measure_potential(
         self, 
-        xs: torch.Tensor,
-        indices: torch.Tensor|None=None
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        xs: Tensor, 
+        indices: Tensor|None = None
+    ) -> Tuple[Tensor, Tensor]:
         """Computes the target potential function and its gradient for 
         a set of samples from the approximation domain.
         
@@ -414,11 +405,10 @@ class ApproxBases():
             An n-dimensional vector containing the weighting function 
             evaluated at each element of xs.
         negloggradwxs:
-            An n * d matrix containing the negative logarithm of the 
-            gradient of each weighting function evaluated at each 
+            An n * d matrix containing the gradient of the negative 
+            logarithm of each weighting function evaluated at each 
             element of xs.
-            
-        TODO: figure out what the gradient actually is
+        
         """
         
         if indices is None:
@@ -433,12 +423,12 @@ class ApproxBases():
         neglogwls = self.eval_measure_potential_local(ls, indices)
         neglogwxs = neglogwls - dldxs.log().sum(dim=1)
         
-        negloggradwls = self.eval_measure_potential_local_grad(ls, indices)
-        negloggradwxs = negloggradwls * dldxs  # TODO: check this
+        gradneglogwls = self.eval_measure_potential_local_grad(ls, indices)
+        gradneglogwxs = gradneglogwls * dldxs  # TODO: check
 
-        return neglogwxs, negloggradwxs
+        return neglogwxs, gradneglogwxs
     
-    def eval_measure(self, xs: torch.Tensor) -> torch.Tensor:
+    def eval_measure(self, xs: Tensor) -> Tensor:
         """Computes the weighting function for a set of samples from 
         the approximation domain, with the domain mapping.
 

@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 
 from .directions import REVERSE_DIRECTIONS
 
@@ -9,16 +10,14 @@ class TTData():
         """Data associated with a functional TT approximation."""
 
         self.direction = None
-        self.cores: dict[int, torch.Tensor] = {}
-        self.interp_ls: dict[int, torch.Tensor] = {}
-        
+        self.cores: dict[int, Tensor] = {}
+        self.interp_ls: dict[int, Tensor] = {}
         self.res_x = {}  # Residual coordinates for AMEN
         self.res_w = {}  # Residual blocks for AMEN
-        
         return
     
     @property
-    def rank(self) -> torch.Tensor:
+    def rank(self) -> Tensor:
         """The ranks of each tensor core."""
         num_dims = len(self.cores)
         ranks = [self.cores[k].shape[2] for k in range(num_dims)]

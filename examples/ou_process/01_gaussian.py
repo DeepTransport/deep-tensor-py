@@ -28,7 +28,7 @@ print("-+-".join(["-" * 16] * len(headers)))
 zs = torch.rand((10_000, dim))
 
 for poly in polys_dict:
-    for method in options_dict:
+    for method in tt_methods_list:
 
         sirt: dt.TTSIRT = sirts[poly][method]
 

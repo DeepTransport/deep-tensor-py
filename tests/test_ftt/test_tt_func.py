@@ -85,7 +85,7 @@ class TestSIRT(unittest.TestCase):
                              [1.0], 
                              [2.0]]])
 
-        tt_func.data.cores = {
+        tt_func.tt_data.cores = {
             0: A_0,
             1: A_1,
             2: A_2

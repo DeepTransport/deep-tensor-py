@@ -2,6 +2,7 @@ from typing import Callable, Tuple
 import warnings
 
 import torch
+from torch import Tensor
 
 from .approx_bases import ApproxBases
 
@@ -10,9 +11,9 @@ class InputData():
 
     def __init__(
         self, 
-        xs_samp: torch.Tensor|None=None, 
-        xs_debug: torch.Tensor|None=None, 
-        fxs_debug: torch.Tensor|None=None
+        xs_samp: Tensor|None = None, 
+        xs_debug: Tensor|None = None, 
+        fxs_debug: Tensor|None = None
     ):
         """A class containing sampling data used for building and 
         evaluating the quality of the approximation to a given target 
@@ -64,11 +65,7 @@ class InputData():
         """
         return not self.fxs_debug.numel() == 0
 
-    def set_samples(
-        self, 
-        bases: ApproxBases, 
-        n_samples: int
-    ) -> torch.Tensor:
+    def set_samples(self, bases: ApproxBases, n_samples: int) -> Tensor:
         """Generates the samples used to construct the FTT (if not 
         specified during initialisation), then transforms these samples
         to the local domain.
@@ -105,7 +102,7 @@ class InputData():
         self.count = 0
         return
         
-    def get_samples(self, n: int|None=None) -> torch.Tensor:
+    def get_samples(self, n: int|None = None) -> Tensor:
         """Returns a set of samples from the local domain.
         
         Parameters
@@ -143,7 +140,7 @@ class InputData():
         
     def set_debug(
         self, 
-        target_func: Callable[[torch.Tensor], torch.Tensor], 
+        target_func: Callable[[Tensor], Tensor], 
         bases: ApproxBases
     ) -> None:
         """Generates a set of samples to use to evaluate the quality of 
@@ -168,10 +165,7 @@ class InputData():
             self.fxs_debug = target_func(self.ls_debug)
         return
     
-    def relative_error(
-        self, 
-        fxs_approx: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def relative_error(self, fxs_approx: Tensor) -> Tuple[Tensor, Tensor]:
         """TODO: write docstring."""
         
         if not self.is_debug:

@@ -1,5 +1,6 @@
 import abc
 from typing import Callable, Tuple
+import warnings
 
 import torch
 from torch import Tensor
@@ -19,19 +20,36 @@ class AbstractIRT(abc.ABC):
     def __init__(
         self, 
         potential: Callable,
-        bases: ApproxBases, 
+        bases: ApproxBases|None, 
         approx: TTFunc|None,
-        options: TTOptions,
-        input_data: InputData,
-        approx_data: TTData
+        options: TTOptions|None,
+        input_data: InputData|None,
+        tt_data: TTData|None
     ):
+
+        # TODO: allow for dimension to be passed in
+        if bases is None and approx is None:
+            msg = ("Must pass in a previous approximation or a set of "
+                   + "approximation bases.")
+            raise Exception(msg)
+
+        if approx is not None:
+            bases = approx.bases 
+            options = approx.options
+            tt_data = approx.tt_data
+
+        if options is None:
+            options = TTOptions()
+        
+        if input_data is None:
+            input_data = InputData()
 
         self.potential = potential 
         self.bases = bases
         self.approx = approx
         self.options = options 
         self.input_data = input_data
-        self.approx_data = approx_data
+        self.tt_data = tt_data
         return
 
     @property

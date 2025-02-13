@@ -307,7 +307,7 @@ class TTDIRT():
                 tt_data = None
             else:
                 approx = deepcopy(self.irts[self.num_layers-1].approx)
-                tt_data = deepcopy(self.irts[self.num_layers-1].approx.data)
+                tt_data = deepcopy(self.irts[self.num_layers-1].approx.tt_data)
 
             sirt = TTSIRT(
                 updated_func,
