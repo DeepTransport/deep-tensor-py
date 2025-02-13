@@ -31,7 +31,7 @@ class TTSIRT(AbstractIRT):
         def target_func(ls: Tensor) -> Tensor:
             """Returns the square root of the ratio between the target 
             density and the weighting function evaluated at a set of 
-            points in the local domain ([-1, 1]^d).
+            points in the local domain.
             """
             return self.potential2density(potential, ls)
         

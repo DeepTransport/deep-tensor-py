@@ -1,7 +1,7 @@
 import abc
 from typing import Tuple
 
-import torch
+from torch import Tensor
 
 
 class Domain(abc.ABC):
@@ -9,27 +9,24 @@ class Domain(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def bounds(self) -> torch.Tensor:
+    def bounds(self) -> Tensor:
         """The boundary of the approximation domain."""
         return
     
     @property
     @abc.abstractmethod 
-    def left(self) -> torch.Tensor:
+    def left(self) -> Tensor:
         """The left-hand boundary of the approximation domain."""
         return 
     
     @property 
     @abc.abstractmethod
-    def right(self) -> torch.Tensor:
+    def right(self) -> Tensor:
         """The right-hand boundary of the approximation domain."""
         return
     
     @abc.abstractmethod
-    def local2approx(
-        self, 
-        ls: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def local2approx(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         """Maps a set of points in the reference domain to the 
         approximation domain.
         
@@ -53,10 +50,7 @@ class Domain(abc.ABC):
         return
     
     @abc.abstractmethod
-    def approx2local(
-        self, 
-        xs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def approx2local(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         """Maps a set of points in the approximation domain back to the 
         reference domain.
         
@@ -80,10 +74,7 @@ class Domain(abc.ABC):
         return
     
     @abc.abstractmethod
-    def local2approx_log_density(
-        self, 
-        ls: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def local2approx_log_density(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         """Computes the logarithm of the derivative of the mapping from 
         the reference domain to the approximation domain and its
         gradient.
@@ -109,10 +100,7 @@ class Domain(abc.ABC):
         return
     
     @abc.abstractmethod
-    def approx2local_log_density(
-        self, 
-        xs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def approx2local_log_density(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         """Computes the logarithm of the derivative of the mapping from 
         the approximation domain to the reference domain and its
         gradient.

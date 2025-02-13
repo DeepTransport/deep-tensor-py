@@ -2,6 +2,7 @@ import torch
 from torch import Tensor
 
 from .symmetric_reference import SymmetricReference
+from ..constants import EPS
 
 
 class GaussianReference(SymmetricReference):
@@ -21,6 +22,7 @@ class GaussianReference(SymmetricReference):
         return pdfs, grad_pdfs
     
     def invert_unit_cdf(self, zs: Tensor) -> Tensor:
+        zs = zs.clamp(EPS, 1.0-EPS)
         us = (2.0 ** 0.5) * torch.erfinv(2.0*zs-1.0)
         return us
 

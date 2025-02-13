@@ -518,6 +518,33 @@ class AbstractIRT(abc.ABC):
         for k in range(self.dim):
             Js[:, :, k] *= dldxs[:, k]
         return Js
+    
+    # def eval_rt_jac_prod(self, xs: Tensor, vs: Tensor) -> Tensor:
+    #     """
+    #     xs: samples to compute RT with.
+    #     vs: samples to compute J(x)v with
+    #     """
+    #     TTFunc._check_sample_dim(xs, self.dim, strict=True)
+    #     Js = self._eval_rt_jac_prod_autodiff(xs, vs)
+    #     return Js
+
+    # def _eval_rt_jac_prod_autodiff(self, xs: Tensor, vs: Tensor) -> Tensor:
+
+    #     n_xs, d_xs = xs.shape
+
+    #     def _eval_rt(xs: Tensor) -> Tensor:
+    #         xs = xs.reshape(n_xs, self.dim)
+    #         return self.eval_rt(xs).sum(dim=0)
+        
+    #     Jvs: Tensor = torch.func.jvp(  # torch.func.jvp?
+    #         _eval_rt, 
+    #         primals=xs,#.flatten(), 
+    #         tangents=vs#.flatten()
+    #     )[1]
+
+    #     print(Jvs.shape)
+
+    #     return Jvs.reshape(n_xs, d_xs)
 
     def random(self, n: int) -> Tensor: 
         """Generates a set of random samples from the approximation to
