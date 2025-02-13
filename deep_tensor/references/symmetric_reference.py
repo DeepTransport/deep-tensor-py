@@ -2,19 +2,20 @@ import abc
 from typing import Tuple
 
 import torch
+from torch import Tensor
 
 from .reference import Reference
-from ..constants import EPS
 from ..domains import BoundedDomain, Domain
+from ..tools import check_for_nans
 
 
 class SymmetricReference(Reference, abc.ABC):
     
     def __init__(
         self, 
-        mu: float=0.0, 
-        sigma: float=1.0,
-        domain: Domain=None
+        mu: float = 0., 
+        sigma: float = 1.,
+        domain: Domain = None
     ):
         
         if domain is None:
@@ -29,10 +30,7 @@ class SymmetricReference(Reference, abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_unit_cdf(
-        self, 
-        us: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def eval_unit_cdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         """Returns the values of the CDF and PDF of the unit reference
         distribution evaluated at each value of us.
         
@@ -57,10 +55,7 @@ class SymmetricReference(Reference, abc.ABC):
         return
     
     @abc.abstractmethod
-    def eval_unit_pdf(
-        self, 
-        us: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def eval_unit_pdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         """Returns the values of the PDF and gradient of the PDF of the 
         unit reference distribution evaluated at each value of us.
         
@@ -86,7 +81,7 @@ class SymmetricReference(Reference, abc.ABC):
         return
 
     @abc.abstractmethod
-    def invert_unit_cdf(self, zs: torch.Tensor) -> torch.Tensor:
+    def invert_unit_cdf(self, zs: Tensor) -> Tensor:
         """Returns the inverse of the CDF of the unit reference 
         distribution evaluated at each element of zs.
         
@@ -107,10 +102,7 @@ class SymmetricReference(Reference, abc.ABC):
         return
     
     @abc.abstractmethod
-    def log_joint_unit_pdf(
-        self, 
-        us: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def log_joint_unit_pdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         """Returns the log-PDF and gradient of the log-PDF of the 
         reference distribution evaluated at each element of us.
 
@@ -133,7 +125,7 @@ class SymmetricReference(Reference, abc.ABC):
         """
         return
     
-    def set_cdf_bounds(self):
+    def set_cdf_bounds(self) -> None:
         """Sets the minimum and maximum possible values of the CDF 
         based on the bounds of the domain.
         """
@@ -149,10 +141,9 @@ class SymmetricReference(Reference, abc.ABC):
 
         # Normalising constant for PDF
         self.norm = self.right - self.left
-
         return
 
-    def map_to_unit(self, xs: torch.Tensor) -> torch.Tensor:
+    def map_to_unit(self, xs: Tensor) -> Tensor:
         """Maps a set of variates from the reference density to samples
         from the density of the same form, but with zero mean and unit 
         variance.
@@ -170,68 +161,44 @@ class SymmetricReference(Reference, abc.ABC):
             have zero mean and unit variance.
         
         """
-
         us = (xs - self.mu) / self.sigma
         return us
 
-    def eval_cdf(
-        self, 
-        rs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-
+    def eval_cdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         us = self.map_to_unit(rs)
         zs, dzdus = self.eval_unit_cdf(us)
-
         zs = (zs - self.left) / self.norm
-        dzdus /= (self.sigma * self.norm)
-        
-        return zs, dzdus
+        dzdrs = dzdus / (self.sigma * self.norm)
+        return zs, dzdrs
     
-    def eval_pdf(
-        self, 
-        rs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        
+    def eval_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         us = self.map_to_unit(rs)
         pdfs, grad_pdfs = self.eval_unit_pdf(us)
-        
         pdfs /= (self.sigma * self.norm)
         grad_pdfs /= (self.sigma**2 * self.norm)
-
         return pdfs, grad_pdfs
 
-    def invert_cdf(self, zs: torch.Tensor) -> torch.Tensor:
-
-        # zs[torch.isinf(zs)] = 1.0 - EPS
-        # zs[torch.isnan(zs)] = EPS
-
-        # Map points into desired section of range of CDF
+    def invert_cdf(self, zs: Tensor) -> Tensor:
+        check_for_nans(zs)
         zs = self.left + zs * self.norm
         us = self.invert_unit_cdf(zs)
         rs = self.mu + self.sigma * us
         return rs
         
-    def log_joint_pdf(
-        self, 
-        xs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        
-        dim_x = xs.shape[1]
-
+    def log_joint_pdf(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
+        d_xs = xs.shape[1]
         us = self.map_to_unit(xs)
         log_pdfs, log_grad_pdfs = self.log_joint_unit_pdf(us)
-
-        log_pdfs -= dim_x * (self.sigma * self.norm).log()
+        log_pdfs -= d_xs * (self.sigma * self.norm).log()
         log_grad_pdfs /= self.sigma
-    
         return log_pdfs, log_grad_pdfs
     
-    def random(self, d: int, n: int) -> torch.Tensor:
-        zs = torch.rand(size=(n, d))
+    def random(self, d: int, n: int) -> Tensor:
+        zs = torch.rand(n, d)
         rs = self.invert_cdf(zs)
         return rs
         
-    def sobol(self, d: int, n: int) -> torch.Tensor:
+    def sobol(self, d: int, n: int) -> Tensor:
         S = torch.quasirandom.SobolEngine(dimension=d)
         zs = S.draw(n)
         rs = self.invert_cdf(zs)
