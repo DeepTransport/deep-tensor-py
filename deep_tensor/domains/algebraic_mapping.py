@@ -16,7 +16,8 @@ class AlgebraicMapping(MappedDomain):
         xs /= self.scale
         ts = 1.0 + xs.square()
         ls = xs * ts.sqrt()
-        return ls 
+        dldxs = ts ** -1.5 / self.scale
+        return ls, dldxs
     
     def approx2local_log_density(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         xs /= self.scale 
