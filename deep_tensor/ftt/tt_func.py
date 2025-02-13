@@ -10,7 +10,7 @@ from .input_data import InputData
 from .tt_data import TTData
 from ..options import TTOptions
 from ..polynomials import Basis1D, Piecewise, Spectral
-from ..tools import deim, maxvol, reshape_matlab
+from ..tools import deim, maxvol
 from ..tools.printing import als_info
 
 
@@ -331,8 +331,8 @@ class TTFunc():
             shape_d = (core_d.shape[0], self.options.kick_rank)
             self.data.res_w[self.dim-1] = torch.ones(shape_d)
 
-        self.data.res_w[-1] = torch.tensor([1.0])
-        self.data.res_w[self.dim] = torch.tensor([1.0])
+        self.data.res_w[-1] = torch.tensor([[1.0]])
+        self.data.res_w[self.dim] = torch.tensor([[1.0]])
         return
 
     def initialise_amen(self) -> None:
@@ -619,8 +619,7 @@ class TTFunc():
         U = torch.linalg.solve(poly.mass_R, U)
         U = U.T.reshape(-1, nr_k).T
         return U
-        
-
+    
     def build_basis_svd(self, H: Tensor, k: Tensor|int) -> None:
         """Computes the coefficients of the kth tensor core.
         
@@ -658,17 +657,17 @@ class TTFunc():
         inds, B, U_interp = self.select_points(U, k)
         interp_ls = self.get_local_index(poly, interp_ls_prev, inds)
 
-        couple = (U_interp @ sVh).T.reshape(-1, rank)
+        couple = U_interp @ sVh
 
         # Form current coefficient tensor and update dimensions of next one
         if self.data.direction == Direction.FORWARD:
             A = TTFunc.fold_left(B, (r_p, n_k, rank))
-            couple = couple[:r_p_next, :]
-            A_next = torch.einsum("ji, jkl", couple, A_next)
+            couple = couple[:, :r_p_next]
+            A_next = torch.einsum("il, ljk", couple, A_next)
         else:
             A = TTFunc.fold_right(B, (rank, n_k, r_k))
-            couple = couple[:r_k_next, :]
-            A_next = torch.einsum("lk, ijl", couple, A_next)
+            couple = couple[:, :r_k_next]
+            A_next = torch.einsum("kl, ijl", couple, A_next)
 
         self.data.cores[k] = A
         self.data.cores[k_next] = A_next
@@ -716,34 +715,30 @@ class TTFunc():
         B = self.apply_mass_R_inv(poly, B)
 
         if self.data.direction == Direction.FORWARD:
+
+            temp_l = TTFunc.fold_left(B, (r_prev, n_nodes, rank))
+            temp_l = torch.einsum("il, ljk", res_w_prev, temp_l)
             
             temp_r = A @ res_w_next
             F_up -= B @ temp_r
 
-            temp_l = reshape_matlab(B, (n_nodes, r_prev, rank)).permute(1, 0, 2)
-            temp_l = reshape_matlab(temp_l, (r_prev, -1))
-            
-            temp_l = res_w_prev @ temp_l
-            temp_l = reshape_matlab(temp_l, (n_r_left * n_nodes, rank))
-
-            F_res = F_res - reshape_matlab(temp_l @ temp_r, (n_r_left, n_nodes, n_r_right))
-            F_res = reshape_matlab(F_res.permute(1, 0, 2), (n_nodes * n_r_left, -1))
-            r_r_prev = n_r_left
+            F_res -= torch.einsum("ijl, lk", temp_l, temp_r)
+            F_res = TTFunc.unfold_left(F_res)
         
         else: 
             
-            tmp_lt = res_w_prev @ reshape_matlab(torch.permute(reshape_matlab(A, (rank, r_1_next)), (1, 0)), (r_1_next, -1))
-            # % r x nr_l x m
-            tmp_lt = reshape_matlab(torch.permute(reshape_matlab(tmp_lt, (-1, rank)), (1, 0)), (rank, -1))
-            # % Fu is aligned with F
-            F_up = F_up - B @ tmp_lt
-            # % for the right projection
-            tmp_r = reshape_matlab(torch.permute(reshape_matlab(B, (n_nodes, r_prev, rank)), (2, 0, 1)), (-1, r_prev)) @ res_w_next
-            tmp_r   = reshape_matlab(tmp_r, (rank, n_nodes * n_r_right))
+            # for the right projection
+            temp_r = TTFunc.fold_right(B, (rank, n_nodes, r_prev))
+            temp_r = torch.einsum("ijl, lk", temp_r, res_w_next)
+            temp_r = TTFunc.unfold_right(temp_r)
+
+            tmp_lt = A @ res_w_prev.T
+            # Fu is aligned with F
+            F_up -= B @ tmp_lt
+
             # align Fr as rnew (nrleft), nodes, rold (nrright), m
-            F_res = reshape_matlab(F_res, (n_r_left, n_nodes, n_r_right)) - reshape_matlab(tmp_lt.T @ tmp_r, (n_r_left, n_nodes, n_r_right))
-            F_res = reshape_matlab(torch.permute(F_res, (1, 2, 0)), (n_nodes * n_r_right, -1))
-            r_r_prev = n_r_right
+            F_res -= TTFunc.fold_right(temp_r @ tmp_lt, (n_r_left, n_nodes, n_r_right))
+            F_res = TTFunc.unfold_right(F_res)
         
         # Enrich basis
         T = torch.cat((B, F_up), dim=1)
@@ -753,7 +748,7 @@ class TTFunc():
             T = T.reshape(-1, B.shape[0]).T
             Q, R = torch.linalg.qr(T)
             B = torch.linalg.solve(poly.mass_R, Q.T.reshape(-1, poly.cardinality).T)
-            B = reshape_matlab(B, (Q.shape[0], -1))
+            B = B.T.reshape(-1, Q.shape[0]).T
 
         else:
             B, R = torch.linalg.qr(T)
@@ -761,7 +756,7 @@ class TTFunc():
         r_new = B.shape[-1]
 
         indices, core, interp_atx = self.select_points(B, k)
-        couple = reshape_matlab(interp_atx @ (R[:r_new, :rank] @ A), (r_new, r_next))
+        couple = interp_atx @ R[:r_new, :rank] @ A
 
         interp_x = self.get_local_index(poly, interp_x_prev, indices)
         
@@ -773,36 +768,31 @@ class TTFunc():
 
         if self.data.direction == Direction.FORWARD:
             
-            core = reshape_matlab(core, (n_nodes, r_prev, r_new))
-            core = core.permute(1, 0, 2)
+            core = TTFunc.fold_left(core, (r_prev, n_nodes, r_new))
 
-            couple = couple[:, :r_next]
-            couple = reshape_matlab(couple, (-1, r_next))
-            core_next = couple @ reshape_matlab(core_next, (r_next, -1))
-            core_next = reshape_matlab(core_next, (r_new, n_nodes_next, r_1_next))
-
-            temp = res_w_prev @ reshape_matlab(core, (r_prev, n_nodes * r_new))
-            temp = reshape_matlab(temp, (r_r_prev, n_nodes, r_new))
-            temp = temp.permute(1, 0, 2)
-            temp = reshape_matlab(temp, (-1, r_new))
+            temp = torch.einsum("il, ljk", res_w_prev, core)
+            temp = TTFunc.unfold_left(temp)
             res_w = temp[indices_r, :]
 
+            couple = couple[:, :r_next]
+            core_next = torch.einsum("il, ljk", couple, core_next)
+
         else:
-            core = torch.permute(reshape_matlab(core, (n_nodes, r_prev, r_new)), (2, 0, 1))
-            # the right factor is r x (rn2+enrich) x m, only push the r x rn2 x m
-            # block to the next block, first permute the block to rn2 x r x m
-            core_next = reshape_matlab(core_next, (-1, r_next)) @ reshape_matlab(torch.permute(couple[:, :r_next], (1, 0)), (r_next, -1))
-            core_next = reshape_matlab(core_next, (r_0_next, n_nodes_next, r_new))
-            # %
-            tmp = reshape_matlab(reshape_matlab(core, (-1, r_prev)) @ res_w_next, (r_new, -1))
-            res_w = tmp[:, indices_r]
+            
+            core = TTFunc.fold_right(core, (r_new, n_nodes, r_prev))
+
+            temp = torch.einsum("ijl, lk", core, res_w_next)
+            temp = TTFunc.unfold_right(temp)
+            res_w = temp[indices_r, :].T
+
+            couple = couple[:, :r_next]
+            core_next = torch.einsum("ijl, kl", core_next, couple)
 
         self.data.cores[k] = core 
         self.data.cores[k_next] = core_next
         self.data.interp_ls[k] = interp_x
         self.data.res_w[k] = res_w 
         self.data.res_x[k] = res_x
-
         return
 
     def get_error_local(self, H: Tensor, k: Tensor) -> Tensor:
