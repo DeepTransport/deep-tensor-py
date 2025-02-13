@@ -19,3 +19,4 @@ from .polynomials import (
     PiecewiseCDF,
     Spectral
 )
+from .references import GaussianReference

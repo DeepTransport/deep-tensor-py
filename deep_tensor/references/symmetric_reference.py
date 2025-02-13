@@ -227,16 +227,12 @@ class SymmetricReference(Reference, abc.ABC):
         return log_pdfs, log_grad_pdfs
     
     def random(self, d: int, n: int) -> torch.Tensor:
-
         zs = torch.rand(size=(n, d))
-        # zs = self.left + self.norm * zs
         rs = self.invert_cdf(zs)
         return rs
         
     def sobol(self, d: int, n: int) -> torch.Tensor:
-
         S = torch.quasirandom.SobolEngine(dimension=d)
         zs = S.draw(n)
-        # zs = self.left + self.norm * zs
         rs = self.invert_cdf(zs)
         return rs

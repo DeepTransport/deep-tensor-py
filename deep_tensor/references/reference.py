@@ -1,7 +1,7 @@
 import abc
 from typing import Tuple
 
-import torch
+from torch import Tensor
 
 from ..domains import Domain
 
@@ -13,10 +13,7 @@ class Reference(abc.ABC):
         self.domain = domain
 
     @abc.abstractmethod
-    def eval_cdf(
-        self, 
-        rs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def eval_cdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         """Evaluates the CDF and PDF (i.e., the gradient of the CDF) of 
         the reference distribution at a set of values.
         
@@ -41,10 +38,7 @@ class Reference(abc.ABC):
         return 
     
     @abc.abstractmethod
-    def eval_pdf(
-        self,
-        rs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def eval_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         """Evaluates the PDF and gradient of the PDF of the reference 
         distribution at a set of values.
         
@@ -69,10 +63,7 @@ class Reference(abc.ABC):
         return
     
     @abc.abstractmethod
-    def invert_cdf(
-        self,
-        zs: torch.Tensor
-    ) -> torch.Tensor:
+    def invert_cdf(self, zs: Tensor) -> Tensor:
         """Returns the values of the reference distribution 
         corresponding to a set of points on the CDF.
         
@@ -93,10 +84,7 @@ class Reference(abc.ABC):
         return
     
     @abc.abstractmethod
-    def log_joint_pdf(
-        self, 
-        rs: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def log_joint_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         """Returns the joint log-PDF and gradient of the log-PDF of 
         each of a set of points distributed according to the joint 
         reference density. 
@@ -121,7 +109,7 @@ class Reference(abc.ABC):
         return
     
     @abc.abstractmethod
-    def random(self, d: int, n: int) -> torch.Tensor:
+    def random(self, d: int, n: int) -> Tensor:
         """Draws a set of samples from the reference density using
         the inverse CDF method.
         
@@ -141,9 +129,9 @@ class Reference(abc.ABC):
         return
     
     @abc.abstractmethod
-    def sobol(self, d: int, n: int) -> torch.Tensor:
-        """Generates a set of QMC samples from the reference 
-        distribution using a Sobol sequence.
+    def sobol(self, d: int, n: int) -> Tensor:
+        """Generates a set of QMC samples from the reference density 
+        using a Sobol sequence.
         
         Parameters
         ----------
