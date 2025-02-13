@@ -676,9 +676,9 @@ class TTFunc():
     
     def build_basis_amen(
         self, 
-        F: Tensor,
-        F_res: Tensor,
-        F_up: Tensor,
+        H: Tensor,
+        H_res: Tensor,
+        H_up: Tensor,
         k: Tensor|int
     ) -> None:
         """TODO: finish"""
@@ -688,109 +688,92 @@ class TTFunc():
         k_next = int(k + self.data.direction.value)
         
         poly = self.bases.polys[k]
-        interp_x_prev = self.data.interp_ls[k_prev]
+        interp_ls_prev = self.data.interp_ls[k_prev]
         res_x_prev = self.data.res_x[k_prev]
 
         res_w_prev = self.data.res_w[k-1]
         res_w_next = self.data.res_w[k+1]
 
-        core_next = self.data.cores[k_next]
+        A_next = self.data.cores[k_next]
 
-        n_left, n_nodes, n_right = F.shape
-        n_r_left, _, n_r_right = F_res.shape
-        r_0_next, n_nodes_next, r_1_next = core_next.shape
+        n_left, n_k, n_right = H.shape
+        n_r_left, _, n_r_right = H_res.shape
+        r_0_next, _, r_1_next = A_next.shape
 
-        F = TTFunc.unfold(F, self.data.direction)
-        F_up = TTFunc.unfold(F_up, self.data.direction)
+        H = TTFunc.unfold(H, self.data.direction)
+        H = self.apply_mass_R(poly, H)
+        U, sVh, rank = self.truncate_local(H, k)
+        U = self.apply_mass_R_inv(poly, U)
 
-        if self.data.direction == Direction.FORWARD:
-            r_prev = n_left 
-            r_next = r_0_next
-        else:
-            r_prev = n_right 
-            r_next = r_1_next
-
-        F = self.apply_mass_R(poly, F)
-        B, A, rank = self.truncate_local(F, k)
-        B = self.apply_mass_R_inv(poly, B)
+        H_up = TTFunc.unfold(H_up, self.data.direction)
 
         if self.data.direction == Direction.FORWARD:
-
-            temp_l = TTFunc.fold_left(B, (r_prev, n_nodes, rank))
+            temp_l = TTFunc.fold_left(U, (n_left, n_k, rank))
             temp_l = torch.einsum("il, ljk", res_w_prev, temp_l)
-            
-            temp_r = A @ res_w_next
-            F_up -= B @ temp_r
+            temp_r = sVh @ res_w_next
+            H_up -= U @ temp_r
+            H_res -= torch.einsum("ijl, lk", temp_l, temp_r)
+            H_res = TTFunc.unfold_left(H_res)
 
-            F_res -= torch.einsum("ijl, lk", temp_l, temp_r)
-            F_res = TTFunc.unfold_left(F_res)
-        
         else: 
-            
-            # for the right projection
-            temp_r = TTFunc.fold_right(B, (rank, n_nodes, r_prev))
+            temp_r = TTFunc.fold_right(U, (rank, n_k, n_right))
             temp_r = torch.einsum("ijl, lk", temp_r, res_w_next)
             temp_r = TTFunc.unfold_right(temp_r)
-
-            tmp_lt = A @ res_w_prev.T
-            # Fu is aligned with F
-            F_up -= B @ tmp_lt
-
-            # align Fr as rnew (nrleft), nodes, rold (nrright), m
-            F_res -= TTFunc.fold_right(temp_r @ tmp_lt, (n_r_left, n_nodes, n_r_right))
-            F_res = TTFunc.unfold_right(F_res)
+            tmp_lt = sVh @ res_w_prev.T
+            H_up -= U @ tmp_lt
+            H_res -= TTFunc.fold_right(temp_r @ tmp_lt, (n_r_left, n_k, n_r_right))
+            H_res = TTFunc.unfold_right(H_res)
         
         # Enrich basis
-        T = torch.cat((B, F_up), dim=1)
+        T = torch.cat((U, H_up), dim=1)
 
         if isinstance(poly, Piecewise):
             T = T.T.reshape(-1, poly.cardinality) @ poly.mass_R.T
-            T = T.reshape(-1, B.shape[0]).T
+            T = T.reshape(-1, U.shape[0]).T
             Q, R = torch.linalg.qr(T)
-            B = torch.linalg.solve(poly.mass_R, Q.T.reshape(-1, poly.cardinality).T)
-            B = B.T.reshape(-1, Q.shape[0]).T
+            U = torch.linalg.solve(poly.mass_R, Q.T.reshape(-1, poly.cardinality).T)
+            U = U.T.reshape(-1, Q.shape[0]).T
 
         else:
-            B, R = torch.linalg.qr(T)
+            U, R = torch.linalg.qr(T)
 
-        r_new = B.shape[-1]
+        r_new = U.shape[-1]
 
-        indices, core, interp_atx = self.select_points(B, k)
-        couple = interp_atx @ R[:r_new, :rank] @ A
+        indices, B, U_interp = self.select_points(U, k)
+        couple = U_interp @ R[:r_new, :rank] @ sVh
 
-        interp_x = self.get_local_index(poly, interp_x_prev, indices)
+        interp_ls = self.get_local_index(poly, interp_ls_prev, indices)
         
         # TODO: it might be a good idea to add the error tolerance as an argument to this function.
-        Qr = self.truncate_local(F_res, k)[0]
-
-        indices_r = self.select_points(Qr, k)[0]
-        res_x = self.get_local_index(poly, res_x_prev, indices_r)
+        U_res = self.truncate_local(H_res, k)[0]
+        inds_res = self.select_points(U_res, k)[0]
+        res_x = self.get_local_index(poly, res_x_prev, inds_res)
 
         if self.data.direction == Direction.FORWARD:
             
-            core = TTFunc.fold_left(core, (r_prev, n_nodes, r_new))
+            A = TTFunc.fold_left(B, (n_left, n_k, r_new))
 
-            temp = torch.einsum("il, ljk", res_w_prev, core)
+            temp = torch.einsum("il, ljk", res_w_prev, A)
             temp = TTFunc.unfold_left(temp)
-            res_w = temp[indices_r, :]
+            res_w = temp[inds_res]
 
-            couple = couple[:, :r_next]
-            core_next = torch.einsum("il, ljk", couple, core_next)
+            couple = couple[:, :r_0_next]
+            A_next = torch.einsum("il, ljk", couple, A_next)
 
         else:
             
-            core = TTFunc.fold_right(core, (r_new, n_nodes, r_prev))
+            A = TTFunc.fold_right(B, (r_new, n_k, n_right))
 
-            temp = torch.einsum("ijl, lk", core, res_w_next)
+            temp = torch.einsum("ijl, lk", A, res_w_next)
             temp = TTFunc.unfold_right(temp)
-            res_w = temp[indices_r, :].T
+            res_w = temp[inds_res].T
 
-            couple = couple[:, :r_next]
-            core_next = torch.einsum("ijl, kl", core_next, couple)
+            couple = couple[:, :r_1_next]
+            A_next = torch.einsum("ijl, kl", A_next, couple)
 
-        self.data.cores[k] = core 
-        self.data.cores[k_next] = core_next
-        self.data.interp_ls[k] = interp_x
+        self.data.cores[k] = A 
+        self.data.cores[k_next] = A_next
+        self.data.interp_ls[k] = interp_ls
         self.data.res_w[k] = res_w 
         self.data.res_x[k] = res_x
         return
@@ -845,7 +828,7 @@ class TTFunc():
         interp_ls:
             The set of updated interpolation points for the current 
             dimension.
-            
+        
         """
 
         if interp_ls_prev.numel() == 0:
