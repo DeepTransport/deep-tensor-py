@@ -7,7 +7,7 @@ from .mapped_domain import MappedDomain
 from ..constants import EPS
 
 
-class AlgebraicDomain(MappedDomain):
+class AlgebraicMapping(MappedDomain):
     """Maps from an unbounded domain (-inf, -inf) to a bounded domain 
     [-1., 1.].
     """
