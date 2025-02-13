@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 from torch import Tensor
 
@@ -25,12 +27,11 @@ class HermiteCDF(Hermite, SpectralCDF):
         ps[:, 0] = 0.5 * torch.erf(ls / torch.tensor(2.0).sqrt())
         return ps
     
-    def eval_int_basis_newton(self, ls: Tensor) -> Tensor:
+    def eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         ps = self.eval_basis(ls)
         ws = self.eval_measure(ls)
         dpdls = ps * ws[:, None]
         ps[:, 1:] = -ps[:, :-1] * self.norm[1:] / self.norm[:-1]
         ps *= ws[:, None]
         ps[:, 0] = 0.5 * torch.erf(ls / torch.tensor(2.0).sqrt())
-        
         return ps, dpdls
