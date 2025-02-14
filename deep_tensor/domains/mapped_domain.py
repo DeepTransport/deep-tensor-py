@@ -8,9 +8,9 @@ from .domain import Domain
 
 class MappedDomain(Domain, abc.ABC):
     
-    def __init__(self, scale: float|Tensor = 1.):  # TODO: check for any other inputs
+    def __init__(self, scale: float|Tensor = 1.0):
         self.bounds = torch.tensor([-torch.inf, -torch.inf])
-        self.scale = torch.tensor(scale) 
+        self.scale = torch.tensor(scale)
         return
     
     @property

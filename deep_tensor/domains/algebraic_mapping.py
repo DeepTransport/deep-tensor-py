@@ -13,7 +13,7 @@ class AlgebraicMapping(MappedDomain):
     """
 
     def approx2local(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
-        xs /= self.scale
+        xs = xs / self.scale
         ts = 1.0 + xs.square()
         ls = xs * ts.pow(-0.5)
         dldxs = ts.pow(-1.5) / self.scale
@@ -22,7 +22,7 @@ class AlgebraicMapping(MappedDomain):
         return ls, dldxs
     
     def approx2local_log_density(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
-        xs /= self.scale 
+        xs = xs / self.scale 
         ts = 1.0 + xs.square()
         logdldxs = -1.5 * ts.log() - self.scale.log()
         logd2ldx2s = (-3.0 / self.scale) * (xs / ts)
@@ -32,7 +32,7 @@ class AlgebraicMapping(MappedDomain):
     
     def local2approx(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         ls = ls.clamp(-1.0+EPS, 1.0-EPS)
-        ts = 1. - ls.square()
+        ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS 
         xs = self.scale * ls * ts.pow(-0.5)
         dxdls = self.scale * ts.pow(-1.5)

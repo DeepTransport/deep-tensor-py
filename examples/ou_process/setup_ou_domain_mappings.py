@@ -15,8 +15,8 @@ plt.style.use("examples/plotstyle.mplstyle")
 torch.manual_seed(0)
 
 
-dim = 20
-a = 0.50
+dim = 5
+a = 0.5
 
 model = OU(dim, a)
 
@@ -27,12 +27,12 @@ debug_size = 10_000
 debug_x = torch.linalg.solve(model.B, torch.randn((dim, debug_size))).T
 
 sample_x = torch.linalg.solve(model.B, torch.randn((dim, 1_000))).T
-# input_data = dt.InputData(sample_x, debug_x)
-input_data = dt.InputData(xs_debug=debug_x)
+input_data = dt.InputData(sample_x, debug_x)
+# input_data = dt.InputData(xs_debug=debug_x)
 # input_data = dt.InputData()
 
 polys_dict = {
-    "lagrange_bound": dt.Lagrange1(num_elems=50),
+    "lagrange_bound": dt.Lagrange1(num_elems=40),
     "legendre_log": dt.Legendre(order=40),
     # "lagrangep_alg": dt.LagrangeP(5, 8),
     "legendre_alg": dt.Legendre(order=40),
@@ -53,7 +53,7 @@ bases_dict = {
     ) for poly in polys_dict
 }
 
-tt_methods_list = ["fixed_rank"]
+tt_methods_list = ["random"]
 
 # zs = 2 * torch.rand(10, dim) - 1
 # us, dudzs = domains_dict["legendre_log"].local2approx(zs)
@@ -66,7 +66,7 @@ options_dict = {
     method: dt.TTOptions(
         tt_method=method,
         max_rank=19, 
-        max_als=2
+        max_als=4
     ) for method in tt_methods_list
 }
 

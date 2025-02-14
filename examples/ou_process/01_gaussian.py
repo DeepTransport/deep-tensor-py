@@ -7,7 +7,7 @@ import time
 
 from torch.linalg import norm
 
-from examples.ou_process.setup_ou import * 
+from examples.ou_process.setup_ou_domain_mappings import * 
 
 
 headers = [
