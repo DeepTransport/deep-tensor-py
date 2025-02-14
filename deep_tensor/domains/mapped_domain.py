@@ -14,14 +14,6 @@ class MappedDomain(Domain, abc.ABC):
         return
     
     @property
-    def left(self) -> Tensor:
-        return self._bounds[0]
-    
-    @property 
-    def right(self) -> Tensor:
-        return self._bounds[1]
-    
-    @property
     def bounds(self) -> Tensor:
         return self._bounds
     

@@ -14,17 +14,15 @@ class Domain(abc.ABC):
         return
     
     @property
-    @abc.abstractmethod 
     def left(self) -> Tensor:
         """The left-hand boundary of the approximation domain."""
-        return 
+        return self.bounds[0]
     
     @property 
-    @abc.abstractmethod
     def right(self) -> Tensor:
         """The right-hand boundary of the approximation domain."""
-        return
-    
+        return self.bounds[1]
+
     @abc.abstractmethod
     def local2approx(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         """Maps a set of points in the reference domain to the 
@@ -123,4 +121,10 @@ class Domain(abc.ABC):
             approximation domain to the reference domain.
         
         """
+        return
+    
+    def check_bounds(self, bounds: Tensor) -> None:
+        if bounds[0] >= bounds[1]:
+            msg = "Left-hand bound must be less than right-hand bound."
+            raise Exception(msg)
         return
