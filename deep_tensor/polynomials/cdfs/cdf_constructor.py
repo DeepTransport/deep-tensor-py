@@ -1,20 +1,26 @@
 from .bounded_poly_cdf import BoundedPolyCDF
+from .hermite_cdf import HermiteCDF
 from .fourier_cdf import FourierCDF
 from .lagrange_1_cdf import Lagrange1CDF
 from .lagrange_p_cdf import LagrangePCDF
+from .laguerre_cdf import LaguerreCDF
 
 from ..polynomials.basis_1d import Basis1D
 
+from ..polynomials.hermite import Hermite
 from ..polynomials.fourier import Fourier
 from ..polynomials.lagrange_1 import Lagrange1
 from ..polynomials.lagrange_p import LagrangeP
+from ..polynomials.laguerre import Laguerre
 from ..polynomials.legendre import Legendre
 
 
 POLY_CDFS = {
     Fourier: FourierCDF,
+    Hermite: HermiteCDF,
     Lagrange1: Lagrange1CDF,
     LagrangeP: LagrangePCDF,
+    Laguerre: LaguerreCDF,
     Legendre: BoundedPolyCDF,
 }
 
