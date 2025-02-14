@@ -1,10 +1,8 @@
 import torch
+from torch import Tensor
 
 from .spectral import Spectral 
 from ...constants import EPS
-
-
-DEFAULT_DOMAIN = torch.tensor([-1.0, 1.0])
 
 
 class Chebyshev1st(Spectral):
@@ -14,6 +12,7 @@ class Chebyshev1st(Spectral):
 
         self.order = order
         self.n = torch.arange(self.order+1)
+        self.domain = torch.tensor([-1.0, 1.0])
 
         self._nodes = torch.cos(torch.pi * (self.n+0.5) / (self.order+1)) 
         self._nodes = torch.sort(self._nodes)[0]
@@ -21,19 +20,24 @@ class Chebyshev1st(Spectral):
 
         self.normalising = torch.hstack((
             torch.tensor([1.0]), 
-            torch.full((self.order,), torch.sqrt(torch.tensor(2)))
+            torch.full((self.order,), torch.tensor(2).sqrt())
         ))
 
         self.__post_init__()
         return
     
     @property 
-    def nodes(self) -> torch.Tensor:
+    def nodes(self) -> Tensor:
         return self._nodes
     
     @property 
-    def domain(self) -> torch.Tensor:
-        return DEFAULT_DOMAIN
+    def domain(self) -> Tensor:
+        return self._domain 
+    
+    @domain.setter
+    def domain(self, value: Tensor) -> None:
+        self._domain = value
+        return
     
     @property 
     def weights(self) -> torch.Tensor:
@@ -43,14 +47,14 @@ class Chebyshev1st(Spectral):
     def constant_weight(self) -> bool: 
         return False
 
-    def eval_basis(self, x: torch.Tensor) -> torch.Tensor:
+    def eval_basis(self, ls: torch.Tensor) -> torch.Tensor:
         """Evaluates the set of Chebyshev polynomials of the first 
         kind, up to order n, for all inputs x in [-1, 1].
         """
 
-        theta = self.l2theta(x)
-        basis_vals = torch.cos(torch.outer(theta, self.n)) * self.normalising
-        return basis_vals
+        thetas = self.l2theta(ls)
+        ps = torch.cos(torch.outer(thetas, self.n)) * self.normalising
+        return ps
     
     def eval_basis_deriv(self, x: torch.Tensor) -> torch.Tensor:
         """Derivative of first-order polynomials is the value of 
