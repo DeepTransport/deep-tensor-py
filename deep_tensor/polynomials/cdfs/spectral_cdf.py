@@ -11,11 +11,6 @@ class SpectralCDF(CDF1D, abc.ABC):
 
     def __init__(self, **kwargs):
         """CDF class for spectral polynomials.
-
-        Parameters
-        ----------
-        TODO (??)
-        
         """
 
         CDF1D.__init__(self, **kwargs)
@@ -46,7 +41,7 @@ class SpectralCDF(CDF1D, abc.ABC):
 
         Returns
         -------
-        :
+        ls:
             The discretised domain.
         
         """

@@ -32,19 +32,19 @@ input_data = dt.InputData(sample_x, debug_x)
 # input_data = dt.InputData()
 
 polys_dict = {
-    "lagrange_bound": dt.Lagrange1(num_elems=40),
+    "lagrangep_bound": dt.LagrangeP(order=5, num_elems=8),
     "chebyshev1st_alg": dt.Chebyshev1st(order=40),
+    "lagrangep_alg": dt.LagrangeP(order=5, num_elems=8),
+    "chebyshev2nd_log": dt.Chebyshev2nd(order=40),
     "legendre_log": dt.Legendre(order=40),
-    # "lagrangep_alg": dt.LagrangeP(5, 8),
-    "legendre_alg": dt.Legendre(order=40),
 }
 
 domains_dict = {
-    "lagrange_bound": dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0])),
+    "lagrangep_bound": dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0])),
     "chebyshev1st_alg": dt.AlgebraicMapping(scale=4.0),
+    "lagrangep_alg": dt.AlgebraicMapping(scale=4.0),
+    "chebyshev2nd_log": dt.LogarithmicMapping(scale=4.0),
     "legendre_log": dt.LogarithmicMapping(scale=4.0),
-    # "lagrangep_alg": dt.AlgebraicMapping(scale=4.0),
-    "legendre_alg": dt.AlgebraicMapping(scale=4.0),
 }
 
 bases_dict = {
@@ -68,7 +68,7 @@ options_dict = {
     method: dt.TTOptions(
         tt_method=method,
         max_rank=19, 
-        max_als=4
+        max_als=2
     ) for method in tt_methods_list
 }
 
