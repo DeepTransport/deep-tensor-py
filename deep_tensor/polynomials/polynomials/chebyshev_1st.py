@@ -14,11 +14,11 @@ class Chebyshev1st(Spectral):
         self.n = torch.arange(self.order+1)
         self.domain = torch.tensor([-1.0, 1.0])
 
-        self._nodes = torch.cos(torch.pi * (self.n+0.5) / (self.order+1)) 
-        self._nodes = torch.sort(self._nodes)[0]
-        self._weights = torch.ones_like(self._nodes) / (self.order+1)
+        self.nodes = torch.cos(torch.pi * (self.n+0.5) / (self.order+1)) 
+        self.nodes = torch.sort(self.nodes)[0]
+        self.weights = torch.ones_like(self.nodes) / (self.order+1)
 
-        self.normalising = torch.hstack((
+        self.norm = torch.hstack((
             torch.tensor([1.0]), 
             torch.full((self.order,), torch.tensor(2).sqrt())
         ))
@@ -30,6 +30,11 @@ class Chebyshev1st(Spectral):
     def nodes(self) -> Tensor:
         return self._nodes
     
+    @nodes.setter
+    def nodes(self, value: Tensor) -> None:
+        self._nodes = value 
+        return
+    
     @property 
     def domain(self) -> Tensor:
         return self._domain 
@@ -40,68 +45,73 @@ class Chebyshev1st(Spectral):
         return
     
     @property 
-    def weights(self) -> torch.Tensor:
+    def weights(self) -> Tensor:
         return self._weights
+    
+    @weights.setter
+    def weights(self, value: Tensor) -> None:
+        self._weights = value 
+        return
 
     @property
     def constant_weight(self) -> bool: 
         return False
 
-    def eval_basis(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_basis(self, ls: Tensor) -> Tensor:
         """Evaluates the set of Chebyshev polynomials of the first 
         kind, up to order n, for all inputs x in [-1, 1].
         """
-
         thetas = self.l2theta(ls)
-        ps = torch.cos(torch.outer(thetas, self.n)) * self.normalising
+        thetas = thetas[:, None]
+        ps = torch.cos(thetas * self.n) * self.norm
         return ps
     
-    def eval_basis_deriv(self, x: torch.Tensor) -> torch.Tensor:
+    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
         """Derivative of first-order polynomials is the value of 
         second-order polynomials (Wikipedia).
         """
 
-        if self.order > 0:
-            return torch.zeros_like(x)
+        if self.order == 0:
+            return torch.zeros_like(ls)
 
-        theta = self.l2theta(x)
+        thetas = self.l2theta(ls)
+        thetas = thetas[:, None]
 
-        deriv_vals = torch.concat((
-            torch.zeros_like(x), 
-            torch.sin(torch.outer(theta, self.n[1:]) * self.n[1:]) 
-                / torch.sin(theta)
+        deriv_vals = torch.hstack((
+            torch.zeros_like(thetas), 
+            torch.sin(thetas * self.n[1:]) * self.n[1:] / torch.sin(thetas)
         ))
-        deriv_vals *= self.normalising
+        deriv_vals = deriv_vals * self.norm
         return deriv_vals 
 
-    def eval_measure(self, x: torch.Tensor) -> torch.Tensor:
-        t = 1.0 - x**2
-        t[t < EPS] = EPS
-        return 1.0 / (torch.pi * torch.sqrt(t))
+    def eval_measure(self, ls: Tensor) -> Tensor:
+        ts = 1.0 - ls**2
+        ts[ts < EPS] = EPS
+        return 1.0 / (torch.pi * torch.sqrt(ts))
     
-    def eval_measure_deriv(self, x: torch.Tensor) -> torch.Tensor:
-        t = 1.0 - x**2
-        t[t < EPS] = EPS
-        return (x / torch.pi) * t**(-3/2)
+    def eval_measure_deriv(self, ls: Tensor) -> Tensor:
+        ts = 1.0 - ls.square()
+        ts[ts < EPS] = EPS
+        return (ls / torch.pi) * ts**(-3/2)
 
-    def eval_log_measure(self, x: torch.Tensor) -> torch.Tensor:
-        t = 1.0 - x**2
-        t[t < EPS] = EPS
-        return -0.5*torch.log(t) - torch.log(torch.tensor(torch.pi))
+    def eval_log_measure(self, ls: Tensor) -> Tensor:
+        ts = 1.0 - ls.square()
+        ts[ts < EPS] = EPS
+        return -0.5*ts.log() - torch.log(torch.tensor(torch.pi))
 
-    def eval_log_measure_deriv(self, x: torch.Tensor) -> torch.Tensor:
-        t = 1.0 - x**2
-        t[t < EPS] = EPS
-        return x / t
+    def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
+        ts = 1.0 - ls.square()
+        ts[ts < EPS] = EPS
+        return ls / ts
 
-    def sample_measure(self, n: int) -> torch.Tensor:
-        z = torch.rand(n)
-        samples = torch.sin(torch.pi * (z-0.5))
+    def sample_measure(self, n: int) -> Tensor:
+        zs = torch.rand(n)
+        samples = torch.sin(torch.pi * (zs-0.5))
         return samples
 
     def sample_measure_skip(self, n: int) -> torch.Tensor:
-        x0 = 0.5 * (torch.min(self.nodes) - 1.0)
-        x1 = 0.5 * (torch.max(self.nodes) + 1.0)
-        samples = x0 + torch.rand(n) * (x1-x0)
+        l0 = 0.5 * (torch.min(self.nodes) - 1.0)
+        l1 = 0.5 * (torch.max(self.nodes) + 1.0)
+        samples = l0 + torch.rand(n) * (l1 - l0)
         return samples
 

@@ -42,6 +42,11 @@ class Chebyshev1stTrigoCDF(TrigoCDF, Chebyshev1st):
     @property
     def nodes(self) -> Tensor:
         return self._nodes
+    
+    @nodes.setter 
+    def nodes(self, value: Tensor) -> None:
+        self._nodes = value 
+        return
 
     @property 
     def cardinality(self) -> int:
@@ -57,7 +62,7 @@ class Chebyshev1stTrigoCDF(TrigoCDF, Chebyshev1st):
         
         ps = torch.hstack((
             thetas / torch.pi, 
-            torch.sin(self.n[1:] * thetas) 
+            torch.sin(thetas * self.n[1:]) 
                 * ((torch.tensor(2.0).sqrt() / torch.pi) / self.n[1:])
         ))
         return ps
@@ -66,5 +71,5 @@ class Chebyshev1stTrigoCDF(TrigoCDF, Chebyshev1st):
 
         ps = self.eval_int_basis(thetas)
         thetas = thetas[:, None]
-        dpdts = torch.cos(thetas * self.n) * self.normalising / torch.pi
+        dpdts = torch.cos(thetas * self.n) * self.norm / torch.pi
         return ps, dpdts

@@ -5,6 +5,7 @@ from torch import Tensor
 
 from .basis_1d import Basis1D
 from ...constants import EPS
+from ...tools import check_for_nans
 
 
 class Spectral(Basis1D, abc.ABC):
@@ -99,4 +100,5 @@ class Spectral(Basis1D, abc.ABC):
         thetas = torch.acos(ls)
         thetas[torch.abs(ls + 1.0) <= EPS] = torch.pi
         thetas[torch.abs(ls - 1.0) <= EPS] = 0.0
+        check_for_nans(thetas)
         return thetas
