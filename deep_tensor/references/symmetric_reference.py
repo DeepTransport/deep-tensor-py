@@ -6,7 +6,7 @@ from torch import Tensor
 
 from .reference import Reference
 from ..domains import BoundedDomain, Domain
-from ..tools import check_for_nans
+from ..tools import check_finite
 
 
 class SymmetricReference(Reference, abc.ABC):
@@ -179,7 +179,7 @@ class SymmetricReference(Reference, abc.ABC):
         return pdfs, grad_pdfs
 
     def invert_cdf(self, zs: Tensor) -> Tensor:
-        check_for_nans(zs)
+        check_finite(zs)
         zs = self.left + zs * self.norm
         us = self.invert_unit_cdf(zs)
         rs = self.mu + self.sigma * us

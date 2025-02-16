@@ -66,5 +66,5 @@ class Chebyshev1stTrigoCDF(TrigoCDF, Chebyshev1st):
 
         ps = self.eval_int_basis(thetas)
         thetas = thetas[:, None]
-        dpdts = torch.cos(thetas * self.n) * self.norm / torch.pi
-        return ps, dpdts
+        dpdls = torch.cos(thetas * self.n) * self.norm / torch.pi
+        return ps, dpdls

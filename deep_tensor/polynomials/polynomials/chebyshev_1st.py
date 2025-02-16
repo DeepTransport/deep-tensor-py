@@ -3,7 +3,7 @@ from torch import Tensor
 
 from .spectral import Spectral 
 from ...constants import EPS
-from ...tools import check_for_nans
+from ...tools import check_finite
 
 
 class Chebyshev1st(Spectral):
@@ -87,7 +87,7 @@ class Chebyshev1st(Spectral):
             torch.zeros_like(thetas), 
             (torch.sin(thetas * self.n[1:]) * self.n[1:]) / sin_thetas
         )) * self.norm
-        check_for_nans(dpdls)
+        check_finite(dpdls)
         return dpdls 
 
     def eval_measure(self, ls: Tensor) -> Tensor:
@@ -120,4 +120,3 @@ class Chebyshev1st(Spectral):
         l1 = 0.5 * (torch.max(self.nodes) + 1.0)
         samples = l0 + torch.rand(n) * (l1 - l0)
         return samples
-

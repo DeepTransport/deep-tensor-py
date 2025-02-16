@@ -4,7 +4,7 @@ from torch.distributions.beta import Beta
 
 from .spectral import Spectral
 from ...constants import EPS
-from ...tools import check_for_nans
+from ...tools import check_finite
 
 
 class Chebyshev2nd(Spectral):
@@ -73,7 +73,7 @@ class Chebyshev2nd(Spectral):
     
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         ts = 1.0 / (1.0 - ls.square())
-        check_for_nans(ts)
+        check_finite(ts)
         ts[ts < EPS] = EPS
         ws = -ls * ts.sqrt() * 2.0 / torch.pi
         return ws
@@ -82,7 +82,7 @@ class Chebyshev2nd(Spectral):
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS 
         ws = -ls / ts
-        check_for_nans(ws)
+        check_finite(ws)
         return ws
     
     def eval_basis(self, ls: Tensor) -> Tensor:

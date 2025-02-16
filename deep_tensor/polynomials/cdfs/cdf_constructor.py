@@ -1,4 +1,5 @@
 from .bounded_poly_cdf import BoundedPolyCDF
+from .chebyshev_1st_cdf import Chebyshev1stCDF
 from .chebyshev_1st_trigo_cdf import Chebyshev1stTrigoCDF
 from .chebyshev_2nd_trigo_cdf import Chebyshev2ndTrigoCDF
 from .hermite_cdf import HermiteCDF

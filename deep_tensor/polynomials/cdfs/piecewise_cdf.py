@@ -8,6 +8,7 @@ from torch import Tensor
 from .cdf_1d import CDF1D
 from .cdf_data import CDFData
 from ...constants import EPS
+from ...tools import check_finite
 
 
 class PiecewiseCDF(CDF1D, abc.ABC):
@@ -121,10 +122,10 @@ class PiecewiseCDF(CDF1D, abc.ABC):
     def eval_int_lag_local_search(
         self, 
         data: CDFData,
-        inds_left: torch.Tensor, 
-        zs_cdf: torch.Tensor, 
-        ls: torch.Tensor 
-    ) -> torch.Tensor:
+        inds_left: Tensor, 
+        zs_cdf: Tensor, 
+        ls: Tensor 
+    ) -> Tensor:
         """Returns the difference between the values of the current 
         CDF evaluated at a set of points in the local domain and a set
         of values of the CDF we are aiming to compute the inverse of.
@@ -159,10 +160,10 @@ class PiecewiseCDF(CDF1D, abc.ABC):
     def eval_int_lag_local_newton(
         self, 
         cdf_data: CDFData,
-        inds_left: torch.Tensor, 
-        zs_cdf: torch.Tensor, 
-        ls: torch.Tensor 
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        inds_left: Tensor, 
+        zs_cdf: Tensor, 
+        ls: Tensor 
+    ) -> Tuple[Tensor, Tensor]:
         """Returns the difference between the values of the 
         (unnormalised) CDF evaluated at a set of points in the local 
         domain and a set of values of the CDF we are aiming to compute 
@@ -215,11 +216,11 @@ class PiecewiseCDF(CDF1D, abc.ABC):
     def newton(
         self, 
         cdf_data: CDFData, 
-        inds_left: torch.Tensor, 
-        zs_cdf: torch.Tensor, 
-        l0s: torch.Tensor, 
-        l1s: torch.Tensor
-    ) -> torch.Tensor:
+        inds_left: Tensor, 
+        zs_cdf: Tensor, 
+        l0s: Tensor, 
+        l1s: Tensor
+    ) -> Tensor:
         """Inverts a CDF using Newton's method.
         
         Parameters
@@ -266,6 +267,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
             zs, dzs = self.eval_int_lag_local_newton(cdf_data, inds_left, zs_cdf, ls)
             
             dls = -zs / dzs 
+            check_finite(dls)
             dls[torch.isnan(dls)] = 0.0
             ls += dls 
             ls = torch.clamp(ls, l0s, l1s)
@@ -324,6 +326,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         for _ in range(self.num_regula_falsi):
 
             dls = -z1s * (l1s - l0s) / (z1s - z0s)
+            check_finite(dls)
             dls[torch.isnan(dls)] = 0.0
             ls = l1s + dls
 
@@ -338,17 +341,13 @@ class PiecewiseCDF(CDF1D, abc.ABC):
             z0s[zs < 0] = zs[zs < 0]
             z1s[zs > 0] = zs[zs > 0]
             
-        msg = "Regula falsi did not converge in 100 iterations."
+        msg = ("Regula falsi did not converge in "
+               + f"{self.num_regula_falsi} iterations.")
         warnings.warn(msg)
         return ls
     
-    def eval_int_deriv(
-        self, 
-        pls: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
-        
-        cdf_data = self.pdf2cdf(pls)
+    def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
+        cdf_data = self.pdf2cdf(ps)
         zs = self.eval_int_lag(cdf_data, ls)
         return zs
     
@@ -386,11 +385,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         ls = self.newton(cdf_data, inds_left, zs_cdf, l0s, l1s)
         return ls
 
-    def invert_cdf(
-        self, 
-        pls: torch.Tensor, 
-        zs: torch.Tensor
-    ) -> torch.Tensor:
+    def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
 
         # # TEMP
         # pls = torch.zeros((8, 81))
@@ -398,8 +393,8 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         # pls[:, 40:] = torch.linspace(1, 0, 41)
         # pls = pls.T
 
-        self.check_pdf_positive(pls)
-        cdf_data = self.pdf2cdf(pls)
+        self.check_pdf_positive(ps)
+        cdf_data = self.pdf2cdf(ps)
         ls = torch.zeros_like(zs)
 
         zs_cdf = zs * cdf_data.poly_norm

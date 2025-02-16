@@ -27,3 +27,4 @@ from .cdfs.piecewise_cdf import PiecewiseCDF
 
 # Spectral polynomials
 from .cdfs.chebyshev_1st_cdf import Chebyshev1stCDF
+from .cdfs.chebyshev_1st_trigo_cdf import Chebyshev1stTrigoCDF

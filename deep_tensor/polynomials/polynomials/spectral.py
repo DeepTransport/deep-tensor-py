@@ -5,7 +5,7 @@ from torch import Tensor
 
 from .basis_1d import Basis1D
 from ...constants import EPS
-from ...tools import check_for_nans
+from ...tools import check_finite
 
 
 class Spectral(Basis1D, abc.ABC):
@@ -18,7 +18,7 @@ class Spectral(Basis1D, abc.ABC):
         self.node2basis = self.basis2node.T * self.weights
         self.omegas = self.eval_measure(self.nodes)
         self.mass_R = torch.eye(self.cardinality)
-        self.int_W = self.basis2node * self.weights
+        self.int_W = self.basis2node * self.weights  # self.basis2node.T @ self.weights  # TODO: check this...
         return
 
     @property
@@ -101,5 +101,5 @@ class Spectral(Basis1D, abc.ABC):
         thetas = ls.acos()
         thetas[torch.abs(ls + 1.0) <= EPS] = torch.pi
         thetas[torch.abs(ls - 1.0) <= EPS] = 0.0
-        check_for_nans(thetas)
+        check_finite(thetas)
         return thetas

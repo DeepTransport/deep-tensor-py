@@ -3,8 +3,10 @@ from typing import Tuple
 import warnings
 
 import torch
+from torch import Tensor
 
 from .cdf_1d import CDF1D
+from ...tools import check_finite
 
 
 class SpectralCDF(CDF1D, abc.ABC):
@@ -18,19 +20,14 @@ class SpectralCDF(CDF1D, abc.ABC):
         self.sampling_nodes = self.grid_measure(num_sampling_nodes)
         self.cdf_basis2node = self.eval_int_basis(self.sampling_nodes)
         return
-
-    @property
-    @abc.abstractmethod  # TODO: figure out whether this should go in OnedCDF or SpectralCDF.
-    def cardinality(self) -> torch.Tensor:
-        return
     
     @property 
     @abc.abstractmethod 
-    def node2basis(self) -> torch.Tensor:
+    def node2basis(self) -> Tensor:
         return
 
     @abc.abstractmethod
-    def grid_measure(self, n: int) -> torch.Tensor:
+    def grid_measure(self, n: int) -> Tensor:
         """Returns the domain of the measure discretised on a grid of
         n points.
         
@@ -48,7 +45,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_int_basis(self, xs: torch.Tensor) -> torch.Tensor:
+    def eval_int_basis(self, xs: Tensor) -> Tensor:
         """Computes the indefinite integral of the product of each
         basis function and the weight function at a set of points on 
         the interval [-1, 1].
@@ -75,10 +72,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         return
         
     @abc.abstractmethod
-    def eval_int_basis_newton(
-        self, 
-        xs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def eval_int_basis_newton(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         """Computes the indefinite integral of the product of each 
         basis function and the weight function, and the product of the
         derivative of this integral with the weight function, at a set 
@@ -101,20 +95,13 @@ class SpectralCDF(CDF1D, abc.ABC):
         """
         return
 
-    def update_sampling_nodes(
-        self, 
-        sampling_nodes: torch.Tensor
-    ) -> None:
+    def update_sampling_nodes(self, sampling_nodes: Tensor) -> None:
         
         self.sampling_nodes = sampling_nodes 
         self.cdf_basis2node = self.eval_int_basis(self.sampling_nodes)
         return
     
-    def eval_int(
-        self, 
-        coef: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_int(self, coef: Tensor, ls: Tensor) -> Tensor:
         
         basis_vals = self.eval_int_basis(ls)
 
@@ -130,11 +117,11 @@ class SpectralCDF(CDF1D, abc.ABC):
     
     def eval_int_search(
         self,
-        coef: torch.Tensor, 
-        cdf_poly_base,
-        rhs: torch.Tensor,
-        x: torch.Tensor
-    ) -> torch.Tensor:
+        coef: Tensor, 
+        cdf_poly_base: Tensor,
+        rhs: Tensor,
+        x: Tensor
+    ) -> Tensor:
         
         f = self.eval_int(coef, x)
         f = f - cdf_poly_base - rhs
@@ -142,11 +129,11 @@ class SpectralCDF(CDF1D, abc.ABC):
 
     def eval_int_newton(
         self, 
-        coef: torch.Tensor, 
+        coef: Tensor, 
         cdf_poly_base, 
         rhs, 
-        x: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]: 
+        x: Tensor
+    ) -> Tuple[Tensor, Tensor]: 
         
         basis_vals, deriv_vals = self.eval_int_basis_newton(x)
 
@@ -156,23 +143,14 @@ class SpectralCDF(CDF1D, abc.ABC):
         fs = fs - cdf_poly_base - rhs
         return fs, dfs
     
-    def eval_cdf(self, pdf: torch.Tensor, r: torch.Tensor):
-        """I think pk is the PDF,
-        and r is a vector of points at which to evaluate the CDF.
-        
-        Returns 
-        -------
-        :
-            The values of the CDF evaluated at each point.
-        
-        """
+    def eval_cdf(self, pdf: Tensor, ls: Tensor) -> Tensor:
 
         self.check_pdf_positive(pdf)
 
-        if pdf.dim() == 1:
+        if pdf.ndim == 1:
             pdf = pdf[:, None]
 
-        if pdf.shape[1] > 1 and pdf.shape[1] != r.numel():
+        if pdf.shape[1] > 1 and pdf.shape[1] != ls.numel():
             raise Exception("Dimension mismatch.")
         
         coef = self.node2basis @ pdf
@@ -180,17 +158,17 @@ class SpectralCDF(CDF1D, abc.ABC):
         # Normalising constant
         poly_norm = (self.cdf_basis2node[-1] - self.cdf_basis2node[0]) @ coef
 
-        mask_left = r < self.sampling_nodes[0]
-        mask_right = r > self.sampling_nodes[-1]
+        mask_left = ls < self.sampling_nodes[0]
+        mask_right = ls > self.sampling_nodes[-1]
         mask_inside = ~(mask_left | mask_right)
 
-        zs = torch.zeros_like(r)
+        zs = torch.zeros_like(ls)
 
         if torch.any(mask_inside):
             if pdf.shape[1] == 1:
-                zs[mask_inside] = self.eval_int(coef, r[mask_inside]) - poly_base
+                zs[mask_inside] = self.eval_int(coef, ls[mask_inside]) - poly_base
             else:
-                tmp = self.eval_int(coef[:, mask_inside], r[mask_inside])
+                tmp = self.eval_int(coef[:, mask_inside], ls[mask_inside])
                 zs[mask_inside] = tmp.flatten() - poly_base[mask_inside].flatten()
         
         if torch.any(mask_right):
@@ -200,14 +178,9 @@ class SpectralCDF(CDF1D, abc.ABC):
                 zs[mask_right] = poly_norm[mask_right]
 
         zs = zs / poly_norm.flatten()
-    
         return zs
 
-    def eval_int_deriv(
-        self, 
-        ps: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
         """TODO: rewrite. zs should be renamed."""
         
         coef = self.node2basis @ ps 
@@ -268,67 +241,70 @@ class SpectralCDF(CDF1D, abc.ABC):
 
     def newton(
         self,
-        coefs: torch.Tensor, 
-        cdf_poly_base: torch.Tensor, 
-        rhs: torch.Tensor,
-        x0s: torch.Tensor,
-        x1s: torch.Tensor
-    ) -> torch.Tensor:
+        coefs: Tensor, 
+        cdf_poly_base: Tensor, 
+        zs_cdf: Tensor,
+        l0s: Tensor,
+        l1s: Tensor
+    ) -> Tensor:
         
-        f0s = self.eval_int_search(coefs, cdf_poly_base, rhs, x0s)
-        f1s = self.eval_int_search(coefs, cdf_poly_base, rhs, x1s)
-        self.check_initial_intervals(f0s, f1s)
+        z0s = self.eval_int_search(coefs, cdf_poly_base, zs_cdf, l0s)
+        z1s = self.eval_int_search(coefs, cdf_poly_base, zs_cdf, l1s)
+        self.check_initial_intervals(z0s, z1s)
 
         # Carry out the first iteration using the regula falsi method
-        xs = x1s - f1s * (x1s - x0s) / (f1s - f0s)
+        ls = l1s - z1s * (l1s - l0s) / (z1s - z0s)
 
         for _ in range(self.num_newton):  
             
-            fs, dfs = self.eval_int_newton(coefs, cdf_poly_base, rhs, xs)
+            zs, dzs = self.eval_int_newton(coefs, cdf_poly_base, zs_cdf, ls)
             
-            dxs = -fs / dfs 
-            dxs[torch.isinf(dxs)] = 0.0
-            xs += dxs 
-            xs = torch.clamp(xs, x0s, x1s)
+            dls = -zs / dzs 
+            check_finite(dls)
+            dls[torch.isinf(dls)] = 0.0
+            ls += dls 
+            ls = torch.clamp(ls, l0s, l1s)
 
-            if self.converged(fs, dxs):
-                return xs
+            if self.converged(zs, dls):
+                return ls
         
         msg = "Newton's method did not converge. Trying regula falsi..."
         warnings.warn(msg)
-        return self.regula_falsi(coefs, cdf_poly_base, rhs, x0s, x1s)
+        return self.regula_falsi(coefs, cdf_poly_base, zs_cdf, l0s, l1s)
     
     def regula_falsi(
         self, 
-        coefs: torch.Tensor,
-        cdf_poly_base: torch.Tensor,
-        rhs: torch.Tensor, 
-        x0s: torch.Tensor, 
-        x1s: torch.Tensor
-    ) -> torch.Tensor:
+        coefs: Tensor,
+        cdf_poly_base: Tensor,
+        rhs: Tensor, 
+        l0s: Tensor, 
+        l1s: Tensor
+    ) -> Tensor:
         
-        f0s = self.eval_int_search(coefs, cdf_poly_base, rhs, x0s)
-        f1s = self.eval_int_search(coefs, cdf_poly_base, rhs, x1s)
-        self.check_initial_intervals(f0s, f1s)
+        z0s = self.eval_int_search(coefs, cdf_poly_base, rhs, l0s)
+        z1s = self.eval_int_search(coefs, cdf_poly_base, rhs, l1s)
+        self.check_initial_intervals(z0s, z1s)
 
-        for _ in range(100):  # TODO: make this an attribute
+        for _ in range(self.num_regula_falsi):
 
-            dxs = -f1s * (x1s - x0s) / (f1s - f0s)
-            dxs[torch.isnan(dxs)] = 0.0
-            xs = x1s + dxs
+            dls = -z1s * (l1s - l0s) / (z1s - z0s)
+            check_finite(dls)
+            dls[torch.isnan(dls)] = 0.0
+            ls = l1s + dls
 
-            fs = self.eval_int_search(coefs, cdf_poly_base, rhs, xs)
+            zs = self.eval_int_search(coefs, cdf_poly_base, rhs, ls)
 
-            if self.converged(fs, dxs):
-                return xs 
+            if self.converged(zs, dls):
+                return ls 
 
             # Update intervals (note: the CDF is monotone increasing)
-            x0s[fs < 0] = xs[fs < 0]
-            x1s[fs > 0] = xs[fs > 0]
-            f0s[fs < 0] = fs[fs < 0]
-            f1s[fs > 0] = fs[fs > 0]
+            l0s[zs < 0] = ls[zs < 0]
+            l1s[zs > 0] = ls[zs > 0]
+            z0s[zs < 0] = zs[zs < 0]
+            z1s[zs > 0] = zs[zs > 0]
             
-        msg = "Regula falsi did not converge in 100 iterations."
+        msg = ("Regula falsi did not converge in "
+               + f"{self.num_regula_falsi} iterations.")
         warnings.warn(msg)
-        return xs
+        return ls
        

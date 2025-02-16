@@ -45,7 +45,7 @@ class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
         basis_vals = self.eval_int_basis(xs)
 
         theta = self.l2theta(xs)
-        derivs = torch.cos(torch.outer(theta, self.n)) * self.normalising
+        derivs = torch.cos(torch.outer(theta, self.n)) * self.norm
         w = self.eval_measure(xs)
         derivs = derivs * w[:, None]
         

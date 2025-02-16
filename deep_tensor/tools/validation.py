@@ -3,7 +3,7 @@ from torch import Tensor
 import warnings
 
 
-def check_for_nans(xs: Tensor) -> None:
+def check_finite(xs: Tensor) -> None:
     """Checks whether there are any NAN or INF values in a tensor, and 
     warns the user if so.
     """

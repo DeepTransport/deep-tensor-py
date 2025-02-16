@@ -5,7 +5,7 @@ from torch import Tensor
 
 from .reference import Reference
 from ..constants import EPS
-from ..tools import check_for_nans
+from ..tools import check_finite
 
 
 class UniformReference(Reference):
@@ -20,7 +20,7 @@ class UniformReference(Reference):
         return
     
     def invert_cdf(self, zs: Tensor) -> Tensor:
-        check_for_nans(zs)
+        check_finite(zs)
         zs = torch.clamp(zs, EPS, 1.-EPS)
         rs = self.domain[0] + zs / self.pdf
         return rs

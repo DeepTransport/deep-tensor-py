@@ -2,6 +2,7 @@ import abc
 import warnings
 
 import torch
+from torch import Tensor
 
 from ...constants import EPS
 
@@ -24,13 +25,13 @@ class CDF1D(abc.ABC):
     
     @property 
     @abc.abstractmethod 
-    def nodes(self) -> torch.Tensor: 
+    def nodes(self) -> Tensor: 
         """The nodes associated with the CDF."""
         return 
     
     @property 
     @abc.abstractmethod 
-    def cardinality(self) -> torch.Tensor:
+    def cardinality(self) -> Tensor:
         """The number of nodes associated with the polynomial basis of
         the CDF.
         """
@@ -38,7 +39,7 @@ class CDF1D(abc.ABC):
     
     @property
     @abc.abstractmethod
-    def domain(self) -> torch.Tensor:
+    def domain(self) -> Tensor:
         """The domain on which polynomials used to form the CDF are 
         defined.
         """
@@ -50,11 +51,7 @@ class CDF1D(abc.ABC):
     #     return
 
     @abc.abstractmethod
-    def invert_cdf(
-        self, 
-        pls: torch.Tensor, 
-        zs: torch.Tensor
-    ) -> torch.Tensor:
+    def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
         """Evaluates the inverse of the CDF of the target PDF at a 
         given set of values, by solving a set of root-finding problem 
         using Newton's method. If Newton's method does not converge, 
@@ -62,7 +59,7 @@ class CDF1D(abc.ABC):
         
         Parameters
         ----------
-        pls: 
+        ps: 
             A matrix containing the values of the (unnormalised) target 
             PDF evaluated at each of the nodes of the basis for the 
             current CDF. There are two possible cases: the matrix 
@@ -84,17 +81,13 @@ class CDF1D(abc.ABC):
         return
         
     @abc.abstractmethod
-    def eval_cdf(
-        self, 
-        pls: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the CDF of the approximation to the target density 
         at a given set of values in the local domain.
         
         Parameters
         ----------
-        pls:
+        ps:
             A matrix containing the values of the (unnormalised) target 
             PDF evaluated at each of the nodes of the basis for the 
             current CDF. There are two possible cases: the matrix 
@@ -119,20 +112,18 @@ class CDF1D(abc.ABC):
         """TODO: write docstring."""
         return
     
-    def check_pdf_positive(self, pdf: torch.Tensor) -> None:
+    @staticmethod
+    def check_pdf_positive(ps: Tensor) -> None:
         """Verifies whether a set of evaluations of the target PDF are 
         positive.
         """
-        if torch.sum(pdf < -EPS) > 0:
+        if torch.sum(ps < -EPS) > 0:
             msg = "Negative PDF values found."
             warnings.warn(msg)
         return
 
-    def check_initial_intervals(
-        self, 
-        z0s: torch.Tensor, 
-        z1s: torch.Tensor 
-    ) -> None:
+    @staticmethod
+    def check_initial_intervals(z0s: Tensor, z1s: Tensor) -> None:
         """Checks whether the function values at each side of the 
         initial interval of a rootfinding method have different signs.
 
@@ -150,13 +141,13 @@ class CDF1D(abc.ABC):
         None
 
         """
-        if (num_violations := torch.sum(z0s * z1s > 0)) > 0:
+        if (num_violations := torch.sum(z0s * z1s > EPS)) > 0:
             msg = (f"Rootfinding: {num_violations} initial intervals "
                    + "without roots found.")
             warnings.warn(msg)
         return
     
-    def converged(self, fs: torch.Tensor, dls: torch.Tensor) -> bool:
+    def converged(self, fs: Tensor, dls: Tensor) -> bool:
         """Returns a boolean that indicates whether a rootfinding 
         method has converged.
 
