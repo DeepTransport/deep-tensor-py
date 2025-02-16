@@ -165,39 +165,6 @@ class AbstractIRT(abc.ABC):
         """TODO: implement."""
         return
 
-    @abc.abstractmethod
-    def build_approximation(
-        self, 
-        target_func: Callable[[Tensor], Tensor], 
-        bases: ApproxBases, 
-        options: TTOptions,
-        input_data: InputData,
-    ) -> TTFunc:
-        """Constructs a functional approximation to a given target 
-        density function.
-
-        Parameters
-        ----------
-        target_func:
-            A function that returns the value of the target function 
-            evaluated at a set of samples from the local domain.
-        bases:
-            The polynomial bases associated with each dimension.
-        options:
-            Options used when constructing the FTT.
-        input_data:
-            An object containing samples used to initialise and 
-            evaluate the quality of the FTT approximation to the 
-            target function.
-
-        Returns
-        -------
-        approx:
-            The FTT approximation to the target function.
-
-        """
-        return
-
     @abc.abstractmethod 
     def eval_potential_local(self, ls: Tensor) -> Tensor:
         """Evaluates the normalised (marginal) PDF represented by the 
