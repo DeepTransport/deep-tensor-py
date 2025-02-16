@@ -87,28 +87,32 @@ class Chebyshev2nd(Spectral):
     
     def eval_basis(self, ls: Tensor) -> Tensor:
         
-        thetas = self.l2theta(ls)[:, None]
-        ps = torch.sin(thetas * (self.n+1)) / (torch.sin(thetas) / self.norm)
+        thetas = self.l2theta(ls)
+        thetas = thetas[:, None]
+
+        ps = self.norm * torch.sin(thetas * (self.n+1)) / thetas.sin()
 
         # Deal with endpoints
         mask_lhs = (ls + 1.0).abs() < EPS
         mask_rhs = (ls - 1.0).abs() < EPS 
-
         ps[mask_lhs] = self.norm * (self.n+1) * torch.tensor(-1.0).pow(self.n)
         ps[mask_rhs] = self.norm * (self.n+1)
-        
+        check_finite(ps)
         return ps
     
-    def eval_basis_deriv(self, ls) -> Tensor:
+    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
 
         thetas = self.l2theta(ls)
-        
-        ls = ls[:, None]
         thetas = thetas[:, None]
+        ls = ls[:, None]
 
-        dpdls = (torch.cos(thetas * (self.n + 1)) * (self.n + 1)
-                 - torch.sin(thetas * (self.n + 1)) * (ls / torch.sin(thetas)) / (ls.square() - 1.0))
+        sin_thetas = thetas.sin()
+        sin_thetas[sin_thetas.abs() < EPS] = EPS
+        
+        ts = ls.square() - 1.0
+        ts[ts > -EPS] = -EPS
 
-        dpdls = dpdls * self.norm
-
+        dpdls = self.norm * ((torch.cos(thetas * (self.n+1)) * (self.n+1)
+                              - torch.sin(thetas * (self.n+1)) * (ls / sin_thetas)) / ts)
+        check_finite(dpdls)
         return dpdls

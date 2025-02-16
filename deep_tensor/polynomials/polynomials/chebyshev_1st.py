@@ -66,30 +66,6 @@ class Chebyshev1st(Spectral):
     def constant_weight(self) -> bool: 
         return False
 
-    def eval_basis(self, ls: Tensor) -> Tensor:
-        thetas = self.l2theta(ls)
-        thetas = thetas[:, None]
-        ps = torch.cos(thetas * self.n) * self.norm
-        return ps
-    
-    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
-
-        if self.order == 0:
-            return torch.zeros((ls.numel(), 1))
-
-        thetas = self.l2theta(ls)
-        thetas = thetas[:, None]
-        
-        sin_thetas = thetas.sin()
-        sin_thetas[sin_thetas.abs() < EPS] = EPS
-
-        dpdls = torch.hstack((
-            torch.zeros_like(thetas), 
-            (torch.sin(thetas * self.n[1:]) * self.n[1:]) / sin_thetas
-        )) * self.norm
-        check_finite(dpdls)
-        return dpdls 
-
     def eval_measure(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
@@ -120,3 +96,27 @@ class Chebyshev1st(Spectral):
         l1 = 0.5 * (torch.max(self.nodes) + 1.0)
         samples = l0 + torch.rand(n) * (l1 - l0)
         return samples
+    
+    def eval_basis(self, ls: Tensor) -> Tensor:
+        thetas = self.l2theta(ls)
+        thetas = thetas[:, None]
+        ps = self.norm * torch.cos(thetas * self.n)
+        return ps
+    
+    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
+
+        if self.order == 0:
+            return torch.zeros((ls.numel(), 1))
+
+        thetas = self.l2theta(ls)
+        thetas = thetas[:, None]
+        
+        sin_thetas = thetas.sin()
+        sin_thetas[sin_thetas.abs() < EPS] = EPS
+
+        dpdls = self.norm * torch.hstack((
+            torch.zeros_like(thetas), 
+            (torch.sin(thetas * self.n[1:]) * self.n[1:]) / sin_thetas
+        ))
+        check_finite(dpdls)
+        return dpdls 
