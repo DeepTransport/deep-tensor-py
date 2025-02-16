@@ -12,6 +12,8 @@ from .polynomials.chebyshev_1st import Chebyshev1st
 from .polynomials.chebyshev_2nd import Chebyshev2nd
 from .polynomials.chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
 from .polynomials.fourier import Fourier
+from .polynomials.hermite import Hermite
+from .polynomials.laguerre import Laguerre
 from .polynomials.recurr import Recurr
 from .polynomials.legendre import Legendre
 

@@ -42,6 +42,11 @@ class Chebyshev2ndTrigoCDF(TrigoCDF, Chebyshev2nd):
     @property
     def nodes(self) -> Tensor:
         return self._nodes
+    
+    @nodes.setter 
+    def nodes(self, value: Tensor) -> None:
+        self._nodes = value 
+        return
 
     @property 
     def cardinality(self) -> int:

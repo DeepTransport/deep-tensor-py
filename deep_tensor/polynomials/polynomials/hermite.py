@@ -60,7 +60,7 @@ class Hermite(Recurr):
         return self.sample_measure(n)
     
     def eval_measure(self, ls: Tensor) -> Tensor:
-        return torch.exp(-0.5 * ls.square()) / torch.sqrt(2.0*torch.pi)
+        return torch.exp(-0.5 * ls.square()) / torch.tensor(2.0*torch.pi).sqrt()
 
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         return -0.5 * (ls.square() + torch.log(2.0*torch.pi))

@@ -10,17 +10,38 @@ class Laguerre(Recurr):
 
     def __init__(self, order: int):
         
-        self.domain = torch.tensor([0., torch.inf])
-        self.constant_weight = False 
+        self.domain = torch.tensor([0.0, torch.inf])
 
         n = torch.arange(order+1)
-        a = -1. / (n+1)
-        b = (2.*n + 1.) / (n + 1.)
-        c = n / (n + 1.)
+        a = -1.0 / (n+1.0)
+        b = (2.0*n + 1.0) / (n+1.0)
+        c = n / (n+1.0)
         norm = torch.ones(order+1)
         
         Recurr.__init__(self, order, a, b, c, norm)
+        return
     
+    @property
+    def domain(self) -> Tensor:
+        return self._domain
+    
+    @domain.setter
+    def domain(self, value: Tensor) -> None:
+        self._domain = value
+        return
+    
+    @property
+    def constant_weight(self) -> bool:
+        return False
+    
+    @property 
+    def nodes(self) -> Tensor:
+        return self._nodes
+
+    @property
+    def weights(self) -> Tensor:
+        return self._weights
+
     def measure_inverse_cdf(self, zs: Tensor) -> Tensor:
         zs = zs.clamp(EPS, 1.-EPS)
         ls = -torch.log(1.-zs)

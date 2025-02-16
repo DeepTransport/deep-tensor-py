@@ -6,21 +6,34 @@ from ...constants import EPS
 
 
 class Chebyshev1st(Spectral):
-    """Chebyshev polynomials of the first kind."""
+    """Chebyshev polynomials of the first kind.
+
+    We use the Gauss-Chebyshev set of collocation points.
+
+    Parameters
+    ----------
+    order:
+        The order of the polynomial.
+     
+    References
+    ----------
+    Boyd, JP (2001). Chebyshev and Fourier spectral methods. Appendix 
+    A.2.
+    https://en.wikipedia.org/wiki/Chebyshev-Gauss_quadrature
+
+    """
 
     def __init__(self, order: int):
 
         self.order = order
         self.n = torch.arange(self.order+1)
-        self.domain = torch.tensor([-1.0, 1.0])
-
         self.nodes = torch.cos(torch.pi * (self.n+0.5) / (self.order+1)) 
-        self.nodes = torch.sort(self.nodes)[0]
+        self.nodes = self.nodes.sort()[0]
         self.weights = torch.ones_like(self.nodes) / (self.order+1)
 
         self.norm = torch.hstack((
             torch.tensor([1.0]), 
-            torch.full((self.order,), torch.tensor(2).sqrt())
+            torch.full((self.order,), torch.tensor(2.0).sqrt())
         ))
 
         self.__post_init__()
@@ -37,12 +50,7 @@ class Chebyshev1st(Spectral):
     
     @property 
     def domain(self) -> Tensor:
-        return self._domain 
-    
-    @domain.setter
-    def domain(self, value: Tensor) -> None:
-        self._domain = value
-        return
+        return torch.tensor([-1.0, 1.0])
     
     @property 
     def weights(self) -> Tensor:
@@ -58,9 +66,6 @@ class Chebyshev1st(Spectral):
         return False
 
     def eval_basis(self, ls: Tensor) -> Tensor:
-        """Evaluates the set of Chebyshev polynomials of the first 
-        kind, up to order n, for all inputs x in [-1, 1].
-        """
         thetas = self.l2theta(ls)
         thetas = thetas[:, None]
         ps = torch.cos(thetas * self.n) * self.norm
@@ -85,9 +90,9 @@ class Chebyshev1st(Spectral):
         return deriv_vals 
 
     def eval_measure(self, ls: Tensor) -> Tensor:
-        ts = 1.0 - ls**2
+        ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
-        return 1.0 / (torch.pi * torch.sqrt(ts))
+        return 1.0 / (torch.pi * ts.sqrt())
     
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
@@ -97,7 +102,7 @@ class Chebyshev1st(Spectral):
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
-        return -0.5*ts.log() - torch.log(torch.tensor(torch.pi))
+        return -0.5*ts.log() - torch.tensor(torch.pi).log()
 
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()

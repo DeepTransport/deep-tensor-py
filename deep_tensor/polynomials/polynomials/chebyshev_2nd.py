@@ -15,8 +15,8 @@ class Chebyshev2nd(Spectral):
 
         self.domain = torch.tensor([-1.0, 1.0])
         self.order = order 
-        self._nodes = torch.cos(torch.pi * torch.arange(1, n+1) / (n+1)).sort()[0]
-        self._weights = torch.sin(torch.pi * torch.arange(1, n+1) / (n+1)) * 2 / (n+1)
+        self.nodes = torch.cos(torch.pi * torch.arange(1, n+1) / (n+1)).sort()[0]
+        self.weights = torch.sin(torch.pi * torch.arange(1, n+1) / (n+1)) * 2 / (n+1)
         
         self.n = torch.arange(self.order+1)
         self.norm = 1.0
@@ -28,6 +28,11 @@ class Chebyshev2nd(Spectral):
     def nodes(self) -> Tensor:
         return self._nodes
     
+    @nodes.setter 
+    def nodes(self, value: Tensor) -> None:
+        self._nodes = value 
+        return
+    
     @property 
     def domain(self) -> Tensor:
         return self._domain 
@@ -38,8 +43,13 @@ class Chebyshev2nd(Spectral):
         return
     
     @property 
-    def weights(self) -> torch.Tensor:
+    def weights(self) -> Tensor:
         return self._weights
+    
+    @weights.setter 
+    def weights(self, value: Tensor) -> None:
+        self._weights = value 
+        return
 
     @property
     def constant_weight(self) -> bool: 
@@ -90,13 +100,21 @@ class Chebyshev2nd(Spectral):
         mask_lhs = (ls + 1.0).abs() < EPS
         mask_rhs = (ls - 1.0).abs() < EPS 
 
-        if mask_lhs.sum() > 0:
-            ps[mask_lhs] = self.norm * (self.n+1) * torch.tensor(-1.0).pow(self.n)
+        ps[mask_lhs] = self.norm * (self.n+1) * torch.tensor(-1.0).pow(self.n)
+        ps[mask_rhs] = self.norm * (self.n+1)
         
-        if mask_rhs.sum() > 0:
-            ps[mask_rhs] = self.norm * (self.n+1)
-
         return ps
     
     def eval_basis_deriv(self, ls) -> Tensor:
-        raise NotImplementedError()
+
+        thetas = self.l2theta(ls)
+        
+        ls = ls[:, None]
+        thetas = thetas[:, None]
+
+        dpdls = (torch.cos(thetas * (self.n + 1)) * (self.n + 1)
+                 - torch.sin(thetas * (self.n + 1)) * (ls / torch.sin(thetas)) / (ls.square() - 1.0))
+
+        dpdls = dpdls * self.norm
+
+        return dpdls

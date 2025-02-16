@@ -16,6 +16,7 @@ class Spectral(Basis1D, abc.ABC):
         """
         self.basis2node = self.eval_basis(self.nodes)
         self.node2basis = self.basis2node.T * self.weights
+        self.omegas = self.eval_measure(self.nodes)
         self.mass_R = torch.eye(self.cardinality)
         self.int_W = self.basis2node * self.weights
         return
@@ -93,11 +94,11 @@ class Spectral(Basis1D, abc.ABC):
         Returns
         -------
         thetas: 
-            An n-dimensional vector containing the corresponding theta 
-            values (theta = arccos(l)).
+            An n-dimensional vector containing the corresponding values 
+            of theta (theta = arccos(l)).
         
         """
-        thetas = torch.acos(ls)
+        thetas = ls.acos()
         thetas[torch.abs(ls + 1.0) <= EPS] = torch.pi
         thetas[torch.abs(ls - 1.0) <= EPS] = 0.0
         check_for_nans(thetas)
