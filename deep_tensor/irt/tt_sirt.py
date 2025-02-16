@@ -46,15 +46,6 @@ class TTSIRT(AbstractIRT):
         self.int_dir = Direction.FORWARD
         self.tau = tau
 
-        # self.approx = self.build_approximation(
-        #     target_func, 
-        #     bases,
-        #     approx,
-        #     options, 
-        #     input_data,
-        #     tt_data
-        # )
-
         self.approx = TTFunc(
             target_func, 
             self.bases,
@@ -192,30 +183,6 @@ class TTSIRT(AbstractIRT):
         # The ratio of f and w is invariant to changes of coordinate
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
         return gs
-
-    def build_approximation(
-        self, 
-        target_func: Callable[[Tensor], Tensor], 
-        bases: ApproxBases|None, 
-        approx: TTFunc|None,
-        options: TTOptions, 
-        input_data: InputData,
-        tt_data: TTData
-    ) -> TTFunc:
-        
-        approx = TTFunc(
-            target_func, 
-            bases,
-            options=options, 
-            input_data=input_data,
-            tt_data=tt_data
-        )
-        approx.cross()
-
-        if approx.use_amen:
-            approx.round()  # why?
-
-        return approx
 
     def eval_potential_local(self, ls: Tensor) -> Tensor:
 
