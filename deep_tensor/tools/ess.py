@@ -1,7 +1,8 @@
 import torch
+from torch import Tensor
 
 
-def compute_ess_ratio(log_weights: torch.Tensor) -> torch.Tensor:
+def compute_ess_ratio(log_weights: Tensor) -> Tensor:
     """Returns the ratio of the effective sample size to the number of
     particles.
 

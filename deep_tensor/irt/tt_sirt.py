@@ -19,7 +19,7 @@ class TTSIRT(AbstractIRT):
         options: TTOptions|None = None, 
         input_data: InputData|None = None, 
         tt_data: TTData|None = None,
-        tau: float=1e-8
+        tau: float = 1e-8
     ):
         
         def target_func(ls: Tensor) -> Tensor:
@@ -60,7 +60,7 @@ class TTSIRT(AbstractIRT):
         self._oned_cdfs = {}
         tol = self.approx.options.cdf_tol
         for k in range(self.dim):
-            self._oned_cdfs[k] = construct_cdf(self.bases.polys[k], error_tol=tol)
+            self.oned_cdfs[k] = construct_cdf(self.bases.polys[k], error_tol=tol)
 
         self.marginalise(direction=self.int_dir)
         return

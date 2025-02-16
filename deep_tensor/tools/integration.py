@@ -1,14 +1,15 @@
 from typing import Callable
 
 import torch
+from torch import Tensor
 
 
 def integrate(
-    func: Callable[[torch.Tensor], torch.Tensor], 
+    func: Callable[[Tensor], Tensor], 
     x0: float,
     x1: float,
     n: int=151
-) -> torch.Tensor:
+) -> Tensor:
     """Approximates the integral of a given function on the interval 
     [x0, x1] using the trapezoidal rule.
 

@@ -1,11 +1,10 @@
 from typing import Tuple 
 
 import torch
+from torch import Tensor
 
 
-def compute_norm_const_ratio(
-    log_ratios: torch.Tensor
-) -> torch.Tensor:
+def compute_norm_const_ratio(log_ratios: Tensor) -> Tensor:
     """Estimates the ratio of the normalising constants between two 
     (unnormalised) densities using a set of samples.
     
@@ -39,9 +38,9 @@ def compute_norm_const_ratio(
 
 
 def compute_f_divergence(
-    log_proposal: torch.Tensor, 
-    log_target: torch.Tensor
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    log_proposal: Tensor, 
+    log_target: Tensor
+) -> Tuple[Tensor, Tensor, Tensor]:
     """Computes approximations of a set of f-divergences between two 
     probability distributions using samples.
 

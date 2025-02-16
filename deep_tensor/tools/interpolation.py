@@ -2,9 +2,10 @@ from typing import Tuple
 import warnings
 
 import torch
+from torch import Tensor
 
 
-def deim(U: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+def deim(U: Tensor) -> Tuple[Tensor, Tensor]:
     """Computes a submatrix of a matrix of left singular vectors using
     the discrete empirical interpolation method (DEIM).
     
@@ -79,10 +80,10 @@ def lu_deim(A):
 
 
 def maxvol(
-    H: torch.Tensor, 
-    tol: float=1e-2,
-    max_iter: int=200
-) -> Tuple[torch.Tensor, torch.Tensor]:
+    H: Tensor, 
+    tol: float = 1e-2,
+    max_iter: int = 200
+) -> Tuple[Tensor, Tensor]:
     """Returns a dominant r*r submatrix within an n*r matrix.
     
     Parameters
@@ -117,7 +118,7 @@ def maxvol(
         msg = f"Initial submatrix is singular (rank {rank} < {r})."
         raise Exception(msg)
 
-    A = torch.linalg.solve(H[indices].T, H.T).T
+    A: Tensor = torch.linalg.solve(H[indices].T, H.T).T
 
     for _ in range(max_iter):
 

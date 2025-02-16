@@ -46,6 +46,7 @@ class AbstractIRT(abc.ABC):
 
         self.potential = potential 
         self.bases = bases
+        self.dim = self.bases.dim
         self.approx = approx
         self.options = options 
         self.input_data = input_data
@@ -98,14 +99,8 @@ class AbstractIRT(abc.ABC):
         """
         return
 
-    @property
-    def dim(self) -> int:
-        """The dimension of the target PDF.
-        """
-        return self.bases.dim
-
     @abc.abstractmethod 
-    def marginalise(self, direction: Direction=Direction.FORWARD) -> None:
+    def marginalise(self, direction: Direction = Direction.FORWARD) -> None:
         """Computes each coefficient tensor (B_k) required to evaluate 
         the marginal functions in each dimension, as well as the 
         normalising constant, z. 
