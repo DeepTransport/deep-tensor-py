@@ -77,11 +77,20 @@ class TestChebyshev1st(unittest.TestCase):
                 torch.tensor(5.0*torch.pi/12.0).cos()
             ],
         ]) * poly.norm
+        norm_true = torch.tensor([
+            1.0, 
+            torch.tensor(2.0).sqrt(), 
+            torch.tensor(2.0).sqrt(), 
+            torch.tensor(2.0).sqrt(), 
+            torch.tensor(2.0).sqrt(),
+            torch.tensor(2.0).sqrt()
+        ])
 
         self.assertEqual(poly.order, 5)
         self.assertTrue((poly.nodes - nodes_true).abs().max() < 1e-8)
         self.assertTrue((poly.weights - weights_true).abs().max() < 1e-8)
         self.assertTrue((poly.basis2node - basis2node_true).abs().max() < 1e-8)
+        self.assertTrue((poly.norm - norm_true).abs().max() < 1e-8)
         return
     
     def test_eval_measure(self):
@@ -104,7 +113,61 @@ class TestChebyshev1st(unittest.TestCase):
         self.assertTrue((ws - ws_true).abs().max() < 1e-8)
         self.assertTrue((logws - logws_true).abs().max() < 1e-8)
         return
+
+    def test_eval_measure_deriv(self):
+
+        poly = dt.Chebyshev1st(order=5)
+
+        ls = torch.tensor([-1.0, -0.5, 0.0, 0.5, 1.0])
+        dwdls = poly.eval_measure_deriv(ls)
+        logdwdls = poly.eval_log_measure_deriv(ls)
+
+        dwdls_true = torch.tensor([
+            -1.0 * torch.tensor(EPS).pow(-3.0/2.0),
+            -0.5 * torch.tensor(3.0/4.0).pow(-3.0/2.0), 
+             0.0 * torch.tensor(1.0), 
+             0.5 * torch.tensor(3.0/4.0).pow(-3.0/2.0), 
+             1.0 * torch.tensor(EPS).pow(-3.0/2.0),
+        ]) / torch.pi
+
+        logdwdls_true = torch.tensor([-1.0/EPS, -4.0/6.0, 0.0, 4.0/6.0, 1.0/EPS])
+
+        self.assertTrue((dwdls - dwdls_true).abs().max() < 1e-8)
+        self.assertTrue((logdwdls - logdwdls_true).abs().max() < 1e-8)
+        return
     
+    def test_eval_basis_deriv(self):
+
+        poly = dt.Chebyshev1st(order=3)
+        ls = torch.tensor([-0.5, 0.0, 0.5])
+        thetas = ls.acos()
+
+        dpdls = poly.eval_basis_deriv(ls)
+
+        dpdls_true = torch.tensor([
+            [
+                0.0,
+                1.0 * torch.sin(1.0 * thetas[0]) / torch.sin(thetas[0]),
+                2.0 * torch.sin(2.0 * thetas[0]) / torch.sin(thetas[0]),
+                3.0 * torch.sin(3.0 * thetas[0]) / torch.sin(thetas[0])
+            ],
+            [
+                0.0,
+                1.0 * torch.sin(1.0 * thetas[1]) / torch.sin(thetas[1]),
+                2.0 * torch.sin(2.0 * thetas[1]) / torch.sin(thetas[1]),
+                3.0 * torch.sin(3.0 * thetas[1]) / torch.sin(thetas[1])
+            ],
+            [
+                0.0,
+                1.0 * torch.sin(1.0 * thetas[2]) / torch.sin(thetas[2]),
+                2.0 * torch.sin(2.0 * thetas[2]) / torch.sin(thetas[2]),
+                3.0 * torch.sin(3.0 * thetas[2]) / torch.sin(thetas[2])
+            ]
+        ]) * poly.norm
+
+        self.assertTrue((dpdls - dpdls_true).abs().max() < 1e-8)
+        return
+
 
 if __name__ == "__main__":
     unittest.main()

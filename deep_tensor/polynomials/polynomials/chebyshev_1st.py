@@ -3,6 +3,7 @@ from torch import Tensor
 
 from .spectral import Spectral 
 from ...constants import EPS
+from ...tools import check_for_nans
 
 
 class Chebyshev1st(Spectral):
@@ -72,22 +73,22 @@ class Chebyshev1st(Spectral):
         return ps
     
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
-        """Derivative of first-order polynomials is the value of 
-        second-order polynomials (Wikipedia).
-        """
 
         if self.order == 0:
-            return torch.zeros_like(ls)
+            return torch.zeros((ls.numel(), 1))
 
         thetas = self.l2theta(ls)
         thetas = thetas[:, None]
+        
+        sin_thetas = thetas.sin()
+        sin_thetas[sin_thetas.abs() < EPS] = EPS
 
-        deriv_vals = torch.hstack((
+        dpdls = torch.hstack((
             torch.zeros_like(thetas), 
-            torch.sin(thetas * self.n[1:]) * self.n[1:] / torch.sin(thetas)
-        ))
-        deriv_vals = deriv_vals * self.norm
-        return deriv_vals 
+            (torch.sin(thetas * self.n[1:]) * self.n[1:]) / sin_thetas
+        )) * self.norm
+        check_for_nans(dpdls)
+        return dpdls 
 
     def eval_measure(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
@@ -97,7 +98,7 @@ class Chebyshev1st(Spectral):
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
-        return (ls / torch.pi) * ts**(-3/2)
+        return (ls / torch.pi) * ts.pow(-3.0/2.0)
 
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
