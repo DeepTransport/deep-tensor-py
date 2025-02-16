@@ -9,8 +9,6 @@ from ...constants import EPS
 class Laguerre(Recurr):
 
     def __init__(self, order: int):
-        
-        self.domain = torch.tensor([0.0, torch.inf])
 
         n = torch.arange(order+1)
         a = -1.0 / (n+1.0)
@@ -23,12 +21,7 @@ class Laguerre(Recurr):
     
     @property
     def domain(self) -> Tensor:
-        return self._domain
-    
-    @domain.setter
-    def domain(self, value: Tensor) -> None:
-        self._domain = value
-        return
+        return torch.tensor([0.0, torch.inf])
     
     @property
     def constant_weight(self) -> bool:
@@ -43,8 +36,8 @@ class Laguerre(Recurr):
         return self._weights
 
     def measure_inverse_cdf(self, zs: Tensor) -> Tensor:
-        zs = zs.clamp(EPS, 1.-EPS)
-        ls = -torch.log(1.-zs)
+        zs = zs.clamp(EPS, 1.0-EPS)
+        ls = -torch.log(1.0-zs)
         return ls 
     
     def sample_measure(self, n: int) -> Tensor:

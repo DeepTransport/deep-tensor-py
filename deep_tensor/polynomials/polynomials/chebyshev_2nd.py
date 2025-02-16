@@ -13,10 +13,9 @@ class Chebyshev2nd(Spectral):
 
         n = order + 1
 
-        self.domain = torch.tensor([-1.0, 1.0])
         self.order = order 
         self.nodes = torch.cos(torch.pi * torch.arange(1, n+1) / (n+1)).sort()[0]
-        self.weights = torch.sin(torch.pi * torch.arange(1, n+1) / (n+1)) * 2 / (n+1)
+        self.weights = torch.sin(torch.pi * torch.arange(1, n+1) / (n+1)).square() * 2 / (n+1)
         
         self.n = torch.arange(self.order+1)
         self.norm = 1.0
@@ -35,12 +34,7 @@ class Chebyshev2nd(Spectral):
     
     @property 
     def domain(self) -> Tensor:
-        return self._domain 
-    
-    @domain.setter
-    def domain(self, value: Tensor) -> None:
-        self._domain = value
-        return
+        return torch.tensor([-1.0, 1.0])
     
     @property 
     def weights(self) -> Tensor:

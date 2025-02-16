@@ -14,12 +14,7 @@ class Chebyshev1stTrigoCDF(TrigoCDF, Chebyshev1st):
     
     @property
     def domain(self) -> Tensor:
-        return self._domain 
-    
-    @domain.setter 
-    def domain(self, value: Tensor) -> None:
-        self._domain = value
-        return
+        return torch.tensor([-1.0, 1.0])
     
     @property
     def node2basis(self) -> Tensor:

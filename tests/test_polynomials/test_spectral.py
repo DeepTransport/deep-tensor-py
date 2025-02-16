@@ -19,18 +19,19 @@ class TestSpectralPolynomials(unittest.TestCase):
 
         polynomials: list[dt.Spectral] = [
             dt.Chebyshev1st(order=20),
-            # dt.Chebyshev2nd(order=20),
+            dt.Chebyshev2nd(order=20),
             dt.Chebyshev2ndUnweighted(order=20),
             dt.Hermite(order=20),
-            # dt.Laguerre(order=20),
+            dt.Laguerre(order=20),  # poly.node2basis @ poly.basis2node doesn't produce the identity
             dt.Fourier(order=20),
             dt.Legendre(order=20)
         ]
 
         for poly in polynomials:
             with self.subTest(poly=poly):
-                Id = poly.basis2node @ poly.node2basis 
+                Id = poly.node2basis @ poly.basis2node
                 Id_true = torch.eye(poly.cardinality)
+                print((Id_true - Id).abs().max())
                 self.assertTrue((Id_true - Id).abs().max() < 1e-8)
 
         return
