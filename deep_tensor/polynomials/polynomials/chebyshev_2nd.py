@@ -62,11 +62,11 @@ class Chebyshev2nd(Spectral):
     def eval_measure(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
-        ws = -ls * ts.sqrt() * 2 / torch.pi 
+        ws = 2.0 * ts.sqrt() / torch.pi 
         return ws
     
     def eval_log_measure(self, ls: Tensor) -> Tensor:
-        ts = 1 - ls.square()
+        ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
         ws = 0.5 * ts.log() + torch.tensor(2.0/torch.pi).log()
         return ws
@@ -75,7 +75,7 @@ class Chebyshev2nd(Spectral):
         ts = 1.0 / (1.0 - ls.square())
         check_finite(ts)
         ts[ts < EPS] = EPS
-        ws = -ls * ts.sqrt() * 2.0 / torch.pi
+        ws = -2.0 * ls * ts.sqrt() / torch.pi
         return ws
     
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
