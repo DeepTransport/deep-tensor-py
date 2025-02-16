@@ -94,7 +94,7 @@ class Chebyshev2nd(Spectral):
 
         # Deal with endpoints
         mask_lhs = (ls + 1.0).abs() < EPS
-        mask_rhs = (ls - 1.0).abs() < EPS 
+        mask_rhs = (ls - 1.0).abs() < EPS
         ps[mask_lhs] = self.norm * (self.n+1) * torch.tensor(-1.0).pow(self.n)
         ps[mask_rhs] = self.norm * (self.n+1)
         check_finite(ps)

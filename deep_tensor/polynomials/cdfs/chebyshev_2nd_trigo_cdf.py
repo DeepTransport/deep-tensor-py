@@ -52,7 +52,7 @@ class Chebyshev2ndTrigoCDF(TrigoCDF, Chebyshev2nd):
         thetas = thetas[:, None]
 
         cdf_ind = torch.arange(1, self.order+3)
-        temp = torch.sin(cdf_ind * thetas) / cdf_ind 
+        temp = torch.sin(thetas * cdf_ind) / cdf_ind 
         ps = torch.hstack((
             thetas - temp[:, 1][:, None],
             temp[:, :self.order] - temp[:, 2:]

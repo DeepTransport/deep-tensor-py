@@ -8,9 +8,6 @@ class Legendre(Recurr):
 
     def __init__(self, order: int):
 
-        self.domain = torch.tensor([-1.0, 1.0])
-        self.constant_weight = True
-
         n = torch.arange(order+1)
         a = (2*n + 1) / (n + 1)
         b = torch.zeros(n.shape)
@@ -22,21 +19,11 @@ class Legendre(Recurr):
 
     @property
     def domain(self) -> Tensor:
-        return self._domain
-    
-    @domain.setter
-    def domain(self, value: Tensor) -> None:
-        self._domain = value
-        return
+        return torch.tensor([-1.0, 1.0])
     
     @property
     def constant_weight(self) -> bool:
-        return self._constant_weight
-    
-    @constant_weight.setter
-    def constant_weight(self, value: Tensor) -> None:
-        self._constant_weight = value
-        return
+        return True
     
     @property 
     def nodes(self) -> Tensor:

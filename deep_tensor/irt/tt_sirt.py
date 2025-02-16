@@ -603,9 +603,11 @@ class TTSIRT(AbstractIRT):
         # Populate off-diagonal elements
         for k in range(1, self.dim):
             for j in range(k):
-                grad_cond = (ps_grid_deriv[k][j] * ps_marg[k-1] - ps_grid[k] * ps_marg_deriv[k-1][j]) / ps_marg[k-1].square() * wls[k]
+                grad_cond = (ps_grid_deriv[k][j] * ps_marg[k-1] - ps_grid[k] * ps_marg_deriv[k-1][j]) / ps_marg[k-1].square()
+                if polys[k].constant_weight:
+                    grad_cond *= wls[k]
                 Jacs[k, :, j] = self.oned_cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
-            
+
         return Jacs
     
     def _eval_rt_jac_local_backward(self, ls: Tensor) -> Tensor:
@@ -659,10 +661,10 @@ class TTSIRT(AbstractIRT):
             ps_grid[k] = gs_grid.square().sum(dim=(2, 3)) + self.tau
 
         # Derivatives of marginal PDF
-        for k in range(1, self.dim):  # rows
+        for k in range(1, self.dim):
             ps_marg_deriv[k] = {}
 
-            for j in range(k, self.dim):  # cols
+            for j in range(k, self.dim):
 
                 prod = TTFunc.batch_mul(Gs_prod[k+1], Ps[k])
                 prod_deriv = torch.ones((n_ls, 1, 1))
@@ -697,7 +699,9 @@ class TTSIRT(AbstractIRT):
         # Populate off-diagonal elements
         for k in range(self.dim-1):
             for j in range(k+1, self.dim):
-                grad_cond = (ps_grid_deriv[k][j] * ps_marg[k+1] - ps_grid[k] * ps_marg_deriv[k+1][j]) / ps_marg[k+1].square() * wls[k]
+                grad_cond = (ps_grid_deriv[k][j] * ps_marg[k+1] - ps_grid[k] * ps_marg_deriv[k+1][j]) / ps_marg[k+1].square()
+                if polys[k].constant_weight:
+                    grad_cond *= wls[k]
                 Jacs[k, :, j] = self.oned_cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
             
         return Jacs

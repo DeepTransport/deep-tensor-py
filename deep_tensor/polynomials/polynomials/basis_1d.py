@@ -1,6 +1,7 @@
 import abc
 
 import torch
+from torch import Tensor 
 
 
 class Basis1D(abc.ABC, object):
@@ -9,13 +10,13 @@ class Basis1D(abc.ABC, object):
 
     @property
     @abc.abstractmethod
-    def domain(self) -> torch.Tensor:
+    def domain(self) -> Tensor:
         """The (local) domain of the basis."""
         pass
 
     @property
     @abc.abstractmethod
-    def nodes(self) -> torch.Tensor:
+    def nodes(self) -> Tensor:
         """The nodes associated with the basis. For spectral 
         polynomials, these are the collocation points.
         """
@@ -31,7 +32,7 @@ class Basis1D(abc.ABC, object):
 
     @property 
     @abc.abstractmethod
-    def mass_R(self) -> torch.Tensor:
+    def mass_R(self) -> Tensor:
         """Cholesky factor of the matrix containing the (weighted) 
         inner products of each pair of basis functions over the 
         local domain.
@@ -40,7 +41,7 @@ class Basis1D(abc.ABC, object):
     
     @property 
     @abc.abstractmethod
-    def int_W(self) -> torch.Tensor: 
+    def int_W(self) -> Tensor: 
         """Given a set of polynomial coefficients, this operator 
         returns the values of the integrated function at each 
         collocation point.
@@ -48,7 +49,7 @@ class Basis1D(abc.ABC, object):
         return
 
     @abc.abstractmethod
-    def eval_basis(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_basis(self, ls: Tensor) -> Tensor:
         """Evaluates the (normalised) one-dimensional basis at a given 
         set of points.
         
@@ -70,7 +71,7 @@ class Basis1D(abc.ABC, object):
         return
     
     @abc.abstractmethod
-    def eval_basis_deriv(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
         """Evaluates the derivative of each (normalised) basis function
         at a given set of points.
         
@@ -92,7 +93,7 @@ class Basis1D(abc.ABC, object):
         return 
     
     @abc.abstractmethod
-    def eval_measure(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_measure(self, ls: Tensor) -> Tensor:
         """Evaluates the (normalised) weighting function at a given set
         of points.
         
@@ -112,7 +113,7 @@ class Basis1D(abc.ABC, object):
         return
     
     @abc.abstractmethod
-    def eval_measure_deriv(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         """Evaluates the gradient of the (normalised) weighting 
         function at a given set of points.
         
@@ -133,7 +134,7 @@ class Basis1D(abc.ABC, object):
         return
     
     @abc.abstractmethod 
-    def eval_log_measure(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_log_measure(self, ls: Tensor) -> Tensor:
         """Evaluates the logarithm of the (normalised) weighting 
         function at a given set of points.
         
@@ -154,7 +155,7 @@ class Basis1D(abc.ABC, object):
         return 
 
     @abc.abstractmethod
-    def eval_log_measure_deriv(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         """Evaluates the gradient of the logarithm of the (normalised) 
         weighting function at a given set of points.
         
@@ -176,7 +177,7 @@ class Basis1D(abc.ABC, object):
         return
 
     @abc.abstractmethod
-    def sample_measure(self, n: int) -> torch.Tensor:
+    def sample_measure(self, n: int) -> Tensor:
         """Generates a set of samples from the weighting measure
         corresponding to the one-dimensional basis.
         
@@ -203,7 +204,7 @@ class Basis1D(abc.ABC, object):
         """The number of nodes associated with the basis."""
         return self.nodes.numel()
 
-    def in_domain(self, ls: torch.Tensor) -> torch.Tensor:
+    def in_domain(self, ls: Tensor) -> Tensor:
         """Returns a boolean mask that indicates whether each of a set
         of points is contained within the local domain of the basis.
         
@@ -221,7 +222,7 @@ class Basis1D(abc.ABC, object):
         """
         return (ls >= self.domain[0]) & (ls <= self.domain[1])
     
-    def out_domain(self, ls: torch.Tensor) -> torch.Tensor:
+    def out_domain(self, ls: Tensor) -> Tensor:
         """Returns a boolean mask that indicates whether each of a set
         of points is outside the local domain of the basis.
         
@@ -239,11 +240,7 @@ class Basis1D(abc.ABC, object):
         """
         return (ls < self.domain[0]) | (ls > self.domain[1])
     
-    def eval_radon(
-        self, 
-        coeffs: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_radon(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the approximated function at a given vector of 
         points.
         
@@ -279,11 +276,7 @@ class Basis1D(abc.ABC, object):
         fls[inside] = basis_vals @ coeffs
         return fls
         
-    def eval_radon_deriv(
-        self, 
-        coeffs: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_radon_deriv(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the derivative of the approximated function at
         a set of points.
 
@@ -315,11 +308,7 @@ class Basis1D(abc.ABC, object):
         gradfls[inside] = deriv_vals @ coeffs
         return gradfls
 
-    def eval(
-        self, 
-        coeffs: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the product of approximated function and the 
         weighting function at a given vector of points.
         
@@ -350,11 +339,7 @@ class Basis1D(abc.ABC, object):
         wls = self.eval_measure(ls).reshape(-1, 1)
         return fls * wls
         
-    def eval_deriv(
-        self, 
-        coeffs: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_deriv(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the gradient of the product of the approximated 
         function and the weighting function at a given vector of 
         points.
@@ -389,24 +374,24 @@ class Basis1D(abc.ABC, object):
             return gradfwls
         
         # Compute first term of product rule
-        deriv_vals = self.eval_basis_deriv(ls[inside])
+        dpdls = self.eval_basis_deriv(ls[inside])
         wls = self.eval_measure(ls[inside])
-        gradfwls[inside] = deriv_vals @ coeffs * wls.reshape(-1, 1)
+        gradfwls[inside] = dpdls @ coeffs * wls[:, None]
 
         # Compute second term of product rule
         if not self.constant_weight:
             basis_vals = self.eval_basis(ls[inside])
             gradwls = self.eval_measure_deriv(ls[inside])
-            gradfwls[inside] += basis_vals @ coeffs * gradwls.reshape(-1, 1)
+            gradfwls[inside] += (basis_vals @ coeffs) * gradwls[:, None]
 
         return gradfwls
  
-    def mass_r(self, interp_w: torch.Tensor) -> torch.Tensor:
+    def mass_r(self, interp_w: Tensor) -> Tensor:
         """Evaluates the product of the upper Cholesky factor of the 
         mass matrix and a set of nodal values or coefficients.
         """
         return self.mass_R @ interp_w
     
-    def evaluate_integral(self, interp_w: torch.Tensor) -> torch.Tensor:
+    def evaluate_integral(self, interp_w: Tensor) -> Tensor:
         """Evaluates the one-dimensional integral."""
         return self.int_W @ interp_w
