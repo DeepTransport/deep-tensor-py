@@ -603,7 +603,8 @@ class TTSIRT(AbstractIRT):
         # Populate off-diagonal elements
         for k in range(1, self.dim):
             for j in range(k):
-                grad_cond = (ps_grid_deriv[k][j] * ps_marg[k-1] - ps_grid[k] * ps_marg_deriv[k-1][j]) / ps_marg[k-1].square()
+                grad_cond = (ps_grid_deriv[k][j] * ps_marg[k-1] 
+                             - ps_grid[k] * ps_marg_deriv[k-1][j]) / ps_marg[k-1].square()
                 if polys[k].constant_weight:
                     grad_cond *= wls[k]
                 Jacs[k, :, j] = self.oned_cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
@@ -699,7 +700,8 @@ class TTSIRT(AbstractIRT):
         # Populate off-diagonal elements
         for k in range(self.dim-1):
             for j in range(k+1, self.dim):
-                grad_cond = (ps_grid_deriv[k][j] * ps_marg[k+1] - ps_grid[k] * ps_marg_deriv[k+1][j]) / ps_marg[k+1].square()
+                grad_cond = (ps_grid_deriv[k][j] * ps_marg[k+1] 
+                             - ps_grid[k] * ps_marg_deriv[k+1][j]) / ps_marg[k+1].square()
                 if polys[k].constant_weight:
                     grad_cond *= wls[k]
                 Jacs[k, :, j] = self.oned_cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
