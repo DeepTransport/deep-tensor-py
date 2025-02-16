@@ -8,7 +8,7 @@ from torch.linalg import norm
 
 import deep_tensor as dt
 
-from examples.ou_process.setup_ou import * 
+from examples.ou_process.setup_ou_domain_mappings import * 
 
 
 def compute_finite_difference_jac(

@@ -1017,6 +1017,10 @@ class TTFunc():
             for k in indices:
                 self.build_basis_svd(self.tt_data.cores[int(k)], k, tol)
 
+        if self.use_amen:
+            self.tt_data.res_w = {}
+            self.tt_data.res_x = {}
+
         return
     
     def _eval_local_forward(self, ls: Tensor) -> Tensor:

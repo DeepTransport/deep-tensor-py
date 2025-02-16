@@ -1,9 +1,10 @@
 import torch
+from torch import Tensor
 
 
 class DoubleBanana():
 
-    def __init__(self, sigma: float, data: torch.Tensor):
+    def __init__(self, sigma: float, data: Tensor):
         self.sigma = sigma
         self.data = data
         self.num_data = data.numel()
@@ -18,3 +19,13 @@ class DoubleBanana():
         potential_prior = 0.5 * torch.sum(u**2, 1)
 
         return potential_likelihood, potential_prior
+    
+
+class ConditionalBanana():
+
+    def __init__(self, sigma: Tensor|int):
+        self.sigma = sigma 
+
+    def eval_potential_joint(self, z: Tensor):
+        y = z[0, :]
+        u = z[1:3, :]

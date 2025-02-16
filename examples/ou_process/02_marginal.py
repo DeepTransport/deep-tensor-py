@@ -42,12 +42,12 @@ for poly in polys_dict:
             t0 = time.time()
             if direction == "forward":
                 # Forward marginalisation
-                indices = torch.arange(8)
+                indices = torch.arange(3)
                 if sirt.int_dir != dt.Direction.FORWARD:
                     sirt.marginalise(dt.Direction.FORWARD) 
             else:
                 # Backward marginalisation
-                indices = torch.arange(dim-1, 14, -1)
+                indices = torch.arange(dim-1, 1, -1)
                 if sirt.int_dir != dt.Direction.BACKWARD:
                     sirt.marginalise(dt.Direction.BACKWARD)
 

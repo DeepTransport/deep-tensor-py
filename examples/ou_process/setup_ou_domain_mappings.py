@@ -32,7 +32,7 @@ input_data = dt.InputData(sample_x, debug_x)
 # input_data = dt.InputData()
 
 polys_dict = {
-    "lagrangep_bound": dt.LagrangeP(order=5, num_elems=8),
+    # "lagrangep_bound": dt.LagrangeP(order=5, num_elems=8),
     "chebyshev1st_alg": dt.Chebyshev1st(order=40),
     "lagrangep_alg": dt.LagrangeP(order=5, num_elems=8),
     "chebyshev2nd_log": dt.Chebyshev2nd(order=40),
@@ -40,7 +40,7 @@ polys_dict = {
 }
 
 domains_dict = {
-    "lagrangep_bound": dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0])),
+    # "lagrangep_bound": dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0])),
     "chebyshev1st_alg": dt.AlgebraicMapping(scale=4.0),
     "lagrangep_alg": dt.AlgebraicMapping(scale=4.0),
     "chebyshev2nd_log": dt.LogarithmicMapping(scale=4.0),

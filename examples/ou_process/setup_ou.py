@@ -33,9 +33,9 @@ input_data = dt.InputData(sample_x, debug_x)
 domain = dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0]))
 
 polys_dict = {
-    "lagrange1": dt.Lagrange1(num_elems=40),
     "legendre": dt.Legendre(order=40),
     "fourier": dt.Fourier(order=20),
+    "lagrange1": dt.Lagrange1(num_elems=40),
     "lagrangep": dt.LagrangeP(order=5, num_elems=8)
 }
 
@@ -51,7 +51,7 @@ tt_methods_list = ["amen", "random", "amen_round"]
 
 options_dict = {
     "amen": dt.TTOptions(
-        tt_method="random",  # TODO: change back to AMEN (fix error(s) in AMEN implementation)
+        tt_method="amen",
         als_tol=1e-4,
         local_tol=0.0,
         max_rank=19,
