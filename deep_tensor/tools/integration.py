@@ -8,7 +8,7 @@ def integrate(
     func: Callable[[Tensor], Tensor], 
     x0: float,
     x1: float,
-    n: int=151
+    n: int = 151
 ) -> Tensor:
     """Approximates the integral of a given function on the interval 
     [x0, x1] using the trapezoidal rule.
@@ -16,7 +16,15 @@ def integrate(
     Parameters
     ----------
     func:
-        TODO: write this. Note that func should be vectorised.
+        A function that takes in a vector of inputs and returns a 
+        vector of the correpsonding values of the function.
+    x0:
+        Left-hand end of the integration interval.
+    x1: 
+        Right-hand end of the integration interval.
+    n:
+        The number of points to evaluate the function at when applying 
+        the trapezoidal rule.
 
     TODO: could make this adaptive in future.
     """

@@ -12,7 +12,7 @@ def deim(U: Tensor) -> Tuple[Tensor, Tensor]:
     Parameters
     ----------
     U: 
-        An n * r matrix of left singular vectors, where n > r. The 
+        An n * r matrix of left singular vectors, where n >= r. The 
         vectors should be in order of decreasing singular value.
         
     Returns
@@ -49,7 +49,7 @@ def deim(U: Tensor) -> Tuple[Tensor, Tensor]:
         P_i = P[:, :i]
         U_i = U[:, :i]
 
-        c = torch.linalg.solve(P_i.T @ U_i, P_i.T @ U[:, i])
+        c: Tensor = torch.linalg.solve(P_i.T @ U_i, P_i.T @ U[:, i])
         r = U[:, i] - U[:, :i] @ c
         indices[i] = r.abs().argmax()
         P[indices[i], i] = 1.0
@@ -58,7 +58,7 @@ def deim(U: Tensor) -> Tuple[Tensor, Tensor]:
     return indices, B
 
 
-def lu_deim(A):
+def lu_deim(A: Tensor):
     """TODO: tidy this up. Also test to see whether this is the same as 
     DEIM when applied with spectral polynomials."""
 
@@ -72,7 +72,7 @@ def lu_deim(A):
 
     indices = torch.arange(n)
 
-    pivots = torch.linalg.lu_factor_ex(A)[1] - 1
+    pivots: Tensor = torch.linalg.lu_factor_ex(A)[1] - 1
     for i, p in enumerate(pivots):
         indices[[i, p.item()]] = indices[[p.item(), i]]
 
