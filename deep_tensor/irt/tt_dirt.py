@@ -15,11 +15,14 @@ from ..tools import compute_f_divergence
 from ..tools.printing import dirt_info
 
 
+DIRTFunc = Callable[[Tensor], Tuple[Tensor, Tensor]]
+
+
 class TTDIRT():
 
     def __init__(
         self, 
-        func: Callable, 
+        func: DIRTFunc, 
         bases: ApproxBases, 
         bridge: Bridge|None = None,
         reference: Reference|None = None,
@@ -249,7 +252,7 @@ class TTDIRT():
 
     def get_new_layer(
         self, 
-        func: Callable, 
+        func: DIRTFunc, 
         bases: list[ApproxBases], 
         sirt_options: TTOptions, 
         xs: Tensor, 
@@ -459,11 +462,7 @@ class TTDIRT():
 
         return xs, neglogfxs
 
-    def build(
-        self,
-        func: Callable[[Tensor], Tensor], 
-        bases_list: list[ApproxBases]
-    ) -> None:
+    def build(self, func: DIRTFunc, bases_list: list[ApproxBases]) -> None:
         """Constructs a DIRT to approximate a given probability 
         density.
         
