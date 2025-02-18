@@ -2,6 +2,7 @@ import abc
 from typing import Callable
 
 import torch
+from torch import Tensor
 
 from ..references import Reference
 
@@ -28,11 +29,11 @@ class Bridge(abc.ABC):
         self, 
         reference: Reference, 
         method: str,
-        xs: torch.Tensor,
-        neglogliks: torch.Tensor, 
-        neglogpris: torch.Tensor, 
-        neglogfxs: torch.Tensor
-    ) -> torch.Tensor:
+        xs: Tensor,
+        neglogliks: Tensor, 
+        neglogpris: Tensor, 
+        neglogfxs: Tensor
+    ) -> Tensor:
         """Returns the negative log-ratio function evaluated each of 
         the current set of samples.
         
@@ -68,11 +69,11 @@ class Bridge(abc.ABC):
     @abc.abstractmethod
     def ratio_func(
         func: Callable, 
-        rs: torch.Tensor,
+        rs: Tensor,
         irt_func: Callable,
         reference: Reference,
         method: str
-    ) -> torch.Tensor:
+    ) -> Tensor:
         """Returns the negative log-ratio function associated with a 
         set of samples from the reference density.
         
@@ -102,7 +103,7 @@ class Bridge(abc.ABC):
         return
     
     @abc.abstractmethod 
-    def set_init(self, neglogliks: torch.Tensor, etol: float) -> None:
+    def set_init(self, neglogliks: Tensor, etol: float) -> None:
         """TODO: write docstring."""
         return 
     
@@ -110,9 +111,9 @@ class Bridge(abc.ABC):
     def adapt_density(
         self,
         method: str, 
-        neglogliks: torch.Tensor, 
-        neglogpris: torch.Tensor, 
-        neglogfxs: torch.Tensor
+        neglogliks: Tensor, 
+        neglogpris: Tensor, 
+        neglogfxs: Tensor
     ) -> None:
         """Determines the beta value associated with the next bridging 
         density.
@@ -143,31 +144,40 @@ class Bridge(abc.ABC):
     @abc.abstractmethod
     def compute_log_weights(
         self,
-        neglogliks: torch.Tensor,
-        neglogpris: torch.Tensor, 
-        neglogfxs: torch.Tensor
-    ) -> torch.Tensor:
+        neglogliks: Tensor,
+        neglogpris: Tensor, 
+        neglogfxs: Tensor
+    ) -> Tensor:
         """Returns the ratio of the next (k+1th) (possibly unnormalised) 
         target density to the current (kth) approximation for all 
         particles.
 
-        TODO: finish docstring.
+        Parameters
+        ----------
+        method: 
+            The method used to select the next bridging parameter. Can
+            be `aratio` (approximate ratio) or `eratio` (exact ratio).
+        neglogliks: 
+            An n-dimensional vector containing the negative 
+            log-likelihood of each of the current samples.
+        neglogpris:
+            An n-dimensional vector containing the negative log-prior 
+            density of each of the current samples.
+        neglogfxs:
+            An n-dimensional vector containing the negative log-density 
+            of the current approximation to the target density for each 
+            of the current samples.
+
+        Returns
+        -------
+        log_weights:
+            An n-dimensional vector containing the computed 
+            log-weights.
+        
         """
         return
-
-    @abc.abstractmethod
-    def print_progress(
-        self, 
-        neglogliks: torch.Tensor, 
-        neglogpris: torch.Tensor, 
-        neglogfx: torch.Tensor
-    ) -> None:
-        return 
     
-    def resample(
-        self, 
-        log_weights: torch.Tensor
-    ) -> torch.Tensor:
+    def resample(self, log_weights: Tensor) -> Tensor:
         """Returns a resampled set of indices based on the importance
         weights between the current bridging density and the density 
         of the approximation to the previous target density evaluated
@@ -196,3 +206,12 @@ class Bridge(abc.ABC):
             replacement=True
         )
         return resampled_inds
+
+    @abc.abstractmethod
+    def print_progress(
+        self, 
+        neglogliks: Tensor, 
+        neglogpris: Tensor, 
+        neglogfx: Tensor
+    ) -> None:
+        return 

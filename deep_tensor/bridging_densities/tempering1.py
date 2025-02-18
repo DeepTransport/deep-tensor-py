@@ -1,6 +1,7 @@
 from typing import Callable
 
 import torch
+from torch import Tensor
 
 from .single_beta import SingleBeta
 from ..references import Reference
@@ -10,11 +11,7 @@ from ..tools.printing import dirt_info
 
 class Tempering1(SingleBeta):
 
-    def __init__(
-        self, 
-        betas: torch.Tensor|None=None, 
-        **kwargs
-    ):
+    def __init__(self, betas: Tensor|None = None, **kwargs):
         
         if betas == None:
             betas = torch.tensor([])
@@ -22,31 +19,32 @@ class Tempering1(SingleBeta):
         super().__init__(betas, **kwargs)
         self.betas = torch.sort(betas)[0]
         self._is_adaptive = self.betas.numel() == 0
-        self._num_layers = 0
+        self.num_layers = 0
         return
-    
-    @property
-    def is_adaptive(self) -> bool:
-        return self._is_adaptive
 
     @property 
     def is_last(self) -> bool:
         return torch.abs(self.betas[-1] - 1.0) < 1e-6
+    
+    @property
+    def is_adaptive(self) -> bool:
+        return self._is_adaptive
+    
+    @is_adaptive.setter 
+    def is_adaptive(self, value: bool) -> None:
+        self._is_adaptive = value 
+        return
 
     @property 
     def num_layers(self) -> int:
         return self._num_layers
     
     @num_layers.setter
-    def num_layers(self, value):
+    def num_layers(self, value: int) -> None:
         self._num_layers = value
         return
     
-    def set_init(
-        self, 
-        neglogliks: torch.Tensor, 
-        etol: float=0.8
-    ) -> None:
+    def set_init(self, neglogliks: Tensor, etol: float = 0.8) -> None:
 
         if not self.is_adaptive:
             return 
@@ -67,9 +65,9 @@ class Tempering1(SingleBeta):
     def adapt_density(
         self, 
         method: str, 
-        neglogliks: torch.Tensor, 
-        neglogpris: torch.Tensor, 
-        neglogfxs: torch.Tensor
+        neglogliks: Tensor, 
+        neglogpris: Tensor, 
+        neglogfxs: Tensor
     ) -> None:
         
         if not self.is_adaptive:
@@ -82,17 +80,17 @@ class Tempering1(SingleBeta):
         beta_prev = self.betas[self.num_layers-1]
         beta = torch.maximum(beta_prev, self.min_beta).clone()
 
-        if method == "aratio":
-            log_weights = -(beta-beta_prev)*neglogliks
-            while compute_ess_ratio(log_weights) > self.ess_tol:
-                beta *= self.beta_factor
-                log_weights = -(beta-beta_prev)*neglogliks
-        
-        elif method == "eratio":
+        if method == "eratio":
             log_weights = -beta*neglogliks - neglogpris + neglogfxs
             while compute_ess_ratio(log_weights) > self.ess_tol:
                 beta *= self.beta_factor
                 log_weights = -beta*neglogliks - neglogpris + neglogfxs
+
+        elif method == "aratio":
+            log_weights = -(beta - beta_prev)*neglogliks
+            while compute_ess_ratio(log_weights) > self.ess_tol:
+                beta *= self.beta_factor
+                log_weights = -(beta - beta_prev)*neglogliks
 
         beta = torch.minimum(beta, torch.tensor(1.0))
         self.betas = torch.cat((self.betas, beta.reshape(1)))
@@ -102,34 +100,25 @@ class Tempering1(SingleBeta):
         self, 
         reference: Reference, 
         method: str,
-        xs: torch.Tensor,
-        neglogliks: torch.Tensor, 
-        neglogpris: torch.Tensor, 
-        neglogfxs: torch.Tensor
-    ) -> torch.Tensor:
+        xs: Tensor,
+        neglogliks: Tensor, 
+        neglogpris: Tensor, 
+        neglogfxs: Tensor
+    ) -> Tensor:
         
         beta = self.betas[self.num_layers]
 
-        # TODO: ask TC what is going on here.
-        # neglogfrs != neglogpris (in general)
-        # (note: beta_prev = 0)
         if self.num_layers == 0:
             neglogratios = beta*neglogliks + neglogpris
             return neglogratios
         
-        beta_prev = self.betas[self.num_layers-1]
-        
-        # Compute the reference density at each value of xs
         neglogrefs = -reference.log_joint_pdf(xs)[0]
 
         if method == "eratio":
-            # beta*neglogliks + neglogpris = exact evaluations of next target of samples under current composition of mappings
-            # neglogfrs = density of reference evaluated at each sample
-            # neglogfxs = current approximation density (that the samples are drawn from) evaluated at each sample
-            # TODO: figure out where omega went here. I assume it's somehow lumped in to neglogfxs..?
             neglogratios = (beta*neglogliks + neglogpris + neglogrefs
                             - neglogfxs)
         elif method == "aratio":
+            beta_prev = self.betas[self.num_layers-1]
             neglogratios = (beta-beta_prev) * neglogliks + neglogrefs
         
         return neglogratios
@@ -137,11 +126,11 @@ class Tempering1(SingleBeta):
     def ratio_func(
         self, 
         func: Callable, 
-        rs: torch.Tensor,
+        rs: Tensor,
         irt_func: Callable,
         reference: Reference,
         method: str
-    ) -> torch.Tensor:
+    ) -> Tensor:
         
         # Push samples forward to the approximation of the current target
         xs, neglogfxs = irt_func(rs)
@@ -160,10 +149,10 @@ class Tempering1(SingleBeta):
     
     def compute_log_weights(
         self, 
-        neglogliks: torch.Tensor,
-        neglogpris: torch.Tensor,
-        neglogfxs: torch.Tensor
-    ) -> torch.Tensor:
+        neglogliks: Tensor,
+        neglogpris: Tensor,
+        neglogfxs: Tensor
+    ) -> Tensor:
         """Returns the logarithm of the ratio between the current 
         bridging density and the density of the approximation to the 
         previous bridging density evaluated at each of a set of samples
@@ -196,10 +185,10 @@ class Tempering1(SingleBeta):
 
     def print_progress(
         self, 
-        log_weights: torch.Tensor,
-        neglogliks: torch.Tensor,
-        neglogpris: torch.Tensor,
-        neglogfxs: torch.Tensor
+        log_weights: Tensor,
+        neglogliks: Tensor,
+        neglogpris: Tensor,
+        neglogfxs: Tensor
     ) -> None:
 
         ess = compute_ess_ratio(log_weights)
