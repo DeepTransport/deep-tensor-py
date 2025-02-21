@@ -378,7 +378,8 @@ class TTFunc():
                 f"{self.l2_err:=16.5e}"
             ]
 
-        als_info(" | ".join(diagnostics))
+        if self.options.verbose:
+            als_info(" | ".join(diagnostics))
         return
 
     def _select_points_piecewise(
@@ -946,8 +947,10 @@ class TTFunc():
         """Builds the FTT using cross iterations.
         """
 
-        self._print_info_header()
         als_iter = 0
+
+        if self.options.verbose:
+            self._print_info_header()
 
         if self.tt_data.cores == {}:
             self.tt_data.direction = Direction.FORWARD 
@@ -978,11 +981,14 @@ class TTFunc():
                 self._compute_final_block()
 
             self.compute_relative_error()
-            self._print_info(als_iter, indices)
+
+            if self.options.verbose:
+                self._print_info(als_iter, indices)
 
             if finished:
-                als_info(f"ALS complete.")
-                als_info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
+                if self.options.verbose:
+                    als_info(f"ALS complete.")
+                    als_info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
                 return
             else:
                 self.tt_data.reverse_direction()

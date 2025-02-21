@@ -14,6 +14,7 @@ class DIRTOptions():
     num_samples: int = 1000
     num_debugs: int = 1000
     defensive: float = 1e-8
+    verbose: bool = True
         
     def __post_init__(self):
         self.method = self.method.lower()

@@ -177,7 +177,8 @@ class TTDIRT():
         """
 
         if self.init_samples is None:
-            dirt_info("Drawing initialisation samples...")
+            if self.dirt_options.verbose:
+                dirt_info("Drawing initialisation samples...")
             xs, neglogfxs = bases.sample_measure(self.pre_sample_size)
             neglogliks, neglogpris = self.func(xs)
         else:
@@ -532,12 +533,13 @@ class TTDIRT():
                 neglogfxs
             )
 
-            self.bridge.print_progress(
-                log_weights, 
-                neglogliks, 
-                neglogpris, 
-                neglogfxs
-            )
+            if self.dirt_options.verbose:
+                self.bridge.print_progress(
+                    log_weights, 
+                    neglogliks, 
+                    neglogpris, 
+                    neglogfxs
+                )
 
             resampled_inds = self.bridge.resample(log_weights)
 
@@ -555,7 +557,8 @@ class TTDIRT():
 
             self.n_layers += 1
             if self.bridge.is_last:
-                dirt_info("DIRT construction complete.")
+                if self.dirt_options.verbose:
+                    dirt_info("DIRT construction complete.")
                 return
 
         warnings.warn("Maximum number of DIRT layers reached.")
@@ -569,6 +572,7 @@ class TTDIRT():
         div_h = div_h2.sqrt()[0]
 
         msg = [f"Iter: {self.n_layers}", f"DHell: {div_h:.4f}"]
-        dirt_info(msg)
-        dirt_info("DIRT construction complete.")
+        if self.dirt_options.verbose:
+            dirt_info(msg)
+            dirt_info("DIRT construction complete.")
         return

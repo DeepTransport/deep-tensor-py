@@ -10,7 +10,7 @@ from .domains import (
 )
 from .ftt import ApproxBases, Direction, InputData, TTFunc
 from .irt import TTDIRT, TTSIRT
-from .options import TTOptions
+from .options import TTOptions, DIRTOptions
 from .polynomials import (
     Basis1D,
     Chebyshev1st, 
