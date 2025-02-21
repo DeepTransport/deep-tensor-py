@@ -105,12 +105,12 @@ class TTDIRT():
         return
 
     @property 
-    def num_layers(self) -> int:
-        return self.bridge.num_layers
+    def n_layers(self) -> int:
+        return self.bridge.n_layers
     
-    @num_layers.setter
-    def num_layers(self, value):
-        self.bridge.num_layers = value 
+    @n_layers.setter
+    def n_layers(self, value):
+        self.bridge.n_layers = value 
         return
 
     def build_bases(
@@ -133,7 +133,7 @@ class TTDIRT():
         bases_list:
             A list of the bases for the first and second levels of DIRT
             construction.
-                
+        
         """
 
         if not isinstance(bases, ApproxBases):
@@ -148,10 +148,7 @@ class TTDIRT():
 
         return bases_list
 
-    def initialise(
-        self, 
-        bases: ApproxBases
-    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def initialise(self, bases: ApproxBases) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """Generates a set of samples to initialise the FTT with.
         
         Parameters
@@ -180,7 +177,7 @@ class TTDIRT():
         """
 
         if self.init_samples is None:
-            # When piecewise polynomials are used, measure is uniform
+            dirt_info("Drawing initialisation samples...")
             xs, neglogfxs = bases.sample_measure(self.pre_sample_size)
             neglogliks, neglogpris = self.func(xs)
         else:
@@ -195,11 +192,31 @@ class TTDIRT():
         self, 
         bases: ApproxBases, 
         neglogratios: Tensor, 
-        rs: Tensor
+        xs: Tensor
     ) -> Tensor:
-        """Returns the (square-rooted?) density we aim to approximate.
+        """Returns the function we aim to approximate (i.e., the 
+        square-root of the ratio function divided by the weighting 
+        function associated with the reference measure).
+
+        Parameters
+        ----------
+        bases: 
+            The bases for the reference measure.
+        neglogratios:
+            An n-dimensional vector containing the negative logarithm 
+            of the ratio function associated with each sample.
+        xs:
+            An n * d matrix containing a set of samples distributed 
+            according to the current bridging density.
+        
+        Returns
+        -------
+        ys:
+            An n-dimensional vector containing evaluations of the 
+            target function at each sample in xs.
+        
         """
-        neglogwrs = bases.eval_measure_potential(rs)[0]
+        neglogwrs = bases.eval_measure_potential(xs)[0]
         log_ys = -0.5 * (neglogratios - neglogwrs)
         return torch.exp(log_ys)
 
@@ -207,7 +224,7 @@ class TTDIRT():
         self, 
         bases: ApproxBases, 
         xs: Tensor, 
-        neglogratio: Tensor 
+        neglogratios: Tensor 
     ) -> InputData:
         """Generates a set of input data and debugging samples used to 
         initialise DIRT.
@@ -220,7 +237,7 @@ class TTDIRT():
         xs:
             An n * d matrix containing samples distributed according to
             the current bridging density.
-        neglogratio:
+        neglogratios:
             A n-dimensional vector containing the negative logarithm of
             the current ratio function evaluated at each sample in xs.
         
@@ -239,12 +256,12 @@ class TTDIRT():
             return InputData(xs)
         
         indices = torch.arange(self.dirt_options.num_samples)
-        indices_debug = torch.arange(self.dirt_options.num_debugs)
-        indices_debug += self.dirt_options.num_samples
+        indices_debug = (torch.arange(self.dirt_options.num_debugs)
+                         + self.dirt_options.num_samples)
 
         fxs_debug = self.get_potential_to_density(
             bases, 
-            neglogratio[indices_debug], 
+            neglogratios[indices_debug], 
             xs[indices_debug]
         )
 
@@ -300,17 +317,17 @@ class TTDIRT():
         if self.prev_approx is None:
             
             # Generate debugging and initialisation samples
-            bases_i = bases[min(self.num_layers, 1)] 
+            bases_i = bases[min(self.n_layers, 1)] 
             input_data = self.get_inputdata(bases_i, xs, neglogratios)
 
             # Start from fresh (TODO: figure out why this happens on 
             # the second iteration?)
-            if self.num_layers <= 1:
+            if self.n_layers <= 1:
                 approx = None 
                 tt_data = None
             else:
-                approx = deepcopy(self.irts[self.num_layers-1].approx)
-                tt_data = deepcopy(self.irts[self.num_layers-1].approx.tt_data)
+                approx = deepcopy(self.irts[self.n_layers-1].approx)
+                tt_data = deepcopy(self.irts[self.n_layers-1].approx.tt_data)
 
             sirt = TTSIRT(
                 updated_func,
@@ -330,7 +347,7 @@ class TTDIRT():
     def eval_potential(
         self, 
         rs: Tensor,
-        num_layers: Tensor = torch.inf
+        n_layers: Tensor = torch.inf
     ) -> Tensor:
         """Evaluates the potential function associated with the 
         pushforward of the reference measure under a given number of 
@@ -341,7 +358,7 @@ class TTDIRT():
         rs:
             An n * d matrix containing a set of samples to evaluate the 
             pushforward for.
-        num_layers:
+        n_layers:
             The number of layers of the current DIRT construction to
             push forward the samples under.
 
@@ -353,14 +370,14 @@ class TTDIRT():
             element of xs. 
 
         """
-        num_layers = min(num_layers, self.num_layers)
-        neglogfxs = self.eval_rt(rs, num_layers)[1]
+        n_layers = min(n_layers, self.n_layers)
+        neglogfxs = self.eval_rt(rs, n_layers)[1]
         return neglogfxs
 
     def eval_rt(
         self,
         xs: Tensor,
-        num_layers: Tensor = torch.inf
+        n_layers: Tensor = torch.inf
     ) -> Tuple[Tensor, Tensor]:
         """Evaluates the deep Rosenblatt transport X = T(R), where 
         R is the reference random variable and X is the target random
@@ -371,7 +388,7 @@ class TTDIRT():
         xs:
             An n * d matrix of random variables drawn from the density 
             defined by the current DIRT.
-        num_layers:
+        n_layers:
             The number of layers of SIRTS to push the random variables 
             forward under.
 
@@ -387,12 +404,12 @@ class TTDIRT():
 
         """
         
-        num_layers = min(num_layers, self.num_layers)
+        n_layers = min(n_layers, self.n_layers)
         rs = xs.clone()
 
         neglogfxs = torch.zeros(rs.shape[0])
 
-        for i in range(num_layers):
+        for i in range(n_layers):
             
             zs = self.irts[i].eval_rt(rs)
             neglogsirts = self.irts[i].eval_potential(rs)
@@ -409,7 +426,7 @@ class TTDIRT():
     def eval_irt(
         self, 
         rs: Tensor, 
-        num_layers: int = torch.inf
+        n_layers: int = torch.inf
     ) -> Tuple[Tensor, Tensor]:
         """Evaluates the deep inverse Rosenblatt transport X = T(R), 
         where R is the reference random variable and X is the target 
@@ -420,7 +437,7 @@ class TTDIRT():
         rs:
             An n * d matrix containing samples distributed according to
             the reference density.
-        num_layers: 
+        n_layers: 
             The number of layers of the deep inverse Rosenblatt 
             transport.
 
@@ -445,12 +462,12 @@ class TTDIRT():
 
         """
 
-        num_layers = min(num_layers, self.num_layers)
+        n_layers = min(n_layers, self.n_layers)
         xs = rs.clone()
 
         neglogfxs = -self.reference.log_joint_pdf(xs)[0]
 
-        for i in range(num_layers-1, -1, -1):
+        for i in range(n_layers-1, -1, -1):
 
             # Evaluate reference density
             neglogrefs = -self.reference.log_joint_pdf(xs)[0]
@@ -482,9 +499,9 @@ class TTDIRT():
         
         """
         
-        while self.num_layers < self.dirt_options.max_layers:
+        while self.n_layers < self.dirt_options.max_layers:
 
-            if self.num_layers == 0:
+            if self.n_layers == 0:
                 (xs, neglogliks, 
                  neglogpris, neglogfxs) = self.initialise(bases_list[0])
             else:
@@ -500,7 +517,7 @@ class TTDIRT():
                 neglogfxs
             )
 
-            neglogratio = self.bridge.get_ratio_func(
+            neglogratios = self.bridge.get_ratio_func(
                 self.reference,
                 self.dirt_options.method, 
                 xs, 
@@ -524,19 +541,19 @@ class TTDIRT():
 
             resampled_inds = self.bridge.resample(log_weights)
 
-            self.irts[self.num_layers] = self.get_new_layer(
+            self.irts[self.n_layers] = self.get_new_layer(
                 func, 
                 bases_list, 
                 self.sirt_options, 
                 xs[resampled_inds], 
-                neglogratio[resampled_inds]
+                neglogratios[resampled_inds]
             )
 
-            self.log_z += self.irts[self.num_layers].z.log()
-            self.num_eval += self.irts[self.num_layers].approx.num_eval
+            self.log_z += self.irts[self.n_layers].z.log()
+            self.num_eval += self.irts[self.n_layers].approx.num_eval
             rs = self.reference.random(self.dim, self.pre_sample_size)
 
-            self.num_layers += 1
+            self.n_layers += 1
             if self.bridge.is_last:
                 dirt_info("DIRT construction complete.")
                 return
@@ -549,11 +566,9 @@ class TTDIRT():
         log_proposal = -neglogfxs
         log_target = -neglogliks - neglogpris
         div_h2 = compute_f_divergence(log_proposal, log_target)[1]
+        div_h = div_h2.sqrt()[0]
 
-        msg = [
-            f"Iter: {self.num_layers}", 
-            f"DHell: {div_h2.sqrt()[0]:.4f}"
-        ]
+        msg = [f"Iter: {self.n_layers}", f"DHell: {div_h:.4f}"]
         dirt_info(msg)
         dirt_info("DIRT construction complete.")
         return

@@ -281,7 +281,6 @@ class TTFunc():
                 self.bases.polys[k].cardinality,
                 1 if k == self.dim-1 else self.options.init_rank
             ]
-
             self.tt_data.cores[k] = torch.zeros(core_shape)
 
             samples = self.input_data.get_samples(self.options.init_rank)
@@ -289,7 +288,6 @@ class TTFunc():
 
         self.tt_data.interp_ls[-1] = torch.tensor([])
         self.tt_data.interp_ls[self.dim] = torch.tensor([])
-
         return
 
     def _initialise_res_x(self) -> None:
@@ -356,10 +354,7 @@ class TTFunc():
         ]
         
         if self.input_data.is_debug:
-            info_headers += [
-                "Max Debug Error", 
-                "Mean Debug Error"
-            ]
+            info_headers += ["Max Debug Error", "Mean Debug Error"]
 
         als_info(" | ".join(info_headers))
         return
@@ -489,7 +484,7 @@ class TTFunc():
         self, 
         ls_left: Tensor,
         ls_right: Tensor,
-        k: int
+        k: int|Tensor
     ) -> Tensor:
         """Evaluates the function being approximated at a (reduced) set 
         of interpolation points, and returns the corresponding
@@ -519,6 +514,7 @@ class TTFunc():
         
         """
 
+        k = int(k)
         poly = self.bases.polys[k]
         nodes = poly.nodes[:, None]
 
@@ -529,28 +525,22 @@ class TTFunc():
         # Form the Cartesian product of the index sets and the nodes
         # corresponding to the basis of the current dimension
         if ls_left.numel() == 0:
-
-            ls = torch.hstack((
-                nodes.repeat_interleave(r_k, dim=0),
-                ls_right.repeat(n_k, 1)
-            ))
-
+            ls_0 = nodes.repeat_interleave(r_k, dim=0)
+            ls_1 = ls_right.repeat(n_k, 1)
+            ls = torch.hstack((ls_0, ls_1))
         elif ls_right.numel() == 0:
-
-            ls = torch.hstack((
-                ls_left.repeat_interleave(n_k, dim=0),
-                nodes.repeat(r_p, 1)
-            ))
-
+            ls_0 = ls_left.repeat_interleave(n_k, dim=0)
+            ls_1 = nodes.repeat(r_p, 1)
+            ls = torch.hstack((ls_0, ls_1))
         else:
-
-            ls = torch.hstack((
-                ls_left.repeat_interleave(n_k * r_k, dim=0),
-                nodes.repeat_interleave(r_k, dim=0).repeat(r_p, 1),
-                ls_right.repeat(r_p * n_k, 1)
-            ))
+            ls_0 = ls_left.repeat_interleave(n_k * r_k, dim=0)
+            ls_1 = nodes.repeat_interleave(r_k, dim=0).repeat(r_p, 1)
+            ls_2 = ls_right.repeat(r_p * n_k, 1)
+            ls = torch.hstack((ls_0, ls_1, ls_2))
         
         H = self.target_func(ls).reshape(r_p, n_k, r_k)
+        # print(H.max())
+        # H *= 2.0
 
         # TODO: could be a separate method eventually
         if isinstance(poly, Spectral): 
@@ -564,7 +554,7 @@ class TTFunc():
         H: Tensor, 
         error_tol: float|Tensor|None = None
     ) -> Tuple[Tensor, Tensor, int]:
-        """Truncates the SVD for a given TT block, F.
+        """Computes the truncated SVD for a given tensor block.
 
         Parameters
         ----------

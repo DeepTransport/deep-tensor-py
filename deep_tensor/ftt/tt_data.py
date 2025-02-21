@@ -19,8 +19,7 @@ class TTData():
     @property
     def rank(self) -> Tensor:
         """The ranks of each tensor core."""
-        num_dims = len(self.cores)
-        ranks = [self.cores[k].shape[2] for k in range(num_dims)]
+        ranks = [self.cores[k].shape[2] for k in range(len(self.cores))]
         return torch.tensor(ranks)
 
     def reverse_direction(self) -> None:

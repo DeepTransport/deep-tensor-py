@@ -8,7 +8,7 @@ def integrate(
     func: Callable[[Tensor], Tensor], 
     x0: float,
     x1: float,
-    n: int = 151
+    n: int = 150
 ) -> Tensor:
     """Approximates the integral of a given function on the interval 
     [x0, x1] using the trapezoidal rule.
@@ -23,12 +23,12 @@ def integrate(
     x1: 
         Right-hand end of the integration interval.
     n:
-        The number of points to evaluate the function at when applying 
-        the trapezoidal rule.
+        The number of intervals to use to when applying the trapezoidal 
+        rule.
 
     TODO: could make this adaptive in future.
     """
     
-    xs = torch.linspace(x0, x1, n)
+    xs = torch.linspace(x0, x1, n+1)
     ys = func(xs)
     return torch.trapezoid(ys, xs)

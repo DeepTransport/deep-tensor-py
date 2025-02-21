@@ -18,7 +18,7 @@ class SingleBeta(Bridge, abc.ABC):
         min_beta: Tensor|float = 1e-4
     ):
 
-        self.betas = betas
+        self.betas = betas.sort()[0]
         self.ess_tol = torch.tensor(ess_tol)
         self.ess_tol_init = torch.tensor(ess_tol_init)
         self.beta_factor = torch.tensor(beta_factor)

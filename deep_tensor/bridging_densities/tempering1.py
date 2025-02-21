@@ -17,9 +17,8 @@ class Tempering1(SingleBeta):
             betas = torch.tensor([])
 
         super().__init__(betas, **kwargs)
-        self.betas = torch.sort(betas)[0]
-        self._is_adaptive = self.betas.numel() == 0
-        self.num_layers = 0
+        self.is_adaptive = self.betas.numel() == 0
+        self.n_layers = 0
         return
 
     @property 
@@ -36,12 +35,12 @@ class Tempering1(SingleBeta):
         return
 
     @property 
-    def num_layers(self) -> int:
-        return self._num_layers
+    def n_layers(self) -> int:
+        return self._n_layers
     
-    @num_layers.setter
-    def num_layers(self, value: int) -> None:
-        self._num_layers = value
+    @n_layers.setter
+    def n_layers(self, value: int) -> None:
+        self._n_layers = value
         return
     
     def set_init(self, neglogliks: Tensor, etol: float = 0.8) -> None:
@@ -69,16 +68,18 @@ class Tempering1(SingleBeta):
         neglogpris: Tensor, 
         neglogfxs: Tensor
     ) -> None:
+        # TODO: check whether this is correct (I'm thinking this should 
+        # use ratio of current ratio function to reference density.)
         
         if not self.is_adaptive:
             return
             
-        if self.num_layers == 0:
+        if self.n_layers == 0:
             self.betas = torch.tensor([self.init_beta])
             return
             
-        beta_prev = self.betas[self.num_layers-1]
-        beta = torch.maximum(beta_prev, self.min_beta).clone()
+        beta_prev = self.betas[self.n_layers-1]
+        beta = torch.maximum(beta_prev, self.min_beta).clone()  # why clone?
 
         if method == "eratio":
             log_weights = -beta*neglogliks - neglogpris + neglogfxs
@@ -106,19 +107,18 @@ class Tempering1(SingleBeta):
         neglogfxs: Tensor
     ) -> Tensor:
         
-        beta = self.betas[self.num_layers]
+        beta = self.betas[self.n_layers]
 
-        if self.num_layers == 0:
+        if self.n_layers == 0:
             neglogratios = beta*neglogliks + neglogpris
             return neglogratios
         
         neglogrefs = -reference.log_joint_pdf(xs)[0]
 
         if method == "eratio":
-            neglogratios = (beta*neglogliks + neglogpris + neglogrefs
-                            - neglogfxs)
+            neglogratios = beta*neglogliks + neglogpris + neglogrefs - neglogfxs
         elif method == "aratio":
-            beta_prev = self.betas[self.num_layers-1]
+            beta_prev = self.betas[self.n_layers-1]
             neglogratios = (beta-beta_prev) * neglogliks + neglogrefs
         
         return neglogratios
@@ -135,7 +135,6 @@ class Tempering1(SingleBeta):
         # Push samples forward to the approximation of the current target
         xs, neglogfxs = irt_func(rs)
         neglogliks, neglogpris = func(xs)
-        
         neglogratios = self.get_ratio_func(
             reference, 
             method, 
@@ -144,7 +143,6 @@ class Tempering1(SingleBeta):
             neglogpris, 
             neglogfxs
         )
-
         return neglogratios
     
     def compute_log_weights(
@@ -167,7 +165,7 @@ class Tempering1(SingleBeta):
             An n-dimensional vector containing the negative log-prior 
             density evaluated at each sample.
         neglogfxs:
-            An n-dimensional vector containing the negative logarithm
+            An n-dimensional vector containing the negative logarithm 
             of the approximation to the previous bridging density 
             evaluated at each sample.
 
@@ -179,7 +177,7 @@ class Tempering1(SingleBeta):
             previous bridging density evaluated at each sample.
         
         """
-        beta = self.betas[self.num_layers]
+        beta = self.betas[self.n_layers]
         log_weights = -beta*neglogliks - neglogpris + neglogfxs
         return log_weights
 
@@ -194,14 +192,14 @@ class Tempering1(SingleBeta):
         ess = compute_ess_ratio(log_weights)
 
         msg = [
-            f"Iter: {self.num_layers}", 
-            f"beta: {self.betas[self.num_layers]:.4f}", 
+            f"Iter: {self.n_layers}", 
+            f"beta: {self.betas[self.n_layers]:.4f}", 
             f"ESS: {ess:.4f}"
         ]
 
-        if self.num_layers > 0:
+        if self.n_layers > 0:
         
-            beta_prev = self.betas[self.num_layers-1]
+            beta_prev = self.betas[self.n_layers-1]
             log_proposal = -neglogfxs
             log_target = -beta_prev*neglogliks - neglogpris
 

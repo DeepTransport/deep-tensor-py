@@ -12,7 +12,7 @@ class BoundedDomain(LinearDomain):
             bounds = torch.tensor([-1.0, 1.0])
 
         self.check_bounds(bounds)
-        self.bounds = bounds
+        self.bounds = bounds.double()
         self.mean = self.bounds.mean()
         self.dxdl = 0.5 * (self.bounds[1] - self.bounds[0])
         return

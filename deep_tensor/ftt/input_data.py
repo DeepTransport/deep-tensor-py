@@ -65,7 +65,7 @@ class InputData():
         """
         return not self.fxs_debug.numel() == 0
 
-    def set_samples(self, bases: ApproxBases, n_samples: int) -> Tensor:
+    def set_samples(self, bases: ApproxBases, n_samples: int) -> None:
         """Generates the samples used to construct the FTT (if not 
         specified during initialisation), then transforms these samples
         to the local domain.
@@ -117,20 +117,18 @@ class InputData():
         
         """
         
-        num_samples = self.ls_samp.shape[0]
+        n_samples = self.ls_samp.shape[0]
 
-        if self.count + n <= num_samples:
+        if self.count + n <= n_samples:
             indices = torch.arange(n) + self.count
             self.count += n
             return self.ls_samp[indices]
 
-        n1 = num_samples - self.count + 1
+        n1 = n_samples - self.count + 1
         n2 = n - n1
 
-        indices = torch.concatenate((
-            torch.arange(self.count, num_samples), 
-            torch.arange(n2)
-        ))
+        indices = torch.concatenate((torch.arange(self.count, n_samples), 
+                                     torch.arange(n2)))
         
         self.count = n2
         msg = "All samples have been used. Starting from the beginning."

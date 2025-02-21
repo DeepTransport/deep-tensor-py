@@ -21,7 +21,7 @@ class Bridge(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def num_layers(self) -> int:
+    def n_layers(self) -> int:
         return
 
     @abc.abstractmethod
@@ -91,7 +91,7 @@ class Bridge(abc.ABC):
             The reference density.
         method:
             The method to use when computing the ratio function; can be
-            `aratio` (approximate ratio) or `eratio` (exact ratio).
+            'aratio' (approximate ratio) or 'eratio' (exact ratio).
         
         Returns
         -------
@@ -122,7 +122,7 @@ class Bridge(abc.ABC):
         ----------
         method: 
             The method used to select the next bridging parameter. Can
-            be `aratio` (approximate ratio) or `eratio` (exact ratio).
+            be 'aratio' (approximate ratio) or 'eratio' (exact ratio).
         neglogliks: 
             An n-dimensional vector containing the negative 
             log-likelihood of each of the current samples.
@@ -212,6 +212,6 @@ class Bridge(abc.ABC):
         self, 
         neglogliks: Tensor, 
         neglogpris: Tensor, 
-        neglogfx: Tensor
+        neglogfxs: Tensor
     ) -> None:
         return 

@@ -1,6 +1,5 @@
 import abc
 from typing import Callable, Tuple
-import warnings
 
 import torch
 from torch import Tensor
@@ -14,12 +13,14 @@ from ..polynomials import CDF1D
 Z_MIN = torch.tensor(EPS)
 Z_MAX = torch.tensor(1.0-EPS)
 
+PotentialFunc = Callable[[Tensor], Tensor]
+
 
 class AbstractIRT(abc.ABC):
 
     def __init__(
         self, 
-        potential: Callable,
+        potential: PotentialFunc,
         bases: ApproxBases|None, 
         approx: TTFunc|None,
         options: TTOptions|None,
@@ -129,7 +130,7 @@ class AbstractIRT(abc.ABC):
     @abc.abstractmethod
     def potential2density(
         self,
-        func: Callable[[Tensor], Tensor],
+        potential_func: PotentialFunc,
         ls: Tensor
     ) -> Tensor:
         """Computes the value of the target function being approximated 
