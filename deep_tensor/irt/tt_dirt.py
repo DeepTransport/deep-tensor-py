@@ -29,7 +29,7 @@ class TTDIRT():
         sirt_options: TTOptions|None = None,
         dirt_options: DIRTOptions|None = None,
         init_samples: Tensor|None = None,
-        prev_approx=None  # TODO: fix this (set as None if not passed in) and add type annotation
+        prev_approx: dict[int, TTSIRT]|None = None
     ):
         """Class that implements the deep inverse Rosenblatt transport.
 
@@ -59,7 +59,8 @@ class TTDIRT():
             instead be drawn from the reference measure and transformed 
             into the approximation domain.
         prev_approx:
-            ...?
+            A dictionary containing a set of SIRTs generated as part of 
+            the construction of a previous DIRT object.
         
         """
 
@@ -97,8 +98,8 @@ class TTDIRT():
                 raise Exception(msg)
 
         self.irts: dict[int, TTSIRT] = {}
-        self.num_eval: int = 0
-        self.log_z: float = 0.0
+        self.num_eval = 0
+        self.log_z = 0.0
 
         bases_list = self.build_bases(self.bases, self.reference)
         self.build(func, bases_list)
@@ -272,7 +273,6 @@ class TTDIRT():
         self, 
         func: DIRTFunc, 
         bases: list[ApproxBases], 
-        sirt_options: TTOptions, 
         xs: Tensor, 
         neglogratios: Tensor
     ) -> TTSIRT:
@@ -287,9 +287,6 @@ class TTDIRT():
         bases_list:
             A list of the bases used when constructing the first two 
             levels of DIRT.
-        sirt_options:
-            Options used when constructing the SIRT associated with the 
-            layer.
         xs:
             An n * d matrix containing samples distributed according to
             the current bridging density.
@@ -334,14 +331,30 @@ class TTDIRT():
                 updated_func,
                 bases=bases_i,
                 approx=approx,
-                options=sirt_options,
+                options=self.sirt_options,
                 input_data=input_data,
                 tt_data=tt_data,
                 tau=self.dirt_options.defensive
             )
         
         else:
-            raise NotImplementedError()
+            
+            ind_prev = max(self.prev_approx.keys())
+            sirt_prev = self.prev_approx[min(ind_prev, self.n_layers)]
+            
+            input_data = self.get_inputdata(
+                sirt_prev.bases,
+                xs, 
+                neglogratios
+            )
+
+            sirt = TTSIRT(
+                updated_func,
+                approx=sirt_prev.approx,
+                options=self.sirt_options,
+                input_data=input_data, 
+                tau=self.dirt_options.defensive
+            )
         
         return sirt
 
@@ -546,7 +559,6 @@ class TTDIRT():
             self.irts[self.n_layers] = self.get_new_layer(
                 func, 
                 bases_list, 
-                self.sirt_options, 
                 xs[resampled_inds], 
                 neglogratios[resampled_inds]
             )
