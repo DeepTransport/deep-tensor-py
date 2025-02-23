@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 
 from .spectral import Spectral
 
@@ -28,7 +29,7 @@ class Fourier(Spectral):
         return
 
     @property
-    def domain(self) -> torch.Tensor:
+    def domain(self) -> Tensor:
         return self._domain
     
     @property
@@ -36,55 +37,49 @@ class Fourier(Spectral):
         return self._constant_weight
     
     @property 
-    def nodes(self) -> torch.Tensor:
+    def nodes(self) -> Tensor:
         return self._nodes
 
     @property
-    def weights(self) -> torch.Tensor:
+    def weights(self) -> Tensor:
         return self._weights
 
-    def sample_measure(self, n: int) -> torch.Tensor:
+    def sample_measure(self, n: int) -> Tensor:
         return torch.rand(n) * 2 - 1
     
-    def sample_measure_skip(self, n: int) -> torch.Tensor:
+    def sample_measure_skip(self, n: int) -> Tensor:
         return self.sample_measure(n)
     
-    def eval_measure(self, x: torch.Tensor):
-        return torch.full(x.shape, 0.5)
+    def eval_measure(self, ls: Tensor):
+        return torch.full(ls.shape, 0.5)
     
-    def eval_log_measure(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.full(x.shape, torch.tensor(0.5).log())
+    def eval_log_measure(self, ls: Tensor) -> Tensor:
+        return torch.full(ls.shape, torch.tensor(0.5).log())
     
-    def eval_measure_deriv(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.zeros_like(x)
+    def eval_measure_deriv(self, ls: Tensor) -> Tensor:
+        return torch.zeros_like(ls)
     
-    def eval_log_measure_deriv(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.zeros_like(x)
+    def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
+        return torch.zeros_like(ls)
     
-    def eval_basis(self, us: torch.Tensor) -> torch.Tensor:
+    def eval_basis(self, ls: Tensor) -> Tensor:
 
-        tmp = torch.outer(us, self.c)
-        basis_vals = torch.hstack((
-            torch.ones((us.numel(), 1)),
-            2 ** 0.5 * torch.sin(tmp),
-            2 ** 0.5 * torch.cos(tmp),
-            2 ** 0.5 * torch.cos(us[:, None] * self.m * torch.pi)
+        ls = ls[:, None]
+        ps = torch.hstack((
+            torch.ones_like(ls),
+            2 ** 0.5 * torch.sin(ls * self.c),
+            2 ** 0.5 * torch.cos(ls * self.c),
+            2 ** 0.5 * torch.cos(ls * self.m * torch.pi)
         ))
-        
-        return basis_vals
+        return ps
     
-    def eval_basis_deriv(self, us: torch.Tensor):
+    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
 
-        tmp = torch.outer(us, self.c)
-
-        deriv_vals = torch.hstack((
-            torch.zeros((us.numel(), 1)),
-            self.c * 2 ** 0.5 * torch.cos(tmp),
-            -self.c * 2 ** 0.5 * torch.sin(tmp),
-            -self.m * torch.pi * 2 ** 0.5 * torch.sin(us[:, None] * self.m * torch.pi)
+        ls = ls[:, None]
+        dpdls = torch.hstack((
+            torch.zeros_like(ls),
+            2 ** 0.5 * torch.cos(ls * self.c) * self.c,
+            -2 ** 0.5 * torch.sin(ls * self.c) * self.c,
+            -2 ** 0.5 * torch.sin(ls * self.m * torch.pi) * self.m * torch.pi
         ))
-
-        return deriv_vals
-     
-    def eval(self, coeffs, xs):
-        raise NotImplementedError()
+        return dpdls

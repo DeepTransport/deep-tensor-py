@@ -61,7 +61,7 @@ class Basis1D(abc.ABC, object):
         
         Returns
         -------
-        basis_vals:
+        ps:
             An n * d matrix containing the values of each basis 
             function evaluated at each point. Element (i, j) contains 
             the value of the jth basis function evaluated at the ith 
@@ -83,7 +83,7 @@ class Basis1D(abc.ABC, object):
         
         Returns
         -------
-        deriv_vals:
+        dpdls:
             An n * d matrix containing the derivative of each basis 
             function evaluated at each point. Element (i, j) contains 
             the derivative of the jth basis function evaluated at the

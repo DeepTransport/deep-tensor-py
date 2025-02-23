@@ -46,26 +46,24 @@ class FourierCDF(SpectralCDF, Fourier):
         return self.nodes.numel()
 
     def grid_measure(self, n: int) -> Tensor:
-        us = torch.linspace(*self.domain, n)
-        us[0] = self.domain[0] - EPS 
-        us[-1] = self.domain[-1] + EPS
-        return us
+        ls = torch.linspace(*self.domain, n)
+        ls = ls.clamp(self.domain[0] + EPS, self.domain[-1] - EPS)
+        return ls
 
-    def eval_int_basis(self, us: Tensor) -> Tensor:
+    def eval_int_basis(self, ls: Tensor) -> Tensor:
 
-        tmp = torch.outer(us, self.c)
+        ls = ls[:, None]
         
         int_basis_vals = torch.hstack((
-            us[:, None],
-            -(2.0 ** 0.5 / self.c) * torch.cos(tmp),
-            (2.0 ** 0.5 / self.c) * torch.sin(tmp),
-            ((2.0 ** 0.5 / (torch.pi * self.m)) 
-             * torch.sin(us[:, None] * self.m * torch.pi))
+            ls,
+            -2.0 ** 0.5 * torch.cos(ls * self.c) / self.c,
+            2.0 ** 0.5 * torch.sin(ls * self.c) / self.c,
+            2.0 ** 0.5 * torch.sin(ls * self.m * torch.pi) / (torch.pi * self.m)
         ))
         
         return int_basis_vals
     
-    def eval_int_basis_newton(self, us: Tensor) -> Tuple[Tensor, Tensor]:
-        basis_vals = self.eval_int_basis(us)
-        deriv_vals = self.eval_basis(us)
+    def eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
+        basis_vals = self.eval_int_basis(ls)
+        deriv_vals = self.eval_basis(ls)
         return basis_vals, deriv_vals

@@ -42,14 +42,14 @@ class SpectralCDF(CDF1D, abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_int_basis(self, xs: Tensor) -> Tensor:
+    def eval_int_basis(self, ls: Tensor) -> Tensor:
         """Computes the indefinite integral of the product of each
         basis function and the weight function at a set of points on 
         the interval [-1, 1].
 
         Parameters
         ----------
-        xs: 
+        ls: 
             The set of points at which to evaluate the indefinite 
             integrals of the product of the basis function and the 
             weights.
@@ -59,7 +59,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         :
             An array of the results. Each row contains the values of 
             the indefinite integrals for each basis function for a 
-            single value of x.
+            single value of ls.
 
         References
         ----------
@@ -69,7 +69,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         return
         
     @abc.abstractmethod
-    def eval_int_basis_newton(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
+    def eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         """Computes the indefinite integral of the product of each 
         basis function and the weight function, and the product of the
         derivative of this integral with the weight function, at a set 
@@ -77,7 +77,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         
         Parameters
         ----------
-        xs: 
+        ls: 
             The set of points at which to evaluate the indefinite 
             integrals of the product of the basis function and the 
             weights.
@@ -87,52 +87,50 @@ class SpectralCDF(CDF1D, abc.ABC):
         :
             An array of the integrals, and an array of the derivatives. 
             Each row contains the values of the indefinite integrals /
-            derivatives for each basis function, at a single value of x.
+            derivatives for each basis function, at a single value of 
+            ls.
         
         """
         return
 
     def update_sampling_nodes(self, sampling_nodes: Tensor) -> None:
-        
         self.sampling_nodes = sampling_nodes 
         self.cdf_basis2node = self.eval_int_basis(self.sampling_nodes)
         return
     
-    def eval_int(self, coef: Tensor, ls: Tensor) -> Tensor:
+    def eval_int(self, coefs: Tensor, ls: Tensor) -> Tensor:
         
         basis_vals = self.eval_int_basis(ls)
 
-        if coef.shape[1] == 1:
-            f = (basis_vals @ coef).flatten()
-            return f
+        if coefs.shape[1] == 1:
+            fs = basis_vals @ coefs
+            return fs.flatten()
 
-        if coef.shape[1] != ls.numel():
+        if coefs.shape[1] != ls.numel():
             raise Exception("Dimension mismatch.")
         
-        f = torch.sum(basis_vals * coef.T, 1)
-        return f
+        fs = torch.sum(basis_vals * coefs.T, dim=1)
+        return fs
     
     def eval_int_search(
         self,
-        coef: Tensor, 
+        coefs: Tensor, 
         cdf_poly_base: Tensor,
-        rhs: Tensor,
-        x: Tensor
+        zs_cdf: Tensor,
+        ls: Tensor
     ) -> Tensor:
-        
-        f = self.eval_int(coef, x)
-        f = f - cdf_poly_base - rhs
-        return f
+        dzs = self.eval_int(coefs, ls) - cdf_poly_base - zs_cdf
+        return dzs
 
     def eval_int_newton(
         self, 
         coef: Tensor, 
         cdf_poly_base, 
         rhs, 
-        x: Tensor
+        ls: Tensor
     ) -> Tuple[Tensor, Tensor]: 
         
-        basis_vals, deriv_vals = self.eval_int_basis_newton(x)
+        basis_vals, deriv_vals = self.eval_int_basis_newton(ls)
 
         check_finite(basis_vals)
         check_finite(deriv_vals)
@@ -143,17 +141,15 @@ class SpectralCDF(CDF1D, abc.ABC):
         fs = fs - cdf_poly_base - rhs
         return fs, dfs
     
-    def eval_cdf(self, pdf: Tensor, ls: Tensor) -> Tensor:
+    def eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
 
-        self.check_pdf_positive(pdf)
+        if ps.ndim == 1:
+            ps = ps[:, None]
 
-        if pdf.ndim == 1:
-            pdf = pdf[:, None]
-
-        if pdf.shape[1] > 1 and pdf.shape[1] != ls.numel():
-            raise Exception("Dimension mismatch.")
+        self.check_pdf_positive(ps)
+        self.check_pdf_dims(ps, ls)
         
-        coef = self.node2basis @ pdf
+        coef = self.node2basis @ ps
         poly_base = self.cdf_basis2node[0] @ coef
         # Normalising constant
         poly_norm = (self.cdf_basis2node[-1] - self.cdf_basis2node[0]) @ coef
@@ -165,14 +161,14 @@ class SpectralCDF(CDF1D, abc.ABC):
         zs = torch.zeros_like(ls)
 
         if torch.any(mask_inside):
-            if pdf.shape[1] == 1:
+            if ps.shape[1] == 1:
                 zs[mask_inside] = self.eval_int(coef, ls[mask_inside]) - poly_base
             else:
                 tmp = self.eval_int(coef[:, mask_inside], ls[mask_inside])
                 zs[mask_inside] = tmp.flatten() - poly_base[mask_inside].flatten()
         
         if torch.any(mask_right):
-            if pdf.shape[1] == 1:
+            if ps.shape[1] == 1:
                 zs[mask_right] = poly_norm 
             else:
                 zs[mask_right] = poly_norm[mask_right]
@@ -189,55 +185,29 @@ class SpectralCDF(CDF1D, abc.ABC):
         zs = self.eval_int(coef, ls) - base
         return zs
     
-    def invert_cdf(
-        self, 
-        pdf: torch.Tensor, 
-        zs_k: torch.Tensor
-    ) -> torch.Tensor:
-        """REWRITE"""
+    def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
 
-        self.check_pdf_positive(pdf)
-
-        if pdf.dim() == 1:
-            pdf = pdf[:, None]
-
-        if pdf.shape[1] > 1 and pdf.shape[1] != zs_k.numel():
-            raise Exception("Dimension mismatch.")
+        if ps.ndim == 1:
+            ps = ps[:, None]
         
-        coefs = self.node2basis @ pdf
+        self.check_pdf_positive(ps)
+        self.check_pdf_dims(ps, zs)
+        
+        coefs = self.node2basis @ ps
         cdf_poly_nodes = self.cdf_basis2node @ coefs
         cdf_poly_base = cdf_poly_nodes[0]
         cdf_poly_nodes = cdf_poly_nodes - cdf_poly_base
         cdf_poly_norm = cdf_poly_nodes[-1]
 
-        rs_k = torch.zeros_like(zs_k)
-
-        rhs = zs_k * cdf_poly_norm  # vertical??
-        left_inds = torch.sum(cdf_poly_nodes < rhs, 0).int() - 1
+        zs_cdf = zs * cdf_poly_norm  # unnormalise
+        left_inds = (cdf_poly_nodes < zs_cdf).sum(dim=0) - 1
+        left_inds = left_inds.clamp(0, self.sampling_nodes.numel()-2)
+        l0s = self.sampling_nodes[left_inds]
+        l1s = self.sampling_nodes[left_inds+1]
         
-        mask_left = left_inds == -1
-        mask_right = left_inds == (self.sampling_nodes.numel() - 1)
-
-        rs_k[mask_left] = self.sampling_nodes[0]
-        rs_k[mask_right] = self.sampling_nodes[-1]
-
-        mask_central = ~torch.bitwise_or(mask_left, mask_right)
-        
-        x0s = self.sampling_nodes[left_inds[mask_central]]
-        x1s = self.sampling_nodes[left_inds[mask_central]+1]
-        
-        rs_k[mask_central] = self.newton(
-            coefs[:, mask_central], 
-            cdf_poly_base[mask_central],
-            rhs[mask_central], 
-            x0s, 
-            x1s
-        )
-        
-        rs_k[torch.isnan(rs_k)] = 0.5 * (self.domain[0] + self.domain[1])
-        rs_k[torch.isinf(rs_k)] = 0.5 * (self.domain[0] + self.domain[1])
-        
-        return rs_k
+        ls = self.newton(coefs, cdf_poly_base, zs_cdf, l0s, l1s)
+        check_finite(ls)
+        return ls
 
     def newton(
         self,
@@ -276,13 +246,13 @@ class SpectralCDF(CDF1D, abc.ABC):
         self, 
         coefs: Tensor,
         cdf_poly_base: Tensor,
-        rhs: Tensor, 
+        zs_cdf: Tensor, 
         l0s: Tensor, 
         l1s: Tensor
     ) -> Tensor:
         
-        z0s = self.eval_int_search(coefs, cdf_poly_base, rhs, l0s)
-        z1s = self.eval_int_search(coefs, cdf_poly_base, rhs, l1s)
+        z0s = self.eval_int_search(coefs, cdf_poly_base, zs_cdf, l0s)
+        z1s = self.eval_int_search(coefs, cdf_poly_base, zs_cdf, l1s)
         self.check_initial_intervals(z0s, z1s)
 
         for _ in range(self.num_regula_falsi):
@@ -292,7 +262,7 @@ class SpectralCDF(CDF1D, abc.ABC):
             dls[torch.isinf(dls)] = 0.0
             ls = l1s + dls
 
-            zs = self.eval_int_search(coefs, cdf_poly_base, rhs, ls)
+            zs = self.eval_int_search(coefs, cdf_poly_base, zs_cdf, ls)
 
             if self.converged(zs, dls):
                 return ls 

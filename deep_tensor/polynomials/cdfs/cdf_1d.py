@@ -147,6 +147,25 @@ class CDF1D(abc.ABC):
             warnings.warn(msg)
         return
     
+    def check_pdf_dims(self, ps: Tensor, xs: Tensor) -> None:
+        """Checks whether the dimensions of the evaluation of the 
+        target PDF(s) on the nodes of the 
+        """
+        
+        n_k, n_ps = ps.shape
+
+        if n_k != self.cardinality:
+            msg = ("Number of rows of PDF matrix must be equal to " 
+                   + "cardinality of polynomial basis for CDF.")
+            raise Exception(msg)
+        
+        if n_ps > 1 and n_ps != xs.numel():
+            msg = ("Number of columns of PDF matrix must be equal to "
+                   + "one or number of samples.")
+            raise Exception(msg)
+        
+        return
+    
     def converged(self, fs: Tensor, dls: Tensor) -> bool:
         """Returns a boolean that indicates whether a rootfinding 
         method has converged.
