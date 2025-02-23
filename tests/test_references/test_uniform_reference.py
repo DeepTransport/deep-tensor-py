@@ -11,7 +11,8 @@ torch.manual_seed(0)
 class TestUniformReference(unittest.TestCase):
 
     def build_reference(self) -> dt.UniformReference:
-        domain = torch.tensor([1., 3.])
+        bounds = torch.tensor([1.0, 3.0])
+        domain = dt.BoundedDomain(bounds)
         ref = dt.UniformReference(domain)
         return ref
 
