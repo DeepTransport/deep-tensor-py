@@ -3,6 +3,7 @@ from typing import Tuple
 
 import torch
 from torch import Tensor
+from torch.quasirandom import SobolEngine
 
 from .reference import Reference
 from ..domains import BoundedDomain, Domain
@@ -13,8 +14,8 @@ class SymmetricReference(Reference, abc.ABC):
     
     def __init__(
         self, 
-        mu: float = 0., 
-        sigma: float = 1.,
+        mu: float = 0.0, 
+        sigma: float = 1.0,
         domain: Domain = None
     ):
         
@@ -68,11 +69,11 @@ class SymmetricReference(Reference, abc.ABC):
         
         Returns
         -------
-        pdfs:
+        ps:
             A vector or matrix of the same dimension as us, containing 
             the PDF of the unit reference distribution evaluated at 
             each element of us.
-        grad_pdfs:
+        grad_ps:
             A vector or matrix of the same dimension as us, containing 
             the gradient of the PDF of the unit reference distribution 
             evaluated at each element of us.
@@ -114,10 +115,10 @@ class SymmetricReference(Reference, abc.ABC):
 
         Returns
         -------
-        logpdfs:
+        logps:
             A d-dimensional vector containing the PDF of the joint unit 
             reference distribution evaluated at each sample in us.
-        loggrad_pdfs:
+        loggrad_ps:
             An n * d matrix containing the log of the gradient of the 
             joint unit reference density evaluated at each sample in 
             us.
@@ -173,10 +174,10 @@ class SymmetricReference(Reference, abc.ABC):
     
     def eval_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         us = self.map_to_unit(rs)
-        pdfs, grad_pdfs = self.eval_unit_pdf(us)
-        pdfs /= (self.sigma * self.norm)
-        grad_pdfs /= (self.sigma**2 * self.norm)
-        return pdfs, grad_pdfs
+        ps, grad_ps = self.eval_unit_pdf(us)
+        ps /= (self.sigma * self.norm)
+        grad_ps /= (self.sigma**2 * self.norm)
+        return ps, grad_ps
 
     def invert_cdf(self, zs: Tensor) -> Tensor:
         check_finite(zs)
@@ -188,10 +189,10 @@ class SymmetricReference(Reference, abc.ABC):
     def log_joint_pdf(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         d_xs = xs.shape[1]
         us = self.map_to_unit(xs)
-        log_pdfs, log_grad_pdfs = self.log_joint_unit_pdf(us)
-        log_pdfs -= d_xs * (self.sigma * self.norm).log()
-        log_grad_pdfs /= self.sigma
-        return log_pdfs, log_grad_pdfs
+        log_ps, log_grad_ps = self.log_joint_unit_pdf(us)
+        log_ps -= d_xs * (self.sigma * self.norm).log()
+        log_grad_ps /= self.sigma
+        return log_ps, log_grad_ps
     
     def random(self, d: int, n: int) -> Tensor:
         zs = torch.rand(n, d)
@@ -199,7 +200,7 @@ class SymmetricReference(Reference, abc.ABC):
         return rs
         
     def sobol(self, d: int, n: int) -> Tensor:
-        S = torch.quasirandom.SobolEngine(dimension=d)
+        S = SobolEngine(dimension=d)
         zs = S.draw(n)
         rs = self.invert_cdf(zs)
         return rs
