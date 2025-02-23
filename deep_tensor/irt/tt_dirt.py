@@ -360,7 +360,7 @@ class TTDIRT():
 
     def eval_potential(
         self, 
-        rs: Tensor,
+        xs: Tensor,
         n_layers: Tensor = torch.inf
     ) -> Tensor:
         """Evaluates the potential function associated with the 
@@ -369,9 +369,9 @@ class TTDIRT():
         
         Parameters
         ----------
-        rs:
-            An n * d matrix containing a set of samples to evaluate the 
-            pushforward for.
+        xs:
+            An n * d matrix containing a set of samples drawn from the 
+            current DIRT approximation to the target density.
         n_layers:
             The number of layers of the current DIRT construction to
             push forward the samples under.
@@ -385,7 +385,7 @@ class TTDIRT():
 
         """
         n_layers = min(n_layers, self.n_layers)
-        neglogfxs = self.eval_rt(rs, n_layers)[1]
+        neglogfxs = self.eval_rt(xs, n_layers)[1]
         return neglogfxs
 
     def eval_rt(
@@ -518,8 +518,9 @@ class TTDIRT():
             if self.n_layers == 0:
                 (xs, neglogliks, 
                  neglogpris, neglogfxs) = self.initialise(bases_list[0])
-                rs = xs.clone()
+                rs = xs.clone()  # DIRT mapping is the identity
             else:
+                rs = self.reference.random(self.dim, self.pre_sample_size)
                 xs, neglogfxs = self.eval_irt(rs)
                 neglogliks, neglogpris = func(xs)
         
@@ -564,7 +565,6 @@ class TTDIRT():
 
             self.log_z += self.irts[self.n_layers].z.log()
             self.num_eval += self.irts[self.n_layers].approx.num_eval
-            rs = self.reference.random(self.dim, self.pre_sample_size)
 
             self.n_layers += 1
             if self.bridge.is_last:

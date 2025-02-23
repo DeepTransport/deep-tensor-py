@@ -10,7 +10,7 @@ def check_finite(xs: Tensor) -> None:
     if (n_nans := xs.isnan().sum()) > 0:
         msg = f"{n_nans} NAN values detected."
         warnings.warn(msg)
-    if (n_nans := xs.isinf().sum()) > 0:
-        msg = f"{n_nans} INF values detected."
+    if (n_infs := xs.isinf().sum()) > 0:
+        msg = f"{n_infs} INF values detected."
         warnings.warn(msg)
     return

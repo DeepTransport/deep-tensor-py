@@ -101,5 +101,8 @@ class Spectral(Basis1D, abc.ABC):
         thetas = ls.acos()
         thetas[torch.abs(ls + 1.0) <= EPS] = torch.pi
         thetas[torch.abs(ls - 1.0) <= EPS] = 0.0
+        if thetas.isnan().sum() > 0:
+            print(ls[thetas.isnan()])
+            print(1.0 - ls[thetas.isnan()].abs())
         check_finite(thetas)
         return thetas

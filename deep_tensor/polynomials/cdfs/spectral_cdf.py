@@ -12,9 +12,6 @@ from ...tools import check_finite
 class SpectralCDF(CDF1D, abc.ABC):
 
     def __init__(self, **kwargs):
-        """CDF class for spectral polynomials.
-        """
-
         CDF1D.__init__(self, **kwargs)
         num_sampling_nodes = max(2*self.cardinality, 200)
         self.sampling_nodes = self.grid_measure(num_sampling_nodes)
@@ -136,6 +133,9 @@ class SpectralCDF(CDF1D, abc.ABC):
     ) -> Tuple[Tensor, Tensor]: 
         
         basis_vals, deriv_vals = self.eval_int_basis_newton(x)
+
+        check_finite(basis_vals)
+        check_finite(deriv_vals)
 
         fs = torch.sum(basis_vals * coef.T, 1)
         dfs = torch.sum(deriv_vals * coef.T, 1)
@@ -289,7 +289,7 @@ class SpectralCDF(CDF1D, abc.ABC):
 
             dls = -z1s * (l1s - l0s) / (z1s - z0s)
             check_finite(dls)
-            dls[torch.isnan(dls)] = 0.0
+            dls[torch.isinf(dls)] = 0.0
             ls = l1s + dls
 
             zs = self.eval_int_search(coefs, cdf_poly_base, rhs, ls)
