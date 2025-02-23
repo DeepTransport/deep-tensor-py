@@ -85,9 +85,8 @@ class TTFunc():
         """An upper bound on the total number of samples required to 
         construct a FTT approximation to the target function.
         """
-        n = (self.options.init_rank 
-             + self.options.kick_rank * (1+self.options.max_als))
-        n *= self.dim
+        n = self.dim * (self.options.init_rank 
+                        + self.options.kick_rank * (self.options.max_als + 1))
         return n
 
     @staticmethod
@@ -540,8 +539,6 @@ class TTFunc():
             ls = torch.hstack((ls_0, ls_1, ls_2))
         
         H = self.target_func(ls).reshape(r_p, n_k, r_k)
-        # print(H.max())
-        # H *= 2.0
 
         # TODO: could be a separate method eventually
         if isinstance(poly, Spectral): 
@@ -859,7 +856,6 @@ class TTFunc():
         
         max_iters = als_iter == self.options.max_als
         max_error_tol = torch.max(self.errors[indices]) < self.options.als_tol
-        # TODO: check where l2_err actually gets updated
         l2_error_tol = self.l2_err < self.options.als_tol
 
         return max_iters or max_error_tol or l2_error_tol
@@ -977,10 +973,9 @@ class TTFunc():
                 self._compute_cross_iter_amen(indices)
 
             als_iter += 1
+            self.compute_relative_error()
             if (finished := self.is_finished(als_iter, indices)):
                 self._compute_final_block()
-
-            self.compute_relative_error()
 
             if self.options.verbose:
                 self._print_info(als_iter, indices)
@@ -1016,7 +1011,6 @@ class TTFunc():
         if self.use_amen:
             self.tt_data.res_w = {}
             self.tt_data.res_x = {}
-
         return
     
     def _eval_local_forward(self, ls: Tensor) -> Tensor:
@@ -1027,12 +1021,13 @@ class TTFunc():
         n_ls, d_ls = ls.shape
         polys = self.bases.polys
         cores = self.tt_data.cores
-        Gs_prod = torch.ones((n_ls, 1))
+        Gs_prod = torch.ones((n_ls, 1, 1))
 
         for k in range(d_ls):
-            Gs = self.eval_core_213(polys[k], cores[k], ls[:, k])
-            Gs_prod = torch.einsum("il, ilk -> ik", Gs_prod, Gs)
-        
+            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
+            Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
+
+        Gs_prod = Gs_prod.sum(dim=1)
         return Gs_prod
     
     def _eval_local_backward(self, ls: Tensor) -> Tensor:
@@ -1043,12 +1038,13 @@ class TTFunc():
         n_ls, d_ls = ls.shape
         polys = self.bases.polys 
         cores = self.tt_data.cores
-        Gs_prod = torch.ones((n_ls, 1))
+        Gs_prod = torch.ones((n_ls, 1, 1))
         
         for i, k in enumerate(range(self.dim-1, self.dim-d_ls-1, -1), start=1):
-            Gs = self.eval_core_231(polys[k], cores[k], ls[:, -i])
-            Gs_prod = torch.einsum("il, ilk -> ik", Gs_prod, Gs)
+            Gs = TTFunc.eval_core_231(polys[k], cores[k], ls[:, -i])
+            Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
         
+        Gs_prod = Gs_prod.sum(dim=1)
         return Gs_prod
 
     def eval_local(self, ls: Tensor, direction: Direction) -> Tensor:

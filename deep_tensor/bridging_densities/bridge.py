@@ -29,7 +29,7 @@ class Bridge(abc.ABC):
         self, 
         reference: Reference, 
         method: str,
-        xs: Tensor,
+        rs: Tensor,
         neglogliks: Tensor, 
         neglogpris: Tensor, 
         neglogfxs: Tensor
@@ -44,9 +44,9 @@ class Bridge(abc.ABC):
         method:
             The method used to compute the ratio function. Can be
             'eratio' (exact) or 'aratio' (approximate).
-        xs:
+        rs:
             An n * d matrix containing a set of samples from the 
-            approximation domain.
+            reference density.
         neglogliks:
             An n-dimensional vector containing the negative 
             log-likelihood evaluated at each sample.
@@ -55,7 +55,7 @@ class Bridge(abc.ABC):
             density evaluated at each sample.
         neglogfxs:
             An n-dimensional vector containing the negative logarithm
-            of the density the samples are drawn from.
+            of the current DIRT density.
 
         Returns
         -------
@@ -83,8 +83,9 @@ class Bridge(abc.ABC):
             User-defined function that returns the negative 
             log-likelihood and negative log-prior density of a sample 
             in the approximation domain.
-        zs:
-            The samples from the reference density.
+        rs:
+            An n * d matrix containing samples from the reference 
+            density.
         irt_func:
             Function that computes the inverse Rosenblatt transform.
         reference:

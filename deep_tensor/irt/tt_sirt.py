@@ -57,7 +57,7 @@ class TTSIRT(AbstractIRT):
         if self.approx.use_amen:
             self.approx.round()  # why?
 
-        self._oned_cdfs = {}
+        self.oned_cdfs = {}
         tol = self.approx.options.cdf_tol
         for k in range(self.dim):
             self.oned_cdfs[k] = construct_cdf(self.bases.polys[k], error_tol=tol)
@@ -68,6 +68,11 @@ class TTSIRT(AbstractIRT):
     @property 
     def oned_cdfs(self) -> dict[int, CDF1D]:
         return self._oned_cdfs
+    
+    @oned_cdfs.setter 
+    def oned_cdfs(self, value: dict) -> None:
+        self._oned_cdfs = value
+        return
 
     @property
     def approx(self) -> TTFunc:

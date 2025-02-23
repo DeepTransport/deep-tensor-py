@@ -23,7 +23,7 @@ class Tempering1(SingleBeta):
 
     @property 
     def is_last(self) -> bool:
-        return torch.abs(self.betas[-1] - 1.0) < 1e-6
+        return (self.betas[-1] - 1.0).abs() < 1e-6
     
     @property
     def is_adaptive(self) -> bool:
@@ -101,7 +101,7 @@ class Tempering1(SingleBeta):
         self, 
         reference: Reference, 
         method: str,
-        xs: Tensor,
+        rs: Tensor,
         neglogliks: Tensor, 
         neglogpris: Tensor, 
         neglogfxs: Tensor
@@ -113,7 +113,7 @@ class Tempering1(SingleBeta):
             neglogratios = beta*neglogliks + neglogpris
             return neglogratios
         
-        neglogrefs = -reference.log_joint_pdf(xs)[0]
+        neglogrefs = -reference.log_joint_pdf(rs)[0]
 
         if method == "eratio":
             neglogratios = beta*neglogliks + neglogpris + neglogrefs - neglogfxs
@@ -202,9 +202,7 @@ class Tempering1(SingleBeta):
             beta_prev = self.betas[self.n_layers-1]
             log_proposal = -neglogfxs
             log_target = -beta_prev*neglogliks - neglogpris
-
-            # Estimate square Hellinger distance between current (kth)
-            # approximation and previous (kth) target density
+            
             div_h2 = compute_f_divergence(log_proposal, log_target)[1]
             msg.append(f"DHell: {div_h2.sqrt()[0]:.4f}")
 

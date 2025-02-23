@@ -518,9 +518,8 @@ class TTDIRT():
             if self.n_layers == 0:
                 (xs, neglogliks, 
                  neglogpris, neglogfxs) = self.initialise(bases_list[0])
+                rs = xs.clone()
             else:
-                # Push forward a set of samples from the reference 
-                # density to the current approximation
                 xs, neglogfxs = self.eval_irt(rs)
                 neglogliks, neglogpris = func(xs)
         
@@ -534,7 +533,7 @@ class TTDIRT():
             neglogratios = self.bridge.get_ratio_func(
                 self.reference,
                 self.dirt_options.method, 
-                xs, 
+                rs, 
                 neglogliks, 
                 neglogpris, 
                 neglogfxs
