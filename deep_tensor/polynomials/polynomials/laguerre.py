@@ -9,13 +9,11 @@ from ...constants import EPS
 class Laguerre(Recurr):
 
     def __init__(self, order: int):
-
         n = torch.arange(order+1)
         a = -1.0 / (n+1.0)
         b = (2.0*n + 1.0) / (n+1.0)
         c = n / (n+1.0)
         norm = torch.ones(order+1)
-        
         Recurr.__init__(self, order, a, b, c, norm)
         return
     

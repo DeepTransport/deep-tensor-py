@@ -123,7 +123,8 @@ class Domain(abc.ABC):
         """
         return
     
-    def check_bounds(self, bounds: Tensor) -> None:
+    @staticmethod
+    def check_bounds(bounds: Tensor) -> None:
         if bounds[0] >= bounds[1]:
             msg = "Left-hand bound must be less than right-hand bound."
             raise Exception(msg)

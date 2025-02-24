@@ -2,6 +2,7 @@ from typing import Tuple
 import warnings
 
 import torch
+from torch import Tensor
 
 from .jacobi_11 import Jacobi11
 from .piecewise import Piecewise
@@ -28,22 +29,21 @@ class LagrangeRef():
         """
 
         assert n > 2, "Value of n should be greater than 2."
-
+        
+        jacobi = Jacobi11(order=n-3)
+        
         self.domain = torch.tensor([0.0, 1.0])
         self.cardinality = n
         self.es = torch.eye(n)
-        
-        jacobi = Jacobi11(order=n-3)
         self.nodes = torch.zeros(self.cardinality)
         self.nodes[1:-1] = 0.5 * (jacobi.nodes + 1.0)
         self.nodes[-1] = 1.0
-
         self.omega = self._compute_omegas()
         self.weights = self._compute_weights()
         self.mass = self._compute_mass()
         return
     
-    def _compute_omegas(self) -> torch.Tensor:
+    def _compute_omegas(self) -> Tensor:
         """Computes the local Barycentric weights (see Berrut and 
         Trefethen, Eq. (3.2)).
         """
@@ -54,7 +54,7 @@ class LagrangeRef():
             omega[i] = torch.prod(self.nodes[i]-self.nodes[mask]) ** -1
         return omega
     
-    def _compute_weights(self) -> torch.Tensor:
+    def _compute_weights(self) -> Tensor:
         """Uses numerical integration to approximate the integral of 
         each basis function over the domain.
         """
@@ -64,7 +64,7 @@ class LagrangeRef():
             weights[i] = integrate(f_i, *self.domain)
         return weights
     
-    def _compute_mass(self) -> torch.Tensor:
+    def _compute_mass(self) -> Tensor:
         """Uses numerical integration to approximate the mass matrix 
         (the integrals of the product of each pair of basis functions 
         over the domain).
@@ -78,11 +78,7 @@ class LagrangeRef():
                 mass[i, j], mass[j, i] = integral, integral
         return mass
 
-    def eval(
-        self, 
-        fls: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval(self, fls: Tensor, ls: Tensor) -> Tensor:
         """TODO: write docstring."""
 
         m = ls.numel()
@@ -111,7 +107,7 @@ class LagrangeP(Piecewise):
     def __init__(self, order, num_elems):
 
         if order == 1:
-            msg = ("When `order=1`, Lagrange1 should be used " 
+            msg = ("When 'order=1', Lagrange1 should be used " 
                    + "instead of LagrangeP.")
             raise Exception(msg)
 
@@ -145,7 +141,34 @@ class LagrangeP(Piecewise):
 
         return
     
-    def _compute_nodes(self, n_nodes):
+    @property
+    def int_W(self) -> Tensor:
+        return self._int_W
+    
+    @int_W.setter
+    def int_W(self, value: Tensor) -> None:
+        self._int_W = value 
+        return
+    
+    @property 
+    def nodes(self) -> Tensor:
+        return self._nodes 
+
+    @nodes.setter 
+    def nodes(self, value: Tensor) -> None:
+        self._nodes = value 
+        return
+    
+    @property 
+    def mass_R(self) -> Tensor:
+        return self._mass_R
+    
+    @mass_R.setter
+    def mass_R(self, value: Tensor) -> None:
+        self._mass_R = value 
+        return
+    
+    def _compute_nodes(self, n_nodes: int) -> Tensor:
         """Computes the values of the global nodes. 
         TODO: give more detail on this.
         """
@@ -155,35 +178,8 @@ class LagrangeP(Piecewise):
                    + i * (self.local.cardinality-1))
             nodes[ind] = self.grid[i] + self.elem_size * self.local.nodes
         return nodes
-    
-    @property
-    def int_W(self) -> torch.Tensor:
-        return self._int_W
-    
-    @int_W.setter
-    def int_W(self, value: torch.Tensor) -> None:
-        self._int_W = value 
-        return
-    
-    @property 
-    def nodes(self) -> torch.Tensor:
-        return self._nodes 
 
-    @nodes.setter 
-    def nodes(self, value: torch.Tensor) -> None:
-        self._nodes = value 
-        return
-    
-    @property 
-    def mass_R(self) -> torch.Tensor:
-        return self._mass_R
-    
-    @mass_R.setter
-    def mass_R(self, value: torch.Tensor) -> None:
-        self._mass_R = value 
-        return
-
-    def eval_basis(self, ls: torch.Tensor) -> torch.Tensor:
+    def eval_basis(self, ls: Tensor) -> Tensor:
         
         basis_vals = torch.zeros((ls.numel(), self.cardinality))
 
@@ -209,10 +205,7 @@ class LagrangeP(Piecewise):
         basis_vals[roi, coi] = lbs.T.flatten()
         return basis_vals
     
-    def eval_basis_deriv(
-        self, 
-        ls: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]: 
+    def eval_basis_deriv(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         
         deriv_vals = torch.zeros((ls.numel(), self.cardinality))
 

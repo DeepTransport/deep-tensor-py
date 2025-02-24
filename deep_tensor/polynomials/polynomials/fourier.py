@@ -7,42 +7,46 @@ from .spectral import Spectral
 class Fourier(Spectral):
 
     def __init__(self, order: int):
-
-        self._domain = torch.tensor([-1.0, 1.0])
-        self._constant_weight = True
         
+        n_nodes = 2 * order + 2
+        n = torch.arange(n_nodes)
+
         self.order = order
         self.m = self.order + 1
-
-        num_nodes = 2 + self.order * 2
-        n = torch.arange(num_nodes)
-
-        self._nodes = torch.sort((2.0/num_nodes) * (n+1) - 1).values
-        self._weights = torch.ones_like(self.nodes) / num_nodes
-
+        self._nodes = torch.sort((2.0/n_nodes) * (n+1) - 1).values
+        self.weights = torch.ones_like(self.nodes) / n_nodes
         self.c = (torch.arange(self.order)+1) * torch.pi
 
         self.__post_init__()
         # TODO: figure out what's going on here
         self.node2basis[-1] *= 0.5
-
         return
 
     @property
     def domain(self) -> Tensor:
-        return self._domain
+        return torch.tensor([-1.0, 1.0])
     
     @property
     def constant_weight(self) -> bool:
-        return self._constant_weight
+        return True
     
     @property 
     def nodes(self) -> Tensor:
         return self._nodes
+    
+    @nodes.setter 
+    def nodes(self, value: Tensor) -> None:
+        self._nodes = value 
+        return
 
     @property
     def weights(self) -> Tensor:
         return self._weights
+    
+    @weights.setter 
+    def weights(self, value: Tensor) -> None:
+        self._weights = value 
+        return
 
     def sample_measure(self, n: int) -> Tensor:
         return torch.rand(n) * 2 - 1

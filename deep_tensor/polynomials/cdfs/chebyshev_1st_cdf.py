@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import torch
+from torch import Tensor
 
 from .spectral_cdf import SpectralCDF
 from ..polynomials.chebyshev_1st import Chebyshev1st
@@ -14,15 +15,14 @@ class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
         SpectralCDF.__init__(self, **kwargs)
         return
     
-    def grid_measure(self, n: int) -> torch.Tensor:
-        x = torch.linspace(*self.domain, n)
-        x[0] = self.domain[0] - EPS
-        x[-1] = self.domain[1] + EPS
-        return x
+    def grid_measure(self, n: int) -> Tensor:
+        ls = torch.linspace(*self.domain, n)
+        ls = ls.clamp(self.domain[0]-EPS, self.domain[-1]+EPS)
+        return ls
 
-    def eval_int_basis(self, xs: torch.Tensor) -> torch.Tensor:
+    def eval_int_basis(self, ls: Tensor) -> Tensor:
         
-        thetas = self.l2theta(xs)
+        thetas = self.l2theta(ls)
 
         if self.order == 0:
             basis_vals = -(thetas / torch.pi).reshape(-1, 1)
@@ -37,16 +37,14 @@ class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
 
         return basis_vals
     
-    def eval_int_basis_newton(
-        self, 
-        xs: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
 
-        basis_vals = self.eval_int_basis(xs)
+        thetas = self.l2theta(ls)
+        thetas = thetas[:, None]
 
-        theta = self.l2theta(xs)
-        derivs = torch.cos(torch.outer(theta, self.n)) * self.norm
-        w = self.eval_measure(xs)
-        derivs = derivs * w[:, None]
+        basis_vals = self.eval_int_basis(ls)
+        derivs = self.norm * torch.cos(thetas * self.n)
+        ws = self.eval_measure(ls)
+        derivs = derivs * ws[:, None]
         
         return basis_vals, derivs

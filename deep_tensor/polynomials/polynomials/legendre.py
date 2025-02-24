@@ -7,13 +7,11 @@ from .recurr import Recurr
 class Legendre(Recurr):
 
     def __init__(self, order: int):
-
         n = torch.arange(order+1)
         a = (2*n + 1) / (n + 1)
         b = torch.zeros(n.shape)
         c = n / (n + 1)
         norm = torch.sqrt(2*n + 1)
-
         Recurr.__init__(self, order, a, b, c, norm)
         return
 

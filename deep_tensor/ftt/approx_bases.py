@@ -424,8 +424,7 @@ class ApproxBases():
         neglogwxs = neglogwls - dldxs.log().sum(dim=1)
         
         gradneglogwls = self.eval_measure_potential_local_grad(ls, indices)
-        gradneglogwxs = gradneglogwls * dldxs  # TODO: check
-
+        gradneglogwxs = gradneglogwls * dldxs
         return neglogwxs, gradneglogwxs
     
     def eval_measure(self, xs: Tensor) -> Tensor:

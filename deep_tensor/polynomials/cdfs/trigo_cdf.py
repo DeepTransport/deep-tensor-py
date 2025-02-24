@@ -2,6 +2,7 @@ import torch
 from torch import Tensor
 
 from .spectral_cdf import SpectralCDF
+from ..polynomials.spectral import Spectral
 from ...constants import EPS
 
 
@@ -17,11 +18,13 @@ class TrigoCDF(SpectralCDF):
         return ls
     
     def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
-        zs = SpectralCDF.eval_int_deriv(self, ps, -torch.acos(ls))
+        thetas = Spectral.l2theta(ls)
+        zs = SpectralCDF.eval_int_deriv(self, ps, -thetas)
         return zs
     
     def eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
-        zs = SpectralCDF.eval_cdf(self, ps, -torch.acos(ls))
+        thetas = Spectral.l2theta(ls)
+        zs = SpectralCDF.eval_cdf(self, ps, -thetas)
         return zs 
     
     def invert_cdf(self, ps: Tensor, zs: Tensor):

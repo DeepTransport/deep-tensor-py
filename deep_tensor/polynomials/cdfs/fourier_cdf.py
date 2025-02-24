@@ -17,7 +17,7 @@ class FourierCDF(SpectralCDF, Fourier):
     
     @property
     def domain(self) -> Tensor:
-        return self._domain 
+        return torch.tensor([-1.0, 1.0])
     
     @property
     def node2basis(self) -> Tensor:

@@ -116,7 +116,7 @@ class Chebyshev1st(Spectral):
 
         dpdls = self.norm * torch.hstack((
             torch.zeros_like(thetas), 
-            (torch.sin(thetas * self.n[1:]) * self.n[1:]) / sin_thetas
+            torch.sin(thetas * self.n[1:]) * self.n[1:] / sin_thetas
         ))
         check_finite(dpdls)
         return dpdls 

@@ -11,9 +11,9 @@ class CDF1D(abc.ABC):
 
     def __init__(
         self, 
-        error_tol: float=1e-10, 
-        num_newton: int=10,
-        num_regula_falsi: int=100
+        error_tol: float = 1e-10, 
+        num_newton: int = 10,
+        num_regula_falsi: int = 100
     ):
         """Parent class used for evaluating the CDF and inverse CDF of 
         all one-dimensional bases.

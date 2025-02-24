@@ -9,9 +9,6 @@ class Hermite(Recurr):
 
     def __init__(self, order: int):
 
-        self.domain = torch.tensor([-torch.inf, torch.inf])
-        self.constant_weight = False
-
         n = torch.arange(order+1)
         a = torch.ones_like(n)
         b = torch.zeros_like(n)
@@ -24,21 +21,11 @@ class Hermite(Recurr):
 
     @property
     def domain(self) -> Tensor:
-        return self._domain
-    
-    @domain.setter
-    def domain(self, value: Tensor) -> None:
-        self._domain = value
-        return
+        return torch.tensor([-torch.inf, torch.inf])
     
     @property
     def constant_weight(self) -> bool:
-        return self._constant_weight
-    
-    @constant_weight.setter
-    def constant_weight(self, value: Tensor) -> None:
-        self._constant_weight = value
-        return
+        return False
     
     @property 
     def nodes(self) -> Tensor:

@@ -80,7 +80,8 @@ class Spectral(Basis1D, abc.ABC):
         self._int_W = value
         return 
     
-    def l2theta(self, ls: Tensor) -> Tensor:
+    @staticmethod
+    def l2theta(ls: Tensor) -> Tensor:
         """Converts a set of values from a local domain to a set of 
         theta values (theta = arccos(l)), adjusting the endpoints in 
         case of singularities.
@@ -101,8 +102,5 @@ class Spectral(Basis1D, abc.ABC):
         thetas = ls.acos()
         thetas[torch.abs(ls + 1.0) <= EPS] = torch.pi
         thetas[torch.abs(ls - 1.0) <= EPS] = 0.0
-        if thetas.isnan().sum() > 0:
-            print(ls[thetas.isnan()])
-            print(1.0 - ls[thetas.isnan()].abs())
         check_finite(thetas)
         return thetas
