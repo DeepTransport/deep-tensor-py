@@ -11,7 +11,7 @@ from .tt_data import TTData
 from ..options import TTOptions
 from ..polynomials import Basis1D, Piecewise, Spectral
 from ..tools import deim, maxvol
-from ..tools.printing import als_info
+from ..tools.printing import cross_info
 
 
 MAX_COND = 1.0e+5
@@ -86,7 +86,7 @@ class TTFunc():
         construct a FTT approximation to the target function.
         """
         n = self.dim * (self.options.init_rank 
-                        + self.options.kick_rank * (self.options.max_als + 1))
+                        + self.options.kick_rank * (self.options.max_cross + 1))
         return n
 
     @staticmethod
@@ -345,7 +345,7 @@ class TTFunc():
     def _print_info_header(self) -> None:
 
         info_headers = [
-            "ALS", 
+            "Iter", 
             "Max Local Error", 
             "Mean Local Error", 
             "Max Rank", 
@@ -355,16 +355,16 @@ class TTFunc():
         if self.input_data.is_debug:
             info_headers += ["Max Debug Error", "Mean Debug Error"]
 
-        als_info(" | ".join(info_headers))
+        cross_info(" | ".join(info_headers))
         return
 
-    def _print_info(self, als_iter: int, indices: Tensor) -> None:
-        """Prints some diagnostic information about the current ALS 
+    def _print_info(self, cross_iter: int, indices: Tensor) -> None:
+        """Prints some diagnostic information about the current cross 
         iteration.
         """
 
         diagnostics = [
-            f"{als_iter:=3}", 
+            f"{cross_iter:=4}", 
             f"{torch.max(self.errors[indices]):=15.5e}",
             f"{torch.mean(self.errors[indices]):=16.5e}",
             f"{torch.max(self.rank):=8}",
@@ -378,7 +378,7 @@ class TTFunc():
             ]
 
         if self.options.verbose:
-            als_info(" | ".join(diagnostics))
+            cross_info(" | ".join(diagnostics))
         return
 
     def _select_points_piecewise(
@@ -848,15 +848,15 @@ class TTFunc():
 
         return interp_ls
 
-    def is_finished(self, als_iter: int, indices: Tensor) -> bool:
-        """Returns True if the maximum number of ALS iterations has 
+    def is_finished(self, cross_iter: int, indices: Tensor) -> bool:
+        """Returns True if the maximum number of cross iterations has 
         been reached or the desired error tolerance is met, and False 
         otherwise.
         """
         
-        max_iters = als_iter == self.options.max_als
-        max_error_tol = torch.max(self.errors[indices]) < self.options.als_tol
-        l2_error_tol = self.l2_err < self.options.als_tol
+        max_iters = cross_iter == self.options.max_cross
+        max_error_tol = torch.max(self.errors[indices]) < self.options.cross_tol
+        l2_error_tol = self.l2_err < self.options.cross_tol
 
         return max_iters or max_error_tol or l2_error_tol
 
@@ -943,7 +943,7 @@ class TTFunc():
         """Builds the FTT using cross iterations.
         """
 
-        als_iter = 0
+        cross_iter = 0
 
         if self.options.verbose:
             self._print_info_header()
@@ -972,18 +972,18 @@ class TTFunc():
             elif self.options.tt_method == "amen":
                 self._compute_cross_iter_amen(indices)
 
-            als_iter += 1
+            cross_iter += 1
             self.compute_relative_error()
-            if (finished := self.is_finished(als_iter, indices)):
+            if (finished := self.is_finished(cross_iter, indices)):
                 self._compute_final_block()
 
             if self.options.verbose:
-                self._print_info(als_iter, indices)
+                self._print_info(cross_iter, indices)
 
             if finished:
                 if self.options.verbose:
-                    als_info(f"ALS complete.")
-                    als_info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
+                    cross_info(f"TT-cross complete.")
+                    cross_info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
                 return
             else:
                 self.tt_data.reverse_direction()

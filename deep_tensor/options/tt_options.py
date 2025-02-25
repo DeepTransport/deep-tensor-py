@@ -10,8 +10,8 @@ INT_METHODS = ["qdeim", "deim", "maxvol"]
 @dataclass
 class TTOptions():
         
-    max_als: int = 4
-    als_tol: float = 1e-4
+    max_cross: int = 4
+    cross_tol: float = 1e-4
     init_rank: int = 20
     kick_rank: int = 2
     max_rank: int = 30

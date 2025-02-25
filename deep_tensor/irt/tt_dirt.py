@@ -73,7 +73,7 @@ class TTDIRT():
             reference = GaussianReference(mu=0.0, sigma=1.0, domain=domain)
         
         if sirt_options is None:
-            sirt_options = TTOptions(max_als=1, tt_method="random")
+            sirt_options = TTOptions(max_cross=1, tt_method="random")
         
         if dirt_options is None:
             dirt_options = DIRTOptions()
@@ -584,6 +584,6 @@ class TTDIRT():
 
         msg = [f"Iter: {self.n_layers}", f"DHell: {div_h:.4f}"]
         if self.dirt_options.verbose:
-            dirt_info(msg)
+            dirt_info(" | ".join(msg))
             dirt_info("DIRT construction complete.")
         return

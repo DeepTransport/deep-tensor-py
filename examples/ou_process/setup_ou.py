@@ -35,6 +35,8 @@ domain = dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0]))
 polys_dict = {
     "legendre": dt.Legendre(order=40),
     "fourier": dt.Fourier(order=20),
+    "chebyshev1st": dt.Chebyshev1st(order=40),
+    "chebyshev2nd": dt.Chebyshev2nd(order=40),
     "lagrange1": dt.Lagrange1(num_elems=40),
     "lagrangep": dt.LagrangeP(order=5, num_elems=8)
 }
@@ -52,19 +54,19 @@ tt_methods_list = ["amen", "random", "amen_round"]
 options_dict = {
     "amen": dt.TTOptions(
         tt_method="amen",
-        als_tol=1e-4,
+        cross_tol=1e-4,
         local_tol=0.0,
         max_rank=19,
-        max_als=5,
+        max_cross=5,
         init_rank=2,
         kick_rank=2
     ),
     "random": dt.TTOptions(
         tt_method="random",
-        als_tol=1e-4,
+        cross_tol=1e-4,
         local_tol=1e-10,
         max_rank=19,
-        max_als=1
+        max_cross=1
     )
 }
 

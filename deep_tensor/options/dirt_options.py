@@ -10,7 +10,7 @@ METHODS = ["eratio", "aratio"]
 class DIRTOptions():
 
     method: str = "aratio"
-    max_layers: int = 50
+    max_layers: int = 20
     num_samples: int = 1000
     num_debugs: int = 1000
     defensive: float = 1e-8

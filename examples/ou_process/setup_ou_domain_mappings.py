@@ -28,11 +28,9 @@ debug_x = torch.linalg.solve(model.B, torch.randn((dim, debug_size))).T
 
 sample_x = torch.linalg.solve(model.B, torch.randn((dim, 1_000))).T
 input_data = dt.InputData(sample_x, debug_x)
-# input_data = dt.InputData(xs_debug=debug_x)
-# input_data = dt.InputData()
 
 polys_dict = {
-    # "lagrangep_bound": dt.LagrangeP(order=5, num_elems=8),
+    "lagrangep_bound": dt.LagrangeP(order=5, num_elems=8),
     "chebyshev1st_alg": dt.Chebyshev1st(order=40),
     "lagrangep_alg": dt.LagrangeP(order=5, num_elems=8),
     "chebyshev2nd_log": dt.Chebyshev2nd(order=40),
@@ -40,7 +38,7 @@ polys_dict = {
 }
 
 domains_dict = {
-    # "lagrangep_bound": dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0])),
+    "lagrangep_bound": dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0])),
     "chebyshev1st_alg": dt.AlgebraicMapping(scale=4.0),
     "lagrangep_alg": dt.AlgebraicMapping(scale=4.0),
     "chebyshev2nd_log": dt.LogarithmicMapping(scale=4.0),
@@ -57,18 +55,11 @@ bases_dict = {
 
 tt_methods_list = ["random"]
 
-# zs = 2 * torch.rand(10, dim) - 1
-# us, dudzs = domains_dict["legendre_log"].local2approx(zs)
-# zs_0, dzdus_0 = domains_dict["legendre_log"].approx2local(us)
-# print((zs-zs_0).abs().max())
-# print(dudzs/dzdus_0)
-# print(dzdus_0)
-
 options_dict = {
     method: dt.TTOptions(
         tt_method=method,
         max_rank=19, 
-        max_als=2
+        max_cross=2
     ) for method in tt_methods_list
 }
 

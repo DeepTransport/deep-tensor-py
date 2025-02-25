@@ -23,7 +23,7 @@ def build_ou_sirt(
 
     domain = dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0]))
     bases = dt.ApproxBases(polys=poly, domains=domain, dim=dim) 
-    options = dt.TTOptions(tt_method=method, max_rank=20, max_als=1) 
+    options = dt.TTOptions(tt_method=method, max_rank=20, max_cross=1) 
     
     sirt = dt.TTSIRT(
         potential_func, 

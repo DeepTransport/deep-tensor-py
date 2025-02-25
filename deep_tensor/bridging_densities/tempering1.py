@@ -79,7 +79,7 @@ class Tempering1(SingleBeta):
             return
             
         beta_prev = self.betas[self.n_layers-1]
-        beta = torch.maximum(beta_prev, self.min_beta).clone()  # why clone?
+        beta = torch.maximum(beta_prev, self.min_beta)
 
         if method == "eratio":
             log_weights = -beta*neglogliks - neglogpris + neglogfxs
@@ -118,9 +118,9 @@ class Tempering1(SingleBeta):
         if method == "eratio":
             neglogratios = beta*neglogliks + neglogpris + neglogrefs - neglogfxs
         elif method == "aratio":
-            beta_prev = self.betas[self.n_layers-1]
-            neglogratios = (beta-beta_prev) * neglogliks + neglogrefs
-        
+            beta_p = self.betas[self.n_layers-1]
+            neglogratios = (beta-beta_p) * neglogliks + neglogrefs
+
         return neglogratios
     
     def ratio_func(
