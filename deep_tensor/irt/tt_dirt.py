@@ -579,8 +579,8 @@ class TTDIRT():
         
         log_proposal = -neglogfxs
         log_target = -neglogliks - neglogpris
-        div_h2 = compute_f_divergence(log_proposal, log_target)[1]
-        div_h = div_h2.sqrt()[0]
+        div_h2 = compute_f_divergence(log_proposal, log_target)
+        div_h = div_h2.sqrt()
 
         msg = [f"Iter: {self.n_layers}", f"DHell: {div_h:.4f}"]
         if self.dirt_options.verbose:
