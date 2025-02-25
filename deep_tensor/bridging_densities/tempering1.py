@@ -23,7 +23,7 @@ class Tempering1(SingleBeta):
 
     @property 
     def is_last(self) -> bool:
-        return (self.betas[-1] - 1.0).abs() < 1e-6
+        return (self.betas[self.n_layers-1] - 1.0).abs() < 1e-6
     
     @property
     def is_adaptive(self) -> bool:
@@ -68,8 +68,6 @@ class Tempering1(SingleBeta):
         neglogpris: Tensor, 
         neglogfxs: Tensor
     ) -> None:
-        # TODO: check whether this is correct (I'm thinking this should 
-        # use ratio of current ratio function to reference density.)
         
         if not self.is_adaptive:
             return
@@ -199,9 +197,9 @@ class Tempering1(SingleBeta):
 
         if self.n_layers > 0:
             beta_p = self.betas[self.n_layers-1]
-            log_proposal = -neglogfxs
+            log_approx = -neglogfxs
             log_target = -beta_p*neglogliks - neglogpris
-            div_h2 = compute_f_divergence(log_proposal, log_target)
+            div_h2 = compute_f_divergence(log_approx, log_target)
             msg.append(f"DHell: {div_h2.sqrt():.4f}")
 
         dirt_info(" | ".join(msg))
