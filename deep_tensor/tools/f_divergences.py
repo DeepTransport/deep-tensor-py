@@ -4,81 +4,63 @@ import torch
 from torch import Tensor
 
 
-def compute_norm_const_ratio(log_ratios: Tensor) -> Tensor:
-    """Estimates the ratio of the normalising constants between two 
-    (unnormalised) densities using a set of samples.
+def compute_log_norm(log_ratios: Tensor) -> Tensor:
+    """Estimates the normalising constant of a given target density.
     
     Parameters
     ----------
     log_ratios:
-        An m * n matrix. Each row contains the logarithm of the ratio 
-        between a (possibly unnormalised) target density and the 
+        An n-dimensional vector, containing the logarithm of the ratio 
+        between the (unnormalised) target density and the (normalised)
         proposal density, for samples drawn from the proposal density.
     
     Returns
     -------
-    log_norm_ratios:
-        An m-dimensional vector containing estimates of the log of the 
-        ratio of the normalising constants between each of the target 
-        densities and the proposal density.
+    log_norm_ratio:
+        The estimate of the log of the normalising constant of the 
+        target density.
     
     """
-
-    m, n = log_ratios.shape
-    log_norm_ratios = torch.zeros(m)
-
-    for i in range(m):
-        # Shift by maximum value to avoid numerical issues
-        max_val = log_ratios[i].max()
-        log_norm_ratios[i] = ((log_ratios[i] - max_val).exp().sum().log() 
-                              + max_val
-                              - torch.tensor(n).log())
-    
-    return log_norm_ratios
+    # Shift by maximum value to avoid numerical issues
+    max_val = log_ratios.max()
+    log_norm_ratio = (log_ratios - max_val).exp().mean().log() + max_val
+    return log_norm_ratio
 
 
-def compute_f_divergence(
-    log_proposal: Tensor, 
-    log_target: Tensor
-) -> Tuple[Tensor, Tensor, Tensor]:
+def compute_f_divergence(logqs: Tensor, logps: Tensor, div: str = "h2") -> Tensor:
     """Computes approximations of a set of f-divergences between two 
-    probability distributions using samples.
+    probability densities using samples.
 
     Parameters
     ----------
-    log_proposal:
-        An n-dimensional vector containing the proposal density (i.e., 
-        the density the samples are drawn from) evaluated at each 
-        sample.
-    log_target:
-        An m * n matrix. Each row should contain the values of a target
-        density evaluated at each sample.
+    logqs:
+        An n-dimensional vector containing the (normalised) proposal 
+        density (i.e., the density the samples are drawn from) 
+        evaluated at each sample.
+    logps:
+        An n-dimensional vector containing the values of the other 
+        (unnormalised) density evaluated at each sample.
+    div:
+        The type of divergence to estimate. Can be 'h2' (squared 
+        Hellinger distance), 'kl' (reversed KL divergence) or 'tv' 
+        (total variation distance).
 
     Returns
     -------
-    div_kl: 
-        An approximation of the KL divergence between the distributions 
-        based on the samples.
-    div_h2:
-        An approximation of the (squared) Hellinger distance between 
-        the distributions based on the samples.
-    div_tv:
-        An approximation of the total variation distance between the 
-        distributions based on the samples.
-    
-    TODO: derive the TV and H2 estimates.
+    f_div: 
+        The estimate of the requested f-divergence using the provided 
+        evaluations of the densities.
         
     """
 
-    log_target = torch.atleast_2d(log_target)
-    m, n = log_target.shape
-    log_proposal = log_proposal.tile((m, 1))
+    log_ratios = logps - logqs
+    log_norm = compute_log_norm(log_ratios)
 
-    log_ratios = log_target - log_proposal
-    log_norm_ratios = compute_norm_const_ratio(log_ratios)
+    if div == "h2":
+        return 1.0 - (compute_log_norm(0.5*log_ratios) - 0.5*log_norm).exp()
+    elif div == "kl":
+        return -log_ratios.mean() + log_norm
+    elif div == "tv":
+        return 0.5 * (torch.exp(log_ratios - log_norm) - 1.0).abs().mean()
 
-    div_kl = log_ratios.sum(dim=1) / n + log_norm_ratios
-    div_h2 = 1.0 - (compute_norm_const_ratio(0.5*log_ratios) - 0.5*log_norm_ratios).exp()
-    div_tv = 0.5 * (torch.exp(log_ratios + log_norm_ratios) - 1.0).abs().sum(dim=1) / n
-
-    return div_kl, div_h2, div_tv
+    raise Exception(f"Divergence '{div}' not recognised.")

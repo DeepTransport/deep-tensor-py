@@ -78,8 +78,8 @@ class Tempering1(SingleBeta):
             self.betas = torch.tensor([self.init_beta])
             return
             
-        beta_prev = self.betas[self.n_layers-1]
-        beta = torch.maximum(beta_prev, self.min_beta)
+        beta_p = self.betas[self.n_layers-1]
+        beta = torch.maximum(beta_p, self.min_beta)
 
         if method == "eratio":
             log_weights = -beta*neglogliks - neglogpris + neglogfxs
@@ -88,10 +88,10 @@ class Tempering1(SingleBeta):
                 log_weights = -beta*neglogliks - neglogpris + neglogfxs
 
         elif method == "aratio":
-            log_weights = -(beta - beta_prev)*neglogliks
+            log_weights = -(beta - beta_p)*neglogliks
             while compute_ess_ratio(log_weights) > self.ess_tol:
                 beta *= self.beta_factor
-                log_weights = -(beta - beta_prev)*neglogliks
+                log_weights = -(beta - beta_p)*neglogliks
 
         beta = torch.minimum(beta, torch.tensor(1.0))
         self.betas = torch.cat((self.betas, beta.reshape(1)))
@@ -198,13 +198,11 @@ class Tempering1(SingleBeta):
         ]
 
         if self.n_layers > 0:
-        
-            beta_prev = self.betas[self.n_layers-1]
+            beta_p = self.betas[self.n_layers-1]
             log_proposal = -neglogfxs
-            log_target = -beta_prev*neglogliks - neglogpris
-            
-            div_h2 = compute_f_divergence(log_proposal, log_target)[1]
-            msg.append(f"DHell: {div_h2.sqrt()[0]:.4f}")
+            log_target = -beta_p*neglogliks - neglogpris
+            div_h2 = compute_f_divergence(log_proposal, log_target)
+            msg.append(f"DHell: {div_h2.sqrt():.4f}")
 
         dirt_info(" | ".join(msg))
         return
