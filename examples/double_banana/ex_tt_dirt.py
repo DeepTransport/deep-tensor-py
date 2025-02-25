@@ -14,9 +14,9 @@ torch.manual_seed(0)
 
 polys = {
     "lagrange1": dt.Lagrange1(num_elems=50),
-    # "lagrangep": dt.LagrangeP(order=5, num_elems=8),
-    # "legendre": dt.Legendre(order=80),
-    # "fourier": dt.Fourier(order=30)
+    "lagrangep": dt.LagrangeP(order=5, num_elems=8),
+    "legendre": dt.Legendre(order=80),
+    "fourier": dt.Fourier(order=30)
 }
 
 references = {
@@ -99,4 +99,4 @@ for poly in polys:
 
             figures_dir = "examples/double_banana/figures"
             plt.savefig(f"{figures_dir}/dirt_{poly}_{ref}_iter_{k}.pdf")
-            plt.clf()
+            plt.close()
