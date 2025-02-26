@@ -1,8 +1,8 @@
 import torch
 from torch import Tensor
 
+from .spectral import Spectral
 from .spectral_cdf import SpectralCDF
-from ..polynomials.spectral import Spectral
 from ...constants import EPS
 
 

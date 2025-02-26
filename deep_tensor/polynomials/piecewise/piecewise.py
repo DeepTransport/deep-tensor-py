@@ -3,7 +3,7 @@ import abc
 import torch
 from torch import Tensor
 
-from .basis_1d import Basis1D
+from ..basis_1d import Basis1D
 
 
 class Piecewise(Basis1D, abc.ABC):

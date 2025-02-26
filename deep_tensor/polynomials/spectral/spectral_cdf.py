@@ -5,7 +5,7 @@ import warnings
 import torch
 from torch import Tensor
 
-from .cdf_1d import CDF1D
+from ..cdf_1d import CDF1D
 from ...tools import check_finite
 
 

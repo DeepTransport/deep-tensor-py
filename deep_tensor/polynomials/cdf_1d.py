@@ -4,7 +4,7 @@ import warnings
 import torch
 from torch import Tensor
 
-from ...constants import EPS
+from ..constants import EPS
 
 
 class CDF1D(abc.ABC):

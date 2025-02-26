@@ -3,9 +3,9 @@ from typing import Tuple
 import torch
 from torch import Tensor
 
+from .chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
+from .legendre import Legendre
 from .spectral_cdf import SpectralCDF
-from ..polynomials.chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
-from ..polynomials.legendre import Legendre
 from ...constants import EPS
 from ...tools import check_finite
 

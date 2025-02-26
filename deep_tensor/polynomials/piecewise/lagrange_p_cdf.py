@@ -3,12 +3,11 @@ from typing import Tuple
 import torch
 from torch import Tensor
 
-from .bounded_poly_cdf import BoundedPolyCDF
-from .cdf_data import CDFDataLagrangeP
-from .piecewise_cdf import PiecewiseCDF
-
-from ..polynomials.chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
-from ..polynomials.lagrange_p import LagrangeP
+from .lagrange_p import LagrangeP
+from ..cdf_data import CDFDataLagrangeP
+from ..piecewise.piecewise_cdf import PiecewiseCDF
+from ..spectral.bounded_poly_cdf import BoundedPolyCDF
+from ..spectral.chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
 
 
 class LagrangePCDF(LagrangeP, PiecewiseCDF):

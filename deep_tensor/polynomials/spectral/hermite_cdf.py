@@ -3,8 +3,8 @@ from typing import Tuple
 import torch
 from torch import Tensor
 
+from .hermite import Hermite
 from .spectral_cdf import SpectralCDF
-from ..polynomials.hermite import Hermite
 
 
 class HermiteCDF(Hermite, SpectralCDF):

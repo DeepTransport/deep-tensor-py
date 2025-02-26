@@ -1,30 +1,21 @@
-## Bases
-from .polynomials.basis_1d import Basis1D
+from .basis_1d import Basis1D
+from .cdf_1d import CDF1D
+from .cdf_constructor import construct_cdf
 
-# Piecewise polynomials
-from .polynomials.piecewise import Piecewise
-from .polynomials.lagrange_1 import Lagrange1
-from .polynomials.lagrange_p import LagrangeP
+from .piecewise.piecewise import Piecewise
+from .piecewise.piecewise_cdf import PiecewiseCDF
+from .piecewise.lagrange_1 import Lagrange1
+from .piecewise.lagrange_1_cdf import Lagrange1CDF
+from .piecewise.lagrange_p import LagrangeP
 
-# Spectral polynomials
-from .polynomials.spectral import Spectral
-from .polynomials.chebyshev_1st import Chebyshev1st
-from .polynomials.chebyshev_2nd import Chebyshev2nd
-from .polynomials.chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
-from .polynomials.fourier import Fourier
-from .polynomials.hermite import Hermite
-from .polynomials.laguerre import Laguerre
-from .polynomials.recurr import Recurr
-from .polynomials.legendre import Legendre
-
-## CDFs
-from .cdfs.cdf_constructor import construct_cdf
-from .cdfs.cdf_1d import CDF1D
-from .cdfs.lagrange_1_cdf import Lagrange1CDF
-
-# Piecewise polynomials 
-from .cdfs.piecewise_cdf import PiecewiseCDF
-
-# Spectral polynomials
-from .cdfs.chebyshev_1st_cdf import Chebyshev1stCDF
-from .cdfs.chebyshev_1st_trigo_cdf import Chebyshev1stTrigoCDF
+from .spectral.spectral import Spectral
+from .spectral.chebyshev_1st import Chebyshev1st
+from .spectral.chebyshev_1st_cdf import Chebyshev1stCDF
+from .spectral.chebyshev_1st_trigo_cdf import Chebyshev1stTrigoCDF
+from .spectral.chebyshev_2nd import Chebyshev2nd
+from .spectral.chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
+from .spectral.fourier import Fourier
+from .spectral.hermite import Hermite
+from .spectral.laguerre import Laguerre
+from .spectral.recurr import Recurr
+from .spectral.legendre import Legendre

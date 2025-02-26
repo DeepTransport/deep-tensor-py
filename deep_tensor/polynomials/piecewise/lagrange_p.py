@@ -4,8 +4,8 @@ import warnings
 import torch
 from torch import Tensor
 
-from .jacobi_11 import Jacobi11
 from .piecewise import Piecewise
+from ..spectral.jacobi_11 import Jacobi11
 from ...constants import EPS
 from ...tools import integrate
 

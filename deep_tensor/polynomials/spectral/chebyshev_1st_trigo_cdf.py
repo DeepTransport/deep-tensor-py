@@ -1,16 +1,16 @@
 import torch 
 from torch import Tensor 
 
+from .chebyshev_1st import Chebyshev1st
 from .trigo_cdf import TrigoCDF
-from ..polynomials.chebyshev_2nd import Chebyshev2nd
 
 
-class Chebyshev2ndTrigoCDF(TrigoCDF, Chebyshev2nd):
+class Chebyshev1stTrigoCDF(TrigoCDF, Chebyshev1st):
 
-    def __init__(self, poly: Chebyshev2nd, **kwargs):
-        Chebyshev2nd.__init__(self, 2*poly.order)
+    def __init__(self, poly: Chebyshev1st, **kwargs):
+        Chebyshev1st.__init__(self, 2*poly.order)
         TrigoCDF.__init__(self, **kwargs)
-        return 
+        return
     
     @property
     def domain(self) -> Tensor:
@@ -50,29 +50,21 @@ class Chebyshev2ndTrigoCDF(TrigoCDF, Chebyshev2nd):
     def eval_int_basis(self, thetas: Tensor) -> Tensor:
         
         thetas = thetas[:, None]
-
-        cdf_ind = torch.arange(1, self.order+3)
-        temp = torch.sin(thetas * cdf_ind) / cdf_ind 
+        
+        if self.order == 0:
+            ps = thetas / torch.pi 
+            return ps
+        
         ps = torch.hstack((
-            thetas - temp[:, 1][:, None],
-            temp[:, :self.order] - temp[:, 2:]
-        )) / torch.pi
-
+            thetas / torch.pi, 
+            torch.sin(thetas * self.n[1:]) 
+                * ((torch.tensor(2.0).sqrt() / torch.pi) / self.n[1:])
+        ))
         return ps
     
     def eval_int_basis_newton(self, thetas: Tensor) -> Tensor:
-        
+
+        ps = self.eval_int_basis(thetas)
         thetas = thetas[:, None]
-
-        cdf_ind = torch.arange(1, self.order+3)
-        temp = torch.sin(cdf_ind * thetas) / cdf_ind 
-        
-        ps = torch.hstack((
-            thetas - temp[:, 1][:, None],
-            temp[:, :self.order] - temp[:, 2:]
-        )) / torch.pi
-        dpdts = (torch.sin(thetas * (self.n+1)) 
-                 * torch.sin(thetas) 
-                 * (2.0 / torch.pi))
-
-        return ps, dpdts
+        dpdls = torch.cos(thetas * self.n) * self.norm / torch.pi
+        return ps, dpdls

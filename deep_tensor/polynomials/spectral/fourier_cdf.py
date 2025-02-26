@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 
 from .spectral_cdf import SpectralCDF
-from ..polynomials.fourier import Fourier
+from .fourier import Fourier
 from ...constants import EPS
 
 

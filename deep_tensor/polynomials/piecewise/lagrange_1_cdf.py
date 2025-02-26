@@ -3,9 +3,9 @@ from typing import Tuple
 import torch
 from torch import Tensor
 
-from .cdf_data import CDFDataLagrange1
-from .piecewise_cdf import PiecewiseCDF
-from ..polynomials.lagrange_1 import Lagrange1
+from ..cdf_data import CDFDataLagrange1
+from ..piecewise.piecewise_cdf import PiecewiseCDF
+from .lagrange_1 import Lagrange1
 
 
 class Lagrange1CDF(Lagrange1, PiecewiseCDF):

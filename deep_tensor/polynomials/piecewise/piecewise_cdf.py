@@ -5,8 +5,8 @@ import warnings
 import torch
 from torch import Tensor
 
-from .cdf_1d import CDF1D
-from .cdf_data import CDFData
+from ..cdf_1d import CDF1D
+from ..cdf_data import CDFData
 from ...constants import EPS
 from ...tools import check_finite
 

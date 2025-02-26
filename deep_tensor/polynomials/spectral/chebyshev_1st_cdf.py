@@ -3,8 +3,8 @@ from typing import Tuple
 import torch
 from torch import Tensor
 
+from .chebyshev_1st import Chebyshev1st
 from .spectral_cdf import SpectralCDF
-from ..polynomials.chebyshev_1st import Chebyshev1st
 from ...constants import EPS
 
 

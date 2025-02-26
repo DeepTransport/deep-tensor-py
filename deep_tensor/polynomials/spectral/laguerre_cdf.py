@@ -3,8 +3,8 @@ from typing import Tuple
 import torch 
 from torch import Tensor 
 
+from .laguerre import Laguerre
 from .spectral_cdf import SpectralCDF
-from ..polynomials.laguerre import Laguerre
 from ...constants import EPS
 
 
