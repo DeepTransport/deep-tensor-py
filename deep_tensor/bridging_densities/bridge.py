@@ -104,8 +104,21 @@ class Bridge(abc.ABC):
         return
     
     @abc.abstractmethod 
-    def set_init(self, neglogliks: Tensor, etol: float) -> None:
-        """TODO: write docstring."""
+    def set_init(self, neglogliks: Tensor) -> None:
+        """Computes the properties of the initial bridging density.
+        
+        Parameters
+        ----------
+        neglogliks:
+            An n-dimensional vector containing the negative 
+            log-likelihood function evaluated at a set of 
+            initialisation samples (drawn from the prior).
+
+        Returns
+        -------
+        None
+        
+        """
         return 
     
     @abc.abstractmethod

@@ -43,16 +43,14 @@ class Tempering1(SingleBeta):
         self._n_layers = value
         return
     
-    def set_init(self, neglogliks: Tensor, etol: float = 0.8) -> None:
+    def set_init(self, neglogliks: Tensor) -> None:
 
         if not self.is_adaptive:
             return 
-        
-        etol = min(etol, self.ess_tol_init)
 
         beta = self.min_beta
         ess = compute_ess_ratio(-beta*neglogliks)
-        while ess > etol:
+        while ess > self.ess_tol_init:
             beta *= self.beta_factor
             ess = compute_ess_ratio(-beta*neglogliks)
 
@@ -186,6 +184,8 @@ class Tempering1(SingleBeta):
         neglogpris: Tensor,
         neglogfxs: Tensor
     ) -> None:
+        """Prints some information about the current bridging density.
+        """
 
         ess = compute_ess_ratio(log_weights)
 
