@@ -318,12 +318,11 @@ class TTDIRT():
             bases_i = bases[min(self.n_layers, 1)] 
             input_data = self.get_inputdata(bases_i, xs, neglogratios)
 
-            # Start from fresh (TODO: figure out why this happens on 
-            # the second iteration?)
-            if self.n_layers <= 1:
+            if self.n_layers == 0:
                 approx = None 
                 tt_data = None
             else:
+                # Use previous approximation as a starting point
                 approx = deepcopy(self.irts[self.n_layers-1].approx)
                 tt_data = deepcopy(self.irts[self.n_layers-1].approx.tt_data)
 
@@ -572,7 +571,8 @@ class TTDIRT():
                     dirt_info("DIRT construction complete.")
                 return
 
-        warnings.warn("Maximum number of DIRT layers reached.")
+        msg = "Maximum number of DIRT layers reached. Building final layer..."
+        warnings.warn(msg)
 
         xs, neglogfxs = self.eval_irt(rs)
         neglogliks, neglogpris = func(xs)

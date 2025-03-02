@@ -3,6 +3,7 @@ from typing import Callable, Tuple
 
 import torch
 from torch import Tensor
+from torch.autograd.functional import jacobian
 
 from ..constants import EPS
 from ..ftt import ApproxBases, Direction, InputData, TTData, TTFunc
@@ -128,11 +129,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod
-    def potential2density(
-        self,
-        potential_func: PotentialFunc,
-        ls: Tensor
-    ) -> Tensor:
+    def potential2density(self, potential_func: PotentialFunc, ls: Tensor) -> Tensor:
         """Computes the value of the target function being approximated 
         by the FTT for a sample, or set of samples, from the local 
         domain. 
@@ -457,12 +454,7 @@ class AbstractIRT(abc.ABC):
             xs = xs.reshape(n_xs, self.dim)
             return self.eval_rt(xs).sum(dim=0)
         
-        Js: Tensor = torch.autograd.functional.jacobian(
-            _eval_rt, 
-            xs.flatten(), 
-            vectorize=True
-        )
-
+        Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
         return Js.reshape(self.dim, n_xs, self.dim)
 
     def eval_rt_jac(self, xs: Tensor, method: str = "manual") -> Tensor:

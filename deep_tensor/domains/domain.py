@@ -25,13 +25,13 @@ class Domain(abc.ABC):
 
     @abc.abstractmethod
     def local2approx(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
-        """Maps a set of points in the reference domain to the 
+        """Maps a set of points in the local domain to the 
         approximation domain.
         
         Parameters
         ----------
         ls: 
-            An n-dimensional vector containing points from the reference 
+            An n-dimensional vector containing points from the local 
             domain.
 
         Returns
@@ -41,7 +41,7 @@ class Domain(abc.ABC):
             in the approximation domain.
         dxdls:
             An n-dimensional vector containing the gradient of the 
-            mapping from the reference domain to the approximation 
+            mapping from the local domain to the approximation 
             domain evaluated at each point in xs.
             
         """
@@ -50,7 +50,7 @@ class Domain(abc.ABC):
     @abc.abstractmethod
     def approx2local(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         """Maps a set of points in the approximation domain back to the 
-        reference domain.
+        local domain.
         
         Parameters
         ----------
@@ -62,10 +62,10 @@ class Domain(abc.ABC):
         -------
         ls:
             An n-dimensional vector containing the corresponding points 
-            in the reference domain.
+            in the local domain.
         dldxs:
             An n-dimensional vector containing the gradient of the 
-            mapping from the approximation domain to the reference 
+            mapping from the approximation domain to the local 
             domain evaluated at each point in rs.
 
         """
@@ -74,25 +74,25 @@ class Domain(abc.ABC):
     @abc.abstractmethod
     def local2approx_log_density(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         """Computes the logarithm of the derivative of the mapping from 
-        the reference domain to the approximation domain and its
+        the local domain to the approximation domain and its
         gradient.
 
         Parameters
         ----------
         ls: 
             An n-dimensional vector containing a set of points from the 
-            reference domain.
+            local domain.
         
         Returns
         -------
         logdxdls:
             An n-dimensional vector containing the logarithm of the 
-            gradient of the mapping from the reference domain to the 
+            gradient of the mapping from the local domain to the 
             approximation domain.
         logdxdl2s:
-            An n-dimensional vector containing the derivative of the 
-            logarithm of the gradient of the mapping from the 
-            reference domain to the approximation domain.
+            An n-dimensional vector containing the logarithm of the 
+            second derivative of the mapping from the local domain to 
+            the approximation domain.
         
         """
         return
@@ -100,7 +100,7 @@ class Domain(abc.ABC):
     @abc.abstractmethod
     def approx2local_log_density(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         """Computes the logarithm of the derivative of the mapping from 
-        the approximation domain to the reference domain and its
+        the approximation domain to the local domain and its
         gradient.
 
         Parameters
@@ -114,11 +114,11 @@ class Domain(abc.ABC):
         logdldxs:
             An n-dimensional vector containing the logarithm of the 
             gradient of the mapping from the approximation domain to 
-            the reference domain.
+            the local domain.
         logdldx2s:
             An n-dimensional vector containing the derivative of the 
             logarithm of the gradient of the mapping from the 
-            approximation domain to the reference domain.
+            approximation domain to the local domain.
         
         """
         return
