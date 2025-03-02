@@ -164,7 +164,25 @@ class InputData():
         return
     
     def relative_error(self, fxs_approx: Tensor) -> Tuple[Tensor, Tensor]:
-        """TODO: write docstring."""
+        """Estimates the L_2 and L_inf error between the target 
+        function and FTT approximation using a set of samples.
+        
+        Parameters
+        ----------
+        fxs_approx:
+            An n-dimensional vector containing the value of the target 
+            function evaluated at each of the debugging samples.
+        
+        Returns
+        -------
+        error_l2:
+            The estimate of the L2 error between the target function 
+            and the FTT approximation.
+        error_linf:
+            The estimate of the L_inf error between the target function 
+            and the FTT approximation.
+        
+        """
         
         if not self.is_debug:
             return torch.inf, torch.inf 
