@@ -393,46 +393,35 @@ class TTSIRT(AbstractIRT):
         ws = torch.exp(-neglogws)
         fs = ps * ws  # Don't need to normalise as derivative ends up being a ratio
         
-        ws_prod_forward: dict[int, Tensor] = {}
-        ws_prod_backward: dict[int, Tensor] = {}
-        ws_prod_forward[-1] = torch.ones((n_ls,))
-        ws_prod_backward[self.dim] = torch.ones((n_ls,))
-        dwdls: dict[int, Tensor] = {}
+        Gs_prod = torch.ones((n_ls, 1, 1))
         
-        Gs_prod_forward: dict[int, Tensor] = {}
-        Gs_prod_backward: dict[int, Tensor] = {}
-        Gs_prod_forward[-1] = torch.ones((n_ls, 1, 1))
-        Gs_prod_backward[self.dim] = torch.ones((n_ls, 1, 1))
-        dGdls: dict[int, Tensor] = {}
+        dwdls = {k: torch.ones((n_ls, )) for k in range(self.dim)}
+        dGdls = {k: torch.ones((n_ls, 1, 1)) for k in range(self.dim)}
         
         for k in range(self.dim):
 
-            ws_prod_forward[k] = ws_prod_forward[k-1] * polys[k].eval_measure(ls[:, k])
-            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
-            Gs_prod_forward[k] = TTFunc.batch_mul(Gs_prod_forward[k-1], Gs)
+            ws_k = polys[k].eval_measure(ls[:, k])
+            dwdls_k = polys[k].eval_measure_deriv(ls[:, k])
 
-            dwdls[k] = polys[k].eval_measure_deriv(ls[:, k])
-            dGdls[k] = TTFunc.eval_core_213_deriv(polys[k], cores[k], ls[:, k])
-
-        for k in range(self.dim-1, -1, -1):
-
-            ws_prod_backward[k] = ws_prod_backward[k+1] * polys[k].eval_measure(ls[:, k])
-            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
-            Gs_prod_backward[k] = TTFunc.batch_mul(Gs, Gs_prod_backward[k+1])
+            Gs_k = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
+            dGdls_k = TTFunc.eval_core_213_deriv(polys[k], cores[k], ls[:, k])
+            Gs_prod = TTFunc.batch_mul(Gs_prod, Gs_k)
+            
+            for j in range(self.dim):
+                if k == j:
+                    dwdls[j] *= dwdls_k
+                    dGdls[j] = TTFunc.batch_mul(dGdls[j], dGdls_k)
+                else:
+                    dwdls[j] *= ws_k
+                    dGdls[j] = TTFunc.batch_mul(dGdls[j], Gs_k)
         
         dfdls = torch.zeros_like(ls)
         deriv = torch.zeros_like(ls)
-        gs = Gs_prod_forward[self.dim-1].sum(dim=(1, 2)) 
+        gs = Gs_prod.sum(dim=(1, 2)) 
 
         for k in range(self.dim):
-            
-            dwdl_ks = ws_prod_forward[k-1] * dwdls[k] * ws_prod_backward[k+1]
-
-            dgdl_ks = TTFunc.batch_mul(Gs_prod_forward[k-1], dGdls[k])
-            dgdl_ks = TTFunc.batch_mul(dgdl_ks, Gs_prod_backward[k+1])
-            dgdl_ks = dgdl_ks.sum(dim=(1, 2))
-
-            dfdls[:, k] = ps * dwdl_ks + 2.0 * gs * dgdl_ks * ws
+            dGdls_k = dGdls[k].sum(dim=(1, 2))
+            dfdls[:, k] = ps * dwdls[k] + 2.0 * gs * dGdls_k * ws
             deriv[:, k] = -dfdls[:, k] / fs
 
         return deriv

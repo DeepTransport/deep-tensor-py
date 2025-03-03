@@ -881,17 +881,17 @@ class TTFunc():
             ls_right = self.tt_data.interp_ls[int(k+1)].clone()
             enrich = self.input_data.get_samples(self.options.kick_rank)
 
-            F_k = self.build_block_local(ls_left, ls_right, k)
-            self.errors[k] = self.get_error_local(F_k, k)
+            H = self.build_block_local(ls_left, ls_right, k)
+            self.errors[k] = self.get_error_local(H, k)
 
             if self.tt_data.direction == Direction.FORWARD:
-                F_enrich = self.build_block_local(ls_left, enrich[:, k+1:], k)
-                F_full = torch.concatenate((F_k, F_enrich), dim=2)
+                H_enrich = self.build_block_local(ls_left, enrich[:, k+1:], k)
+                H_full = torch.concatenate((H, H_enrich), dim=2)
             else:
-                F_enrich = self.build_block_local(enrich[:, :k], ls_right, k)
-                F_full = torch.concatenate((F_k, F_enrich), dim=0)
+                H_enrich = self.build_block_local(enrich[:, :k], ls_right, k)
+                H_full = torch.concatenate((H, H_enrich), dim=0)
 
-            self.build_basis_svd(F_full, k)
+            self.build_basis_svd(H_full, k)
 
         return
     
@@ -1093,16 +1093,49 @@ class TTFunc():
             value.
         
         """
-        self._check_sample_dim(ls, self.dim, strict=True)
+        TTFunc._check_sample_dim(xs, self.dim, strict=True)
         ls = self.bases.approx2local(xs)[0]
         gs = self.eval_local(ls, self.tt_data.direction).flatten()
         return gs
 
-    def grad_reference(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
+    def grad_local(self, ls: Tensor) -> Tensor:
         """Evaluates the gradient of the approximation to the target 
-        function for a set of reference variables.
+        function for a set of samples in the local domain.
+
+        Parameters
+        ----------
+        ls:
+            An n * d matrix containing a set of samples in the local 
+            domain.
+        
+        Returns
+        -------
+        dfdls:
+            An n * d matrix containing the gradient of the FTT 
+            approximation to the target function evaluated at each 
+            element in ls.
+
         """
-        raise NotImplementedError()
+
+        polys = self.bases.polys
+        cores = self.tt_data.cores
+        n_ls = ls.shape[0]
+        
+        dGdls = {k: torch.ones((n_ls, 1, 1)) for k in range(self.dim)}
+        
+        for k in range(self.dim):
+            Gs_k = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
+            dGdls_k = TTFunc.eval_core_213_deriv(polys[k], cores[k], ls[:, k])
+            for j in range(self.dim):
+                if k == j:
+                    dGdls[j] = TTFunc.batch_mul(dGdls[j], dGdls_k)
+                else:
+                    dGdls[j] = TTFunc.batch_mul(dGdls[j], Gs_k)
+        
+        dfdls = torch.zeros_like(ls)
+        for k in range(self.dim):
+            dfdls[:, k] = dGdls[k].sum(dim=(1, 2))
+        return dfdls
 
     def grad(self, xs: Tensor) -> Tensor:
         """Evaluates the gradient of the approximation to the target 
@@ -1117,14 +1150,17 @@ class TTFunc():
 
         Returns
         -------
-        gxs:
-            TODO: finish this once grad_reference is done.
+        dfdxs:
+            An n * d matrix containing the gradient of the FTT 
+            approximation to the target function evaluated at each 
+            element in ls.
 
         """
-        zs, dzdxs = self.bases.approx2local(xs)
-        gzs, fxs = self.grad_reference(self, zs)
-        gxs = gzs * dzdxs
-        return gxs, fxs
+        TTFunc._check_sample_dim(xs, self.dim, strict=True)
+        ls, dldxs = self.bases.approx2local(xs)
+        dfdls = self.grad_local(ls)
+        dfdxs = dfdls * dldxs
+        return dfdxs
     
     def int_reference(self):
         """Integrates the approximation to the target function over the 
