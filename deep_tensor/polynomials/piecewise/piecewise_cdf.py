@@ -5,13 +5,14 @@ import warnings
 import torch
 from torch import Tensor
 
+from .piecewise import Piecewise
 from ..cdf_1d import CDF1D
 from ..cdf_data import CDFData
 from ...constants import EPS
 from ...tools import check_finite
 
 
-class PiecewiseCDF(CDF1D, abc.ABC):
+class PiecewiseCDF(CDF1D, abc.ABC):  # TODO: add Piecewise as a parent
     
     def __init__(self, **kwargs):
         CDF1D.__init__(self, **kwargs)
@@ -200,11 +201,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         dzs = zs - zs_cdf
         return dzs, gradzs
 
-    def eval_cdf(
-        self, 
-        ps: torch.Tensor, 
-        ls: torch.Tensor
-    ) -> torch.Tensor:
+    def eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
 
         self.check_pdf_positive(ps)
         cdf_data = self.pdf2cdf(ps)
@@ -347,6 +344,11 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         return ls
     
     def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
+        
+        if ps.ndim == 1:
+            ps = ps[:, None]
+        self.check_pdf_dims(ps, ls)
+        
         cdf_data = self.pdf2cdf(ps)
         zs = self.eval_int_lag(cdf_data, ls)
         return zs
@@ -354,9 +356,9 @@ class PiecewiseCDF(CDF1D, abc.ABC):
     def invert_cdf_local(
         self, 
         cdf_data: CDFData, 
-        inds_left: torch.Tensor,
-        zs_cdf: torch.Tensor
-    ) -> torch.Tensor:
+        inds_left: Tensor,
+        zs_cdf: Tensor
+    ) -> Tensor:
         """Evaluates the inverse of the CDF corresponding to the 
         (unnormalised) target PDF at a given set of values.
         
@@ -386,12 +388,6 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         return ls
 
     def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
-
-        # # TEMP
-        # pls = torch.zeros((8, 81))
-        # pls[:, :41] = torch.linspace(0, 1, 41)
-        # pls[:, 40:] = torch.linspace(1, 0, 41)
-        # pls = pls.T
 
         self.check_pdf_positive(ps)
         cdf_data = self.pdf2cdf(ps)

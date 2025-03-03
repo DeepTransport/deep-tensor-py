@@ -123,6 +123,7 @@ class TTSIRT(AbstractIRT):
         """Computes each coefficient tensor required to evaluate the 
         marginal functions in each dimension, by iterating over the 
         dimensions of the approximation from last to first.
+
         """
 
         self.Rs[self.dim] = torch.tensor([[1.0]])
@@ -143,6 +144,7 @@ class TTSIRT(AbstractIRT):
         """Computes each coefficient tensor required to evaluate the 
         marginal functions in each dimension, by iterating over the 
         dimensions of the approximation from first to last.
+        
         """
         
         self.Rs[-1] = torch.tensor([[1.0]])
@@ -377,6 +379,63 @@ class TTSIRT(AbstractIRT):
         neglogfls = self.z.log() + neglogpls + neglogwls
 
         return ls, neglogfls
+
+    def eval_potential_grad_local(self, ls: Tensor) -> Tensor:
+
+        polys = self.bases.polys
+        cores = self.approx.tt_data.cores
+
+        zs = self.eval_rt_local(ls)
+        ls, gs_sq = self._eval_irt_local_forward(zs)
+        n_ls = ls.shape[0]
+        ps = gs_sq + self.tau
+        neglogws = self.bases.eval_measure_potential_local(ls)
+        ws = torch.exp(-neglogws)
+        fs = ps * ws  # Don't need to normalise as derivative ends up being a ratio
+        
+        ws_prod_forward: dict[int, Tensor] = {}
+        ws_prod_backward: dict[int, Tensor] = {}
+        ws_prod_forward[-1] = torch.ones((n_ls,))
+        ws_prod_backward[self.dim] = torch.ones((n_ls,))
+        dwdls: dict[int, Tensor] = {}
+        
+        Gs_prod_forward: dict[int, Tensor] = {}
+        Gs_prod_backward: dict[int, Tensor] = {}
+        Gs_prod_forward[-1] = torch.ones((n_ls, 1, 1))
+        Gs_prod_backward[self.dim] = torch.ones((n_ls, 1, 1))
+        dGdls: dict[int, Tensor] = {}
+        
+        for k in range(self.dim):
+
+            ws_prod_forward[k] = ws_prod_forward[k-1] * polys[k].eval_measure(ls[:, k])
+            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
+            Gs_prod_forward[k] = TTFunc.batch_mul(Gs_prod_forward[k-1], Gs)
+
+            dwdls[k] = polys[k].eval_measure_deriv(ls[:, k])
+            dGdls[k] = TTFunc.eval_core_213_deriv(polys[k], cores[k], ls[:, k])
+
+        for k in range(self.dim-1, -1, -1):
+
+            ws_prod_backward[k] = ws_prod_backward[k+1] * polys[k].eval_measure(ls[:, k])
+            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
+            Gs_prod_backward[k] = TTFunc.batch_mul(Gs, Gs_prod_backward[k+1])
+        
+        dfdls = torch.zeros_like(ls)
+        deriv = torch.zeros_like(ls)
+        gs = Gs_prod_forward[self.dim-1].sum(dim=(1, 2)) 
+
+        for k in range(self.dim):
+            
+            dwdl_ks = ws_prod_forward[k-1] * dwdls[k] * ws_prod_backward[k+1]
+
+            dgdl_ks = TTFunc.batch_mul(Gs_prod_forward[k-1], dGdls[k])
+            dgdl_ks = TTFunc.batch_mul(dgdl_ks, Gs_prod_backward[k+1])
+            dgdl_ks = dgdl_ks.sum(dim=(1, 2))
+
+            dfdls[:, k] = ps * dwdl_ks + 2.0 * gs * dgdl_ks * ws
+            deriv[:, k] = -dfdls[:, k] / fs
+
+        return deriv
 
     def _eval_cirt_local_forward(
         self, 

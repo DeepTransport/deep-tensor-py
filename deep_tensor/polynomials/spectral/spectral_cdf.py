@@ -177,7 +177,6 @@ class SpectralCDF(CDF1D, abc.ABC):
         return zs
 
     def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
-        """TODO: rewrite. zs should be renamed."""
         
         coef = self.node2basis @ ps 
         base = self.cdf_basis2node[0] @ coef

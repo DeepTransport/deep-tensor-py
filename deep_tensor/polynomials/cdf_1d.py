@@ -17,6 +17,7 @@ class CDF1D(abc.ABC):
     ):
         """Parent class used for evaluating the CDF and inverse CDF of 
         all one-dimensional bases.
+
         """
         self.error_tol = error_tol
         self.num_newton = num_newton
@@ -34,6 +35,7 @@ class CDF1D(abc.ABC):
     def cardinality(self) -> Tensor:
         """The number of nodes associated with the polynomial basis of
         the CDF.
+
         """
         return
     
@@ -42,6 +44,7 @@ class CDF1D(abc.ABC):
     def domain(self) -> Tensor:
         """The domain on which polynomials used to form the CDF are 
         defined.
+        
         """
         return 
 
@@ -108,14 +111,42 @@ class CDF1D(abc.ABC):
         return
     
     @abc.abstractmethod
-    def eval_int_deriv(self):
-        """TODO: write docstring."""
+    def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
+        """Evaluates the integral of the product of the PDF and the 
+        weighting function from the left-hand boundary of the local 
+        domain to each element of ls.
+        
+        Parameters
+        ----------
+        ps:
+            An m * n matrix containing the evaluations of the target 
+            PDF for each value of ls. The number of rows of ps should 
+            be equal to the number of nodes of the CDF basis, and the 
+            number of columns of ps should be equal to the number of 
+            elements of ls.
+        ls: 
+            An n-dimensional vector containing a set of samples from 
+            the local domain.
+
+        Returns
+        -------
+        zs:
+            An n-dimensional vector containing the integral of the PDF
+            and the product of the weighting function between the 
+            left-hand boundary of the local domain and the 
+            corresponding element of ls.
+        
+        TODO: fix this; sometimes the weighting function isn't actually 
+        used.
+
+        """
         return
     
     @staticmethod
     def check_pdf_positive(ps: Tensor) -> None:
         """Verifies whether a set of evaluations of the target PDF are 
         positive.
+
         """
         if torch.sum(ps < -EPS) > 0:
             msg = "Negative PDF values found."
@@ -149,7 +180,9 @@ class CDF1D(abc.ABC):
     
     def check_pdf_dims(self, ps: Tensor, xs: Tensor) -> None:
         """Checks whether the dimensions of the evaluation of the 
-        target PDF(s) on the nodes of the 
+        target PDF(s) on the nodes of the basis of the CDF are 
+        correct.
+        
         """
         
         n_k, n_ps = ps.shape

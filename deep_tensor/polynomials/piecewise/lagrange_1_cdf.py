@@ -62,11 +62,20 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         return
     
     @property
+    def cardinality(self) -> int:
+        return self.nodes.numel()
+    
+    @property 
+    def domain(self) -> Tensor:
+        return torch.tensor([-1.0, 1.0])
+    
+    @property
     def node2elem(self) -> Tensor:
         """An operator which takes a vector of coefficients for the 
         nodes of the polynomial basis for the CDF, and returns a vector 
         containing the three coefficients for each element of the 
         polynomial basis for the PDF, in sequence.
+
         """
         return self._node2elem
     
@@ -79,6 +88,7 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
     def V_inv(self) -> Tensor:
         """The inverse of the Vandermonde matrix obtained by evaluating 
         (1, x, x^2) at (0, dl/2, dl).
+
         """
         return self._V_inv
     

@@ -15,7 +15,7 @@ class Lagrange1(Piecewise):
 
     def __init__(self, num_elems: int):
         
-        super().__init__(order=1, num_elems=num_elems)
+        Piecewise.__init__(self, order=1, num_elems=num_elems)
         self.nodes = self.grid.clone()
         
         mass = torch.zeros((self.cardinality, self.cardinality))

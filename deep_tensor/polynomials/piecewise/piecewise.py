@@ -29,6 +29,15 @@ class Piecewise(Basis1D, abc.ABC):
         self._grid = value 
         return
     
+    @property
+    def num_elems(self) -> int:
+        return self._num_elems
+    
+    @num_elems.setter 
+    def num_elems(self, value: int) -> None:
+        self._num_elems = value 
+        return
+    
     @property 
     def constant_weight(self) -> bool:
         return True

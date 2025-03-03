@@ -4,6 +4,7 @@ from typing import Callable, Tuple
 import torch
 from torch import Tensor
 from torch.autograd.functional import jacobian
+from torch.quasirandom import SobolEngine
 
 from ..constants import EPS
 from ..ftt import ApproxBases, Direction, InputData, TTData, TTFunc
@@ -251,6 +252,24 @@ class AbstractIRT(abc.ABC):
     
         """
         return
+    
+    @abc.abstractmethod
+    def eval_potential_grad_local(self, ls: Tensor) -> Tensor:
+        """Evaluates the gradient of the potential function.
+        
+        Parameters
+        ----------
+        ls:
+            An n * d set of samples from the local domain.
+        
+        Returns 
+        -------
+        grads:
+            An n * d matrix containing the gradient of the potential 
+            function at each element in ls.
+        
+        """
+        return
 
     @abc.abstractmethod 
     def eval_rt_jac_local(self, zs: Tensor) -> Tensor:
@@ -258,8 +277,6 @@ class AbstractIRT(abc.ABC):
         
         Parameters
         ----------
-        ls:
-            An n * d set of samples from the local domain.
         zs: 
             An n * d matrix corresponding to evaluations of the 
             Rosenblatt transport at each sample in ls.
@@ -446,7 +463,37 @@ class AbstractIRT(abc.ABC):
 
         return ys, neglogfys
     
-    def _eval_rt_jac_autodiff(self, xs: Tensor) -> Tensor:
+    def eval_potential_grad_autodiff(self, xs: Tensor) -> Tensor:
+        
+        n_xs = xs.shape[0]
+
+        def _eval_potential(xs: Tensor) -> Tensor:
+            xs = xs.reshape(n_xs, self.dim)
+            return self.eval_potential(xs).sum(dim=0)
+        
+        derivs = jacobian(_eval_potential, xs.flatten(), vectorize=True)
+        return derivs.reshape(n_xs, self.dim)
+
+    def eval_potential_grad(self, xs: Tensor, method: str = "autodiff") -> Tensor:
+        """Derivative of potential function w.r.t. x."""
+
+        method = method.lower()
+        if method not in ("manual", "autodiff"):
+            raise Exception("Unknown method.")
+
+        TTFunc._check_sample_dim(xs, self.dim, strict=True)
+
+        if method == "autodiff":
+            grad = self.eval_potential_grad_autodiff(xs)
+            return grad
+
+        ls, dldxs = self.bases.approx2local(xs)
+
+        grad = self.eval_potential_grad_local(ls) # TODO: add docstring for this
+        grad *= dldxs
+        return grad
+
+    def eval_rt_jac_autodiff(self, xs: Tensor) -> Tensor:
 
         n_xs = xs.shape[0]
 
@@ -457,7 +504,7 @@ class AbstractIRT(abc.ABC):
         Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
         return Js.reshape(self.dim, n_xs, self.dim)
 
-    def eval_rt_jac(self, xs: Tensor, method: str = "manual") -> Tensor:
+    def eval_rt_jac(self, xs: Tensor, method: str = "autodiff") -> Tensor:
         """Evaluates the Jacobian of the squared Rosenblatt transport 
         Z = R(X), where Z is the uniform random variable and X is the 
         target random variable.
@@ -483,7 +530,7 @@ class AbstractIRT(abc.ABC):
         TTFunc._check_sample_dim(xs, self.dim, strict=True)
 
         if method == "autodiff":
-            Js = self._eval_rt_jac_autodiff(xs)
+            Js = self.eval_rt_jac_autodiff(xs)
             return Js
 
         ls, dldxs = self.bases.approx2local(xs)
@@ -555,7 +602,7 @@ class AbstractIRT(abc.ABC):
             The generated samples.
 
         """
-        S = torch.quasirandom.SobolEngine(dimension=self.dim)
+        S = SobolEngine(dimension=self.dim)
         zs = S.draw(n)
         xs = self.eval_irt(zs)
         return xs
