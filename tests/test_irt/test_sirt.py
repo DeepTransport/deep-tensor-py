@@ -30,9 +30,8 @@ class TestSIRT(unittest.TestCase):
         return sirts
 
     def test_ou_sirt(self):
-        """Verifies that the Rosenblatt transport and inverse 
-        Rosenblatt transport methods of a SIRT are actually inverses of 
-        one another using a model of an OU process.
+        """Verifies that the RT and IRT methods of a SIRT are actually 
+        inverses of one another.
         """
 
         polys = [
@@ -63,6 +62,9 @@ class TestSIRT(unittest.TestCase):
         return
     
     def test_ou_sirt_marginal(self):
+        """Verifies that the marginal RT and IRT are inverses of one 
+        another.
+        """
 
         polys = [
             dt.Chebyshev1st(order=20),
@@ -111,7 +113,6 @@ class TestSIRT(unittest.TestCase):
     ) -> Tensor:
         """Computes a finite difference approximation to the gradient of 
         the potential function.
-        
         """
 
         n_xs, d_xs = xs.shape
@@ -128,7 +129,6 @@ class TestSIRT(unittest.TestCase):
     def test_potential_grad(self):
         """Verifies that the gradient of the potential function is 
         computed correctly using a finite difference approximation.
-        
         """
 
         polys = [
