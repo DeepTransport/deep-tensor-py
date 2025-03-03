@@ -3,6 +3,7 @@ import warnings
 
 import torch
 from torch import Tensor
+from torch.autograd.functional import jacobian
 
 from .approx_bases import ApproxBases
 from .directions import Direction
@@ -1136,8 +1137,19 @@ class TTFunc():
         for k in range(self.dim):
             dfdls[:, k] = dGdls[k].sum(dim=(1, 2))
         return dfdls
+    
+    def grad_autodiff(self, xs: Tensor) -> Tensor:
+        
+        n_xs = xs.shape[0]
 
-    def grad(self, xs: Tensor) -> Tensor:
+        def _grad(xs: Tensor) -> Tensor:
+            xs = xs.reshape(n_xs, self.dim)
+            return self.eval(xs).sum(dim=0)
+        
+        derivs = jacobian(_grad, xs.flatten(), vectorize=True)
+        return derivs.reshape(n_xs, self.dim)
+
+    def grad(self, xs: Tensor, method: str="autodiff") -> Tensor:
         """Evaluates the gradient of the approximation to the target 
         function at a set of points in the approximation domain.
         
@@ -1156,7 +1168,17 @@ class TTFunc():
             element in ls.
 
         """
+
+        method = method.lower()
+        if method not in ("manual", "autodiff"):
+            raise Exception("Unknown method.")
+        
         TTFunc._check_sample_dim(xs, self.dim, strict=True)
+
+        if method == "autodiff":
+            dfdxs = self.grad_autodiff(xs)
+            return dfdxs
+        
         ls, dldxs = self.bases.approx2local(xs)
         dfdls = self.grad_local(ls)
         dfdxs = dfdls * dldxs
