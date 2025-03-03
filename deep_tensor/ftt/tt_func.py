@@ -1149,7 +1149,7 @@ class TTFunc():
         derivs = jacobian(_grad, xs.flatten(), vectorize=True)
         return derivs.reshape(n_xs, self.dim)
 
-    def grad(self, xs: Tensor, method: str="autodiff") -> Tensor:
+    def grad(self, xs: Tensor, method: str = "autodiff") -> Tensor:
         """Evaluates the gradient of the approximation to the target 
         function at a set of points in the approximation domain.
         
