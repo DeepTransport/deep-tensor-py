@@ -19,6 +19,15 @@ def build_double_banana_dirt() -> dt.TTDIRT:
     bases = dt.ApproxBases(poly, domain, dim)
 
     bridge = dt.Tempering1()
-    dirt = dt.TTDIRT(model.potential_dirt, bases, bridge=bridge)
+    tt_options = dt.TTOptions(max_cross=2, verbose=False)
+    dirt_options = dt.DIRTOptions(verbose=False)
+
+    dirt = dt.TTDIRT(
+        model.potential_dirt, 
+        bases, 
+        bridge=bridge,
+        sirt_options=tt_options,
+        dirt_options=dirt_options
+    )
     
     return dirt
