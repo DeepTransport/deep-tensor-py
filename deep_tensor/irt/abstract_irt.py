@@ -475,7 +475,24 @@ class AbstractIRT(abc.ABC):
         return derivs.reshape(n_xs, self.dim)
 
     def eval_potential_grad(self, xs: Tensor, method: str = "autodiff") -> Tensor:
-        """Derivative of potential function w.r.t. x."""
+        """Computes the gradient of the potential function.
+        
+        Parameters
+        ----------
+        xs:
+            An n * d matrix containing samples from the approximation 
+            domain.
+        method: 
+            The method by which the gradient of the potential function 
+            is computed. Can be 'manual' or 'autodiff'.
+
+        Returns
+        -------
+        grads:
+            An n * d matrix containing the gradient of the potential 
+            function evaluated at each sample in xs.
+
+        """
 
         method = method.lower()
         if method not in ("manual", "autodiff"):
@@ -488,8 +505,7 @@ class AbstractIRT(abc.ABC):
             return grad
 
         ls, dldxs = self.bases.approx2local(xs)
-
-        grad = self.eval_potential_grad_local(ls) # TODO: add docstring for this
+        grad = self.eval_potential_grad_local(ls)
         grad *= dldxs
         return grad
 
