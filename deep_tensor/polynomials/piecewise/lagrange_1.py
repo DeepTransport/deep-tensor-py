@@ -12,6 +12,14 @@ LOCAL_WEIGHTS = torch.tensor([1.0, 1.0]) / 2.0
 
 
 class Lagrange1(Piecewise):
+    """Piecewise linear polynomials.
+    
+    Parameters
+    ----------
+    num_elems:
+        The number of elements to use when forming the polynomials.
+        
+    """
 
     def __init__(self, num_elems: int):
         

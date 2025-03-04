@@ -5,6 +5,14 @@ from .recurr import Recurr
 
 
 class Legendre(Recurr):
+    """Legendre polynomials.
+    
+    Parameters
+    ----------
+    order:
+        The maximum order of the polynomials.
+        
+    """
 
     def __init__(self, order: int):
         n = torch.arange(order+1)

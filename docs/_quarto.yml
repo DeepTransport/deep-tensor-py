@@ -1,0 +1,133 @@
+project:
+  type: website
+
+website:
+  title: deep_tensor
+  navbar:
+    pinned: true
+    search: true
+    left:
+      - text: "Home"
+        href: index.qmd  
+      - text: "API Reference"
+        href: reference/index.qmd
+    right:
+      - icon: github
+        href: https://github.com/DeepTransport/deep-tensor-py
+
+format:
+  html:
+    theme:
+      light: [flatly, styles.css]
+      # dark: [darkly, styles.css]
+
+metadata-files:
+  - _sidebar.yml
+
+interlinks:
+  sources:
+    torch:
+      url: https://pytorch.org/docs/stable/
+    python:
+      url: https://docs.python.org/3/
+    # quartodoc-test:
+    #   url: https://machow.github.io/quartodoc
+    #   inv: objects-test.txt
+
+quartodoc:
+
+  style: pkgdown
+  title: API Reference
+  package: deep_tensor
+  version: "1.0.0"
+  render_interlinks: true
+  
+  renderer:
+    style: markdown
+    table_style: description-list
+    show_signature_annotations: true
+    display_name: relative
+
+  sidebar: _sidebar.yml
+
+  sections:
+
+    - title: Inverse Rosenblatt Transport
+      desc: Objects used for generating approximate couplings between random variables using functional tensor trains.
+      package: deep_tensor
+      contents:
+        - name: TTSIRT
+          members: [eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, eval_potential_grad, eval_rt_jac, random, sobol]
+        - name: TTDIRT
+          members: [eval_potential, eval_rt, eval_irt]
+
+    - title: Functional Tensor Trains
+      desc: Objects used for building functional tensor train approximations to multivariate functions.
+      package: deep_tensor
+      contents:
+        - name: TTFunc
+          members: []
+        - name: TTData
+          members: []
+        - name: InputData
+          members: []
+        - name: ApproxBases
+          members: []
+
+    # - title: Bases
+    #   desc: Containers for the polynomial basis functions and approximation domain used to construct a functional tensor train.
+    #   package: deep_tensor
+    #   contents:
+    #     - name: ApproxBases
+    #       members: []
+
+    - title: Polynomials
+      desc: Polynomial bases used to construct a functional tensor train.
+      package: deep_tensor
+      contents:
+        - name: Lagrange1
+          members: []
+        - name: LagrangeP
+          members: []
+        - name: Chebyshev1st
+          members: []
+        - name: Chebyshev2nd
+          members: []
+        - name: Fourier
+          members: []
+        - name: Legendre
+          members: []
+
+    - title: Domains
+      desc: Domains on which to construct a functional tensor train.
+      package: deep_tensor
+      contents:
+        - name: BoundedDomain
+          members: []
+        - name: AlgebraicMapping
+          members: []
+        - name: LogarithmicMapping
+          members: []
+    
+    - title: Options
+      desc: Options for configuring the FTT and DIRT construction.
+      package: deep_tensor
+      contents:
+        - name: TTOptions
+        - name: DIRTOptions
+
+    - title: Reference Densities
+      desc: Product-form reference densities used as part of DIRT construction.
+      package: deep_tensor
+      contents:
+        - name: GaussianReference
+          members: [random, sobol]
+        - name: UniformReference
+          members: [random, sobol]
+
+    - title: Bridges
+      desc: Objects used to generate the intermediate densities approximated during DIRT construction.
+      package: deep_tensor
+      contents:
+        - name: Tempering1
+          members: []

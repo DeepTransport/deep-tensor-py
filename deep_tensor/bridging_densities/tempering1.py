@@ -10,13 +10,67 @@ from ..tools.printing import dirt_info
 
 
 class Tempering1(SingleBeta):
+    r"""Likelihood tempering.
+    
+    The intermediate densities, $\{\pi_{k}(\theta)\}_{k=1}^{N}$, 
+    generated using this approach take the form
+    $$\pi_{k}(\theta) \propto \pi_{0}(\theta)\mathcal{L}(\theta; y)^{\beta_{k}},$$
+    where $\pi_{0}(\,\cdot\,)$ denotes the prior, $\mathcal{L}(\,\cdot\,; y)$ 
+    denotes the likelihood, and $0 \leq \beta_{1} < \cdots < \beta_{N} = 1$.
 
-    def __init__(self, betas: Tensor|None = None, **kwargs):
+    It is possible to provide this class with a set of $\beta$ values to 
+    use. If these are not provided, they will be determined 
+    automatically by finding the largest possible $\beta$, at each 
+    iteration, such that the ESS of a reweighted set of samples 
+    distributed according to (a TT approximation to) the previous 
+    bridging density does not fall below a given value. 
+
+    Parameters
+    ----------
+    betas:
+        A set of $\beta$ values to use for the intermediate 
+        distributions. If not specified, these will be determined 
+        automatically.
+    ess_tol:
+        If selecting the $\beta$ values adaptively, the minimum 
+        allowable ESS of the samples (distributed according to an 
+        approximation of the previous bridging density) when selecting 
+        the next bridging density. 
+    ess_tol_init:
+        If selecting the $\beta$ values adaptively, the minimum 
+        allowable ESS of the samples when selecting the initial 
+        bridging density.
+    beta_factor:
+        If selecting the $\beta$ values adaptively, the factor by which 
+        to increase the current $\beta$ value by prior to checking 
+        whether the ESS of the reweighted samples is sufficiently high.
+    min_beta:
+        If selecting the $\beta$ values adaptively, the minimum 
+        allowable $\beta$ value.
+        
+    """
+
+    def __init__(
+        self, 
+        betas: Tensor|None = None, 
+        ess_tol: Tensor|float = 0.5, 
+        ess_tol_init: Tensor|float = 0.5,
+        beta_factor: Tensor|float = 1.05,
+        min_beta: Tensor|float = 1e-4
+    ):
         
         if betas == None:
             betas = torch.tensor([])
 
-        super().__init__(betas, **kwargs)
+        SingleBeta.__init__(
+            self, 
+            betas, 
+            ess_tol, 
+            ess_tol_init, 
+            beta_factor, 
+            min_beta
+        )
+
         self.is_adaptive = self.betas.numel() == 0
         self.n_layers = 0
         return

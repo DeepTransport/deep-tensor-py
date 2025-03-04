@@ -19,6 +19,28 @@ MAX_COND = 1.0e+5
 
 
 class TTFunc():
+    r"""A functional tensor-train approximation for a function 
+    mapping from some subset of $\mathbb{R}^{d}$ to $\mathbb{R}$.
+
+    Parameters
+    ----------
+    target_func:
+        Maps an $n \times d$ matrix containing samples from the local 
+        domain to an $n$-dimensional vector containing the values of 
+        the target function at each sample.
+    bases:
+        The bases associated with the approximation domain.
+    options:
+        Options used when constructing the FTT approximation to
+        the target function.
+    input_data:
+        Data used for initialising and evaluating the quality of 
+        the FTT approximation to the target function.
+    tt_data:
+        Data used to construct the FTT approximation to the target
+        function.
+
+    """
 
     def __init__(
         self, 
@@ -28,28 +50,6 @@ class TTFunc():
         input_data: InputData,
         tt_data: TTData|None = None
     ):
-        """A functional tensor-train approximation for a function 
-        mapping from some subset of R^d to R.
-
-        Parameters
-        ----------
-        target_func:
-            Maps an n * d matrix containing samples from the local 
-            domain to an n-dimensional vector containing the values of 
-            the target function at each sample.
-        bases:
-            The bases associated with the approximation domain.
-        options:
-            Options used when constructing the FTT approximation to
-            the target function.
-        input_data:
-            Data used for initialising and evaluating the quality of 
-            the FTT approximation to the target function.
-        tt_data:
-            Data used to construct the FTT approximation to the target
-            function.
-
-        """
 
         if tt_data is None:
             tt_data = TTData()

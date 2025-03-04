@@ -19,9 +19,40 @@ DIRTFunc = Callable[[Tensor], Tuple[Tensor, Tensor]]
 
 
 class TTDIRT():
+    """Class that implements the deep inverse Rosenblatt transport.
 
-    def __init__(
-        self, 
+    Parameters
+    ----------
+    func:
+        Function that returns (quantities proportional to) the negative 
+        log-likelihood and negative log-prior density associated with a 
+        given set of parameters.
+    bases:
+        The set of polynomial bases associated with each dimension of 
+        the approximation domain.
+    bridge: 
+        An object used to generate the intermediate densities to 
+        approximate at each stage of the DIRT construction.
+    reference:
+        The reference density.
+    sirt_options:
+        Options for constructing the SIRT approximation to the 
+        bridging density at each iteration.
+    dirt_options:
+        Options for constructing the DIRT approximation to the 
+        target density.
+    init_samples:
+        A set of samples, drawn from the prior, to initialise the 
+        FTT with. If these are not passed in, a set of samples will 
+        instead be drawn from the reference measure and transformed 
+        into the approximation domain.
+    prev_approx:
+        A dictionary containing a set of SIRTs generated as part of 
+        the construction of a previous DIRT object.
+    
+    """
+
+    def __init__(self, 
         func: DIRTFunc, 
         bases: ApproxBases, 
         bridge: Bridge|None = None,
@@ -31,38 +62,6 @@ class TTDIRT():
         init_samples: Tensor|None = None,
         prev_approx: dict[int, TTSIRT]|None = None
     ):
-        """Class that implements the deep inverse Rosenblatt transport.
-
-        Properties
-        ----------
-        func:
-            Function that returns (quantities proportional to) the 
-            negative log-likelihood and negative log-prior density
-            associated with a given set of parameters.
-        bases:
-            The set of polynomial bases associated with each dimension
-            of the approximation domain.
-        bridge:
-            An object used to construct successive approximations to the 
-            target distribution.
-        reference:
-            The reference distribution.
-        sirt_options:
-            Options for constructing the SIRT approximation to the 
-            bridging density at each iteration.
-        dirt_options:
-            Options for constructing the DIRT approximation to the 
-            target density.
-        init_samples: 
-            A set of samples, drawn from the prior, to intialise the 
-            FTT with. If these are not passed in, a set of samples will 
-            instead be drawn from the reference measure and transformed 
-            into the approximation domain.
-        prev_approx:
-            A dictionary containing a set of SIRTs generated as part of 
-            the construction of a previous DIRT object.
-        
-        """
 
         if bridge is None:
             bridge = Tempering1(min_beta=1e-3, ess_tol=0.4)
@@ -73,7 +72,7 @@ class TTDIRT():
             reference = GaussianReference(mu=0.0, sigma=1.0, domain=domain)
         
         if sirt_options is None:
-            sirt_options = TTOptions(max_cross=1, tt_method="random")
+            sirt_options = TTOptions(max_cross=1, tt_method="amen")
         
         if dirt_options is None:
             dirt_options = DIRTOptions()
@@ -272,7 +271,7 @@ class TTDIRT():
     def get_new_layer(
         self, 
         func: DIRTFunc, 
-        bases: list[ApproxBases], 
+        bases_list: list[ApproxBases], 
         xs: Tensor, 
         neglogratios: Tensor
     ) -> TTSIRT:
@@ -315,7 +314,7 @@ class TTDIRT():
         if self.prev_approx is None:
             
             # Generate debugging and initialisation samples
-            bases_i = bases[min(self.n_layers, 1)] 
+            bases_i = bases_list[min(self.n_layers, 1)] 
             input_data = self.get_inputdata(bases_i, xs, neglogratios)
 
             if self.n_layers == 0:
@@ -362,14 +361,16 @@ class TTDIRT():
         xs: Tensor,
         n_layers: Tensor = torch.inf
     ) -> Tensor:
-        """Evaluates the potential function associated with the 
+        r"""Evaluates the DIRT potential function.
+        
+        Evaluates the potential function associated with the 
         pushforward of the reference measure under a given number of 
         layers of the current DIRT.
         
         Parameters
         ----------
         xs:
-            An n * d matrix containing a set of samples drawn from the 
+            An $n \times d$ matrix containing a set of samples drawn from the 
             current DIRT approximation to the target density.
         n_layers:
             The number of layers of the current DIRT construction to
@@ -505,10 +506,6 @@ class TTDIRT():
         bases_list: 
             A list of approximation bases for the first and second
             levels of DIRT construction.
-
-        Returns
-        -------
-        None
         
         """
         

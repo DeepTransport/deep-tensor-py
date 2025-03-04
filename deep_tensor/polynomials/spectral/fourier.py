@@ -5,6 +5,14 @@ from .spectral import Spectral
 
 
 class Fourier(Spectral):
+    """Fourier polynomials.
+    
+    Parameters
+    ----------
+    order:
+        The maximum order of the polynomials.
+        
+    """
 
     def __init__(self, order: int):
         

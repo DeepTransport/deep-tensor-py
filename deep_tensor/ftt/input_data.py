@@ -8,6 +8,24 @@ from .approx_bases import ApproxBases
 
 
 class InputData():
+    """A class containing sampling data used for building and 
+    evaluating the quality of the approximation to a given target 
+    function.
+
+    Parameters
+    ----------
+    xs_samp:
+        A set of samples from the approximation domain, used to 
+        construct the FTT approximation to the target function.
+    xs_debug: 
+        A set of samples from the approximation domain, used to 
+        evaluate the quality of the FTT approximation to the target 
+        function.
+    fxs_debug:
+        A vector containing the target function evaluated at each 
+        sample in xs_debug.
+
+    """
 
     def __init__(
         self, 
@@ -15,25 +33,6 @@ class InputData():
         xs_debug: Tensor|None = None, 
         fxs_debug: Tensor|None = None
     ):
-        """A class containing sampling data used for building and 
-        evaluating the quality of the approximation to a given target 
-        function.
-
-        Parameters
-        ----------
-        xs_samp:
-            A set of samples from the approximation domain, used to 
-            construct the FTT approximation to the target density 
-            function.
-        xs_debug: 
-            A set of samples from the approximation domain, used to 
-            evaluate the quality of the FTT approximation the the 
-            target density function.
-        fxs_debug:
-            A vector containing the approximation to the target density 
-            function evaluated at each sample in xs_debug.
-
-        """
         
         if xs_samp is None:
             xs_samp = torch.tensor([])

@@ -8,33 +8,33 @@ from ..domains import Domain
 from ..polynomials import Basis1D
 
 
-PolyType = Basis1D | list[Basis1D]
-DomainType = Domain | list[Domain]
-
-
 class ApproxBases():
+    r"""Container of information on the approximation basis in each 
+    dimension.
+    
+    This class containing information on the set of polynomial basis 
+    functions, and the mappings between the local domain and 
+    approximation domain.
+
+    Parameters
+    ----------
+    polys:
+        Tensor-product univariate polynomial basis functions, defined 
+        on a local domain (generally $[-1, 1]$).
+    domains:
+        An invertible mapping between the approximation domain and the 
+        domain of the polynomial basis functions.
+    dim:
+        The dimension of the domain.
+    
+    """
 
     def __init__(
         self, 
-        polys: PolyType, 
-        domains: DomainType, 
+        polys: Basis1D|list[Basis1D], 
+        domains: Domain|list[Domain], 
         dim: int|None = None
     ):
-        """Class containing a set of tensor-product polynomial basis 
-        functions and mappings between the local domain and 
-        approximation domain.
-
-        Parameters
-        ----------
-        polys:
-            Tensor-product univariate polynomial basis functions, 
-            defined on a local domain.
-        domains:
-            The approximation domain in each dimension.
-        dim:
-            The dimension of the approximation domain.
-        
-        """
         
         if isinstance(polys, Basis1D):
             polys = [polys]

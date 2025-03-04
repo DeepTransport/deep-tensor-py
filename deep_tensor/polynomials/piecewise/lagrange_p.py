@@ -103,8 +103,18 @@ class LagrangeRef():
 
 
 class LagrangeP(Piecewise):
+    """Higher-order piecewise Lagrange polynomials.
 
-    def __init__(self, order, num_elems):
+    Parameters
+    ----------
+    order:
+        The maximum degree of the polynomaisls.
+    num_elems:
+        The number of elements to use when forming the polynomials.
+    
+    """
+
+    def __init__(self, order: int, num_elems: int):
 
         if order == 1:
             msg = ("When 'order=1', Lagrange1 should be used " 

@@ -3,13 +3,30 @@ from torch import Tensor
 
 from .symmetric_reference import SymmetricReference
 from ..constants import EPS
+from ..domains import Domain
 
 
 class GaussianReference(SymmetricReference):
-    """The Gaussian reference distribution."""
+    """The Gaussian reference density.
+    
+    Parameters
+    ----------
+    mu:
+        The mean of the density.
+    sigma:
+        The standard deviation of the density.
+    domain:
+        The domain on which the density is defined.
+    
+    """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(
+        self, 
+        mu: float = 0.0, 
+        sigma: float = 1.0,
+        domain: Domain = None
+    ):
+        SymmetricReference.__init__(self, mu, sigma, domain)
     
     def eval_unit_cdf(self, us: Tensor) -> Tensor:
         zs = 0.5 * (1.0 + torch.erf(us / (2.0 ** 0.5)))

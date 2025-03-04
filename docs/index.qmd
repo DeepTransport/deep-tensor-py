@@ -1,0 +1,13 @@
+---
+format: html
+---
+
+Welcome to the $\texttt{deep\_tensor}$ documentation!
+
+# Installation
+
+Coming soon...
+
+# Getting Started
+
+Check out the [API reference](/reference/index.qmd) for help getting started with $\texttt{deep\_tensor}$.

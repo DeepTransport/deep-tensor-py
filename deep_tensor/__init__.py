@@ -8,7 +8,7 @@ from .domains import (
     LinearDomain, 
     LogarithmicMapping
 )
-from .ftt import ApproxBases, Direction, InputData, TTFunc
+from .ftt import ApproxBases, Direction, InputData, TTData, TTFunc
 from .irt import TTDIRT, TTSIRT
 from .options import TTOptions, DIRTOptions
 from .polynomials import (

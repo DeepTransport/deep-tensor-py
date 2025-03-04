@@ -5,9 +5,11 @@ from .directions import REVERSE_DIRECTIONS
 
 
 class TTData():
+    """Data associated with a functional tensor train.
+    
+    """
 
     def __init__(self):
-        """Data associated with a functional TT approximation."""
 
         self.direction = None
         self.cores: dict[int, Tensor] = {}

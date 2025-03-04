@@ -8,8 +8,19 @@ from ..tools import check_finite
 
 
 class AlgebraicMapping(MappedDomain):
-    """Maps from an unbounded domain (-inf, -inf) to a bounded domain 
-    [-1., 1.].
+    r"""Maps from an unbounded domain to $[-1, 1]$.
+    
+    This class provides a mapping from an unbounded domain, 
+    $(-\infty, \infty)$, to a bounded domain, $[-1, 1]$. This mapping 
+    is of the form 
+    $$x \mapsto \frac{x/s}{\sqrt{1 + (x/s)^{2}}},$$
+    where $s$ is a scale parameter.
+
+    Parameters
+    ----------
+    scale:
+        The scale parameter, $s$.
+    
     """
 
     def approx2local(self, xs: Tensor) -> Tuple[Tensor, Tensor]:

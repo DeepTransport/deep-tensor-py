@@ -8,6 +8,14 @@ from ...tools import check_finite
 
 
 class Chebyshev2nd(Spectral):
+    """Chebyshev polynomials of the second kind.
+    
+    Parameters
+    ----------
+    order:
+        The maximum order of the polynomials.
+        
+    """
 
     def __init__(self, order: int):
 

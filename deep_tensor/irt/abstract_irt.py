@@ -370,7 +370,7 @@ class AbstractIRT(abc.ABC):
         zs = self.eval_rt_local(ls)
         return zs
     
-    def eval_irt(self, zs: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+    def eval_irt(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
         """Given a set of samples of a standard uniform random 
         variable, Z, computes the corresponding samples from the 
         approximation to the target PDF by applying the inverse 
@@ -583,10 +583,7 @@ class AbstractIRT(abc.ABC):
     #     return Jvs.reshape(n_xs, d_xs)
 
     def random(self, n: int) -> Tensor: 
-        """Generates a set of random samples from the approximation to
-        the target density function, by first sampling a set of 
-        independent uniform variates and random, then applying the 
-        inverse Rosenblatt transport.
+        """Generates a set of random samples. 
         
         Parameters
         ----------
@@ -604,8 +601,7 @@ class AbstractIRT(abc.ABC):
         return xs 
     
     def sobol(self, n: int) -> Tensor:
-        """Generates a set of QMC samples from the approximation to the 
-        target density function using a Sobol sequence.
+        """Generates a set of QMC samples.
         
         Parameters
         ----------

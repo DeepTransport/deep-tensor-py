@@ -10,6 +10,11 @@ from ..polynomials import CDF1D, construct_cdf
 
 
 class TTSIRT(AbstractIRT):
+    """Class that implements the squared inverse Rosenblatt transport.
+    
+    TODO: finish
+
+    """
 
     def __init__(
         self, 

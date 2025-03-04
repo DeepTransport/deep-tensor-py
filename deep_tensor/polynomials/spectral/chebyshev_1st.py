@@ -14,7 +14,7 @@ class Chebyshev1st(Spectral):
     Parameters
     ----------
     order:
-        The order of the polynomial.
+        The maximum order of the polynomials.
      
     References
     ----------

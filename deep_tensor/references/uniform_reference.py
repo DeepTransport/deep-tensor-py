@@ -2,6 +2,7 @@ from typing import Tuple
 
 import torch
 from torch import Tensor 
+from torch.quasirandom import SobolEngine
 
 from .reference import Reference
 from ..constants import EPS
@@ -10,6 +11,14 @@ from ..tools import check_finite
 
 
 class UniformReference(Reference):
+    """The uniform reference density.
+    
+    Parameters
+    ----------
+    domain:
+        The domain on which the density is defined.
+    
+    """
 
     def __init__(self, domain: BoundedDomain|None = None):
         
@@ -49,7 +58,7 @@ class UniformReference(Reference):
         return rs 
     
     def sobol(self, d: int, n: int) -> Tensor:
-        S = torch.quasirandom.SobolEngine(dimension=d)
+        S = SobolEngine(dimension=d)
         zs = S.draw(n)
         rs = self.invert_cdf(zs)
         return rs
