@@ -62,7 +62,7 @@ quartodoc:
         - name: TTSIRT
           members: [set_tau, eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, eval_potential_grad, eval_rt_jac, random, sobol]
         - name: TTDIRT
-          members: [eval_potential, eval_pdf, eval_rt, eval_irt]
+          members: [eval_potential, eval_pdf, eval_rt, eval_irt, random, sobol]
 
     - title: Functional Tensor Trains
       desc: Objects used for building functional tensor train approximations to multivariate functions.

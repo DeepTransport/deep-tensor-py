@@ -19,7 +19,7 @@ DIRTFunc = Callable[[Tensor], Tuple[Tensor, Tensor]]
 
 
 class TTDIRT():
-    """Deep (squared) inverse Rosenblatt transport.
+    r"""Deep (squared) inverse Rosenblatt transport.
 
     Parameters
     ----------
@@ -113,8 +113,8 @@ class TTDIRT():
         self.num_eval = 0
         self.log_z = 0.0
 
-        bases_list = self.build_bases(self.bases, self.reference)
-        self.build(func, bases_list)
+        bases_list = self._build_bases(self.bases, self.reference)
+        self._build(func, bases_list)
         return
 
     @property 
@@ -126,7 +126,7 @@ class TTDIRT():
         self.bridge.n_layers = value 
         return
 
-    def build_bases(
+    def _build_bases(
         self, 
         bases: ApproxBases, 
         reference: Reference
@@ -161,7 +161,10 @@ class TTDIRT():
 
         return bases_list
 
-    def initialise(self, bases: ApproxBases) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def _initialise(
+        self, 
+        bases: ApproxBases
+    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         """Generates a set of samples to initialise the FTT with.
         
         Parameters
@@ -202,7 +205,7 @@ class TTDIRT():
 
         return xs, neglogliks, neglogpris, neglogfxs
 
-    def get_potential_to_density(
+    def _get_potential_to_density(
         self, 
         bases: ApproxBases, 
         neglogratios: Tensor, 
@@ -234,7 +237,7 @@ class TTDIRT():
         log_ys = -0.5 * (neglogratios - neglogwrs)
         return torch.exp(log_ys)
 
-    def get_inputdata(
+    def _get_inputdata(
         self, 
         bases: ApproxBases, 
         xs: Tensor, 
@@ -273,7 +276,7 @@ class TTDIRT():
         indices_debug = (torch.arange(self.dirt_options.num_debugs)
                          + self.dirt_options.num_samples)
 
-        fxs_debug = self.get_potential_to_density(
+        fxs_debug = self._get_potential_to_density(
             bases, 
             neglogratios[indices_debug], 
             xs[indices_debug]
@@ -281,7 +284,7 @@ class TTDIRT():
 
         return InputData(xs[indices], xs[indices_debug], fxs_debug)
 
-    def get_new_layer(
+    def _get_new_layer(
         self, 
         func: DIRTFunc, 
         bases_list: list[ApproxBases], 
@@ -328,7 +331,7 @@ class TTDIRT():
             
             # Generate debugging and initialisation samples
             bases_i = bases_list[min(self.n_layers, 1)] 
-            input_data = self.get_inputdata(bases_i, xs, neglogratios)
+            input_data = self._get_inputdata(bases_i, xs, neglogratios)
 
             if self.n_layers == 0:
                 approx = None 
@@ -353,7 +356,7 @@ class TTDIRT():
             ind_prev = max(self.prev_approx.keys())
             sirt_prev = self.prev_approx[min(ind_prev, self.n_layers)]
             
-            input_data = self.get_inputdata(
+            input_data = self._get_inputdata(
                 sirt_prev.bases,
                 xs, 
                 neglogratios
@@ -368,6 +371,98 @@ class TTDIRT():
             )
         
         return sirt
+    
+    def _build(self, func: DIRTFunc, bases_list: list[ApproxBases]) -> None:
+        """Constructs a DIRT to approximate a given probability 
+        density.
+        
+        Parameters
+        ----------
+        func:
+            A function that returns the negative log-likelihood and 
+            negative log-prior density associated with a sample (or 
+            samples) from the approximation domain.
+        bases_list: 
+            A list of approximation bases for the first and second
+            levels of DIRT construction.
+        
+        """
+        
+        while self.n_layers < self.dirt_options.max_layers:
+
+            if self.n_layers == 0:
+                (xs, neglogliks, 
+                 neglogpris, neglogfxs) = self._initialise(bases_list[0])
+                rs = xs.clone()  # DIRT mapping is the identity
+            else:
+                rs = self.reference.random(self.dim, self.pre_sample_size)
+                xs, neglogfxs = self.eval_irt(rs)
+                neglogliks, neglogpris = func(xs)
+        
+            self.bridge.adapt_density(
+                self.dirt_options.method, 
+                neglogliks, 
+                neglogpris, 
+                neglogfxs
+            )
+
+            neglogratios = self.bridge.get_ratio_func(
+                self.reference,
+                self.dirt_options.method, 
+                rs, 
+                neglogliks, 
+                neglogpris, 
+                neglogfxs
+            )
+            
+            log_weights = self.bridge.compute_log_weights(
+                neglogliks,
+                neglogpris, 
+                neglogfxs
+            )
+
+            if self.dirt_options.verbose:
+                self.bridge.print_progress(
+                    log_weights, 
+                    neglogliks, 
+                    neglogpris, 
+                    neglogfxs
+                )
+
+            resampled_inds = self.bridge.resample(log_weights)
+
+            self.irts[self.n_layers] = self._get_new_layer(
+                func, 
+                bases_list, 
+                xs[resampled_inds], 
+                neglogratios[resampled_inds]
+            )
+
+            self.log_z += self.irts[self.n_layers].z.log()
+            self.num_eval += self.irts[self.n_layers].approx.num_eval
+
+            self.n_layers += 1
+            if self.bridge.is_last:
+                if self.dirt_options.verbose:
+                    dirt_info("DIRT construction complete.")
+                return
+
+        msg = "Maximum number of DIRT layers reached. Building final layer..."
+        warnings.warn(msg)
+
+        xs, neglogfxs = self.eval_irt(rs)
+        neglogliks, neglogpris = func(xs)
+        
+        log_proposal = -neglogfxs
+        log_target = -neglogliks - neglogpris
+        div_h2 = compute_f_divergence(log_proposal, log_target)
+        div_h = div_h2.sqrt()
+
+        msg = [f"Iter: {self.n_layers}", f"DHell: {div_h:.4f}"]
+        if self.dirt_options.verbose:
+            dirt_info(" | ".join(msg))
+            dirt_info("DIRT construction complete.")
+        return
 
     def eval_potential(
         self, 
@@ -553,95 +648,39 @@ class TTDIRT():
             neglogfxs += neglogsirts - neglogrefs
 
         return xs, neglogfxs
-
-    def build(self, func: DIRTFunc, bases_list: list[ApproxBases]) -> None:
-        """Constructs a DIRT to approximate a given probability 
-        density.
+    
+    def random(self, n: int) -> Tensor: 
+        """Generates a set of random samples. 
         
         Parameters
         ----------
-        func:
-            A function that returns the negative log-likelihood and 
-            negative log-prior density associated with a sample (or 
-            samples) from the approximation domain.
-        bases_list: 
-            A list of approximation bases for the first and second
-            levels of DIRT construction.
+        n:  
+            The number of samples to generate.
+
+        Returns
+        -------
+        xs:
+            The generated samples.
         
         """
+        rs = self.reference.random(self.dim, n)
+        xs = self.eval_irt(rs)[0]
+        return xs 
+    
+    def sobol(self, n: int) -> Tensor:
+        """Generates a set of QMC samples.
         
-        while self.n_layers < self.dirt_options.max_layers:
-
-            if self.n_layers == 0:
-                (xs, neglogliks, 
-                 neglogpris, neglogfxs) = self.initialise(bases_list[0])
-                rs = xs.clone()  # DIRT mapping is the identity
-            else:
-                rs = self.reference.random(self.dim, self.pre_sample_size)
-                xs, neglogfxs = self.eval_irt(rs)
-                neglogliks, neglogpris = func(xs)
+        Parameters
+        ----------
+        n:
+            The number of samples to generate.
         
-            self.bridge.adapt_density(
-                self.dirt_options.method, 
-                neglogliks, 
-                neglogpris, 
-                neglogfxs
-            )
+        Returns
+        -------
+        xs:
+            The generated samples.
 
-            neglogratios = self.bridge.get_ratio_func(
-                self.reference,
-                self.dirt_options.method, 
-                rs, 
-                neglogliks, 
-                neglogpris, 
-                neglogfxs
-            )
-            
-            log_weights = self.bridge.compute_log_weights(
-                neglogliks,
-                neglogpris, 
-                neglogfxs
-            )
-
-            if self.dirt_options.verbose:
-                self.bridge.print_progress(
-                    log_weights, 
-                    neglogliks, 
-                    neglogpris, 
-                    neglogfxs
-                )
-
-            resampled_inds = self.bridge.resample(log_weights)
-
-            self.irts[self.n_layers] = self.get_new_layer(
-                func, 
-                bases_list, 
-                xs[resampled_inds], 
-                neglogratios[resampled_inds]
-            )
-
-            self.log_z += self.irts[self.n_layers].z.log()
-            self.num_eval += self.irts[self.n_layers].approx.num_eval
-
-            self.n_layers += 1
-            if self.bridge.is_last:
-                if self.dirt_options.verbose:
-                    dirt_info("DIRT construction complete.")
-                return
-
-        msg = "Maximum number of DIRT layers reached. Building final layer..."
-        warnings.warn(msg)
-
-        xs, neglogfxs = self.eval_irt(rs)
-        neglogliks, neglogpris = func(xs)
-        
-        log_proposal = -neglogfxs
-        log_target = -neglogliks - neglogpris
-        div_h2 = compute_f_divergence(log_proposal, log_target)
-        div_h = div_h2.sqrt()
-
-        msg = [f"Iter: {self.n_layers}", f"DHell: {div_h:.4f}"]
-        if self.dirt_options.verbose:
-            dirt_info(" | ".join(msg))
-            dirt_info("DIRT construction complete.")
-        return
+        """
+        rs = self.reference.sobol(self.dim, n)
+        xs = self.eval_irt(rs)[0]
+        return xs

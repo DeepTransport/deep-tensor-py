@@ -708,7 +708,7 @@ class AbstractIRT(abc.ABC):
         
         """
         zs = torch.rand(n, self.dim)
-        xs = self.eval_irt(zs)
+        xs = self.eval_irt(zs)[0]
         return xs 
     
     def sobol(self, n: int) -> Tensor:
@@ -727,5 +727,5 @@ class AbstractIRT(abc.ABC):
         """
         S = SobolEngine(dimension=self.dim)
         zs = S.draw(n)
-        xs = self.eval_irt(zs)
+        xs = self.eval_irt(zs)[0]
         return xs

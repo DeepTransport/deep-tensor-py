@@ -97,6 +97,10 @@ for poly in polys:
             else:
                 axes[1][1].set_axis_off()
 
+            if k == dirt.n_layers - 1:
+                samples = dirt.random(100)
+                axes[0][0].scatter(*samples.T, c="white", s=0.5)
+
             figures_dir = "examples/double_banana/figures"
             plt.savefig(f"{figures_dir}/dirt_{poly}_{ref}_iter_{k}.pdf")
             plt.close()
