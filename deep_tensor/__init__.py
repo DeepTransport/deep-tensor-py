@@ -9,7 +9,7 @@ from .domains import (
     LogarithmicMapping
 )
 from .ftt import ApproxBases, Direction, InputData, TTData, TTFunc
-from .irt import TTDIRT, TTSIRT
+from .irt import AbstractIRT, TTDIRT, TTSIRT
 from .options import TTOptions, DIRTOptions
 from .polynomials import (
     Basis1D,

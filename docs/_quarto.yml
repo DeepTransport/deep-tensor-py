@@ -15,6 +15,9 @@ website:
       - icon: github
         href: https://github.com/DeepTransport/deep-tensor-py
 
+execute:
+  freeze: auto
+
 format:
   html:
     theme:
@@ -57,7 +60,7 @@ quartodoc:
       package: deep_tensor
       contents:
         - name: TTSIRT
-          members: [eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, eval_potential_grad, eval_rt_jac, random, sobol]
+          members: [set_defensive, marginalise, eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, eval_potential_grad, eval_rt_jac, random, sobol]
         - name: TTDIRT
           members: [eval_potential, eval_rt, eval_irt]
 
@@ -73,13 +76,6 @@ quartodoc:
           members: []
         - name: ApproxBases
           members: []
-
-    # - title: Bases
-    #   desc: Containers for the polynomial basis functions and approximation domain used to construct a functional tensor train.
-    #   package: deep_tensor
-    #   contents:
-    #     - name: ApproxBases
-    #       members: []
 
     - title: Polynomials
       desc: Polynomial bases used to construct a functional tensor train.

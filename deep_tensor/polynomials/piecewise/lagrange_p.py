@@ -108,7 +108,7 @@ class LagrangeP(Piecewise):
     Parameters
     ----------
     order:
-        The maximum degree of the polynomaisls.
+        The maximum degree of the polynomials.
     num_elems:
         The number of elements to use when forming the polynomials.
     

@@ -19,8 +19,7 @@ MAX_COND = 1.0e+5
 
 
 class TTFunc():
-    r"""A functional tensor-train approximation for a function 
-    mapping from some subset of $\mathbb{R}^{d}$ to $\mathbb{R}$.
+    r"""A multivariate functional tensor-train.
 
     Parameters
     ----------
@@ -31,11 +30,11 @@ class TTFunc():
     bases:
         The bases associated with the approximation domain.
     options:
-        Options used when constructing the FTT approximation to
-        the target function.
+        Options used when constructing the FTT approximation to the 
+        target function.
     input_data:
-        Data used for initialising and evaluating the quality of 
-        the FTT approximation to the target function.
+        Data used for initialising and evaluating the quality of the 
+        FTT approximation to the target function.
     tt_data:
         Data used to construct the FTT approximation to the target
         function.
@@ -425,7 +424,7 @@ class TTFunc():
             U_interp = nodes[inds]
             B = U @ torch.linalg.inv(U_interp)
         
-        if (cond := torch.linalg.cond(U_interp)) > 1e+5:
+        if (cond := torch.linalg.cond(U_interp)) > MAX_COND:
             msg = f"Poor condition number in interpolation ({cond})."
             warnings.warn(msg)
 

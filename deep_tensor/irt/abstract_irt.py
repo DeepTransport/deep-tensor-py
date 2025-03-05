@@ -22,7 +22,7 @@ class AbstractIRT(abc.ABC):
 
     def __init__(
         self, 
-        potential: PotentialFunc,
+        potential: Callable[[Tensor], Tensor],
         bases: ApproxBases|None, 
         approx: TTFunc|None,
         options: TTOptions|None,
@@ -104,33 +104,34 @@ class AbstractIRT(abc.ABC):
 
     @abc.abstractmethod 
     def marginalise(self, direction: Direction = Direction.FORWARD) -> None:
-        """Computes each coefficient tensor (B_k) required to evaluate 
-        the marginal functions in each dimension, as well as the 
-        normalising constant, z. 
+        r"""Computes the marginalisation coefficient tensors.
+        
+        Computes the coefficient tensors required to evaluate the 
+        marginal functions of a TTSIRT object.
 
         Parameters
         ----------
         direction:
-            The direction in which to iterate over the tensor cores.
-
-        Returns
-        -------
-        None
-
-        Notes
-        -----
-        Updates self.Bs, self.z_func, self.z.
-
-        References
-        ----------
-        Cui and Dolgov (2022, Sec. 3.1). Deep composition of tensor 
-        trains using squared inverse Rosenblatt transports.
+            The direction in which to iterate over the tensor cores. 
+            If `direction=dt.Direction.FORWARD`, this will compute the 
+            coefficient tensors by iterating from the first dimension 
+            to the last, which allows for the marginal functions in the 
+            first $k$ variables (where $1 \leq k \leq d$) to be 
+            evaluated. 
+            If `direction=dt.Direction.BACKWARD`, this will compute the 
+            coefficient tensors by iterating from the last dimension to
+            the first, which allows for the marginal functions in the 
+            final $k$ variables to be evaluated.
 
         """
         return
 
     @abc.abstractmethod
-    def potential2density(self, potential_func: PotentialFunc, ls: Tensor) -> Tensor:
+    def potential2density(
+        self, 
+        potential_func: Callable[[Tensor], Tensor], 
+        ls: Tensor
+    ) -> Tensor:
         """Computes the value of the target function being approximated 
         by the FTT for a sample, or set of samples, from the local 
         domain. 
@@ -290,6 +291,20 @@ class AbstractIRT(abc.ABC):
 
         """
         return
+    
+    def set_defensive(self, tau: float|Tensor) -> None:
+        r"""Updates the defensive parameter.
+        
+        Parameters
+        ----------
+        tau: 
+            The updated value for $\tau$, the defensive parameter of 
+            the IRT.
+        
+        """
+        self._tau = tau
+        self._z = self.z_func + tau
+        return
 
     def get_transform_indices(self, dim_z: int) -> Tensor:
         """TODO: write docstring."""
@@ -299,23 +314,43 @@ class AbstractIRT(abc.ABC):
         elif self.int_dir == Direction.BACKWARD:
             return torch.arange(self.dim-dim_z, self.dim)
         
-        msg = "int_dir must be specified."
+        msg = "'int_dir' must be specified."
         raise Exception(msg)
 
     def eval_potential(self, xs: Tensor) -> Tensor:
-        """Evaluates the (normalised) marginal potential function.
+        r"""Evaluates the potential function.
+
+        Returns the joint potential function, or the marginal potential 
+        function for the first $k$ variables or the last $k$ variables,
+        evaluated at a set of samples.
 
         Parameters
         ----------
         xs:
-            An n * d matrix containing samples from the approximation 
-            domain.
+            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
+            samples from the approximation domain.
         
         Returns
         -------
         neglogfxs:
-            The negative log of the approximation to the target density 
-            evaluated at each sample in xs.
+            The potential function of the approximation to the target 
+            density evaluated at each sample in `xs`.
+
+        Warnings
+        --------
+        If evaluating the marginal function for the first $k$ variables 
+        (where $k < d$), ensure that the marginal coefficient tensors 
+        have been computed from the first dimension to the final 
+        dimension (default). Similarly, if evaluating the marginal 
+        function for the final $k$ variables, ensure that the marginal 
+        coefficient tensors have been computed from the final dimension 
+        to the first dimension. 
+        
+        To recompute the marginal coefficient tensors, call 
+        `self.marginalise(direction=dt.Direction.FORWARD)` to compute 
+        the tensors from the first dimension to the last dimension, and 
+        `self.marginalise(direction=dt.Direction.BACKWARD)` to compute 
+        the tensors from the last dimension to the first dimension.
 
         """
         indices = self.get_transform_indices(xs.shape[1])
@@ -325,21 +360,40 @@ class AbstractIRT(abc.ABC):
         return neglogfxs
 
     def eval_pdf(self, xs: Tensor) -> Tensor: 
-        """Evaluates the normalised marginal PDF at a given set of x 
-        values.
+        r"""Evaluates the normalised density.
+
+        Returns the joint density function, or the marginal density 
+        function for the first $k$ variables or the last $k$ variables, 
+        evaluated at a set of samples.
         
         Parameters
-        ---------
-        xs: 
-            An n * d matrix containing samples from the approximation 
-            domain.
+        ----------
+        xs:
+            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
+            samples from the approximation domain.
 
         Returns
         -------
         fxs:
             An n-dimensional vector containing the value of the 
-            approximation to the target PDF evaluated at each element 
-            in xs.
+            approximation to the target density evaluated at each 
+            element in `xs`.
+
+        Warnings
+        --------
+        If evaluating the marginal function for the first $k$ variables 
+        (where $k < d$), ensure that the marginal coefficient tensors 
+        have been computed from the first dimension to the final 
+        dimension (default). Similarly, if evaluating the marginal 
+        function for the final $k$ variables, ensure that the marginal 
+        coefficient tensors have been computed from the final dimension 
+        to the first dimension. 
+        
+        To recompute the marginal coefficient tensors, call 
+        `self.marginalise(direction=dt.Direction.FORWARD)` to compute 
+        the tensors from the first dimension to the last dimension, and 
+        `self.marginalise(direction=dt.Direction.BACKWARD)` to compute 
+        the tensors from the last dimension to the first dimension.
         
         """
         neglogfxs = self.eval_potential(xs)
@@ -347,22 +401,41 @@ class AbstractIRT(abc.ABC):
         return fxs
     
     def eval_rt(self, xs: Tensor) -> Tensor:
-        """Evaluates the Rosenblatt transport Z = R(X), where Z is a 
-        (standard) uniform random variable and X is the target random 
-        variable.
+        r"""Evaluates the Rosenblatt transport.
+
+        Returns the joint Rosenblatt transport, or the marginal 
+        Rosenblatt transport for the first $k$ variables or the last 
+        $k$ variables, evaluated at a set of samples.
 
         Parameters
         ----------
         xs: 
-            An n * d matrix containing samples from the approximation 
-            domain.
+            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
+            samples from the approximation domain.
         
         Returns
         -------
         zs:
-            An n * d matrix containing the samples after applying the 
+            An $n \times k$ matrix containing the corresponding 
+            samples, from the unit hypercube, after applying the 
             Rosenblatt transport.
         
+        Warnings
+        --------
+        If evaluating the marginal RT for the first $k$ variables 
+        (where $k < d$), ensure that the marginal coefficient tensors 
+        have been computed from the first dimension to the final 
+        dimension (default). Similarly, if evaluating the marginal RT 
+        for the final $k$ variables, ensure that the marginal 
+        coefficient tensors have been computed from the final dimension 
+        to the first dimension. 
+        
+        To recompute the marginal coefficient tensors, call 
+        `self.marginalise(direction=dt.Direction.FORWARD)` to compute 
+        the tensors from the first dimension to the last dimension, and 
+        `self.marginalise(direction=dt.Direction.BACKWARD)` to compute 
+        the tensors from the last dimension to the first dimension.
+
         """
         d_xs = xs.shape[1]
         indices = self.get_transform_indices(d_xs)
@@ -371,63 +444,83 @@ class AbstractIRT(abc.ABC):
         return zs
     
     def eval_irt(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
-        """Given a set of samples of a standard uniform random 
-        variable, Z, computes the corresponding samples from the 
-        approximation to the target PDF by applying the inverse 
-        Rosenblatt transport.
+        r"""Evaluates the inverse Rosenblatt transport.
+        
+        Returns the joint inverse Rosenblatt transport, or the marginal 
+        inverse Rosenblatt transport for the first $k$ variables or the 
+        last $k$ variables, evaluated at a set of samples.
         
         Parameters
         ----------
         zs: 
-            An n * d matrix containing uniformly distributed samples.
+            An $n \times k$ matrix containing samples from the unit 
+            hypercube.
         
         Returns
         -------
         xs: 
-            An n * d matrix containing the corresponding samples from 
-            the PDF defined by SIRT.
+            An $n \times k$ matrix containing the corresponding samples 
+            from the approximation to the target density function.
         neglogfxs: 
-            An n-dimensional vector containing the potential function
-            associated with the target density evaluated at each sample
-            in xs.
+            An $n$-dimensional vector containing the approximation to 
+            the potential function evaluated at each sample in `xs`.
+
+        Warnings
+        --------
+        If evaluating the marginal IRT for the first $k$ variables 
+        (where $k < d$), ensure that the marginal coefficient tensors 
+        have been computed from the first dimension to the final 
+        dimension (default). Similarly, if evaluating the marginal IRT 
+        for the final $k$ variables, ensure that the marginal 
+        coefficient tensors have been computed from the final dimension 
+        to the first dimension. 
+        
+        To recompute the marginal coefficient tensors, call 
+        `self.marginalise(direction=dt.Direction.FORWARD)` to compute 
+        the tensors from the first dimension to the last dimension, and 
+        `self.marginalise(direction=dt.Direction.BACKWARD)` to compute 
+        the tensors from the last dimension to the first dimension.
         
         """
-
         zs = torch.clamp(zs, Z_MIN, Z_MAX)
         indices = self.get_transform_indices(zs.shape[1])
-
         ls, neglogfls = self.eval_irt_local(zs)
         xs, dxdls = self.bases.local2approx(ls, indices)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
-
         return xs, neglogfxs
     
     def eval_cirt(self, xs: Tensor, zs: Tensor ) -> Tuple[Tensor, Tensor]:
-        """Evaluates the inverse of the conditional squared Rosenblatt 
-        transport Y|X = R^{-1}(Z, X), where X is given, (X, Y) jointly 
-        follow the SIRT approximation of the target distribution, and 
-        Z is uniform.
+        r"""Evaluates the conditional inverse Rosenblatt transport.
+
+        Returns the conditional inverse Rosenblatt transport evaluated
+        at a set of samples in the approximation domain. 
+        
+        The conditional inverse Rosenblatt transport takes the form
+        $$Y|X = R^{-1}(R_{k}(X), Z),$$
+        where $X$ is a $k$-dimensional random variable, $Z$ is a 
+        $n-k$-dimensional uniform random variable, and $R(\,\cdot\,)$ 
+        denotes the (full) Rosenblatt transport, and $R_{k}$ denotes 
+        the Rosenblatt transport for the first (or last) $k$ variables.
         
         Parameters
         ----------
         xs:
-            An n * m matrix containing samples from the approximation 
-            domain.
+            An $n \times k$ matrix containing samples from the 
+            approximation domain.
         zs:
-            An n * (d-m) matrix containing samples from [0, 1]^{d-m},
-            where m is the the dimension of the joint distribution of 
-            X and Y.
+            An $n \times (d-k)$ matrix containing samples from the unit 
+            hypercube of dimension $d-k$.
         
         Returns
         -------
         ys:
-            An n * (d-m) matrix containing the realisations of Y 
-            corresponding to the values of zs after applying the 
+            An $n \times (d-k)$ matrix containing the realisations of 
+            $Y$ corresponding to the values of `zs` after applying the 
             conditional inverse Rosenblatt transport.
         neglogfys:
-            An n-dimensional vector containing the potential function 
-            of the approximation to the conditional density of Y|X 
-            evaluated at each sample in ys.
+            An $n$-dimensional vector containing the potential function 
+            of the approximation to the conditional density of 
+            $Y \textbar X$ evaluated at each sample in `ys`.
     
         """
         
@@ -435,11 +528,11 @@ class AbstractIRT(abc.ABC):
         n_xs, d_xs = xs.shape
 
         if d_zs == 0 or d_xs == 0:
-            msg = "The dimensions of both X and Z should be at least 1."
+            msg = "The dimensions of both X and Z must be at least 1."
             raise Exception(msg)
         
         if d_zs + d_xs != self.dim:
-            msg = ("The dimensions of X and Z should sum " 
+            msg = ("The dimensions of X and Z must sum " 
                    + "to the dimension of the approximation.")
             raise Exception(msg)
         
@@ -475,22 +568,24 @@ class AbstractIRT(abc.ABC):
         return derivs.reshape(n_xs, self.dim)
 
     def eval_potential_grad(self, xs: Tensor, method: str = "autodiff") -> Tensor:
-        """Computes the gradient of the potential function.
+        r"""Evaluates the gradient of the potential function.
         
         Parameters
         ----------
         xs:
-            An n * d matrix containing samples from the approximation 
-            domain.
+            An $n \times k$ matrix containing samples from the 
+            approximation domain.
         method: 
-            The method by which the gradient of the potential function 
-            is computed. Can be 'manual' or 'autodiff'.
+            The method by which to compute the gradient. This can be 
+            `autodiff`, or `manual`. Generally, `manual` is faster than 
+            `autodiff`, but can only be used to evaluate the gradient 
+            of the full potential function (i.e., when $k=d$).
 
         Returns
         -------
         grads:
-            An n * d matrix containing the gradient of the potential 
-            function evaluated at each sample in xs.
+            An $n \times k$ matrix containing the gradient of the 
+            potential function evaluated at each sample in `xs`.
 
         """
 
@@ -498,12 +593,12 @@ class AbstractIRT(abc.ABC):
         if method not in ("manual", "autodiff"):
             raise Exception("Unknown method.")
 
-        TTFunc._check_sample_dim(xs, self.dim, strict=True)
-
         if method == "autodiff":
+            TTFunc._check_sample_dim(xs, self.dim)
             grad = self.eval_potential_grad_autodiff(xs)
             return grad
-
+        
+        TTFunc._check_sample_dim(xs, self.dim, strict=True)
         ls, dldxs = self.bases.approx2local(xs)
         grad = self.eval_potential_grad_local(ls)
         grad *= dldxs
@@ -521,21 +616,32 @@ class AbstractIRT(abc.ABC):
         return Js.reshape(self.dim, n_xs, self.dim)
 
     def eval_rt_jac(self, xs: Tensor, method: str = "autodiff") -> Tensor:
-        """Evaluates the Jacobian of the squared Rosenblatt transport 
-        Z = R(X), where Z is the uniform random variable and X is the 
-        target random variable.
+        r"""Evaluates the Jacobian of the Rosenblatt transport.
+
+        Evaluates the Jacobian of the mapping $Z = R(X)$, where $Z$ is 
+        a standard $d$-dimensional uniform random variable and $X$ is 
+        the approximation to the target random variable. 
+
+        Note that element $J_{ij}$ of the Jacobian is given by
+        $$J_{ij} = \frac{\partial z_{i}}{\partial x_{j}}.$$
 
         Parameters
         ----------
         xs:
-            An n * d matrix containing a set of samples from the 
+            An $n \times d$ matrix containing a set of samples from the 
             approximation domain.
+        method:
+            The method by which to compute the Jacobian. This can be 
+            `autodiff`, or `manual`. Generally, `manual` is faster than 
+            `autodiff`, but can only be used to evaluate the Jacobian 
+            of the full Rosenblatt transport (*i.e.*, when $k=d$).
 
         Returns
         -------
-        Js:
-            A d * n * d matrix, where element i, j, k contains element
-            i, k of the Jacobian for the jth sample in xs.
+        Jacs:
+            A $k \times n \times k$ tensor, where element $ijk$ 
+            contains element $ik$ of the Jacobian for the $j$th sample 
+            in `xs`.
 
         """
 
@@ -543,17 +649,17 @@ class AbstractIRT(abc.ABC):
         if method not in ("manual", "autodiff"):
             raise Exception("Unknown method.")
 
-        TTFunc._check_sample_dim(xs, self.dim, strict=True)
-
         if method == "autodiff":
-            Js = self.eval_rt_jac_autodiff(xs)
-            return Js
-
+            TTFunc._check_sample_dim(xs, self.dim)
+            Jacs = self.eval_rt_jac_autodiff(xs)
+            return Jacs
+        
+        TTFunc._check_sample_dim(xs, self.dim, strict=True)
         ls, dldxs = self.bases.approx2local(xs)
-        Js = self.eval_rt_jac_local(ls)
+        Jacs = self.eval_rt_jac_local(ls)
         for k in range(self.dim):
-            Js[:, :, k] *= dldxs[:, k]
-        return Js
+            Jacs[:, :, k] *= dldxs[:, k]
+        return Jacs
     
     # def eval_rt_jac_prod(self, xs: Tensor, vs: Tensor) -> Tensor:
     #     """
@@ -618,12 +724,3 @@ class AbstractIRT(abc.ABC):
         zs = S.draw(n)
         xs = self.eval_irt(zs)
         return xs
-
-    def set_defensive(self, tau: Tensor) -> None:
-        """Updates the value of tau and the normalising constant 
-        associated with the approximation to the target density 
-        function.
-        """
-        self._tau = tau
-        self._z = self.z_func + tau
-        return

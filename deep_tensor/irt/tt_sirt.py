@@ -10,9 +10,54 @@ from ..polynomials import CDF1D, construct_cdf
 
 
 class TTSIRT(AbstractIRT):
-    """Class that implements the squared inverse Rosenblatt transport.
+    r"""Class that implements the squared inverse Rosenblatt transport.
     
-    TODO: finish
+    Parameters
+    ----------
+    potential:
+        A function that receives an $n \times d$ matrix of samples and 
+        returns an $n$-dimensional vector containing the potential 
+        function of the target density evaluated at each sample.
+    bases:
+        An object containing information on the basis functions in each 
+        dimension used during the FTT construction, and the mapping 
+        between the approximation domain and the domain of the basis 
+        functions.
+    approx: 
+        A previously-constructed FTT object to use as a starting point 
+        when constructing the FTT part of the TTSIRT. If passed in, the 
+        bases and options associated with this approximation will be 
+        inherited by the new TTSIRT, and the cores and interpolation 
+        points will be used as a starting point for the new FTT.
+    options:
+        A set of options that control the construction of the FTT.
+    tt_data:
+        A structure that holds information about the FTT, including the 
+        cores and interpolation points.
+    tau:
+        The defensive parameter, $\tau$, which ensures that the tails
+        of the approximation are sufficiently heavy.
+
+    Notes
+    -----
+    This class aims to approximate a $d$-dimensional target density 
+    function, $f(x)$. 
+
+    $$f(x) \approx (g(x)^{2} + \tau)\lambda(x),$$
+
+    where $\lambda(x) := \lambda_{1}(x_{1}) \cdots \lambda_{d}(x_{d})$ 
+    is the product-form weighting function associated with the 
+    polynomial basis.
+
+    To construct a SIRT for $f(x)$, we construct the functional tensor 
+    train approximation
+    $$\hat{g}(x) \approx \sqrt{\frac{\pi(x)}{\lambda(x)}}$$
+
+    References
+    ----------
+    Cui, T and Dolgov S (2022). *Deep composition of Tensor-Trains 
+    using squared inverse Rosenblatt transports.* Foundations of 
+    Computational Mathematics, **22**, 1863-1922.
 
     """
 
@@ -128,7 +173,6 @@ class TTSIRT(AbstractIRT):
         """Computes each coefficient tensor required to evaluate the 
         marginal functions in each dimension, by iterating over the 
         dimensions of the approximation from last to first.
-
         """
 
         self.Rs[self.dim] = torch.tensor([[1.0]])
@@ -149,7 +193,6 @@ class TTSIRT(AbstractIRT):
         """Computes each coefficient tensor required to evaluate the 
         marginal functions in each dimension, by iterating over the 
         dimensions of the approximation from first to last.
-        
         """
         
         self.Rs[-1] = torch.tensor([[1.0]])
@@ -170,6 +213,26 @@ class TTSIRT(AbstractIRT):
         self, 
         direction: Direction = Direction.FORWARD
     ) -> None:
+        r"""Computes the marginalisation coefficient tensors.
+        
+        Computes the coefficient tensors required to evaluate the 
+        marginal functions of a TTSIRT object.
+
+        Parameters
+        ----------
+        direction:
+            The direction in which to iterate over the tensor cores. 
+            If `direction=dt.Direction.FORWARD`, this will compute the 
+            coefficient tensors by iterating from the first dimension 
+            to the last, which allows for the marginal functions in the 
+            first $k$ variables (where $1 \leq k \leq d$) to be 
+            evaluated. 
+            If `direction=dt.Direction.BACKWARD`, this will compute the 
+            coefficient tensors by iterating from the last dimension to
+            the first, which allows for the marginal functions in the 
+            final $k$ variables to be evaluated.
+
+        """
 
         self.int_dir = direction
         if self.int_dir == Direction.FORWARD:
@@ -179,7 +242,6 @@ class TTSIRT(AbstractIRT):
         return
 
     def get_potential2density(self, ys: Tensor, zs: Tensor) -> Tensor:
-        
         raise NotImplementedError()
 
     def potential2density(
@@ -187,11 +249,9 @@ class TTSIRT(AbstractIRT):
         potential_func: Callable[[Tensor], Tensor], 
         ls: Tensor
     ) -> Tensor:
-        
         xs = self.bases.local2approx(ls)[0]
         neglogfxs = potential_func(xs)
         neglogwxs = self.bases.eval_measure_potential(xs)[0]
-
         # The ratio of f and w is invariant to changes of coordinate
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
         return gs
@@ -201,17 +261,13 @@ class TTSIRT(AbstractIRT):
         dim_l = ls.shape[1]
 
         if self.int_dir == Direction.FORWARD:
-
             indices = torch.arange(dim_l)
-
             gs = self.approx.eval_local(ls, direction=self.int_dir)
             gs_sq = (gs @ self.Rs[dim_l]).square().sum(dim=1)
             
         else:
-
             i_min = self.dim - dim_l
             indices = torch.arange(self.dim-1, self.dim-dim_l-1, -1)
-
             gs = self.approx.eval_local(ls, direction=self.int_dir)
             gs_sq = (self.Rs[i_min-1] @ gs.T).square().sum(dim=0)
             
