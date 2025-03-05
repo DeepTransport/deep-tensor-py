@@ -77,7 +77,7 @@ class TTSIRT(AbstractIRT):
             density and the weighting function evaluated at a set of 
             points in the local domain.
             """
-            return self.potential2density(potential, ls)
+            return self._potential2density(potential, ls)
         
         AbstractIRT.__init__(
             self,
@@ -202,10 +202,7 @@ class TTSIRT(AbstractIRT):
         self.z = self.z_func + self.tau
         return
 
-    def get_potential2density(self, ys: Tensor, zs: Tensor) -> Tensor:
-        raise NotImplementedError()
-
-    def potential2density(
+    def _potential2density(
         self, 
         potential_func: Callable[[Tensor], Tensor], 
         ls: Tensor
@@ -219,7 +216,7 @@ class TTSIRT(AbstractIRT):
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
         return gs
 
-    def eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
+    def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
 
         dim_l = ls.shape[1]
 
@@ -295,7 +292,7 @@ class TTSIRT(AbstractIRT):
 
         return zs
 
-    def eval_rt_local(self, ls: Tensor, direction: Direction) -> Tensor:
+    def _eval_rt_local(self, ls: Tensor, direction: Direction) -> Tensor:
         if direction == Direction.FORWARD:
             zs = self._eval_rt_local_forward(ls)
         else:
@@ -389,7 +386,7 @@ class TTSIRT(AbstractIRT):
         gs_sq = (self.Rs_b[d_min-1] @ gs.T).square().sum(dim=0)
         return ls, gs_sq
 
-    def eval_irt_local(
+    def _eval_irt_local(
         self, 
         zs: Tensor,
         direction: Direction
@@ -400,59 +397,13 @@ class TTSIRT(AbstractIRT):
         else:
             ls, gs_sq = self._eval_irt_local_backward(zs)
         
-        indices = self.get_transform_indices(zs.shape[1], direction)
+        indices = self._get_transform_indices(zs.shape[1], direction)
         
         neglogpls = -(gs_sq + self.tau).log()
         neglogwls = self.bases.eval_measure_potential_local(ls, indices)
         neglogfls = self.z.log() + neglogpls + neglogwls
 
         return ls, neglogfls
-
-    def eval_potential_grad_local(self, ls: Tensor) -> Tensor:
-
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
-
-        zs = self._eval_rt_local_forward(ls)
-        ls, gs_sq = self._eval_irt_local_forward(zs)
-        n_ls = ls.shape[0]
-        ps = gs_sq + self.tau
-        neglogws = self.bases.eval_measure_potential_local(ls)
-        ws = torch.exp(-neglogws)
-        fs = ps * ws  # Don't need to normalise as derivative ends up being a ratio
-        
-        Gs_prod = torch.ones((n_ls, 1, 1))
-        
-        dwdls = {k: torch.ones((n_ls, )) for k in range(self.dim)}
-        dGdls = {k: torch.ones((n_ls, 1, 1)) for k in range(self.dim)}
-        
-        for k in range(self.dim):
-
-            ws_k = polys[k].eval_measure(ls[:, k])
-            dwdls_k = polys[k].eval_measure_deriv(ls[:, k])
-
-            Gs_k = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
-            dGdls_k = TTFunc.eval_core_213_deriv(polys[k], cores[k], ls[:, k])
-            Gs_prod = TTFunc.batch_mul(Gs_prod, Gs_k)
-            
-            for j in range(self.dim):
-                if k == j:
-                    dwdls[j] *= dwdls_k
-                    dGdls[j] = TTFunc.batch_mul(dGdls[j], dGdls_k)
-                else:
-                    dwdls[j] *= ws_k
-                    dGdls[j] = TTFunc.batch_mul(dGdls[j], Gs_k)
-        
-        dfdls = torch.zeros_like(ls)
-        deriv = torch.zeros_like(ls)
-        gs = Gs_prod.sum(dim=(1, 2)) 
-
-        for k in range(self.dim):
-            dGdls_k = dGdls[k].sum(dim=(1, 2))
-            dfdls[:, k] = ps * dwdls[k] + 2.0 * gs * dGdls_k * ws
-            deriv[:, k] = -dfdls[:, k] / fs
-
-        return deriv
 
     def _eval_cirt_local_forward(
         self, 
@@ -549,7 +500,7 @@ class TTSIRT(AbstractIRT):
 
         return ls_y, neglogfls_y
 
-    def eval_cirt_local(
+    def _eval_cirt_local(
         self, 
         ls_x: Tensor, 
         zs: Tensor,
@@ -563,6 +514,52 @@ class TTSIRT(AbstractIRT):
 
         return ls_y, neglogfls_y
     
+    def _eval_potential_grad_local(self, ls: Tensor) -> Tensor:
+
+        polys = self.bases.polys
+        cores = self.approx.tt_data.cores
+
+        zs = self._eval_rt_local_forward(ls)
+        ls, gs_sq = self._eval_irt_local_forward(zs)
+        n_ls = ls.shape[0]
+        ps = gs_sq + self.tau
+        neglogws = self.bases.eval_measure_potential_local(ls)
+        ws = torch.exp(-neglogws)
+        fs = ps * ws  # Don't need to normalise as derivative ends up being a ratio
+        
+        Gs_prod = torch.ones((n_ls, 1, 1))
+        
+        dwdls = {k: torch.ones((n_ls, )) for k in range(self.dim)}
+        dGdls = {k: torch.ones((n_ls, 1, 1)) for k in range(self.dim)}
+        
+        for k in range(self.dim):
+
+            ws_k = polys[k].eval_measure(ls[:, k])
+            dwdls_k = polys[k].eval_measure_deriv(ls[:, k])
+
+            Gs_k = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
+            dGdls_k = TTFunc.eval_core_213_deriv(polys[k], cores[k], ls[:, k])
+            Gs_prod = TTFunc.batch_mul(Gs_prod, Gs_k)
+            
+            for j in range(self.dim):
+                if k == j:
+                    dwdls[j] *= dwdls_k
+                    dGdls[j] = TTFunc.batch_mul(dGdls[j], dGdls_k)
+                else:
+                    dwdls[j] *= ws_k
+                    dGdls[j] = TTFunc.batch_mul(dGdls[j], Gs_k)
+        
+        dfdls = torch.zeros_like(ls)
+        deriv = torch.zeros_like(ls)
+        gs = Gs_prod.sum(dim=(1, 2)) 
+
+        for k in range(self.dim):
+            dGdls_k = dGdls[k].sum(dim=(1, 2))
+            dfdls[:, k] = ps * dwdls[k] + 2.0 * gs * dGdls_k * ws
+            deriv[:, k] = -dfdls[:, k] / fs
+
+        return deriv
+
     def _eval_rt_jac_local_forward(self, ls: Tensor) -> Tensor:
 
         polys = self.bases.polys
@@ -757,7 +754,7 @@ class TTSIRT(AbstractIRT):
             
         return Jacs
 
-    def eval_rt_jac_local(self, ls: Tensor, direction: Direction) -> Tensor:
+    def _eval_rt_jac_local(self, ls: Tensor, direction: Direction) -> Tensor:
 
         if direction == Direction.FORWARD:
             J = self._eval_rt_jac_local_forward(ls)

@@ -96,7 +96,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod
-    def potential2density(
+    def _potential2density(
         self, 
         potential_func: Callable[[Tensor], Tensor], 
         ls: Tensor
@@ -124,13 +124,8 @@ class AbstractIRT(abc.ABC):
         """
         return
     
-    @abc.abstractmethod
-    def get_potential2density(self, ys: Tensor, zs: Tensor) -> Tensor:
-        """TODO: implement."""
-        return
-
     @abc.abstractmethod 
-    def eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
+    def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
         """Evaluates the normalised (marginal) PDF represented by the 
         squared FTT.
         
@@ -151,7 +146,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_rt_local(self, ls: Tensor, direction: Direction) -> Tensor:
+    def _eval_rt_local(self, ls: Tensor, direction: Direction) -> Tensor:
         """Evaluates the Rosenblatt transport Z = R(L), where L is the 
         target random variable mapped into the local domain, and Z is 
         uniform.
@@ -171,7 +166,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_irt_local(
+    def _eval_irt_local(
         self, 
         zs: Tensor, 
         direction: Direction
@@ -200,7 +195,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod 
-    def eval_cirt_local(
+    def _eval_cirt_local(
         self, 
         ls_x: Tensor, 
         zs: Tensor,
@@ -233,7 +228,7 @@ class AbstractIRT(abc.ABC):
         return
     
     @abc.abstractmethod
-    def eval_potential_grad_local(
+    def _eval_potential_grad_local(
         self, 
         ls: Tensor, 
         direction: Direction
@@ -255,7 +250,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod 
-    def eval_rt_jac_local(self, zs: Tensor, direction: Direction) -> Tensor:
+    def _eval_rt_jac_local(self, zs: Tensor, direction: Direction) -> Tensor:
         """Evaluates the Jacobian of the Rosenblatt transport.
         
         Parameters
@@ -274,30 +269,8 @@ class AbstractIRT(abc.ABC):
         """
         return
     
-    def set_tau(self, tau: float|Tensor) -> None:
-        r"""Updates the defensive parameter, $\tau$.
-        
-        Parameters
-        ----------
-        tau: 
-            The updated value for $\tau$, the defensive parameter of 
-            the IRT.
-        
-        """
-        self._tau = tau
-        self._z = self.z_func + tau
-        return
-
-    def get_transform_indices(self, dim_z: int, direction: Direction) -> Tensor:
-        """TODO: write docstring."""
-
-        if direction == Direction.FORWARD:
-            return torch.arange(dim_z)
-        elif direction == Direction.BACKWARD:
-            return torch.arange(self.dim-dim_z, self.dim)
-    
     @staticmethod
-    def _get_direction(subset: str|None):
+    def _get_direction(subset: str|None) -> Direction:
         """Converts the subset parameter into the direction 
         corresponding to the marginalisation tensors that should be 
         used.
@@ -316,6 +289,54 @@ class AbstractIRT(abc.ABC):
                + "are 'first', 'last', or None.")
         raise Exception(msg)
 
+    def _get_transform_indices(self, dim_z: int, direction: Direction) -> Tensor:
+        """TODO: write docstring."""
+
+        if direction == Direction.FORWARD:
+            return torch.arange(dim_z)
+        elif direction == Direction.BACKWARD:
+            return torch.arange(self.dim-dim_z, self.dim)
+
+    def _eval_potential_grad_autodiff(self, xs: Tensor, subset: str) -> Tensor:
+        """Evaluates the gradient of the potential using autodiff."""
+
+        xs_shape = xs.shape
+
+        def _eval_potential(xs: Tensor) -> Tensor:
+            xs = xs.reshape(*xs_shape)
+            return self.eval_potential(xs, subset).sum(dim=0)
+        
+        derivs = jacobian(_eval_potential, xs.flatten(), vectorize=True)
+        return derivs.reshape(*xs_shape)
+
+    def _eval_rt_jac_autodiff(self, xs: Tensor, subset: str) -> Tensor:
+        """Evaluates the gradient of the Rosenblatt transport using 
+        autodiff.
+        """
+
+        n_xs, d_xs = xs.shape
+
+        def _eval_rt(xs: Tensor) -> Tensor:
+            xs = xs.reshape(n_xs, d_xs)
+            return self.eval_rt(xs, subset).sum(dim=0)
+        
+        Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
+        return Js.reshape(d_xs, n_xs, d_xs)
+
+    def set_tau(self, tau: float|Tensor) -> None:
+        r"""Updates the defensive parameter, $\tau$.
+        
+        Parameters
+        ----------
+        tau: 
+            The updated value for $\tau$, the defensive parameter of 
+            the IRT.
+        
+        """
+        self._tau = tau
+        self._z = self.z_func + tau
+        return
+    
     def eval_potential(
         self, 
         xs: Tensor, 
@@ -346,9 +367,9 @@ class AbstractIRT(abc.ABC):
 
         """
         direction = AbstractIRT._get_direction(subset)
-        indices = self.get_transform_indices(xs.shape[1], direction)
+        indices = self._get_transform_indices(xs.shape[1], direction)
         ls, dldxs = self.bases.approx2local(xs, indices)
-        neglogfls = self.eval_potential_local(ls, direction)
+        neglogfls = self._eval_potential_local(ls, direction)
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
 
@@ -417,9 +438,9 @@ class AbstractIRT(abc.ABC):
 
         """
         direction = AbstractIRT._get_direction(subset)
-        indices = self.get_transform_indices(xs.shape[1], direction)
+        indices = self._get_transform_indices(xs.shape[1], direction)
         ls = self.approx.bases.approx2local(xs, indices)[0]
-        zs = self.eval_rt_local(ls, direction)
+        zs = self._eval_rt_local(ls, direction)
         return zs
     
     def eval_irt(
@@ -456,8 +477,8 @@ class AbstractIRT(abc.ABC):
         """
         zs = torch.clamp(zs, Z_MIN, Z_MAX)
         direction = AbstractIRT._get_direction(subset)
-        indices = self.get_transform_indices(zs.shape[1], direction)
-        ls, neglogfls = self.eval_irt_local(zs, direction)
+        indices = self._get_transform_indices(zs.shape[1], direction)
+        ls, neglogfls = self._eval_irt_local(zs, direction)
         xs, dxdls = self.bases.local2approx(ls, indices)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs
@@ -534,23 +555,12 @@ class AbstractIRT(abc.ABC):
             inds_z = torch.arange(d_zs)
         
         ls_x = self.bases.approx2local(xs, inds_x)[0]
-        ls_y, neglogfys = self.eval_cirt_local(ls_x, zs, direction)
+        ls_y, neglogfys = self._eval_cirt_local(ls_x, zs, direction)
         ys, dydlys = self.bases.local2approx(ls_y, inds_z)
         neglogfys += dydlys.log().sum(dim=1)
 
         return ys, neglogfys
     
-    def eval_potential_grad_autodiff(self, xs: Tensor, subset: str) -> Tensor:
-        
-        xs_shape = xs.shape
-
-        def _eval_potential(xs: Tensor) -> Tensor:
-            xs = xs.reshape(*xs_shape)
-            return self.eval_potential(xs, subset).sum(dim=0)
-        
-        derivs = jacobian(_eval_potential, xs.flatten(), vectorize=True)
-        return derivs.reshape(*xs_shape)
-
     def eval_potential_grad(
         self, 
         xs: Tensor, 
@@ -568,7 +578,7 @@ class AbstractIRT(abc.ABC):
             The method by which to compute the gradient. This can be 
             `autodiff`, or `manual`. Generally, `manual` is faster than 
             `autodiff`, but can only be used to evaluate the gradient 
-            of the full potential function (i.e., when $k=d$).
+            of the full potential function (*i.e.*, when $k=d$).
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
@@ -589,25 +599,14 @@ class AbstractIRT(abc.ABC):
 
         if method == "autodiff":
             TTFunc._check_sample_dim(xs, self.dim)
-            grad = self.eval_potential_grad_autodiff(xs, subset)
+            grad = self._eval_potential_grad_autodiff(xs, subset)
             return grad
         
         TTFunc._check_sample_dim(xs, self.dim, strict=True)
         ls, dldxs = self.bases.approx2local(xs)
-        grad = self.eval_potential_grad_local(ls)
+        grad = self._eval_potential_grad_local(ls)
         grad *= dldxs
         return grad
-
-    def eval_rt_jac_autodiff(self, xs: Tensor, subset: str) -> Tensor:
-
-        n_xs, d_xs = xs.shape
-
-        def _eval_rt(xs: Tensor) -> Tensor:
-            xs = xs.reshape(n_xs, d_xs)
-            return self.eval_rt(xs, subset).sum(dim=0)
-        
-        Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
-        return Js.reshape(d_xs, n_xs, d_xs)
 
     def eval_rt_jac(
         self, 
@@ -656,12 +655,12 @@ class AbstractIRT(abc.ABC):
 
         if method == "autodiff":
             TTFunc._check_sample_dim(xs, self.dim)
-            Jacs = self.eval_rt_jac_autodiff(xs, subset)
+            Jacs = self._eval_rt_jac_autodiff(xs, subset)
             return Jacs
         
         TTFunc._check_sample_dim(xs, self.dim, strict=True)
         ls, dldxs = self.bases.approx2local(xs)
-        Jacs = self.eval_rt_jac_local(ls, direction)
+        Jacs = self._eval_rt_jac_local(ls, direction)
         for k in range(self.dim):
             Jacs[:, :, k] *= dldxs[:, k]
         return Jacs
