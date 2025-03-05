@@ -5,7 +5,7 @@ from .linear_domain import LinearDomain
 
 
 class BoundedDomain(LinearDomain):
-    r"""Maps from a bounded domain to $[-1, 1]$.
+    r"""Mapping from a bounded domain to $[-1, 1]$.
     
     This class provides a linear mapping from a bounded domain, 
     $[x_{0}, x_{1}]$, to $[-1, 1]$.

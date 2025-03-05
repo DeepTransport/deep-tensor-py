@@ -9,7 +9,7 @@ from ..tools import check_finite
 
 
 class LogarithmicMapping(MappedDomain):
-    r"""Maps from an unbounded domain to $[-1, 1]$.
+    r"""Mapping from an unbounded domain to $[-1, 1]$.
     
     This class provides a mapping from an unbounded domain, 
     $(-\infty, \infty)$, to a bounded domain, $[-1, 1]$. This mapping

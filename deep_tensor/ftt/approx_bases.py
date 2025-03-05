@@ -9,12 +9,11 @@ from ..polynomials import Basis1D
 
 
 class ApproxBases():
-    r"""Container of information on the approximation basis in each 
-    dimension.
+    r"""Container of information on the approximation bases.
     
-    This class containing information on the set of polynomial basis 
-    functions, and the mappings between the local domain and 
-    approximation domain.
+    This class contains information on the set of polynomial basis 
+    functions used the construct the FTT, and the mapping from the 
+    approximation domain to the domain of the polynomial basis.
 
     Parameters
     ----------

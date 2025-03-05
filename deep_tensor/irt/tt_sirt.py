@@ -10,7 +10,7 @@ from ..polynomials import CDF1D, construct_cdf
 
 
 class TTSIRT(AbstractIRT):
-    r"""Class that implements the squared inverse Rosenblatt transport.
+    r"""Squared inverse Rosenblatt transport.
     
     Parameters
     ----------
@@ -23,7 +23,7 @@ class TTSIRT(AbstractIRT):
         dimension used during the FTT construction, and the mapping 
         between the approximation domain and the domain of the basis 
         functions.
-    approx: 
+    prev_approx: 
         A previously-constructed FTT object to use as a starting point 
         when constructing the FTT part of the TTSIRT. If passed in, the 
         bases and options associated with this approximation will be 
@@ -55,9 +55,9 @@ class TTSIRT(AbstractIRT):
 
     References
     ----------
-    Cui, T and Dolgov S (2022). *Deep composition of Tensor-Trains 
-    using squared inverse Rosenblatt transports.* Foundations of 
-    Computational Mathematics, **22**, 1863-1922.
+    Cui, T and Dolgov, S (2022). *[Deep composition of Tensor-Trains 
+    using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).* 
+    Foundations of Computational Mathematics, **22**, 1863--1922.
 
     """
 
@@ -65,7 +65,7 @@ class TTSIRT(AbstractIRT):
         self, 
         potential: Callable[[Tensor], Tensor], 
         bases: ApproxBases|None = None,
-        approx: TTFunc|None = None,
+        prev_approx: TTFunc|None = None,
         options: TTOptions|None = None, 
         input_data: InputData|None = None, 
         tt_data: TTData|None = None,
@@ -83,7 +83,7 @@ class TTSIRT(AbstractIRT):
             self,
             potential, 
             bases,
-            approx, 
+            prev_approx, 
             options, 
             input_data,
             tt_data

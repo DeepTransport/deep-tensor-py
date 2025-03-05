@@ -8,9 +8,7 @@ from .approx_bases import ApproxBases
 
 
 class InputData():
-    """A class containing sampling data used for building and 
-    evaluating the quality of the approximation to a given target 
-    function.
+    """Data used for building and evaluating the quality of a FTT.
 
     Parameters
     ----------

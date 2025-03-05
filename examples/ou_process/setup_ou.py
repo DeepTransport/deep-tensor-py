@@ -98,6 +98,6 @@ for poly in bases_dict:
             
             sirts[poly][method] = dt.TTSIRT(
                 potential_func, 
-                approx=approx,
+                prev_approx=approx,
                 input_data=input_data
             )

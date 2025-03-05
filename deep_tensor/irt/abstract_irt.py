@@ -24,22 +24,22 @@ class AbstractIRT(abc.ABC):
         self, 
         potential: Callable[[Tensor], Tensor],
         bases: ApproxBases|None, 
-        approx: TTFunc|None,
+        prev_approx: TTFunc|None,
         options: TTOptions|None,
         input_data: InputData|None,
         tt_data: TTData|None
     ):
 
         # TODO: allow for dimension to be passed in
-        if bases is None and approx is None:
+        if bases is None and prev_approx is None:
             msg = ("Must pass in a previous approximation or a set of "
                    + "approximation bases.")
             raise Exception(msg)
 
-        if approx is not None:
-            bases = approx.bases 
-            options = approx.options
-            tt_data = approx.tt_data
+        if prev_approx is not None:
+            bases = prev_approx.bases 
+            options = prev_approx.options
+            tt_data = prev_approx.tt_data
 
         if options is None:
             options = TTOptions()
@@ -50,7 +50,7 @@ class AbstractIRT(abc.ABC):
         self.potential = potential 
         self.bases = bases
         self.dim = self.bases.dim
-        self.approx = approx
+        # self.approx = prev_approx
         self.options = options 
         self.input_data = input_data
         self.tt_data = tt_data
@@ -274,8 +274,8 @@ class AbstractIRT(abc.ABC):
         """
         return
     
-    def set_defensive(self, tau: float|Tensor) -> None:
-        r"""Updates the defensive parameter.
+    def set_tau(self, tau: float|Tensor) -> None:
+        r"""Updates the defensive parameter, $\tau$.
         
         Parameters
         ----------
@@ -335,8 +335,8 @@ class AbstractIRT(abc.ABC):
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
-            variables (`subset="first"`) or the last $k$ variables 
-            (`subset="last"`).
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
         
         Returns
         -------
@@ -357,7 +357,7 @@ class AbstractIRT(abc.ABC):
         xs: Tensor,
         subset: str|None = None
     ) -> Tensor: 
-        r"""Evaluates the normalised density.
+        r"""Evaluates the density function.
 
         Returns the joint density function, or the marginal density 
         function for the first $k$ variables or the last $k$ variables, 
@@ -371,13 +371,13 @@ class AbstractIRT(abc.ABC):
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
-            variables (`subset="first"`) or the last $k$ variables 
-            (`subset="last"`).
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
 
         Returns
         -------
         fxs:
-            An n-dimensional vector containing the value of the 
+            An $n$-dimensional vector containing the value of the 
             approximation to the target density evaluated at each 
             element in `xs`.
         
@@ -405,8 +405,8 @@ class AbstractIRT(abc.ABC):
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
-            variables (`subset="first"`) or the last $k$ variables 
-            (`subset="last"`).
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
         
         Returns
         -------
@@ -441,8 +441,8 @@ class AbstractIRT(abc.ABC):
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
-            variables (`subset="first"`) or the last $k$ variables 
-            (`subset="last"`).
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
         
         Returns
         -------
@@ -475,10 +475,11 @@ class AbstractIRT(abc.ABC):
         
         The conditional inverse Rosenblatt transport takes the form
         $$Y|X = R^{-1}(R_{k}(X), Z),$$
-        where $X$ is a $k$-dimensional random variable, $Z$ is a 
-        $n-k$-dimensional uniform random variable, and $R(\,\cdot\,)$ 
-        denotes the (full) Rosenblatt transport, and $R_{k}$ denotes 
-        the Rosenblatt transport for the first (or last) $k$ variables.
+        where $X$ is a $k$-dimensional random variable, $Z$ is an 
+        $n-k$-dimensional uniform random variable, $R(\,\cdot\,)$ 
+        denotes the (full) Rosenblatt transport, and $R_{k}(\,\cdot\,)$ 
+        denotes the Rosenblatt transport for the first (or last) $k$ 
+        variables.
         
         Parameters
         ----------
@@ -489,9 +490,9 @@ class AbstractIRT(abc.ABC):
             An $n \times (d-k)$ matrix containing samples from the unit 
             hypercube of dimension $d-k$.
         subset: 
-            Whether xs corresponds to the first $k$ variables 
-            (`subset="first"`) of the approximation, or the last $k$ 
-            variables (`subset="last"`).
+            Whether `xs` corresponds to the first $k$ variables 
+            (`subset='first'`) of the approximation, or the last $k$ 
+            variables (`subset='last'`).
         
         Returns
         -------
@@ -539,20 +540,16 @@ class AbstractIRT(abc.ABC):
 
         return ys, neglogfys
     
-    def eval_potential_grad_autodiff(
-        self, 
-        xs: Tensor, 
-        subset: str
-    ) -> Tensor:
+    def eval_potential_grad_autodiff(self, xs: Tensor, subset: str) -> Tensor:
         
-        n_xs = xs.shape[0]
+        xs_shape = xs.shape
 
         def _eval_potential(xs: Tensor) -> Tensor:
-            xs = xs.reshape(n_xs, self.dim)
+            xs = xs.reshape(*xs_shape)
             return self.eval_potential(xs, subset).sum(dim=0)
         
         derivs = jacobian(_eval_potential, xs.flatten(), vectorize=True)
-        return derivs.reshape(n_xs, self.dim)
+        return derivs.reshape(*xs_shape)
 
     def eval_potential_grad(
         self, 
@@ -575,8 +572,8 @@ class AbstractIRT(abc.ABC):
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
-            variables (`subset="first"`) or the last $k$ variables 
-            (`subset="last"`).
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
 
         Returns
         -------
@@ -603,14 +600,14 @@ class AbstractIRT(abc.ABC):
 
     def eval_rt_jac_autodiff(self, xs: Tensor, subset: str) -> Tensor:
 
-        n_xs = xs.shape[0]
+        n_xs, d_xs = xs.shape
 
         def _eval_rt(xs: Tensor) -> Tensor:
-            xs = xs.reshape(n_xs, self.dim)
+            xs = xs.reshape(n_xs, d_xs)
             return self.eval_rt(xs, subset).sum(dim=0)
         
         Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
-        return Js.reshape(self.dim, n_xs, self.dim)
+        return Js.reshape(d_xs, n_xs, d_xs)
 
     def eval_rt_jac(
         self, 
@@ -640,8 +637,8 @@ class AbstractIRT(abc.ABC):
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
-            variables (`subset="first"`) or the last $k$ variables 
-            (`subset="last"`).
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
 
         Returns
         -------

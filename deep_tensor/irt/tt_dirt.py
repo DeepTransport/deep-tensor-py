@@ -19,17 +19,22 @@ DIRTFunc = Callable[[Tensor], Tuple[Tensor, Tensor]]
 
 
 class TTDIRT():
-    """Class that implements the deep inverse Rosenblatt transport.
+    """Deep (squared) inverse Rosenblatt transport.
 
     Parameters
     ----------
     func:
-        Function that returns (quantities proportional to) the negative 
-        log-likelihood and negative log-prior density associated with a 
-        given set of parameters.
+        A function that receives an $n \times d$ matrix of samples and 
+        returns an $n$-dimensional vector containing the (possibly 
+        unnormalised) log-prior density evaluated at each sample, and 
+        an $n$-dimensional vector containing the negative the (possibly
+        unnormalised) negative log-likelihood evaluated at each sample. 
+        function of the target density evaluated at each sample.
     bases:
-        The set of polynomial bases associated with each dimension of 
-        the approximation domain.
+        An object containing information on the basis functions in each 
+        dimension used during the FTT construction, and the mapping 
+        between the approximation domain and the domain of the basis 
+        functions.
     bridge: 
         An object used to generate the intermediate densities to 
         approximate at each stage of the DIRT construction.
@@ -37,7 +42,9 @@ class TTDIRT():
         The reference density.
     sirt_options:
         Options for constructing the SIRT approximation to the 
-        bridging density at each iteration.
+        ratio function (*i.e.*, the pullback of the current bridging 
+        density under the existing composition of mappings) at each 
+        iteration.
     dirt_options:
         Options for constructing the DIRT approximation to the 
         target density.
@@ -49,6 +56,12 @@ class TTDIRT():
     prev_approx:
         A dictionary containing a set of SIRTs generated as part of 
         the construction of a previous DIRT object.
+
+    References
+    ----------
+    Cui, T and Dolgov, S (2022). *[Deep composition of Tensor-Trains 
+    using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).* 
+    Foundations of Computational Mathematics, **22**, 1863--1922.
     
     """
 
@@ -328,7 +341,7 @@ class TTDIRT():
             sirt = TTSIRT(
                 updated_func,
                 bases=bases_i,
-                approx=approx,
+                prev_approx=approx,
                 options=self.sirt_options,
                 input_data=input_data,
                 tt_data=tt_data,
@@ -359,62 +372,113 @@ class TTDIRT():
     def eval_potential(
         self, 
         xs: Tensor,
-        n_layers: Tensor = torch.inf
+        n_layers: Tensor = torch.inf,
+        subset: str|None = None
     ) -> Tensor:
-        r"""Evaluates the DIRT potential function.
+        r"""Evaluates the potential function.
         
-        Evaluates the potential function associated with the 
-        pushforward of the reference measure under a given number of 
-        layers of the current DIRT.
+        Returns the joint potential function, or the marginal potential 
+        function for the first $k$ variables or the last $k$ variables,
+        corresponding to the pullback of the reference measure under a 
+        given number of layers of the DIRT.
         
         Parameters
         ----------
         xs:
-            An $n \times d$ matrix containing a set of samples drawn from the 
-            current DIRT approximation to the target density.
+            An $n \times k$ matrix containing a set of samples drawn 
+            from the current DIRT approximation to the target density.
         n_layers:
             The number of layers of the current DIRT construction to
-            push forward the samples under.
+            use.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
 
         Returns
         -------
         neglogfxs:
-            An n-dimensional vector containing the potential function
-            of the density of the pushforward measure evaluated at each
-            element of xs. 
+            An $n$-dimensional vector containing the potential function
+            of the target density evaluated at each element in `xs`.
 
         """
         n_layers = min(n_layers, self.n_layers)
-        neglogfxs = self.eval_rt(xs, n_layers)[1]
+        neglogfxs = self.eval_rt(xs, n_layers, subset)[1]
         return neglogfxs
+    
+    def eval_pdf(
+        self, 
+        xs: Tensor,
+        n_layers: Tensor = torch.inf,
+        subset: str|None = None
+    ) -> Tensor: 
+        r"""Evaluates the density function.
+        
+        Returns the joint density function, or the marginal density 
+        function for the first $k$ variables or the last $k$ variables,
+        corresponding to the pullback of the reference measure under 
+        a given number of layers of the DIRT.
+        
+        Parameters
+        ----------
+        xs:
+            An $n \times k$ matrix containing a set of samples drawn 
+            from the DIRT approximation to the target density.
+        n_layers:
+            The number of layers of the current DIRT construction to 
+            use.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+
+        Returns
+        -------
+        fxs:
+            An $n$-dimensional vector containing the value of the 
+            approximation to the target density evaluated at each 
+            element in `xs`.
+        
+        """
+        neglogfxs = self.eval_potential(xs, n_layers, subset)
+        fxs = torch.exp(-neglogfxs)
+        return fxs
 
     def eval_rt(
         self,
         xs: Tensor,
-        n_layers: Tensor = torch.inf
+        n_layers: Tensor = torch.inf,
+        subset: str|None = None
     ) -> Tuple[Tensor, Tensor]:
-        """Evaluates the deep Rosenblatt transport X = T(R), where 
-        R is the reference random variable and X is the target random
-        variable.
+        r"""Evaluates the deep Rosenblatt transport.
         
         Parameters
         ----------
         xs:
-            An n * d matrix of random variables drawn from the density 
-            defined by the current DIRT.
+            An $n \times k$ matrix of random variables drawn from the 
+            density defined by the current DIRT.
         n_layers:
-            The number of layers of SIRTS to push the random variables 
-            forward under.
+            The number of layers of the deep inverse Rosenblatt 
+            transport to push the samples forward under. If not 
+            specified, the samples will be pushed forward through all 
+            the layers.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
 
         Returns
         -------
         rs:
-            An n * d matrix containing the composition of mappings 
-            evaluated at each value of xs.
+            An $n \times k$ matrix containing the composition of 
+            mappings evaluated at each value of `xs`.
         neglogfxs:
-            An n-dimensional vector containing the negative log of the
-            pushforward of the reference density under the current 
-            composition of mappings, evaluated at each sample in xs.
+            An $n$-dimensional vector containing the potential function 
+            of the pullback of the reference density under the current 
+            composition of mappings, evaluated at each sample in `xs`.
 
         """
         
@@ -426,7 +490,7 @@ class TTDIRT():
         for i in range(n_layers):
             
             zs = self.irts[i].eval_rt(rs)
-            neglogsirts = self.irts[i].eval_potential(rs)
+            neglogsirts = self.irts[i].eval_potential(rs, subset)
 
             rs = self.reference.invert_cdf(zs)
             neglogrefs = -self.reference.log_joint_pdf(rs)[0]
@@ -440,39 +504,36 @@ class TTDIRT():
     def eval_irt(
         self, 
         rs: Tensor, 
-        n_layers: int = torch.inf
+        n_layers: int = torch.inf,
+        subset: str|None = None
     ) -> Tuple[Tensor, Tensor]:
-        """Evaluates the deep inverse Rosenblatt transport X = T(R), 
-        where R is the reference random variable and X is the target 
-        random variable.
+        r"""Evaluates the deep inverse Rosenblatt transport.
 
         Parameters
         ----------
         rs:
-            An n * d matrix containing samples distributed according to
-            the reference density.
+            An $n \times k$ matrix containing samples distributed 
+            according to the reference density.
         n_layers: 
             The number of layers of the deep inverse Rosenblatt 
-            transport.
+            transport to pull the samples back under. If not specified,
+            the samples will be pulled back through all the layers.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
 
         Returns
         -------
         xs: 
-            An n * d matrix containing the corresponding samples from 
-            the approximation domain, after applying the deep inverse 
-            Rosenblatt transport.
+            An $n \times k$ matrix containing the corresponding samples 
+            from the approximation domain, after applying the deep 
+            inverse Rosenblatt transport.
         neglogfxs:
-            An n-dimensional vector containing the negative log of the
-            pushforward of the reference density under the current 
-            composition of mappings, evaluated at each sample in xs.
-
-        References
-        ----------
-        Cui and Dolgov (2022). Deep composition of tensor-trains using 
-        squared inverse Rosenblatt transports. Eq. (48).
-        Cui, Dolgov and Scheichl (2024). Deep importance sampling using 
-        tensor trains with application to a-priori and a-posteriori
-        rare events. Eq. (3.9).
+            An $n$-dimensional vector containing the potential function
+            of the pullback of the reference density under the current 
+            composition of mappings, evaluated at each sample in `xs`.
 
         """
 
@@ -488,7 +549,7 @@ class TTDIRT():
 
             # Evaluate the current mapping Q
             zs = self.reference.eval_cdf(xs)[0]
-            xs, neglogsirts = self.irts[i].eval_irt(zs)
+            xs, neglogsirts = self.irts[i].eval_irt(zs, subset)
             neglogfxs += neglogsirts - neglogrefs
 
         return xs, neglogfxs

@@ -60,9 +60,9 @@ quartodoc:
       package: deep_tensor
       contents:
         - name: TTSIRT
-          members: [set_defensive, eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, eval_potential_grad, eval_rt_jac, random, sobol]
+          members: [set_tau, eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, eval_potential_grad, eval_rt_jac, random, sobol]
         - name: TTDIRT
-          members: [eval_potential, eval_rt, eval_irt]
+          members: [eval_potential, eval_pdf, eval_rt, eval_irt]
 
     - title: Functional Tensor Trains
       desc: Objects used for building functional tensor train approximations to multivariate functions.
@@ -94,8 +94,8 @@ quartodoc:
         - name: Legendre
           members: []
 
-    - title: Domains
-      desc: Domains on which to construct a functional tensor train.
+    - title: Domain Mappings
+      desc: Mappings between the approximation domain and the domain of the polynomial basis.
       package: deep_tensor
       contents:
         - name: BoundedDomain
