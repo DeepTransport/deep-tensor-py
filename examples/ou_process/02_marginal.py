@@ -10,15 +10,12 @@ from torch.linalg import norm
 from examples.ou_process.setup_ou_domain_mappings import *
 
 
-directions = {
-    "forward": dt.Direction.FORWARD, 
-    "backward": dt.Direction.BACKWARD
-}
+subsets = ["first", "last"]
 
 headers = [
     "Polynomial",
     "TT Method",
-    "Direction",
+    "Subset",
     "Transform Error",
     "Density Error",
     "Approx. Error",
@@ -39,25 +36,19 @@ for poly in polys_dict:
         for ax in axes.flat:
             ax.set_box_aspect(1)
 
-        for i, direction in enumerate(directions):
+        for i, subset in enumerate(subsets):
 
             sirt: dt.TTSIRT = sirts[poly][method]
             t0 = time.time()
-            if direction == "forward":
-                # Forward marginalisation
+            if subset == "first":
                 indices = torch.arange(3)
-                # if sirt.int_dir != dt.Direction.FORWARD:
-                #     sirt.marginalise(dt.Direction.FORWARD) 
             else:
-                # Backward marginalisation
                 indices = torch.arange(dim-1, 1, -1)
-                # if sirt.int_dir != dt.Direction.BACKWARD:
-                #     sirt.marginalise(dt.Direction.BACKWARD)
 
             t0 = time.time()
-            xs, potential_xs = sirt.eval_irt(zs[:, indices], directions[direction])
-            fxs = sirt.eval_pdf(xs, directions[direction])
-            z0 = sirt.eval_rt(xs, directions[direction])
+            xs, potential_xs = sirt.eval_irt(zs[:, indices], subset)
+            fxs = sirt.eval_pdf(xs, subset)
+            z0 = sirt.eval_rt(xs, subset)
             t1 = time.time()
 
             potential_true = model.eval_potential_marginal(indices, xs)
@@ -67,7 +58,7 @@ for poly in polys_dict:
             info = [
                 f"{poly:16}",
                 f"{method:16}",
-                f"{direction:16}",
+                f"{subset:16}",
                 f"{transform_error:=16.5e}",
                 f"{density_error:=16.5e}",
                 f"{approx_error:=16.5e}",

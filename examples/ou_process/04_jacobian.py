@@ -14,7 +14,7 @@ from examples.ou_process.setup_ou import *
 def compute_finite_difference_jac(
     sirt: dt.TTSIRT,
     xs: Tensor,
-    direction: dt.Direction,
+    subset: str,
     dx: float = 1e-6
 ) -> torch.Tensor:
     """Computes a finite difference approximation to the Jacobian."""
@@ -26,8 +26,8 @@ def compute_finite_difference_jac(
     xs_0 = xs_tiled - dxs 
     xs_1 = xs_tiled + dxs
 
-    zs_0 = sirt.eval_rt(xs_0, direction).T
-    zs_1 = sirt.eval_rt(xs_1, direction).T
+    zs_0 = sirt.eval_rt(xs_0, subset).T
+    zs_1 = sirt.eval_rt(xs_1, subset).T
 
     J = (zs_1 - zs_0) / (2 * dx)
     return J
@@ -35,7 +35,7 @@ def compute_finite_difference_jac(
 headers = [
     "Polynomial",
     "Method",
-    "Direction",
+    "Subset",
     "Jacobian Error",
     "Time (s)"
 ]
@@ -45,11 +45,7 @@ print("")
 print(" | ".join(headers))
 print("-+-".join(["-" * 16] * len(headers)))
 
-directions = {
-    "forward": dt.Direction.FORWARD, 
-    "backward": dt.Direction.BACKWARD
-}
-
+subsets = ["first", "last"]
 methods = ["manual", "autodiff"]
 
 n_zs = 1000
@@ -57,26 +53,26 @@ zs = torch.rand((n_zs, dim))
 
 for poly in polys_dict:
     for method in methods:
-        for direction in directions:
+        for subset in subsets:
 
             sirt: dt.TTSIRT = sirts[poly]["random"]
 
             xs = sirt.eval_irt(zs)[0]
 
             t0 = time.time()
-            Js = sirt.eval_rt_jac(xs, method, directions[direction])
+            Js = sirt.eval_rt_jac(xs, method, subset)
             Js = Js.reshape(dim, dim * n_zs)
             t1 = time.time()
 
             # Js_fd = sirt.eval_rt_jac(xs, method="autodiff").reshape(dim, dim*n_zs)
-            Js_fd = compute_finite_difference_jac(sirt, xs, directions[direction])
+            Js_fd = compute_finite_difference_jac(sirt, xs, subset)
 
             plt.figure(figsize=(6, 6))
             plt.scatter(Js.flatten(), Js_fd.flatten(), s=4)
             plt.title("Jacobian Finite Difference Check")
             plt.ylabel(r"$J_{\mathrm{fd}}$")
             plt.xlabel(r"$J$")
-            plt.savefig(f"examples/ou_process/figures/04_jacobian_{poly}_{method}_{direction}.png", dpi=500)
+            plt.savefig(f"examples/ou_process/figures/04_jacobian_{poly}_{method}_{subset}.png", dpi=500)
             plt.close()
 
             approx_error = norm(Js - Js_fd)
@@ -84,7 +80,7 @@ for poly in polys_dict:
             info = [
                 f"{poly:16}",
                 f"{method:16}",
-                f"{direction:16}",
+                f"{subset:16}",
                 f"{approx_error:=16.5e}",
                 f"{t1-t0:=16.5f}"
             ]

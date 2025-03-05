@@ -76,10 +76,7 @@ class TestSIRT(unittest.TestCase):
         ]
 
         tt_methods = ["fixed_rank", "random"]
-        directions = {
-            "forward": dt.Direction.FORWARD, 
-            "backward": dt.Direction.BACKWARD
-        }
+        subsets = ["first", "last"]
         dim = 20
 
         sirts = self.build_sirts(polys, tt_methods, dim)
@@ -87,18 +84,18 @@ class TestSIRT(unittest.TestCase):
 
         for poly in sirts:
             for tt_method in sirts[poly]:
-                for direction in directions:
-                    with self.subTest(poly=poly, tt_method=tt_method, direction=direction):
+                for subset in subsets:
+                    with self.subTest(poly=poly, tt_method=tt_method, subset=subset):
 
                         sirt = sirts[poly][tt_method]
 
-                        if direction == "forward":
+                        if subset == "first":
                             indices = torch.arange(8)
                         else:
                             indices = torch.arange(dim-1, 14, -1)
                         
-                        xs = sirt.eval_irt(zs[:, indices], directions[direction])[0]
-                        z0 = sirt.eval_rt(xs, directions[direction])
+                        xs = sirt.eval_irt(zs[:, indices], subset)[0]
+                        z0 = sirt.eval_rt(xs, subset)
                         transform_error = norm(zs[:, indices]-z0, ord="fro")
                         self.assertTrue(transform_error < 1e-8)
         

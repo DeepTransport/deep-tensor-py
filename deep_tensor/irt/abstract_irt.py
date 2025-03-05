@@ -295,11 +295,31 @@ class AbstractIRT(abc.ABC):
             return torch.arange(dim_z)
         elif direction == Direction.BACKWARD:
             return torch.arange(self.dim-dim_z, self.dim)
+    
+    @staticmethod
+    def _get_direction(subset: str|None):
+        """Converts the subset parameter into the direction 
+        corresponding to the marginalisation tensors that should be 
+        used.
+        """
+
+        if subset is None:
+            return Direction.FORWARD
+        
+        subset = subset.lower()
+        if subset == "first":
+            return Direction.FORWARD
+        elif subset == "last":
+            return Direction.BACKWARD
+        
+        msg = ("Unknown value of 'subset' found. Acceptable values "
+               + "are 'first', 'last', or None.")
+        raise Exception(msg)
 
     def eval_potential(
         self, 
         xs: Tensor, 
-        direction: Direction = Direction.FORWARD
+        subset: str|None = None
     ) -> Tensor:
         r"""Evaluates the potential function.
 
@@ -312,6 +332,11 @@ class AbstractIRT(abc.ABC):
         xs:
             An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
             samples from the approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset="first"`) or the last $k$ variables 
+            (`subset="last"`).
         
         Returns
         -------
@@ -319,23 +344,8 @@ class AbstractIRT(abc.ABC):
             The potential function of the approximation to the target 
             density evaluated at each sample in `xs`.
 
-        Warnings
-        --------
-        If evaluating the marginal function for the first $k$ variables 
-        (where $k < d$), ensure that the marginal coefficient tensors 
-        have been computed from the first dimension to the final 
-        dimension (default). Similarly, if evaluating the marginal 
-        function for the final $k$ variables, ensure that the marginal 
-        coefficient tensors have been computed from the final dimension 
-        to the first dimension. 
-        
-        To recompute the marginal coefficient tensors, call 
-        `self.marginalise(direction=dt.Direction.FORWARD)` to compute 
-        the tensors from the first dimension to the last dimension, and 
-        `self.marginalise(direction=dt.Direction.BACKWARD)` to compute 
-        the tensors from the last dimension to the first dimension.
-
         """
+        direction = AbstractIRT._get_direction(subset)
         indices = self.get_transform_indices(xs.shape[1], direction)
         ls, dldxs = self.bases.approx2local(xs, indices)
         neglogfls = self.eval_potential_local(ls, direction)
@@ -345,7 +355,7 @@ class AbstractIRT(abc.ABC):
     def eval_pdf(
         self, 
         xs: Tensor,
-        direction: Direction = Direction.FORWARD
+        subset: str|None = None
     ) -> Tensor: 
         r"""Evaluates the normalised density.
 
@@ -358,6 +368,11 @@ class AbstractIRT(abc.ABC):
         xs:
             An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
             samples from the approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset="first"`) or the last $k$ variables 
+            (`subset="last"`).
 
         Returns
         -------
@@ -365,32 +380,16 @@ class AbstractIRT(abc.ABC):
             An n-dimensional vector containing the value of the 
             approximation to the target density evaluated at each 
             element in `xs`.
-
-        Warnings
-        --------
-        If evaluating the marginal function for the first $k$ variables 
-        (where $k < d$), ensure that the marginal coefficient tensors 
-        have been computed from the first dimension to the final 
-        dimension (default). Similarly, if evaluating the marginal 
-        function for the final $k$ variables, ensure that the marginal 
-        coefficient tensors have been computed from the final dimension 
-        to the first dimension. 
-        
-        To recompute the marginal coefficient tensors, call 
-        `self.marginalise(direction=dt.Direction.FORWARD)` to compute 
-        the tensors from the first dimension to the last dimension, and 
-        `self.marginalise(direction=dt.Direction.BACKWARD)` to compute 
-        the tensors from the last dimension to the first dimension.
         
         """
-        neglogfxs = self.eval_potential(xs, direction)
+        neglogfxs = self.eval_potential(xs, subset)
         fxs = torch.exp(-neglogfxs)
         return fxs
     
     def eval_rt(
         self, 
         xs: Tensor,
-        direction: Direction = Direction.FORWARD
+        subset: str|None = None
     ) -> Tensor:
         r"""Evaluates the Rosenblatt transport.
 
@@ -403,6 +402,11 @@ class AbstractIRT(abc.ABC):
         xs: 
             An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
             samples from the approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset="first"`) or the last $k$ variables 
+            (`subset="last"`).
         
         Returns
         -------
@@ -410,24 +414,9 @@ class AbstractIRT(abc.ABC):
             An $n \times k$ matrix containing the corresponding 
             samples, from the unit hypercube, after applying the 
             Rosenblatt transport.
-        
-        Warnings
-        --------
-        If evaluating the marginal RT for the first $k$ variables 
-        (where $k < d$), ensure that the marginal coefficient tensors 
-        have been computed from the first dimension to the final 
-        dimension (default). Similarly, if evaluating the marginal RT 
-        for the final $k$ variables, ensure that the marginal 
-        coefficient tensors have been computed from the final dimension 
-        to the first dimension. 
-        
-        To recompute the marginal coefficient tensors, call 
-        `self.marginalise(direction=dt.Direction.FORWARD)` to compute 
-        the tensors from the first dimension to the last dimension, and 
-        `self.marginalise(direction=dt.Direction.BACKWARD)` to compute 
-        the tensors from the last dimension to the first dimension.
 
         """
+        direction = AbstractIRT._get_direction(subset)
         indices = self.get_transform_indices(xs.shape[1], direction)
         ls = self.approx.bases.approx2local(xs, indices)[0]
         zs = self.eval_rt_local(ls, direction)
@@ -436,7 +425,7 @@ class AbstractIRT(abc.ABC):
     def eval_irt(
         self, 
         zs: Tensor,
-        direction: Direction = Direction.FORWARD
+        subset: str|None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the inverse Rosenblatt transport.
         
@@ -449,6 +438,11 @@ class AbstractIRT(abc.ABC):
         zs: 
             An $n \times k$ matrix containing samples from the unit 
             hypercube.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset="first"`) or the last $k$ variables 
+            (`subset="last"`).
         
         Returns
         -------
@@ -458,25 +452,10 @@ class AbstractIRT(abc.ABC):
         neglogfxs: 
             An $n$-dimensional vector containing the approximation to 
             the potential function evaluated at each sample in `xs`.
-
-        Warnings
-        --------
-        If evaluating the marginal IRT for the first $k$ variables 
-        (where $k < d$), ensure that the marginal coefficient tensors 
-        have been computed from the first dimension to the final 
-        dimension (default). Similarly, if evaluating the marginal IRT 
-        for the final $k$ variables, ensure that the marginal 
-        coefficient tensors have been computed from the final dimension 
-        to the first dimension. 
-        
-        To recompute the marginal coefficient tensors, call 
-        `self.marginalise(direction=dt.Direction.FORWARD)` to compute 
-        the tensors from the first dimension to the last dimension, and 
-        `self.marginalise(direction=dt.Direction.BACKWARD)` to compute 
-        the tensors from the last dimension to the first dimension.
         
         """
         zs = torch.clamp(zs, Z_MIN, Z_MAX)
+        direction = AbstractIRT._get_direction(subset)
         indices = self.get_transform_indices(zs.shape[1], direction)
         ls, neglogfls = self.eval_irt_local(zs, direction)
         xs, dxdls = self.bases.local2approx(ls, indices)
@@ -487,7 +466,7 @@ class AbstractIRT(abc.ABC):
         self, 
         xs: Tensor, 
         zs: Tensor, 
-        direction: Direction = Direction.FORWARD
+        subset: str|None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the conditional inverse Rosenblatt transport.
 
@@ -509,8 +488,10 @@ class AbstractIRT(abc.ABC):
         zs:
             An $n \times (d-k)$ matrix containing samples from the unit 
             hypercube of dimension $d-k$.
-        direction:
-            TODO...
+        subset: 
+            Whether xs corresponds to the first $k$ variables 
+            (`subset="first"`) of the approximation, or the last $k$ 
+            variables (`subset="last"`).
         
         Returns
         -------
@@ -542,7 +523,8 @@ class AbstractIRT(abc.ABC):
                 msg = "The number of samples of X and Z must be equal."
                 raise Exception(msg)
             xs = xs.repeat(n_zs, 1)
-
+        
+        direction = AbstractIRT._get_direction(subset)
         if direction == Direction.FORWARD:
             inds_x = torch.arange(d_xs)
             inds_z = torch.arange(d_xs, self.dim)
@@ -560,14 +542,14 @@ class AbstractIRT(abc.ABC):
     def eval_potential_grad_autodiff(
         self, 
         xs: Tensor, 
-        direction: Direction
+        subset: str
     ) -> Tensor:
         
         n_xs = xs.shape[0]
 
         def _eval_potential(xs: Tensor) -> Tensor:
             xs = xs.reshape(n_xs, self.dim)
-            return self.eval_potential(xs, direction).sum(dim=0)
+            return self.eval_potential(xs, subset).sum(dim=0)
         
         derivs = jacobian(_eval_potential, xs.flatten(), vectorize=True)
         return derivs.reshape(n_xs, self.dim)
@@ -576,7 +558,7 @@ class AbstractIRT(abc.ABC):
         self, 
         xs: Tensor, 
         method: str = "autodiff",
-        direction: Direction = Direction.FORWARD
+        subset: str|None = None
     ) -> Tensor:
         r"""Evaluates the gradient of the potential function.
         
@@ -590,6 +572,11 @@ class AbstractIRT(abc.ABC):
             `autodiff`, or `manual`. Generally, `manual` is faster than 
             `autodiff`, but can only be used to evaluate the gradient 
             of the full potential function (i.e., when $k=d$).
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset="first"`) or the last $k$ variables 
+            (`subset="last"`).
 
         Returns
         -------
@@ -605,7 +592,7 @@ class AbstractIRT(abc.ABC):
 
         if method == "autodiff":
             TTFunc._check_sample_dim(xs, self.dim)
-            grad = self.eval_potential_grad_autodiff(xs, direction)
+            grad = self.eval_potential_grad_autodiff(xs, subset)
             return grad
         
         TTFunc._check_sample_dim(xs, self.dim, strict=True)
@@ -614,13 +601,13 @@ class AbstractIRT(abc.ABC):
         grad *= dldxs
         return grad
 
-    def eval_rt_jac_autodiff(self, xs: Tensor, direction: Direction) -> Tensor:
+    def eval_rt_jac_autodiff(self, xs: Tensor, subset: str) -> Tensor:
 
         n_xs = xs.shape[0]
 
         def _eval_rt(xs: Tensor) -> Tensor:
             xs = xs.reshape(n_xs, self.dim)
-            return self.eval_rt(xs, direction).sum(dim=0)
+            return self.eval_rt(xs, subset).sum(dim=0)
         
         Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
         return Js.reshape(self.dim, n_xs, self.dim)
@@ -629,12 +616,12 @@ class AbstractIRT(abc.ABC):
         self, 
         xs: Tensor, 
         method: str = "autodiff",
-        direction: Direction = Direction.FORWARD
+        subset: str|None = None
     ) -> Tensor:
         r"""Evaluates the Jacobian of the Rosenblatt transport.
 
         Evaluates the Jacobian of the mapping $Z = R(X)$, where $Z$ is 
-        a standard $d$-dimensional uniform random variable and $X$ is 
+        a standard $k$-dimensional uniform random variable and $X$ is 
         the approximation to the target random variable. 
 
         Note that element $J_{ij}$ of the Jacobian is given by
@@ -650,6 +637,11 @@ class AbstractIRT(abc.ABC):
             `autodiff`, or `manual`. Generally, `manual` is faster than 
             `autodiff`, but can only be used to evaluate the Jacobian 
             of the full Rosenblatt transport (*i.e.*, when $k=d$).
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset="first"`) or the last $k$ variables 
+            (`subset="last"`).
 
         Returns
         -------
@@ -660,13 +652,14 @@ class AbstractIRT(abc.ABC):
 
         """
 
+        direction = AbstractIRT._get_direction(subset)
         method = method.lower()
         if method not in ("manual", "autodiff"):
             raise Exception("Unknown method.")
 
         if method == "autodiff":
             TTFunc._check_sample_dim(xs, self.dim)
-            Jacs = self.eval_rt_jac_autodiff(xs, direction)
+            Jacs = self.eval_rt_jac_autodiff(xs, subset)
             return Jacs
         
         TTFunc._check_sample_dim(xs, self.dim, strict=True)
