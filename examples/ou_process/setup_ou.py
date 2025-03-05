@@ -7,6 +7,7 @@ from copy import deepcopy
 
 from matplotlib import pyplot as plt
 import torch
+from torch import Tensor
 
 import deep_tensor as dt
 
@@ -21,7 +22,7 @@ a = 0.5
 
 model = OU(dim, a)
 
-def potential_func(x: torch.Tensor):
+def potential_func(x: Tensor):
     return model.eval_potential(x)
 
 debug_size = 10_000

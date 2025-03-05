@@ -10,7 +10,10 @@ from torch.linalg import norm
 from examples.ou_process.setup_ou_domain_mappings import *
 
 
-directions = ["forward", "backward"]
+directions = {
+    "forward": dt.Direction.FORWARD, 
+    "backward": dt.Direction.BACKWARD
+}
 
 headers = [
     "Polynomial",
@@ -43,18 +46,18 @@ for poly in polys_dict:
             if direction == "forward":
                 # Forward marginalisation
                 indices = torch.arange(3)
-                if sirt.int_dir != dt.Direction.FORWARD:
-                    sirt.marginalise(dt.Direction.FORWARD) 
+                # if sirt.int_dir != dt.Direction.FORWARD:
+                #     sirt.marginalise(dt.Direction.FORWARD) 
             else:
                 # Backward marginalisation
                 indices = torch.arange(dim-1, 1, -1)
-                if sirt.int_dir != dt.Direction.BACKWARD:
-                    sirt.marginalise(dt.Direction.BACKWARD)
+                # if sirt.int_dir != dt.Direction.BACKWARD:
+                #     sirt.marginalise(dt.Direction.BACKWARD)
 
             t0 = time.time()
-            xs, potential_xs = sirt.eval_irt(zs[:, indices])
-            fxs = sirt.eval_pdf(xs)
-            z0 = sirt.eval_rt(xs)
+            xs, potential_xs = sirt.eval_irt(zs[:, indices], directions[direction])
+            fxs = sirt.eval_pdf(xs, directions[direction])
+            z0 = sirt.eval_rt(xs, directions[direction])
             t1 = time.time()
 
             potential_true = model.eval_potential_marginal(indices, xs)

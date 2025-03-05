@@ -47,19 +47,16 @@ for poly in polys_dict:
                 xs_cond = debug_x[:, indices_l]
                 zs_cond = zs[:, indices_r]
                 inds_cov = indices_r
-                if sirt.int_dir == dt.Direction.BACKWARD:
-                    sirt.marginalise(dt.Direction.FORWARD) 
             else:
                 xs_cond = debug_x[:, indices_r]
                 zs_cond = zs[:, indices_l]
                 inds_cov = indices_l
-                if sirt.int_dir == dt.Direction.FORWARD:
-                    sirt.marginalise(dt.Direction.BACKWARD)
 
             t0 = time.time()
             ys_cond_sirt, neglogfys_cond_sirt = sirt.eval_cirt(
                 xs_cond, 
-                zs_cond
+                zs_cond,
+                directions[direction]
             )
             t1 = time.time()
             
@@ -94,5 +91,6 @@ for poly in polys_dict:
             ]
             print(" | ".join(info))
 
-            # plt.scatter(torch.arange(10_000), torch.abs(torch.exp(-potential_ys_cond) - torch.exp(-fys_cond)))
-            # plt.show()
+            # plt.scatter(torch.arange(10_000), torch.abs(torch.exp(-neglogfys_cond_sirt) - torch.exp(-neglogfys_cond_true)))
+            plt.scatter(neglogfys_cond_sirt, neglogfys_cond_true)
+            plt.show()

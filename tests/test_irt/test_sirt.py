@@ -76,7 +76,10 @@ class TestSIRT(unittest.TestCase):
         ]
 
         tt_methods = ["fixed_rank", "random"]
-        directions = ["forward, backward"]
+        directions = {
+            "forward": dt.Direction.FORWARD, 
+            "backward": dt.Direction.BACKWARD
+        }
         dim = 20
 
         sirts = self.build_sirts(polys, tt_methods, dim)
@@ -91,15 +94,11 @@ class TestSIRT(unittest.TestCase):
 
                         if direction == "forward":
                             indices = torch.arange(8)
-                            if sirt.int_dir != dt.Direction.FORWARD:
-                                sirt.marginalise(dt.Direction.FORWARD) 
                         else:
                             indices = torch.arange(dim-1, 14, -1)
-                            if sirt.int_dir != dt.Direction.BACKWARD:
-                                sirt.marginalise(dt.Direction.BACKWARD)
                         
-                        xs = sirt.eval_irt(zs[:, indices])[0]
-                        z0 = sirt.eval_rt(xs)
+                        xs = sirt.eval_irt(zs[:, indices], directions[direction])[0]
+                        z0 = sirt.eval_rt(xs, directions[direction])
                         transform_error = norm(zs[:, indices]-z0, ord="fro")
                         self.assertTrue(transform_error < 1e-8)
         

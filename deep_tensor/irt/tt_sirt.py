@@ -90,10 +90,11 @@ class TTSIRT(AbstractIRT):
         )
 
         # Define coefficient tensors and marginalisation coefficents
-        self.Bs: dict[int, Tensor] = {}
-        self.Rs: dict[int, Tensor] = {}
+        self.Bs_f: dict[int, Tensor] = {}
+        self.Rs_f: dict[int, Tensor] = {}
+        self.Bs_b: dict[int, Tensor] = {}
+        self.Rs_b: dict[int, Tensor] = {}
         
-        self.int_dir = Direction.FORWARD
         self.tau = tau
 
         self.approx = TTFunc(
@@ -112,7 +113,8 @@ class TTSIRT(AbstractIRT):
         for k in range(self.dim):
             self.oned_cdfs[k] = construct_cdf(self.bases.polys[k], error_tol=tol)
 
-        self.marginalise(direction=self.int_dir)
+        self._marginalise_forward()
+        self._marginalise_backward()
         return
 
     @property 
@@ -131,15 +133,6 @@ class TTSIRT(AbstractIRT):
     @approx.setter 
     def approx(self, value: TTFunc) -> None:
         self._approx = value
-        return
-
-    @property
-    def int_dir(self) -> Direction:
-        return self._int_dir
-    
-    @int_dir.setter
-    def int_dir(self, value: Direction) -> None:
-        self._int_dir = value
         return
 
     @property 
@@ -175,17 +168,17 @@ class TTSIRT(AbstractIRT):
         dimensions of the approximation from last to first.
         """
 
-        self.Rs[self.dim] = torch.tensor([[1.0]])
+        self.Rs_f[self.dim] = torch.tensor([[1.0]])
         polys = self.bases.polys
         cores = self.approx.tt_data.cores
 
         for k in range(self.dim-1, -1, -1):
-            self.Bs[k] = torch.einsum("ijl, lk", cores[k], self.Rs[k+1])
-            C_k = torch.einsum("ilk, lj", self.Bs[k], polys[k].mass_R)
+            self.Bs_f[k] = torch.einsum("ijl, lk", cores[k], self.Rs_f[k+1])
+            C_k = torch.einsum("ilk, lj", self.Bs_f[k], polys[k].mass_R)
             C_k = TTFunc.unfold_right(C_k)
-            self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
+            self.Rs_f[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
-        self.z_func = self.Rs[0].square().sum()
+        self.z_func = self.Rs_f[0].square().sum()
         self.z = self.z_func + self.tau
         return 
     
@@ -195,50 +188,18 @@ class TTSIRT(AbstractIRT):
         dimensions of the approximation from first to last.
         """
         
-        self.Rs[-1] = torch.tensor([[1.0]])
+        self.Rs_b[-1] = torch.tensor([[1.0]])
         polys = self.bases.polys
         cores = self.approx.tt_data.cores
 
         for k in range(self.dim):
-            self.Bs[k] = torch.einsum("il, ljk", self.Rs[k-1], cores[k])
-            C_k = torch.einsum("jl, ilk", polys[k].mass_R, self.Bs[k])
+            self.Bs_b[k] = torch.einsum("il, ljk", self.Rs_b[k-1], cores[k])
+            C_k = torch.einsum("jl, ilk", polys[k].mass_R, self.Bs_b[k])
             C_k = TTFunc.unfold_left(C_k)
-            self.Rs[k] = torch.linalg.qr(C_k, mode="reduced")[1]
+            self.Rs_b[k] = torch.linalg.qr(C_k, mode="reduced")[1]
 
-        self.z_func = self.Rs[self.dim-1].square().sum()
+        self.z_func = self.Rs_b[self.dim-1].square().sum()
         self.z = self.z_func + self.tau
-        return
-
-    def marginalise(
-        self, 
-        direction: Direction = Direction.FORWARD
-    ) -> None:
-        r"""Computes the marginalisation coefficient tensors.
-        
-        Computes the coefficient tensors required to evaluate the 
-        marginal functions of a TTSIRT object.
-
-        Parameters
-        ----------
-        direction:
-            The direction in which to iterate over the tensor cores. 
-            If `direction=dt.Direction.FORWARD`, this will compute the 
-            coefficient tensors by iterating from the first dimension 
-            to the last, which allows for the marginal functions in the 
-            first $k$ variables (where $1 \leq k \leq d$) to be 
-            evaluated. 
-            If `direction=dt.Direction.BACKWARD`, this will compute the 
-            coefficient tensors by iterating from the last dimension to
-            the first, which allows for the marginal functions in the 
-            final $k$ variables to be evaluated.
-
-        """
-
-        self.int_dir = direction
-        if self.int_dir == Direction.FORWARD:
-            self._marginalise_forward()
-        else:
-            self._marginalise_backward()
         return
 
     def get_potential2density(self, ys: Tensor, zs: Tensor) -> Tensor:
@@ -249,27 +210,29 @@ class TTSIRT(AbstractIRT):
         potential_func: Callable[[Tensor], Tensor], 
         ls: Tensor
     ) -> Tensor:
+        
         xs = self.bases.local2approx(ls)[0]
         neglogfxs = potential_func(xs)
         neglogwxs = self.bases.eval_measure_potential(xs)[0]
+        
         # The ratio of f and w is invariant to changes of coordinate
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
         return gs
 
-    def eval_potential_local(self, ls: Tensor) -> Tensor:
+    def eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
 
         dim_l = ls.shape[1]
 
-        if self.int_dir == Direction.FORWARD:
+        if direction == Direction.FORWARD:
             indices = torch.arange(dim_l)
-            gs = self.approx.eval_local(ls, direction=self.int_dir)
-            gs_sq = (gs @ self.Rs[dim_l]).square().sum(dim=1)
+            gs = self.approx.eval_local(ls, direction=direction)
+            gs_sq = (gs @ self.Rs_f[dim_l]).square().sum(dim=1)
             
         else:
             i_min = self.dim - dim_l
             indices = torch.arange(self.dim-1, self.dim-dim_l-1, -1)
-            gs = self.approx.eval_local(ls, direction=self.int_dir)
-            gs_sq = (self.Rs[i_min-1] @ gs.T).square().sum(dim=0)
+            gs = self.approx.eval_local(ls, direction=direction)
+            gs_sq = (self.Rs_b[i_min-1] @ gs.T).square().sum(dim=0)
             
         # TODO: check that indices go backwards. This could be an issue 
         # if different bases are used in each dimension.
@@ -285,7 +248,7 @@ class TTSIRT(AbstractIRT):
 
         polys = self.bases.polys
         cores = self.approx.tt_data.cores
-        Bs = self.Bs 
+        Bs = self.Bs_f 
         cdfs = self.oned_cdfs
             
         for k in range(d_ls):
@@ -313,7 +276,7 @@ class TTSIRT(AbstractIRT):
 
         polys = self.bases.polys
         cores = self.approx.tt_data.cores
-        Bs = self.Bs 
+        Bs = self.Bs_b 
         cdfs = self.oned_cdfs
 
         for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
@@ -332,8 +295,8 @@ class TTSIRT(AbstractIRT):
 
         return zs
 
-    def eval_rt_local(self, ls: Tensor) -> Tensor:
-        if self.int_dir == Direction.FORWARD:
+    def eval_rt_local(self, ls: Tensor, direction: Direction) -> Tensor:
+        if direction == Direction.FORWARD:
             zs = self._eval_rt_local_forward(ls)
         else:
             zs = self._eval_rt_local_backward(ls)
@@ -366,7 +329,7 @@ class TTSIRT(AbstractIRT):
 
         polys = self.bases.polys
         cores = self.approx.tt_data.cores
-        Bs = self.Bs 
+        Bs = self.Bs_f
         cdfs = self.oned_cdfs
 
         for k in range(d_zs):
@@ -379,7 +342,7 @@ class TTSIRT(AbstractIRT):
             Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
         
-        gs_sq = (gs @ self.Rs[d_zs]).square().sum(dim=1)
+        gs_sq = (gs @ self.Rs_f[d_zs]).square().sum(dim=1)
         return ls, gs_sq
     
     def _eval_irt_local_backward(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
@@ -410,7 +373,7 @@ class TTSIRT(AbstractIRT):
 
         polys = self.bases.polys
         cores = self.approx.tt_data.cores
-        Bs = self.Bs 
+        Bs = self.Bs_b
         cdfs = self.oned_cdfs
         
         for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
@@ -423,17 +386,21 @@ class TTSIRT(AbstractIRT):
             Gs = TTFunc.eval_core_231(polys[k], cores[k], ls[:, -i])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
-        gs_sq = (self.Rs[d_min-1] @ gs.T).square().sum(dim=0)
+        gs_sq = (self.Rs_b[d_min-1] @ gs.T).square().sum(dim=0)
         return ls, gs_sq
 
-    def eval_irt_local(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
+    def eval_irt_local(
+        self, 
+        zs: Tensor,
+        direction: Direction
+    ) -> Tuple[Tensor, Tensor]:
 
-        if self.int_dir == Direction.FORWARD:
+        if direction == Direction.FORWARD:
             ls, gs_sq = self._eval_irt_local_forward(zs)
         else:
             ls, gs_sq = self._eval_irt_local_backward(zs)
         
-        indices = self.get_transform_indices(zs.shape[1])
+        indices = self.get_transform_indices(zs.shape[1], direction)
         
         neglogpls = -(gs_sq + self.tau).log()
         neglogwls = self.bases.eval_measure_potential_local(ls, indices)
@@ -446,7 +413,7 @@ class TTSIRT(AbstractIRT):
         polys = self.bases.polys
         cores = self.approx.tt_data.cores
 
-        zs = self.eval_rt_local(ls)
+        zs = self._eval_rt_local_forward(ls)
         ls, gs_sq = self._eval_irt_local_forward(zs)
         n_ls = ls.shape[0]
         ps = gs_sq + self.tau
@@ -499,7 +466,7 @@ class TTSIRT(AbstractIRT):
 
         polys = self.bases.polys
         cores = self.approx.tt_data.cores
-        Bs = self.Bs
+        Bs = self.Bs_f
         cdfs = self.oned_cdfs
         
         Gs_prod = torch.ones((n_xs, 1, 1))
@@ -547,7 +514,7 @@ class TTSIRT(AbstractIRT):
 
         polys = self.bases.polys
         cores = self.approx.tt_data.cores
-        Bs = self.Bs
+        Bs = self.Bs_b
         cdfs = self.oned_cdfs
 
         Gs_prod = torch.ones((n_zs, 1, 1))
@@ -585,10 +552,11 @@ class TTSIRT(AbstractIRT):
     def eval_cirt_local(
         self, 
         ls_x: Tensor, 
-        zs: Tensor
+        zs: Tensor,
+        direction: Direction
     ) -> Tuple[Tensor, Tensor]:
 
-        if self.int_dir == Direction.FORWARD:
+        if direction == Direction.FORWARD:
             ls_y, neglogfls_y = self._eval_cirt_local_forward(ls_x, zs)
         else:
             ls_y, neglogfls_y = self._eval_cirt_local_backward(ls_x, zs)
@@ -599,7 +567,7 @@ class TTSIRT(AbstractIRT):
 
         polys = self.bases.polys
         cores = self.approx.tt_data.cores
-        Bs = self.Bs
+        Bs = self.Bs_f
         cdfs = self.oned_cdfs
 
         Gs: dict[int, Tensor] = {}
@@ -696,7 +664,7 @@ class TTSIRT(AbstractIRT):
 
         polys = self.bases.polys
         cores = self.approx.tt_data.cores
-        Bs = self.Bs
+        Bs = self.Bs_b
         cdfs = self.oned_cdfs
 
         Gs: dict[int, Tensor] = {}
@@ -789,9 +757,9 @@ class TTSIRT(AbstractIRT):
             
         return Jacs
 
-    def eval_rt_jac_local(self, ls: Tensor) -> Tensor:
+    def eval_rt_jac_local(self, ls: Tensor, direction: Direction) -> Tensor:
 
-        if self.int_dir == Direction.FORWARD:
+        if direction == Direction.FORWARD:
             J = self._eval_rt_jac_local_forward(ls)
         else:
             J = self._eval_rt_jac_local_backward(ls)

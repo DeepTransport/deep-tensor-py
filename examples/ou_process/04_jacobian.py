@@ -13,7 +13,8 @@ from examples.ou_process.setup_ou import *
 
 def compute_finite_difference_jac(
     sirt: dt.TTSIRT,
-    xs: torch.Tensor,
+    xs: Tensor,
+    direction: dt.Direction,
     dx: float = 1e-6
 ) -> torch.Tensor:
     """Computes a finite difference approximation to the Jacobian."""
@@ -25,8 +26,8 @@ def compute_finite_difference_jac(
     xs_0 = xs_tiled - dxs 
     xs_1 = xs_tiled + dxs
 
-    zs_0 = sirt.eval_rt(xs_0).T
-    zs_1 = sirt.eval_rt(xs_1).T
+    zs_0 = sirt.eval_rt(xs_0, direction).T
+    zs_1 = sirt.eval_rt(xs_1, direction).T
 
     J = (zs_1 - zs_0) / (2 * dx)
     return J
@@ -59,21 +60,16 @@ for poly in polys_dict:
         for direction in directions:
 
             sirt: dt.TTSIRT = sirts[poly]["random"]
-            # sirt.tau = 5e-2
 
-            if sirt.int_dir != directions[direction]: 
-                sirt.marginalise(directions[direction])
-
-            # z0 = sirt.eval_rt(xs)
             xs = sirt.eval_irt(zs)[0]
 
             t0 = time.time()
-            Js = sirt.eval_rt_jac(xs, method=method)
+            Js = sirt.eval_rt_jac(xs, method, directions[direction])
             Js = Js.reshape(dim, dim * n_zs)
             t1 = time.time()
 
             # Js_fd = sirt.eval_rt_jac(xs, method="autodiff").reshape(dim, dim*n_zs)
-            Js_fd = compute_finite_difference_jac(sirt, xs)
+            Js_fd = compute_finite_difference_jac(sirt, xs, directions[direction])
 
             plt.figure(figsize=(6, 6))
             plt.scatter(Js.flatten(), Js_fd.flatten(), s=4)

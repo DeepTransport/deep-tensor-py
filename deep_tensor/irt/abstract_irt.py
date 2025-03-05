@@ -95,37 +95,6 @@ class AbstractIRT(abc.ABC):
         """
         return
 
-    @property
-    @abc.abstractmethod
-    def int_dir(self) -> Direction:
-        """The direction in which to integrate over the approximation.
-        """
-        return
-
-    @abc.abstractmethod 
-    def marginalise(self, direction: Direction = Direction.FORWARD) -> None:
-        r"""Computes the marginalisation coefficient tensors.
-        
-        Computes the coefficient tensors required to evaluate the 
-        marginal functions of a TTSIRT object.
-
-        Parameters
-        ----------
-        direction:
-            The direction in which to iterate over the tensor cores. 
-            If `direction=dt.Direction.FORWARD`, this will compute the 
-            coefficient tensors by iterating from the first dimension 
-            to the last, which allows for the marginal functions in the 
-            first $k$ variables (where $1 \leq k \leq d$) to be 
-            evaluated. 
-            If `direction=dt.Direction.BACKWARD`, this will compute the 
-            coefficient tensors by iterating from the last dimension to
-            the first, which allows for the marginal functions in the 
-            final $k$ variables to be evaluated.
-
-        """
-        return
-
     @abc.abstractmethod
     def potential2density(
         self, 
@@ -161,7 +130,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod 
-    def eval_potential_local(self, ls: Tensor) -> Tensor:
+    def eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
         """Evaluates the normalised (marginal) PDF represented by the 
         squared FTT.
         
@@ -182,7 +151,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_rt_local(self, ls: Tensor) -> Tensor:
+    def eval_rt_local(self, ls: Tensor, direction: Direction) -> Tensor:
         """Evaluates the Rosenblatt transport Z = R(L), where L is the 
         target random variable mapped into the local domain, and Z is 
         uniform.
@@ -202,11 +171,15 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_irt_local(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
+    def eval_irt_local(
+        self, 
+        zs: Tensor, 
+        direction: Direction
+    ) -> Tuple[Tensor, Tensor]:
         """Converts a set of realisations of a standard uniform 
         random variable, Z, to the corresponding realisations of the 
-        local (i.e., defined on [-1, 1]) target random variable, by 
-        applying the inverse Rosenblatt transport.
+        local target random variable, by applying the inverse 
+        Rosenblatt transport.
         
         Parameters
         ----------
@@ -227,7 +200,12 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod 
-    def eval_cirt_local(self, ls_x: Tensor, zs: Tensor) -> Tensor:
+    def eval_cirt_local(
+        self, 
+        ls_x: Tensor, 
+        zs: Tensor,
+        direction: Direction
+    ) -> Tensor:
         """Evaluates the inverse of the conditional squared Rosenblatt 
         transport.
         
@@ -255,7 +233,11 @@ class AbstractIRT(abc.ABC):
         return
     
     @abc.abstractmethod
-    def eval_potential_grad_local(self, ls: Tensor) -> Tensor:
+    def eval_potential_grad_local(
+        self, 
+        ls: Tensor, 
+        direction: Direction
+    ) -> Tensor:
         """Evaluates the gradient of the potential function.
         
         Parameters
@@ -273,7 +255,7 @@ class AbstractIRT(abc.ABC):
         return
 
     @abc.abstractmethod 
-    def eval_rt_jac_local(self, zs: Tensor) -> Tensor:
+    def eval_rt_jac_local(self, zs: Tensor, direction: Direction) -> Tensor:
         """Evaluates the Jacobian of the Rosenblatt transport.
         
         Parameters
@@ -306,18 +288,19 @@ class AbstractIRT(abc.ABC):
         self._z = self.z_func + tau
         return
 
-    def get_transform_indices(self, dim_z: int) -> Tensor:
+    def get_transform_indices(self, dim_z: int, direction: Direction) -> Tensor:
         """TODO: write docstring."""
 
-        if self.int_dir == Direction.FORWARD:
+        if direction == Direction.FORWARD:
             return torch.arange(dim_z)
-        elif self.int_dir == Direction.BACKWARD:
+        elif direction == Direction.BACKWARD:
             return torch.arange(self.dim-dim_z, self.dim)
-        
-        msg = "'int_dir' must be specified."
-        raise Exception(msg)
 
-    def eval_potential(self, xs: Tensor) -> Tensor:
+    def eval_potential(
+        self, 
+        xs: Tensor, 
+        direction: Direction = Direction.FORWARD
+    ) -> Tensor:
         r"""Evaluates the potential function.
 
         Returns the joint potential function, or the marginal potential 
@@ -353,13 +336,17 @@ class AbstractIRT(abc.ABC):
         the tensors from the last dimension to the first dimension.
 
         """
-        indices = self.get_transform_indices(xs.shape[1])
+        indices = self.get_transform_indices(xs.shape[1], direction)
         ls, dldxs = self.bases.approx2local(xs, indices)
-        neglogfls = self.eval_potential_local(ls)
+        neglogfls = self.eval_potential_local(ls, direction)
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
 
-    def eval_pdf(self, xs: Tensor) -> Tensor: 
+    def eval_pdf(
+        self, 
+        xs: Tensor,
+        direction: Direction = Direction.FORWARD
+    ) -> Tensor: 
         r"""Evaluates the normalised density.
 
         Returns the joint density function, or the marginal density 
@@ -396,11 +383,15 @@ class AbstractIRT(abc.ABC):
         the tensors from the last dimension to the first dimension.
         
         """
-        neglogfxs = self.eval_potential(xs)
+        neglogfxs = self.eval_potential(xs, direction)
         fxs = torch.exp(-neglogfxs)
         return fxs
     
-    def eval_rt(self, xs: Tensor) -> Tensor:
+    def eval_rt(
+        self, 
+        xs: Tensor,
+        direction: Direction = Direction.FORWARD
+    ) -> Tensor:
         r"""Evaluates the Rosenblatt transport.
 
         Returns the joint Rosenblatt transport, or the marginal 
@@ -437,13 +428,16 @@ class AbstractIRT(abc.ABC):
         the tensors from the last dimension to the first dimension.
 
         """
-        d_xs = xs.shape[1]
-        indices = self.get_transform_indices(d_xs)
+        indices = self.get_transform_indices(xs.shape[1], direction)
         ls = self.approx.bases.approx2local(xs, indices)[0]
-        zs = self.eval_rt_local(ls)
+        zs = self.eval_rt_local(ls, direction)
         return zs
     
-    def eval_irt(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
+    def eval_irt(
+        self, 
+        zs: Tensor,
+        direction: Direction = Direction.FORWARD
+    ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the inverse Rosenblatt transport.
         
         Returns the joint inverse Rosenblatt transport, or the marginal 
@@ -483,13 +477,18 @@ class AbstractIRT(abc.ABC):
         
         """
         zs = torch.clamp(zs, Z_MIN, Z_MAX)
-        indices = self.get_transform_indices(zs.shape[1])
-        ls, neglogfls = self.eval_irt_local(zs)
+        indices = self.get_transform_indices(zs.shape[1], direction)
+        ls, neglogfls = self.eval_irt_local(zs, direction)
         xs, dxdls = self.bases.local2approx(ls, indices)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs
     
-    def eval_cirt(self, xs: Tensor, zs: Tensor ) -> Tuple[Tensor, Tensor]:
+    def eval_cirt(
+        self, 
+        xs: Tensor, 
+        zs: Tensor, 
+        direction: Direction = Direction.FORWARD
+    ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the conditional inverse Rosenblatt transport.
 
         Returns the conditional inverse Rosenblatt transport evaluated
@@ -510,6 +509,8 @@ class AbstractIRT(abc.ABC):
         zs:
             An $n \times (d-k)$ matrix containing samples from the unit 
             hypercube of dimension $d-k$.
+        direction:
+            TODO...
         
         Returns
         -------
@@ -542,32 +543,41 @@ class AbstractIRT(abc.ABC):
                 raise Exception(msg)
             xs = xs.repeat(n_zs, 1)
 
-        if self.int_dir == Direction.FORWARD:
+        if direction == Direction.FORWARD:
             inds_x = torch.arange(d_xs)
             inds_z = torch.arange(d_xs, self.dim)
-        elif self.int_dir == Direction.BACKWARD:
+        elif direction == Direction.BACKWARD:
             inds_x = torch.arange(d_zs, self.dim)
             inds_z = torch.arange(d_zs)
         
         ls_x = self.bases.approx2local(xs, inds_x)[0]
-        ls_y, neglogfys = self.eval_cirt_local(ls_x, zs)
+        ls_y, neglogfys = self.eval_cirt_local(ls_x, zs, direction)
         ys, dydlys = self.bases.local2approx(ls_y, inds_z)
         neglogfys += dydlys.log().sum(dim=1)
 
         return ys, neglogfys
     
-    def eval_potential_grad_autodiff(self, xs: Tensor) -> Tensor:
+    def eval_potential_grad_autodiff(
+        self, 
+        xs: Tensor, 
+        direction: Direction
+    ) -> Tensor:
         
         n_xs = xs.shape[0]
 
         def _eval_potential(xs: Tensor) -> Tensor:
             xs = xs.reshape(n_xs, self.dim)
-            return self.eval_potential(xs).sum(dim=0)
+            return self.eval_potential(xs, direction).sum(dim=0)
         
         derivs = jacobian(_eval_potential, xs.flatten(), vectorize=True)
         return derivs.reshape(n_xs, self.dim)
 
-    def eval_potential_grad(self, xs: Tensor, method: str = "autodiff") -> Tensor:
+    def eval_potential_grad(
+        self, 
+        xs: Tensor, 
+        method: str = "autodiff",
+        direction: Direction = Direction.FORWARD
+    ) -> Tensor:
         r"""Evaluates the gradient of the potential function.
         
         Parameters
@@ -595,7 +605,7 @@ class AbstractIRT(abc.ABC):
 
         if method == "autodiff":
             TTFunc._check_sample_dim(xs, self.dim)
-            grad = self.eval_potential_grad_autodiff(xs)
+            grad = self.eval_potential_grad_autodiff(xs, direction)
             return grad
         
         TTFunc._check_sample_dim(xs, self.dim, strict=True)
@@ -604,18 +614,23 @@ class AbstractIRT(abc.ABC):
         grad *= dldxs
         return grad
 
-    def eval_rt_jac_autodiff(self, xs: Tensor) -> Tensor:
+    def eval_rt_jac_autodiff(self, xs: Tensor, direction: Direction) -> Tensor:
 
         n_xs = xs.shape[0]
 
         def _eval_rt(xs: Tensor) -> Tensor:
             xs = xs.reshape(n_xs, self.dim)
-            return self.eval_rt(xs).sum(dim=0)
+            return self.eval_rt(xs, direction).sum(dim=0)
         
         Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
         return Js.reshape(self.dim, n_xs, self.dim)
 
-    def eval_rt_jac(self, xs: Tensor, method: str = "autodiff") -> Tensor:
+    def eval_rt_jac(
+        self, 
+        xs: Tensor, 
+        method: str = "autodiff",
+        direction: Direction = Direction.FORWARD
+    ) -> Tensor:
         r"""Evaluates the Jacobian of the Rosenblatt transport.
 
         Evaluates the Jacobian of the mapping $Z = R(X)$, where $Z$ is 
@@ -651,12 +666,12 @@ class AbstractIRT(abc.ABC):
 
         if method == "autodiff":
             TTFunc._check_sample_dim(xs, self.dim)
-            Jacs = self.eval_rt_jac_autodiff(xs)
+            Jacs = self.eval_rt_jac_autodiff(xs, direction)
             return Jacs
         
         TTFunc._check_sample_dim(xs, self.dim, strict=True)
         ls, dldxs = self.bases.approx2local(xs)
-        Jacs = self.eval_rt_jac_local(ls)
+        Jacs = self.eval_rt_jac_local(ls, direction)
         for k in range(self.dim):
             Jacs[:, :, k] *= dldxs[:, k]
         return Jacs
