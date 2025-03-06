@@ -38,21 +38,6 @@ class TTSIRT(AbstractIRT):
         The defensive parameter, $\tau$, which ensures that the tails
         of the approximation are sufficiently heavy.
 
-    Notes
-    -----
-    This class aims to approximate a $d$-dimensional target density 
-    function, $f(x)$. 
-
-    $$f(x) \approx (g(x)^{2} + \tau)\lambda(x),$$
-
-    where $\lambda(x) := \lambda_{1}(x_{1}) \cdots \lambda_{d}(x_{d})$ 
-    is the product-form weighting function associated with the 
-    polynomial basis.
-
-    To construct a SIRT for $f(x)$, we construct the functional tensor 
-    train approximation
-    $$\hat{g}(x) \approx \sqrt{\frac{\pi(x)}{\lambda(x)}}$$
-
     References
     ----------
     Cui, T and Dolgov, S (2022). *[Deep composition of Tensor-Trains 

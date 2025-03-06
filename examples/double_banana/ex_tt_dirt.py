@@ -19,11 +19,6 @@ polys = {
     "fourier": dt.Fourier(order=30)
 }
 
-references = {
-    "gaussian": dt.GaussianReference(),
-    "uniform": dt.UniformReference()
-}
-
 sigma = 0.3
 data = torch.tensor([3.0, 5.0])
 model = DoubleBanana(sigma, data)
@@ -32,12 +27,19 @@ dim = 2
 bounds = torch.tensor([-4.0, 4.0])
 domain = dt.BoundedDomain(bounds)
 
+references = {
+    "gaussian": dt.GaussianReference(domain=domain),
+    "uniform": dt.UniformReference(domain=domain)
+}
+
 # Build grid for plotting
 n = 100
 xs_grid = torch.linspace(-4.0, 4.0, n)
 ys_grid = torch.linspace(-4.0, 4.0, n)
 grid = torch.tensor([[x, y] for x in xs_grid for y in ys_grid])
 dx = 8.0 / n
+
+# betas = torch.tensor([1e-4, 1e-3, 1e-2, 1e-1, 1.0])
 
 for poly in polys:
     for ref in references:

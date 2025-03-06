@@ -21,7 +21,7 @@ class InputData():
         function.
     fxs_debug:
         A vector containing the target function evaluated at each 
-        sample in xs_debug.
+        sample in `xs_debug`.
 
     """
 

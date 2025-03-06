@@ -3,6 +3,7 @@ from typing import Tuple
 
 from torch import Tensor
 
+from ..constants import EPS
 from ..domains import Domain
 
 
@@ -146,4 +147,14 @@ class Reference(abc.ABC):
             An n * d matrix containing the generated samples.
         
         """
+        return
+    
+    def _check_samples_in_domain(self, rs: Tensor):
+        """Raises an error if any of a set of samples are outside the
+        domain of the reference.
+        """
+        outside = (rs < self.domain.left-EPS) & (self.domain.right+EPS < rs)
+        if (n_outside := outside.sum()) > 0:
+            msg = f"{n_outside} points lie outside domain of reference."
+            raise Exception(msg)
         return

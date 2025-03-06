@@ -9,16 +9,16 @@ import matplotlib.pyplot as plt
 # Take logs of Robin coefficient when looking at the ISMIP stuff
 
 # Define domain parameters
-length = 10000.0
-height = 1000.0                         # Height of domain
+length = 10_000.0
+height = 1_000.0                        # Height of domain
 angle = 0.1 * torch.pi / 180.0          # Slope (radians)
 
 grav = 9.81                             # Gravity
 rho = 910.0                             # Ice density
-sConst = Constant(1.e-8)
+sConst = Constant(1.0e-08)
 scale_const = Constant(1.0e-10)
 N = 3.0                                 # Rheology parameter?
-Aconst = Constant(2.140373 * 1.0e7)     # Ice flow parameter
+Aconst = Constant(2.140373 * 1.0e+07)   # Ice flow parameter
 
 
 class PeriodicBoundary(SubDomain):
@@ -56,7 +56,7 @@ P1 = FiniteElement(family="Lagrange", cell=mesh.ufl_cell(), degree=1)
 TH = P2 * P1
 
 VQ = FunctionSpace(mesh, TH, constrained_domain=sides)   # periodic product space for velocity and pressure
-VP = FunctionSpace(mesh, 'Lagrange', 1)
+VP = FunctionSpace(mesh, "Lagrange", 1)
 Vh = [VQ, VP, VQ]
 
 # 3 Boundary Conditions and Forcing Term

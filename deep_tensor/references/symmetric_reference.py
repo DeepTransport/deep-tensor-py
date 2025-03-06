@@ -166,6 +166,7 @@ class SymmetricReference(Reference, abc.ABC):
         return us
 
     def eval_cdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+        self._check_samples_in_domain(rs)
         us = self.map_to_unit(rs)
         zs, dzdus = self.eval_unit_cdf(us)
         zs = (zs - self.left) / self.norm
@@ -173,6 +174,7 @@ class SymmetricReference(Reference, abc.ABC):
         return zs, dzdrs
     
     def eval_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+        self._check_samples_in_domain(rs)
         us = self.map_to_unit(rs)
         ps, grad_ps = self.eval_unit_pdf(us)
         ps /= (self.sigma * self.norm)
@@ -186,11 +188,12 @@ class SymmetricReference(Reference, abc.ABC):
         rs = self.mu + self.sigma * us
         return rs
         
-    def log_joint_pdf(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
-        d_xs = xs.shape[1]
-        us = self.map_to_unit(xs)
+    def log_joint_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+        self._check_samples_in_domain(rs)
+        d_rs = rs.shape[1]
+        us = self.map_to_unit(rs)
         log_ps, log_grad_ps = self.log_joint_unit_pdf(us)
-        log_ps -= d_xs * (self.sigma * self.norm).log()
+        log_ps -= d_rs * (self.sigma * self.norm).log()
         log_grad_ps /= self.sigma
         return log_ps, log_grad_ps
     

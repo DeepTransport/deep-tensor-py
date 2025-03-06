@@ -37,16 +37,19 @@ class UniformReference(Reference):
         return rs
     
     def eval_cdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+        self._check_samples_in_domain(rs)
         zs = self.pdf * (rs - self.domain.left)
         dzdrs = self.pdf * torch.ones_like(rs)
         return zs, dzdrs 
     
     def eval_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+        self._check_samples_in_domain(rs)
         pdfs = self.pdf * torch.ones_like(rs)
         grad_pdfs = torch.zeros_like(rs)
         return pdfs, grad_pdfs
     
     def log_joint_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+        self._check_samples_in_domain(rs)
         n_rs, d_rs = rs.shape
         log_pdfs = torch.full((n_rs,), self.pdf.log() * d_rs)
         log_grad_pdfs = torch.zeros(n_rs)

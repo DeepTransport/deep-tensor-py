@@ -333,7 +333,9 @@ class TTDIRT():
             bases_i = bases_list[min(self.n_layers, 1)] 
             input_data = self._get_inputdata(bases_i, xs, neglogratios)
 
-            if self.n_layers == 0:
+            # First layer may have different domain to second. 
+            # In this case it won't be very useful.
+            if self.n_layers <= 1:
                 approx = None 
                 tt_data = None
             else:
