@@ -10,7 +10,6 @@ text.latex.preamble: \usepackage{bm, mathpazo}
 axes.titlesize: 14
 axes.labelsize: 14
 axes.linewidth: 1.2
-axes.autolimit_mode: round_numbers
 
 xtick.major.size: 4.0
 xtick.minor.size: 4.0
