@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 
 import time
 
+import torch 
+from torch import Tensor
+
 plt.style.use("examples/plotstyle.mplstyle")
 # np.random.seed(1)
 
@@ -50,9 +53,9 @@ class IceSheetModel():
     def __init__(
         self, 
         length: float = 10_000, 
-        height: float = 3_000, 
-        nx: int = 150, 
-        ny: int = 45
+        height: float = 1_000, 
+        nx: int = 50, 
+        ny: int = 5
     ):
 
         self.nx = nx 
@@ -257,7 +260,7 @@ class IceSheetModel():
                         print("Max backtracking iterations completed.")
                     break
             else:
-                vq.vector().axpy(-alpha,dvq.vector())
+                vq.vector().axpy(-alpha, dvq.vector())
                 u, p = vq.split()
                 J = Energy(u)
                 Jn = assemble(J)
@@ -267,94 +270,157 @@ class IceSheetModel():
             H = Hessian(u, v, w, p, q, r)
 
         u, p = vq.split(deepcopy=True)
-        ufile_pvd = File("nonlinear_velocity.pvd")
-        ufile_pvd << u
+        # ufile_pvd = File("nonlinear_velocity.pvd")
+        # ufile_pvd << u
 
-        return beta, u, p
+        return u, p
 
-model = IceSheetModel()
+    def plot_velocities(self, u, fname="velocities"):
 
-# beta_code = "std::log(1001.0 + 1000.0 * sin(x[0] * 2.0 * pi / length))"
-# beta = Expression(
-#     cpp_code=beta_code,
-#     element=model.VP.ufl_element(), 
-#     length=model.length
-# )
+        u_vals = u.compute_vertex_values(self.mesh).reshape(2, -1).T
+        coords = self.mesh.coordinates()
+        coords = np.array(coords)
 
-class BetaRF(UserExpression):
+        x_vals = np.linspace(0, self.length, self.nx+1)
+        y_vals = np.linspace(0, self.height, self.ny+1)
+
+        ux_vals = u_vals[:, 0].reshape(self.ny+1, self.nx+1)
+        uy_vals = u_vals[:, 1].reshape(self.ny+1, self.nx+1)
+
+        fig, axes = plt.subplots(2, 1, figsize=(10, 2.8), sharex=True)
+
+        axes[0].set_aspect("equal", adjustable="box")
+        axes[1].set_aspect("equal", adjustable="box")
+
+        u0_mesh = axes[0].pcolormesh(x_vals, y_vals, ux_vals)
+        u1_mesh = axes[1].pcolormesh(x_vals, y_vals, uy_vals)
+
+        fig.colorbar(u0_mesh, ax=axes[0], label=r"$u_{1}$ [m\,a$^{-1}$]")
+        fig.colorbar(u1_mesh, ax=axes[1], label=r"$u_{2}$ [m\,a$^{-1}$]")
+
+        axes[1].set_xlabel(r"$x_{1}$ [m]")
+        axes[0].set_ylabel(r"$x_{2}$ [m]")
+        axes[1].set_ylabel(r"$x_{2}$ [m]")
+
+        plt.savefig(f"examples/ice_sheet/{fname}.pdf")
+        return
     
-    def __init__(self, field: np.ndarray, **kwargs):
+    def plot_beta(self, beta, fname="beta"):
+
+        beta_vals = beta.compute_vertex_values(model.mesh)
+        coords = model.mesh.coordinates()
+        coords = np.array(coords)
+
+        x_vals = np.linspace(0, model.length, model.nx+1)
+        beta_vals = beta_vals.reshape(model.ny+1, model.nx+1)[0]
+
+        fig, ax = plt.subplots(figsize=(6, 4))
+
+        ax.plot(x_vals, beta_vals)
+        ax.set_xlabel(r"$x_{1}$ [m]")
+        ax.set_ylabel(r"$\beta$")
+
+        plt.savefig(f"examples/ice_sheet/{fname}.pdf")
+        return
+
+
+class BetaFunc(UserExpression):
+    
+    def __init__(
+        self, 
+        mean: Tensor,
+        field: np.ndarray, 
+        nx: int, 
+        length: float, 
+        **kwargs
+    ):
         super().__init__(**kwargs)
+        self.mean = mean
         self.field = field
+        self.nx = nx
+        self.length = length
         return
     
     def eval(self, value, x):
-        i = (model.nx * x[0]) // model.length
-        value[:] = 5.0 + self.field[int(i)]
+        i = (self.nx * x[0]) // self.length
+        value[:] = self.mean + self.field[int(i)]
         return
     
     def value_shape(self):
         return ()
 
-xs = np.linspace(0.0, model.length, model.nx+1)
-dxs = np.array([[np.linalg.norm(x0-x1) for x0 in xs] for x1 in xs])
-cov = 2.0 ** 2 * np.exp(-0.5 * dxs ** 2 / 100.0**2)
 
-n_modes = 8
+class BetaPrior():
+    """A prior on the basal sliding coefficient."""
+    
+    def __init__(
+        self, 
+        mean: float|Tensor, 
+        cov: Tensor,
+        n_modes: int = 8
+    ):
+        
+        self.mean = mean
+        self.n_modes = n_modes
 
-eigvals, eigvecs = np.linalg.eigh(cov)
-idx = eigvals.argsort()[::-1][:n_modes]
-eigvals = eigvals[idx]
-eigvecs = eigvecs[:, idx]
-eigvecs = eigvecs * np.sqrt(eigvals)
+        eigvals, eigvecs = torch.linalg.eigh(cov)
+        idx = eigvals.argsort(descending=True)[:self.n_modes]
+        
+        self.eigvals = eigvals[idx]
+        self.eigvecs = eigvecs[:, idx] * self.eigvals.sqrt()
+        
+        return
+    
+    def get_beta(self, xi: Tensor):  # TODO: add model in here.
+        """Converts a set of KL coefficients to the correponding 
+        basal sliding coefficient.
+        """
 
-xis = np.random.normal(size=(n_modes, ))
+        field = self.eigvecs @ xi
 
-field = eigvecs @ xis
+        rf = BetaFunc(self.mean, field, model.nx, model.length, degree=1)
+        beta = Function(model.VP)
+        beta.assign(interpolate(rf, beta.function_space()))
+        
+        return beta
 
-rf = BetaRF(field, degree=1)
-beta = Function(model.VP)
-beta.assign(interpolate(rf, beta.function_space()))
+
+model = IceSheetModel()
+
+mean = 5.0
+xs = torch.linspace(0.0, model.length, model.nx+1)
+dxs = torch.tensor([[torch.linalg.norm(x0-x1) for x0 in xs] for x1 in xs])
+cov = 2.0 ** 2 * torch.exp(-0.5 * dxs ** 2 / 100.0**2)
+
+prior = BetaPrior(mean, cov)
+
+xis = torch.normal(mean=0.0, std=1.0, size=(prior.n_modes,))
+
+beta = prior.get_beta(xis)
 
 t0 = time.time()
-beta, u, p = model.solve(beta)
+u, p = model.solve(beta)
 t1 = time.time()
 
-print(t1-t0)
+model.plot_velocities(u)
+model.plot_beta(beta)
 
-# u_vec = u.vector().get_local()
-# print(u_vec)
+# Generate some synthetic data
+y = -1 # TODO
 
-beta_vals = beta.compute_vertex_values(model.mesh)
-u_vals = u.compute_vertex_values(model.mesh).reshape(2, -1).T
-coords = model.mesh.coordinates()
-coords = np.array(coords)
+sigma_y = 0.5
 
-x_vals = np.linspace(0, model.length, model.nx+1)
-y_vals = np.linspace(0, model.height, model.ny+1)
+def potential_func(xs: Tensor):
 
-u_vals_x = u_vals[:, 0].reshape(model.ny+1, model.nx+1)
-u_vals_y = u_vals[:, 1].reshape(model.ny+1, model.nx+1)
-beta_vals = beta_vals.reshape(model.ny+1, model.nx+1)[0]
+    n_xs = xs.shape[0]
 
-fig, axes = plt.subplots(3, 1, figsize=(7, 6))#, sharex=True)
+    potential_pri = xs.square().sum(dim=1)
+    potential_lik = torch.zeros(n_xs)
 
-axes[0].set_aspect("equal", adjustable="box")
-axes[1].set_aspect("equal", adjustable="box")
+    for i in range(n_xs):
+        x_i = np.array(xs[i])
+        fx_i = model.solve(x_i)
+        fx_i = torch.tensor(fx_i)  # TODO: extract some observations out of this.
+        potential_lik[i] = ((fx_i - y) / sigma_y).square().sum()
 
-u0_mesh = axes[0].pcolormesh(x_vals, y_vals, u_vals_x)
-u1_mesh = axes[1].pcolormesh(x_vals, y_vals, u_vals_y)
-axes[2].plot(x_vals, beta_vals)
-
-# fig.colorbar(u0_mesh, ax=axes[0])
-# fig.colorbar(u1_mesh, ax=axes[1])
-
-axes[0].set_title(r"$u_{1}$")
-axes[1].set_title(r"$u_{2}$")
-
-axes[2].set_xlabel(r"$x_{1}$ [m]")
-axes[0].set_ylabel(r"$x_{2}$ [m]")
-axes[1].set_ylabel(r"$x_{2}$ [m]")
-axes[2].set_ylabel(r"$\beta$")
-
-plt.savefig("examples/ice_sheet/coef_and_velocities.pdf")
+    return potential_pri + potential_lik
