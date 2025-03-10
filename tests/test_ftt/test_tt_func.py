@@ -97,8 +97,8 @@ class TestSIRT(unittest.TestCase):
         ls_marg = torch.tensor([[-0.5, -0.5, -0.5],
                                 [-0.5,  0.0,  0.5]])
         
-        ps_forward = tt_func.eval_local(ls_marg, dt.Direction.FORWARD)
-        ps_backward = tt_func.eval_local(ls_marg, dt.Direction.BACKWARD)
+        ps_forward = tt_func._eval_local(ls_marg, dt.Direction.FORWARD)
+        ps_backward = tt_func._eval_local(ls_marg, dt.Direction.BACKWARD)
 
         ps_true = torch.tensor([[33.1250], [24.5]])
 
@@ -133,7 +133,7 @@ class TestSIRT(unittest.TestCase):
                                  [0.5],
                                  [1.0]])
 
-        F_k = tt_func.build_block_local(ls_left, ls_right, 1)
+        F_k = tt_func._build_block_local(ls_left, ls_right, 1)
 
         F_k_true = torch.tensor([[[-0.5,  0.0,  0.5],
                                   [ 0.5,  1.0,  1.5],
@@ -163,8 +163,8 @@ class TestSIRT(unittest.TestCase):
         xs_0 = xs_tiled - dxs 
         xs_1 = xs_tiled + dxs
 
-        neglogfxs_0 = tt_func.eval(xs_0)
-        neglogfxs_1 = tt_func.eval(xs_1)
+        neglogfxs_0 = tt_func._eval(xs_0)
+        neglogfxs_1 = tt_func._eval(xs_1)
         grad = (neglogfxs_1 - neglogfxs_0) / (2 * dx)
         return grad.reshape(*xs.shape)
     
@@ -184,7 +184,7 @@ class TestSIRT(unittest.TestCase):
 
         for grad_method in grad_methods:
             with self.subTest(grad_method=grad_method):
-                grads = sirt.approx.grad(xs, method=grad_method)
+                grads = sirt.approx._grad(xs, method=grad_method)
                 grads_fd = self.compute_grad_fd(tt_func, xs)
                 grad_error = norm(grads - grads_fd)
                 self.assertTrue(grad_error < 1e-4)
