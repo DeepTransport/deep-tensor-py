@@ -23,15 +23,16 @@ class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
     def eval_int_basis(self, ls: Tensor) -> Tensor:
         
         thetas = self.l2theta(ls)
+        thetas = thetas[:, None]
 
         if self.order == 0:
-            basis_vals = -(thetas / torch.pi).reshape(-1, 1)
+            basis_vals = -thetas / torch.pi
             return basis_vals
 
         basis_vals = -torch.hstack((
-            (thetas / torch.pi).reshape(-1, 1), 
+            thetas / torch.pi, 
             ((torch.tensor(2).sqrt() / torch.pi) 
-                * torch.sin(torch.outer(thetas, self.n[1:])) 
+                * (thetas * self.n[1:]).sin()
                 / self.n[1:])
         ))
 

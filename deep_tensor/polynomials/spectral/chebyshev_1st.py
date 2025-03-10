@@ -18,9 +18,13 @@ class Chebyshev1st(Spectral):
      
     References
     ----------
-    Boyd, JP (2001). Chebyshev and Fourier spectral methods. Appendix 
-    A.2.
-    https://en.wikipedia.org/wiki/Chebyshev-Gauss_quadrature
+    Boyd, JP (2001, Appendix A.2). *[Chebyshev and Fourier spectral 
+    methods](https://link.springer.com/book/9783540514879).* Lecture 
+    Notes in Engineering, Volume 49.
+
+    Cui, T, Dolgov, S and Zahm, O (2023). *[Self-reinforced polynomial 
+    approximation methods for concentrated probability 
+    densities.](https://arxiv.org/abs/2303.02554)*.
 
     """
 
@@ -79,7 +83,7 @@ class Chebyshev1st(Spectral):
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
-        return -0.5*ts.log() - torch.tensor(torch.pi).log()
+        return -0.5 * ts.log() - torch.tensor(torch.pi).log()
 
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
@@ -88,12 +92,12 @@ class Chebyshev1st(Spectral):
 
     def sample_measure(self, n: int) -> Tensor:
         zs = torch.rand(n)
-        samples = torch.sin(torch.pi * (zs-0.5))
+        samples = torch.sin(torch.pi * (zs - 0.5))
         return samples
 
     def sample_measure_skip(self, n: int) -> torch.Tensor:
-        l0 = 0.5 * (torch.min(self.nodes) - 1.0)
-        l1 = 0.5 * (torch.max(self.nodes) + 1.0)
+        l0 = 0.5 * (self.nodes.min() - 1.0)
+        l1 = 0.5 * (self.nodes.max() + 1.0)
         samples = l0 + torch.rand(n) * (l1 - l0)
         return samples
     
@@ -110,7 +114,6 @@ class Chebyshev1st(Spectral):
 
         thetas = self.l2theta(ls)
         thetas = thetas[:, None]
-        
         sin_thetas = thetas.sin()
         sin_thetas[sin_thetas.abs() < EPS] = EPS
 
