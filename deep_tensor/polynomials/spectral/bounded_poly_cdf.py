@@ -23,32 +23,27 @@ class BoundedPolyCDF(Chebyshev2ndUnweighted, SpectralCDF):
         return grid
     
     def eval_int_basis(self, ls: Tensor) -> Tensor:
-        
         thetas = self.l2theta(ls)
-        basis_vals = (torch.cos(torch.outer(thetas, self.n+1)) 
-                      * (self.normalising / (self.n+1)))
-        
-        return basis_vals
+        thetas = thetas[:, None]
+        ps = (thetas * (self.n+1)).cos() * self.norm / (self.n+1)
+        return ps
     
     def eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         
         thetas = self.l2theta(ls)
+        thetas = thetas[:, None]
         sin_thetas = thetas.sin()
         sin_thetas[sin_thetas.abs() < EPS] = EPS
 
-        basis_vals = (torch.cos(torch.outer(thetas, self.n+1)) 
-                      * (self.normalising / (self.n+1)))
-        deriv_vals = (torch.sin(torch.outer(self.n+1, thetas)) 
-                      * self.normalising / sin_thetas).T
+        ps = (thetas * (self.n+1)).cos() * self.norm / (self.n+1)
+        dpdls = (thetas * (self.n+1)).sin() * self.norm / sin_thetas
         
-        mask_lhs = torch.abs(ls + 1.0) <= EPS
-        if mask_lhs.sum() > 0:
-            deriv_vals[mask_lhs, :] = (self.n+1) * self.normalising * torch.pow(-1.0, self.n)
+        if (mask_lhs := (ls + 1.0).abs() <= EPS).sum() > 0:
+            dpdls[mask_lhs, :] = (self.n+1) * self.norm * torch.pow(-1.0, self.n)
         
-        mask_rhs = torch.abs(ls - 1.0) <= EPS
-        if mask_rhs.sum() > 0:
-            deriv_vals[mask_rhs, :] = (self.n+1) * self.normalising
+        if (mask_rhs := (ls - 1.0).abs() <= EPS).sum() > 0:
+            dpdls[mask_rhs, :] = (self.n+1) * self.norm
 
-        check_finite(basis_vals)
-        check_finite(deriv_vals)
-        return basis_vals, deriv_vals
+        check_finite(ps)
+        check_finite(dpdls)
+        return ps, dpdls

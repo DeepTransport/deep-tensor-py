@@ -12,22 +12,17 @@ class Chebyshev2ndUnweighted(Spectral):
 
         self.order = order
         self.n = torch.arange(self.order+1)
-
-        self._domain = torch.tensor([-1.0, 1.0])
-
-        self._nodes = torch.cos(torch.pi * (self.n+1) / (self.order+2))
-        self._nodes = torch.sort(self._nodes)[0]
-        self._weights = torch.sin(torch.pi * (self.n+1) / (self.order+2)) ** 2 * 2 / (self.order+2)
-        self._constant_weight = False
-
-        self.normalising = torch.tensor([1.0])
+        self.nodes = torch.cos(torch.pi * (self.n+1) / (self.order+2))
+        self.nodes = torch.sort(self.nodes)[0]
+        self.weights = torch.sin(torch.pi * (self.n+1) / (self.order+2)) ** 2 * 2 / (self.order+2)
+        self.norm = torch.tensor([1.0])
 
         self.__post_init__()
         return
     
     @property
     def domain(self) -> Tensor:
-        return self._domain
+        return torch.tensor([-1.0, 1.0])
 
     @property
     def nodes(self) -> Tensor:
@@ -42,9 +37,14 @@ class Chebyshev2ndUnweighted(Spectral):
     def weights(self) -> Tensor:
         return self._weights
     
+    @weights.setter 
+    def weights(self, value: Tensor) -> None:
+        self._weights = value 
+        return
+    
     @property
     def constant_weight(self) -> bool:
-        return self._constant_weight
+        return False
 
     def sample_measure(self, n: int) -> Tensor:
         
@@ -83,16 +83,17 @@ class Chebyshev2ndUnweighted(Spectral):
     def eval_basis(self, ls: Tensor) -> Tensor:
 
         thetas = self.l2theta(ls)
-        fs = (torch.sin(torch.outer(self.n+1, thetas)) 
-              * (self.normalising / torch.sin(thetas))).T
+        thetas = thetas[:, None]
+
+        ps = (thetas * (self.n+1)).sin() * self.norm / thetas.sin()
 
         if (mask_lhs := torch.abs(ls+1) < EPS).sum() > 0:
-            fs[mask_lhs, :] = (self.n+1) * self.normalising * torch.pow(-1.0, self.n)
+            ps[mask_lhs, :] = (self.n+1) * self.norm * torch.pow(-1.0, self.n)
         
         if (mask_rhs := torch.abs(ls-1) < EPS).sum() > 0:
-            fs[mask_rhs, :] = (self.n+1) * self.normalising
+            ps[mask_rhs, :] = (self.n+1) * self.norm
         
-        return fs
+        return ps
 
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
         raise NotImplementedError()
