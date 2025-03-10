@@ -973,10 +973,12 @@ class TTFunc():
                 self._compute_cross_iter_amen(indices)
 
             cross_iter += 1
-            self.compute_relative_error()
-            if (finished := self.is_finished(cross_iter, indices)):
+            finished = self.is_finished(cross_iter, indices)
+            
+            if finished:
                 self._compute_final_block()
-
+            
+            self.compute_relative_error()
             if self.options.verbose:
                 self._print_info(cross_iter, indices)
 
