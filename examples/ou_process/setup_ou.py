@@ -93,11 +93,10 @@ for poly in bases_dict:
         else:
             
             sirt: dt.TTSIRT = deepcopy(sirts[poly]["amen"])
-            approx = sirt.approx
-            approx.round(1e-2)
+            sirt.round(1e-2)
             
             sirts[poly][method] = dt.TTSIRT(
                 potential_func, 
-                prev_approx=approx,
+                prev_approx=sirt.approx,
                 input_data=input_data
             )

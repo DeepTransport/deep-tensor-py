@@ -322,8 +322,23 @@ class AbstractIRT(abc.ABC):
         
         Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
         return Js.reshape(d_xs, n_xs, d_xs)
+    
+    def round(self, tol: float|Tensor|None = None) -> None:
+        """Rounds the TT cores. 
+        
+        Applies double rounding to get back to the starting direction.
 
-    def set_tau(self, tau: float|Tensor) -> None:
+        Parameters
+        ----------
+        tol:
+            The tolerance to use when applying truncated SVD to round 
+            each core. If `None`, will use `self.options.local_tol`.
+        
+        """
+        self.approx._round(tol)
+        return
+
+    def set_defensive(self, tau: float|Tensor) -> None:
         r"""Updates the defensive parameter, $\tau$.
         
         Parameters

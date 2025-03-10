@@ -24,14 +24,14 @@ class TTData():
         ranks = [self.cores[k].shape[2] for k in range(len(self.cores))]
         return torch.tensor(ranks)
 
-    def reverse_direction(self) -> None:
+    def _reverse_direction(self) -> None:
         """Reverses the direction in which the dimensions of the 
         function are iterated over.
         """
         self.direction = REVERSE_DIRECTIONS[self.direction]
         return
 
-    def clean(self) -> None:
+    def _clean(self) -> None:
         """Removes all of the intermediate data used to build the 
         tensor train (but retains the cores and evaluation direction).
         """

@@ -89,9 +89,9 @@ class TTSIRT(AbstractIRT):
             input_data=self.input_data,
             tt_data=self.tt_data
         )
-        self.approx.cross()
+        self.approx._cross()
         if self.approx.use_amen:
-            self.approx.round()  # why?
+            self.approx._round()  # why?
 
         self.oned_cdfs = {}
         tol = self.approx.options.cdf_tol

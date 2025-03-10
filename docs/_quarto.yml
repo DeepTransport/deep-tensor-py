@@ -60,7 +60,7 @@ quartodoc:
       package: deep_tensor
       contents:
         - name: TTSIRT
-          members: [set_tau, eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, eval_potential_grad, eval_rt_jac, random, sobol]
+          members: [set_defensive, round, eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, eval_potential_grad, eval_rt_jac, random, sobol]
         - name: TTDIRT
           members: [eval_potential, eval_pdf, eval_rt, eval_irt, random, sobol]
 
