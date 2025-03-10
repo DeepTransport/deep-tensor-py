@@ -1120,7 +1120,7 @@ class TTFunc():
 
         def _grad(xs: Tensor) -> Tensor:
             xs = xs.reshape(n_xs, self.dim)
-            return self.eval(xs).sum(dim=0)
+            return self._eval(xs).sum(dim=0)
         
         derivs = jacobian(_grad, xs.flatten(), vectorize=True)
         return derivs.reshape(n_xs, self.dim)

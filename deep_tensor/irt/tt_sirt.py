@@ -207,13 +207,13 @@ class TTSIRT(AbstractIRT):
 
         if direction == Direction.FORWARD:
             indices = torch.arange(dim_l)
-            gs = self.approx.eval_local(ls, direction=direction)
+            gs = self.approx._eval_local(ls, direction=direction)
             gs_sq = (gs @ self.Rs_f[dim_l]).square().sum(dim=1)
             
         else:
             i_min = self.dim - dim_l
             indices = torch.arange(self.dim-1, self.dim-dim_l-1, -1)
-            gs = self.approx.eval_local(ls, direction=direction)
+            gs = self.approx._eval_local(ls, direction=direction)
             gs_sq = (self.Rs_b[i_min-1] @ gs.T).square().sum(dim=0)
             
         # TODO: check that indices go backwards. This could be an issue 
