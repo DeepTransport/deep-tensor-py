@@ -20,10 +20,10 @@ class Fourier(Spectral):
         n = torch.arange(n_nodes)
 
         self.order = order
-        self.m = self.order + 1
-        self._nodes = torch.sort((2.0/n_nodes) * (n+1) - 1).values
+        self.m = order + 1
+        self.c = torch.pi * (torch.arange(order) + 1)
+        self.nodes = (n+1) / (0.5*n_nodes) - 1
         self.weights = torch.ones_like(self.nodes) / n_nodes
-        self.c = (torch.arange(self.order)+1) * torch.pi
 
         self.__post_init__()
         # TODO: figure out what's going on here
@@ -75,7 +75,6 @@ class Fourier(Spectral):
         return torch.zeros_like(ls)
     
     def eval_basis(self, ls: Tensor) -> Tensor:
-
         ls = ls[:, None]
         ps = torch.hstack((
             torch.ones_like(ls),
@@ -86,7 +85,6 @@ class Fourier(Spectral):
         return ps
     
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
-
         ls = ls[:, None]
         dpdls = torch.hstack((
             torch.zeros_like(ls),

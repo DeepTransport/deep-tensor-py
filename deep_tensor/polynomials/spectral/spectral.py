@@ -18,7 +18,8 @@ class Spectral(Basis1D, abc.ABC):
         self.node2basis = self.basis2node.T * self.weights
         self.omegas = self.eval_measure(self.nodes)
         self.mass_R = torch.eye(self.cardinality)
-        self.int_W = self.basis2node * self.weights  # self.basis2node.T @ self.weights  # TODO: check this...
+        # TODO: check this (not currently used)
+        self.int_W = self.basis2node * self.weights  # self.basis2node.T @ self.weights
         return
 
     @property

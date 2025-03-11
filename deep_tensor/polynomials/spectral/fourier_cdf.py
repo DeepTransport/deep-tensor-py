@@ -40,6 +40,11 @@ class FourierCDF(SpectralCDF, Fourier):
     @property
     def nodes(self) -> Tensor:
         return self._nodes
+    
+    @nodes.setter
+    def nodes(self, value: Tensor) -> None:
+        self._nodes = value 
+        return None
 
     @property 
     def cardinality(self) -> int:
@@ -51,19 +56,16 @@ class FourierCDF(SpectralCDF, Fourier):
         return ls
 
     def eval_int_basis(self, ls: Tensor) -> Tensor:
-
         ls = ls[:, None]
-        
-        int_basis_vals = torch.hstack((
+        int_ps = torch.hstack((
             ls,
-            -2.0 ** 0.5 * torch.cos(ls * self.c) / self.c,
-            2.0 ** 0.5 * torch.sin(ls * self.c) / self.c,
-            2.0 ** 0.5 * torch.sin(ls * self.m * torch.pi) / (torch.pi * self.m)
+            -2 ** 0.5 * torch.cos(ls * self.c) / self.c,
+            2 ** 0.5 * torch.sin(ls * self.c) / self.c,
+            2 ** 0.5 * torch.sin(ls * self.m * torch.pi) / (torch.pi * self.m)
         ))
-        
-        return int_basis_vals
+        return int_ps
     
     def eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
-        basis_vals = self.eval_int_basis(ls)
-        deriv_vals = self.eval_basis(ls)
-        return basis_vals, deriv_vals
+        int_ps = self.eval_int_basis(ls)
+        ps = self.eval_basis(ls)
+        return int_ps, ps
