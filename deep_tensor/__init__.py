@@ -26,6 +26,7 @@ from .polynomials import (
     Legendre,
     Piecewise,
     PiecewiseCDF,
-    Spectral
+    Spectral,
+    construct_cdf
 )
 from .references import GaussianReference, UniformReference
