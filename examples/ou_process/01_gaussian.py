@@ -75,4 +75,4 @@ for poly in polys_dict:
         
         plt.savefig(f"{figure_folder}/01_gaussian_{poly}_{method}.pdf")
 
-        corner_plot(sirt, xs, f"{figure_folder}/01_gaussian_{poly}_{method}_corner.pdf")
+        # corner_plot(sirt, xs, f"{figure_folder}/01_gaussian_{poly}_{method}_corner.pdf")
