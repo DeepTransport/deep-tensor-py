@@ -46,7 +46,7 @@ class TestCDF(unittest.TestCase):
                 
                 self.assertTrue(norm(ls-ls_0) < 1e-8)
 
-        pass
+        return
 
 
 if __name__ == "__main__":
