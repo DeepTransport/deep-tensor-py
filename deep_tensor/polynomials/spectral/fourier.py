@@ -18,7 +18,7 @@ class Fourier(Spectral):
     The Fourier basis for the interval $[-1, 1]$, with cardinality $N$, 
     is given by
     $$
-        \left\{\frac{1}{2}, \sqrt{2}\sin(\pi x), \dots, \sqrt{2}\sin(n \pi x), 
+        \left\{1, \sqrt{2}\sin(\pi x), \dots, \sqrt{2}\sin(n \pi x), 
         \sqrt{2}\cos(\pi x), \dots, \sqrt{2}\cos(n \pi x), 
         \sqrt{2}\cos(N \pi x / 2)\right\},
     $$
@@ -76,7 +76,6 @@ class Fourier(Spectral):
         self.weights = torch.ones_like(self.nodes) / n_nodes
 
         self.__post_init__()
-        # TODO: figure out what's going on here
         self.node2basis[-1] *= 0.5
         return
 

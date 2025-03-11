@@ -336,8 +336,8 @@ class Basis1D(abc.ABC, object):
         
         """
         fls = self.eval_radon(coeffs, ls)
-        wls = self.eval_measure(ls).reshape(-1, 1)
-        return fls * wls
+        wls = self.eval_measure(ls)
+        return fls * wls[:, None]
         
     def eval_deriv(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the gradient of the product of the approximated 
