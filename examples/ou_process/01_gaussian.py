@@ -8,7 +8,10 @@ import time
 from torch.linalg import norm
 
 from examples.ou_process.setup_ou import * 
+from examples.plotting import corner_plot
 
+
+figure_folder = "examples/ou_process/figures"
 
 headers = [
     "Polynomial",
@@ -70,4 +73,6 @@ for poly in polys_dict:
         axes[1].set_ylabel("FTT")
         axes[1].set_title("True potential vs FTT")
         
-        plt.savefig(f"examples/ou_process/figures/01_gaussian_{poly}_{method}.pdf")
+        plt.savefig(f"{figure_folder}/01_gaussian_{poly}_{method}.pdf")
+
+        corner_plot(sirt, xs, f"{figure_folder}/01_gaussian_{poly}_{method}_corner.pdf")
