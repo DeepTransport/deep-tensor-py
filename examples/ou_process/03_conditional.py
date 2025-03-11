@@ -10,15 +10,12 @@ from torch.linalg import norm
 from examples.ou_process.setup_ou_domain_mappings import *
 
 
-directions = {
-    "forward": dt.Direction.FORWARD, 
-    "backward": dt.Direction.BACKWARD
-}
+subsets = ["first", "last"]
 
 headers = [
     "Polynomial",
     "TT Method",
-    "Direction",
+    "Subset",
     "Approx. Error",
     "Cov. Error",
     "Time (s)"
@@ -39,11 +36,11 @@ indices_r = torch.arange(m, dim)
 for poly in polys_dict:
     for method in options_dict:
 
-        for i, direction in enumerate(directions):
+        for i, subset in enumerate(subsets):
 
             sirt: dt.TTSIRT = sirts[poly][method]
 
-            if directions[direction] == dt.Direction.FORWARD:
+            if subset == "first":
                 xs_cond = debug_x[:, indices_l]
                 zs_cond = zs[:, indices_r]
                 inds_cov = indices_r
@@ -56,21 +53,21 @@ for poly in polys_dict:
             ys_cond_sirt, neglogfys_cond_sirt = sirt.eval_cirt(
                 xs_cond, 
                 zs_cond,
-                directions[direction]
+                subset
             )
             t1 = time.time()
             
-            if directions[direction] == dt.Direction.FORWARD:
+            if subset == "first":
                 neglogfys_cond_true = model.eval_potential_cond(
                     xs_cond, 
                     ys_cond_sirt, 
-                    dir=directions[direction]
+                    subset=subset
                 )
             else:
                 neglogfys_cond_true = model.eval_potential_cond(
                     ys_cond_sirt,
                     xs_cond, 
-                    dir=directions[direction]
+                    subset=subset
                 )
 
             fys_cond_sirt = torch.exp(-neglogfys_cond_sirt)
@@ -84,7 +81,7 @@ for poly in polys_dict:
             info = [
                 f"{poly:16}",
                 f"{method:16}",
-                f"{direction:16}",
+                f"{subset:16}",
                 f"{approx_error:=16.5e}",
                 f"{cov_error:=16.5e}",
                 f"{t1-t0:=16.5e}"
@@ -92,5 +89,5 @@ for poly in polys_dict:
             print(" | ".join(info))
 
             # plt.scatter(torch.arange(10_000), torch.abs(torch.exp(-neglogfys_cond_sirt) - torch.exp(-neglogfys_cond_true)))
-            plt.scatter(neglogfys_cond_sirt, neglogfys_cond_true)
-            plt.show()
+            # plt.scatter(neglogfys_cond_sirt, neglogfys_cond_true)
+            # plt.show()

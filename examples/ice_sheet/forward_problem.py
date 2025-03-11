@@ -1,4 +1,6 @@
 import copy
+import os
+import sys
 
 import dolfin
 from dolfin import *
@@ -11,8 +13,10 @@ import time
 import torch 
 from torch import Tensor
 
+import deep_tensor as dt
+
 plt.style.use("examples/plotstyle.mplstyle")
-# np.random.seed(1)
+torch.manual_seed(0)
 
 
 class PeriodicBoundary(SubDomain):
@@ -65,7 +69,7 @@ class IceSheetModel():
         # (radians), and gravitational acceleration (m/s^2)
         self.length = length
         self.height = height 
-        self.angle = 0.1 * np.pi / 810.0
+        self.angle = 0.1 * torch.pi / 180.0
         self.grav = 9.81
 
         # Define ice density
@@ -124,7 +128,7 @@ class IceSheetModel():
         boundary_markers = MeshFunction("size_t", self.mesh, self.mesh.topology().dim() - 1)
 
         self.Gamma_B = Bottom()
-        self.Gamma_B.mark(boundary_markers,1)
+        self.Gamma_B.mark(boundary_markers, 1)
 
         self.ds = Measure(
             integral_type="ds", 
@@ -138,7 +142,7 @@ class IceSheetModel():
 
     @staticmethod
     def Tang(u, normal): 
-        """Tangential operator."""
+        """Tangential operator (PetraEtAl2012, Eq. (3))."""
         return (u - outer(normal, normal) * u)
 
     @staticmethod
@@ -155,17 +159,33 @@ class IceSheetModel():
         max_iter: int = 100,
         max_back_it: int = 50,
         c_armijo: float = 1e-04,
-        verbose: bool = True
+        verbose: bool = False
     ):
         
+        # Define energy functional and its first and second variations
         def Energy(u):
             normEu12 = 0.5 * inner(self.epsilon(u), self.epsilon(u)) + self.sConst
-            return self.scale_const * (self.Aconst_NL**(-1.0 / self.n)*((2.0 * self.n) / (1.0 + self.n)) * (normEu12 ** ((1.0 + self.n) / (2.0 * self.n))) * dx - \
-                inner(self.f, u) * dx + Constant(0.5) * inner(exp(beta) * self.Tang(u, self.normal), \
-                self.Tang(u, self.normal)) * self.ds(1))
+            phi = ((2.0 * self.n) / (self.n + 1.0)) * self.Aconst_NL**(-1.0 / self.n) * normEu12 ** ((self.n + 1.0) / (2.0 * self.n))
+            E = (phi * dx - inner(self.f, u) * dx + Constant(0.5) * inner(exp(beta) * self.Tang(u, self.normal), self.Tang(u, self.normal)) * self.ds(1))
+            return self.scale_const * E
 
         def Gradient(u, v, p, q):  # u, test func for u, pressure, test func for pressure
-            normEu12 = 0.5*inner(self.epsilon(u), self.epsilon(u)) + self.sConst
+            """Computes the gradient...
+
+            Parameters
+            ----------
+            u:
+                Velocity.
+            v:
+                Test functions for velocity (adjoint velocity).
+            p:
+                Pressure.
+            q: 
+                Test functions for pressure.
+
+            """
+            normEu12 = 0.5 * inner(self.epsilon(u), self.epsilon(u)) + self.sConst
+
             return self.scale_const * (self.Aconst_NL ** (-1.0/n) * ((normEu12**((1.0 - n)/(2.0 * n))) * inner(self.epsilon(u), self.epsilon(v))) * dx - \
                 inner(self.f, v) * dx + inner(exp(beta) * self.Tang(u, self.normal), self.Tang(v, self.normal)) * self.ds(1) - \
                 p * nabla_div(v) * dx - q * nabla_div(u) * dx)
@@ -174,6 +194,7 @@ class IceSheetModel():
         # p=pressure, q=test func for pressure, r=direction you are applying it in.
         def Hessian(u, v, w, p, q, r):
             normEu12 = 0.5*inner(self.epsilon(u), self.epsilon(u)) + self.sConst
+            
             return self.scale_const * (self.Aconst_NL ** (-1.0 / n)
                                 * (((1.0-n)/(2.0*n))*(normEu12**((1.0-3.0*n) / (2.0*n)) * \
                 inner(self.epsilon(u), self.epsilon(w)) * inner(self.epsilon(v), self.epsilon(u))) + \
@@ -193,12 +214,14 @@ class IceSheetModel():
         self.L_linear = inner(self.f, vh) * dx
 
         vq = Function(self.VQ)
+
+        old_stdout = sys.stdout # backup current stdout
+        sys.stdout = open(os.devnull, "w")
         solve(self.a_linear == self.L_linear, vq, self.bc)  # initial guess for nonlinear solve... 
+        sys.stdout = old_stdout
 
         uh_lin, ph_lin = vq.split(deepcopy=True)
         self.uh = uh_lin
-
-        # 5 Define exponential parameter field and Energy functional, and 1st and 2nd variations
 
         n = interpolate(Constant(self.N), self.VP) 
 
@@ -264,8 +287,9 @@ class IceSheetModel():
                 u, p = vq.split()
                 J = Energy(u)
                 Jn = assemble(J)
-                
-            print(gn_norm)
+
+            if verbose:    
+                print(gn_norm)
             G = Gradient(u, v, p, q)
             H = Hessian(u, v, w, p, q, r)
 
@@ -274,6 +298,25 @@ class IceSheetModel():
         # ufile_pvd << u
 
         return u, p
+
+    def get_observations(self, u) -> Tensor:
+        """Gets some observations from the velocity field.
+        """
+
+        u_vals = u.compute_vertex_values(self.mesh).reshape(2, -1).T
+        u_vals = torch.tensor(u_vals)
+
+        ux = u_vals[:, 0].reshape(self.ny+1, self.nx+1)
+        uy = u_vals[:, 1].reshape(self.ny+1, self.nx+1)
+
+        ux_top = ux[-1]
+        uy_top = uy[-1]
+
+        # TODO: move elsewhere
+        obs_inds = torch.tensor([10, 20, 30, 40], dtype=torch.int)
+        
+        d = torch.hstack((ux_top[obs_inds], uy_top[obs_inds]))
+        return d
 
     def plot_velocities(self, u, fname="velocities"):
 
@@ -387,7 +430,8 @@ class BetaPrior():
 
 model = IceSheetModel()
 
-mean = 5.0
+# Generate prior
+mean = 7.0
 xs = torch.linspace(0.0, model.length, model.nx+1)
 dxs = torch.tensor([[torch.linalg.norm(x0-x1) for x0 in xs] for x1 in xs])
 cov = 2.0 ** 2 * torch.exp(-0.5 * dxs ** 2 / 100.0**2)
@@ -398,29 +442,50 @@ xis = torch.normal(mean=0.0, std=1.0, size=(prior.n_modes,))
 
 beta = prior.get_beta(xis)
 
-t0 = time.time()
+# t0 = time.time()
 u, p = model.solve(beta)
-t1 = time.time()
+# t1 = time.time()
+# print(t1-t0)
 
 model.plot_velocities(u)
 model.plot_beta(beta)
 
-# Generate some synthetic data
-y = -1 # TODO
+# Specify likelihood
+std_d = torch.tensor([0.5, 0.5, 0.5, 0.5, 0.1, 0.1, 0.1, 0.1])
+cov_d = torch.diag(std_d.square())
+L_d = torch.linalg.cholesky(torch.linalg.inv(cov_d))
 
-sigma_y = 0.5
+# Generate some synthetic data
+d = model.get_observations(u)
+d_obs = d + torch.normal(mean=0.0, std=std_d)
 
 def potential_func(xs: Tensor):
 
     n_xs = xs.shape[0]
+    print(n_xs)
 
     potential_pri = xs.square().sum(dim=1)
     potential_lik = torch.zeros(n_xs)
 
     for i in range(n_xs):
-        x_i = np.array(xs[i])
-        fx_i = model.solve(x_i)
-        fx_i = torch.tensor(fx_i)  # TODO: extract some observations out of this.
-        potential_lik[i] = ((fx_i - y) / sigma_y).square().sum()
+        t0 = time.time()
+        beta = prior.get_beta(xs[i])
+        u = model.solve(beta)[0]
+        fx_i = model.get_observations(u)
+        potential_lik[i] = (L_d @ (fx_i - d_obs)).square().sum()
+        t1 = time.time()
+        # print(t1-t0)
+
+    print(potential_pri+potential_lik)
 
     return potential_pri + potential_lik
+
+
+bounds = torch.tensor([-4.0, 4.0])
+domain = dt.BoundedDomain(bounds=bounds)
+poly = dt.Lagrange1(num_elems=30)
+bases = dt.ApproxBases(polys=poly, domains=domain, dim=prior.n_modes)
+
+options = dt.TTOptions(max_cross=1, init_rank=10)
+
+sirt = dt.TTSIRT(potential_func, bases=bases, options=options)

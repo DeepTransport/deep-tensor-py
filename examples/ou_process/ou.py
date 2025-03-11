@@ -36,7 +36,7 @@ class OU():
         self, 
         xs_cond_l: torch.Tensor, 
         xs_cond_r: torch.Tensor, 
-        dir: Direction
+        subset: str
     ) -> torch.Tensor:
         
         xs = torch.hstack((xs_cond_l, xs_cond_r))
@@ -45,7 +45,7 @@ class OU():
         dim_xl = xs_cond_l.shape[1]
         dim_xr = xs_cond_r.shape[1]
 
-        if dir == Direction.FORWARD:
+        if subset == "first":
             indices = torch.arange(dim_xl)
             fms = self.eval_potential_marginal(indices, xs_cond_l)
         else:
