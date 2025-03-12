@@ -65,7 +65,7 @@ class AbstractIRT(abc.ABC):
 
     @property
     @abc.abstractmethod  
-    def tau(self) -> Tensor:
+    def defensive(self) -> Tensor:
         """The defensive term (used to ensure that the tails of the 
         approximation are sufficiently heavy).
         """
@@ -338,18 +338,18 @@ class AbstractIRT(abc.ABC):
         self.approx._round(tol)
         return
 
-    def set_defensive(self, tau: float|Tensor) -> None:
+    def set_defensive(self, defensive: float|Tensor) -> None:
         r"""Updates the defensive parameter, $\tau$.
         
         Parameters
         ----------
-        tau: 
+        defensive: 
             The updated value for $\tau$, the defensive parameter of 
             the IRT.
         
         """
-        self._tau = tau
-        self._z = self.z_func + tau
+        self._defensive = defensive
+        self._z = self.z_func + defensive
         return
     
     def eval_potential(

@@ -48,11 +48,6 @@ class CDF1D(abc.ABC):
         """
         return 
 
-    # @abc.abstractmethod 
-    # def invert_cdf_local(self):
-    #     """TODO: write docstring"""
-    #     return
-
     @abc.abstractmethod
     def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
         """Evaluates the inverse of the CDF of the target PDF at a 

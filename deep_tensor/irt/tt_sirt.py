@@ -34,7 +34,7 @@ class TTSIRT(AbstractIRT):
     tt_data:
         A structure that holds information about the FTT, including the 
         cores and interpolation points.
-    tau:
+    defensive:
         The defensive parameter, $\tau$, which ensures that the tails
         of the approximation are sufficiently heavy.
 
@@ -54,7 +54,7 @@ class TTSIRT(AbstractIRT):
         options: TTOptions|None = None, 
         input_data: InputData|None = None, 
         tt_data: TTData|None = None,
-        tau: float = 1e-8
+        defensive: float = 1e-8
     ):
         
         def target_func(ls: Tensor) -> Tensor:
@@ -80,7 +80,7 @@ class TTSIRT(AbstractIRT):
         self.Bs_b: dict[int, Tensor] = {}
         self.Rs_b: dict[int, Tensor] = {}
         
-        self.tau = tau
+        self.defensive = defensive
 
         self.approx = TTFunc(
             target_func, 
@@ -121,12 +121,12 @@ class TTSIRT(AbstractIRT):
         return
 
     @property 
-    def tau(self) -> Tensor:
-        return self._tau
+    def defensive(self) -> Tensor:
+        return self._defensive
     
-    @tau.setter
-    def tau(self, value: Tensor) -> None:
-        self._tau = value 
+    @defensive.setter
+    def defensive(self, value: Tensor) -> None:
+        self._defensive = value 
         return
     
     @property 
@@ -164,7 +164,7 @@ class TTSIRT(AbstractIRT):
             self.Rs_f[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
         self.z_func = self.Rs_f[0].square().sum()
-        self.z = self.z_func + self.tau
+        self.z = self.z_func + self.defensive
         return 
     
     def _marginalise_backward(self) -> None:
@@ -184,7 +184,7 @@ class TTSIRT(AbstractIRT):
             self.Rs_b[k] = torch.linalg.qr(C_k, mode="reduced")[1]
 
         self.z_func = self.Rs_b[self.dim-1].square().sum()
-        self.z = self.z_func + self.tau
+        self.z = self.z_func + self.defensive
         return
 
     def _potential2density(
@@ -219,7 +219,7 @@ class TTSIRT(AbstractIRT):
         # TODO: check that indices go backwards. This could be an issue 
         # if different bases are used in each dimension.
         neglogwls = self.bases.eval_measure_potential_local(ls, indices)
-        neglogfls = self.z.log() - (gs_sq + self.tau).log() + neglogwls
+        neglogfls = self.z.log() - (gs_sq + self.defensive).log() + neglogwls
         return neglogfls
 
     def _eval_rt_local_forward(self, ls: Tensor) -> Tensor:
@@ -238,7 +238,7 @@ class TTSIRT(AbstractIRT):
             # Compute (unnormalised) conditional PDF for each sample
             Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
             gs = torch.einsum("jl, ilk -> ijk", Gs_prod, Ps)
-            ps = gs.square().sum(dim=2) + self.tau
+            ps = gs.square().sum(dim=2) + self.defensive
 
             # Evaluate CDF to obtain corresponding uniform variates
             zs[:, k] = self.oned_cdfs[k].eval_cdf(ps, ls[:, k])
@@ -266,7 +266,7 @@ class TTSIRT(AbstractIRT):
             # Compute (unnormalised) conditional PDF for each sample
             Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
             gs = torch.einsum("ijl, lk -> ijk", Ps, Gs_prod)
-            ps = gs.square().sum(dim=1) + self.tau
+            ps = gs.square().sum(dim=1) + self.defensive
 
             # Evaluate CDF to obtain corresponding uniform variates
             zs[:, -i] = self.oned_cdfs[k].eval_cdf(ps, ls[:, -i])
@@ -318,7 +318,7 @@ class TTSIRT(AbstractIRT):
             
             Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
             gls = torch.einsum("jl, ilk", gs, Ps)
-            ps = gls.square().sum(dim=2) + self.tau
+            ps = gls.square().sum(dim=2) + self.defensive
             ls[:, k] = self.oned_cdfs[k].invert_cdf(ps, zs[:, k])
 
             Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
@@ -362,7 +362,7 @@ class TTSIRT(AbstractIRT):
 
             Ps = TTFunc.eval_core_231(polys[k], Bs[k], cdfs[k].nodes)
             gls = torch.einsum("ilk, jl", Ps, gs)
-            ps = gls.square().sum(dim=2) + self.tau
+            ps = gls.square().sum(dim=2) + self.defensive
             ls[:, -i] = self.oned_cdfs[k].invert_cdf(ps, zs[:, -i])
 
             Gs = TTFunc.eval_core_231(polys[k], cores[k], ls[:, -i])
@@ -384,7 +384,7 @@ class TTSIRT(AbstractIRT):
         
         indices = self._get_transform_indices(zs.shape[1], direction)
         
-        neglogpls = -(gs_sq + self.tau).log()
+        neglogpls = -(gs_sq + self.defensive).log()
         neglogwls = self.bases.eval_measure_potential_local(ls, indices)
         neglogfls = self.z.log() + neglogpls + neglogwls
 
@@ -415,7 +415,7 @@ class TTSIRT(AbstractIRT):
 
         Ps = TTFunc.eval_core_213(polys[k], Bs[k], ls_x[:, k])
         gs_marg = TTFunc.batch_mul(Gs_prod, Ps)
-        ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.tau
+        ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.defensive
 
         Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_x[:, k])
         Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
@@ -425,13 +425,13 @@ class TTSIRT(AbstractIRT):
             
             Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
             gs = torch.einsum("mij, ljk -> lmk", Gs_prod, Ps)
-            ps = gs.square().sum(dim=2) + self.tau
+            ps = gs.square().sum(dim=2) + self.defensive
             ls_y[:, i] = self.oned_cdfs[k].invert_cdf(ps, zs[:, i])
 
             Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_y[:, i])
             Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
 
-        ps = Gs_prod.flatten().square() + self.tau
+        ps = Gs_prod.flatten().square() + self.defensive
 
         indices = d_xs + torch.arange(d_zs)
         neglogwls_y = self.bases.eval_measure_potential_local(ls_y, indices)
@@ -461,7 +461,7 @@ class TTSIRT(AbstractIRT):
 
         Ps = TTFunc.eval_core_213(polys[d_zs], Bs[d_zs], ls_x[:, 0])
         gs_marg = TTFunc.batch_mul(Ps, Gs_prod)
-        ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.tau
+        ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.defensive
 
         Gs = TTFunc.eval_core_213(polys[d_zs], cores[d_zs], ls_x[:, 0])
         Gs_prod = TTFunc.batch_mul(Gs, Gs_prod)
@@ -471,13 +471,13 @@ class TTSIRT(AbstractIRT):
 
             Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
             gs = torch.einsum("lij, mjk -> lmi", Ps, Gs_prod)
-            ps = gs.square().sum(dim=2) + self.tau
+            ps = gs.square().sum(dim=2) + self.defensive
             ls_y[:, k] = self.oned_cdfs[k].invert_cdf(ps, zs[:, k])
 
             Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_y[:, k])
             Gs_prod = TTFunc.batch_mul(Gs, Gs_prod)
 
-        ps = Gs_prod.flatten().square() + self.tau
+        ps = Gs_prod.flatten().square() + self.defensive
 
         indices = torch.arange(d_zs-1, -1, -1)
         neglogwls_y = self.bases.eval_measure_potential_local(ls_y, indices)
@@ -507,7 +507,7 @@ class TTSIRT(AbstractIRT):
         zs = self._eval_rt_local_forward(ls)
         ls, gs_sq = self._eval_irt_local_forward(zs)
         n_ls = ls.shape[0]
-        ps = gs_sq + self.tau
+        ps = gs_sq + self.defensive
         neglogws = self.bases.eval_measure_potential_local(ls)
         ws = torch.exp(-neglogws)
         fs = ps * ws  # Don't need to normalise as derivative ends up being a ratio
@@ -589,11 +589,11 @@ class TTSIRT(AbstractIRT):
             # Evaluate marginal probability for the first k elements of 
             # each sample
             gs = TTFunc.batch_mul(Gs_prod[k-1], Ps[k])
-            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.tau
+            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.defensive
 
             # Compute (unnormalised) marginal PDF at CDF nodes for each sample
             gs_grid = torch.einsum("mij, ljk -> lmik", Gs_prod[k-1], Ps_grid[k])
-            ps_grid[k] = gs_grid.square().sum(dim=(2, 3)) + self.tau
+            ps_grid[k] = gs_grid.square().sum(dim=(2, 3)) + self.defensive
 
         # Derivatives of marginal PDF
         for k in range(self.dim-1):
@@ -686,11 +686,11 @@ class TTSIRT(AbstractIRT):
             # Evaluate marginal probability for the first k elements of 
             # each sample
             gs = TTFunc.batch_mul(Gs_prod[k+1], Ps[k])
-            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.tau
+            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.defensive
 
             # Compute (unnormalised) marginal PDF at CDF nodes for each sample
             gs_grid = torch.einsum("mij, ljk -> lmik", Gs_prod[k+1], Ps_grid[k])
-            ps_grid[k] = gs_grid.square().sum(dim=(2, 3)) + self.tau
+            ps_grid[k] = gs_grid.square().sum(dim=(2, 3)) + self.defensive
 
         # Derivatives of marginal PDF
         for k in range(1, self.dim):

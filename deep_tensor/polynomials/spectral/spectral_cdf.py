@@ -116,21 +116,20 @@ class SpectralCDF(CDF1D, abc.ABC):
     def eval_int_newton(
         self, 
         coef: Tensor, 
-        cdf_poly_base, 
-        rhs, 
+        cdf_poly_base: Tensor, 
+        zs_cdf: Tensor, 
         ls: Tensor
     ) -> Tuple[Tensor, Tensor]: 
         
-        basis_vals, deriv_vals = self.eval_int_basis_newton(ls)
+        int_ps, ps = self.eval_int_basis_newton(ls)
+        check_finite(int_ps)
+        check_finite(ps)
 
-        check_finite(basis_vals)
-        check_finite(deriv_vals)
-
-        fs = torch.sum(basis_vals * coef.T, 1)
-        dfs = torch.sum(deriv_vals * coef.T, 1)
-
-        fs = fs - cdf_poly_base - rhs
-        return fs, dfs
+        zs = (int_ps * coef.T).sum(dim=1)
+        dzdls = (ps * coef.T).sum(dim=1)
+        
+        dzs = zs - cdf_poly_base - zs_cdf
+        return dzs, dzdls
     
     def eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
 

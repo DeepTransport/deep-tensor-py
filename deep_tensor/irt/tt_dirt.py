@@ -350,7 +350,7 @@ class TTDIRT():
                 options=self.sirt_options,
                 input_data=input_data,
                 tt_data=tt_data,
-                tau=self.dirt_options.defensive
+                defensive=self.dirt_options.defensive
             )
         
         else:
@@ -369,7 +369,7 @@ class TTDIRT():
                 approx=sirt_prev.approx,
                 options=self.sirt_options,
                 input_data=input_data, 
-                tau=self.dirt_options.defensive
+                defensive=self.dirt_options.defensive
             )
         
         return sirt
