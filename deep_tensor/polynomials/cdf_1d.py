@@ -8,6 +8,9 @@ from ..constants import EPS
 
 
 class CDF1D(abc.ABC):
+    """Parent class used for evaluating the CDF and inverse CDF of all 
+    one-dimensional bases.
+    """
 
     def __init__(
         self, 
@@ -15,10 +18,6 @@ class CDF1D(abc.ABC):
         num_newton: int = 10,
         num_regula_falsi: int = 100
     ):
-        """Parent class used for evaluating the CDF and inverse CDF of 
-        all one-dimensional bases.
-
-        """
         self.error_tol = error_tol
         self.num_newton = num_newton
         self.num_regula_falsi = num_regula_falsi
@@ -35,7 +34,6 @@ class CDF1D(abc.ABC):
     def cardinality(self) -> Tensor:
         """The number of nodes associated with the polynomial basis of
         the CDF.
-
         """
         return
     
@@ -44,7 +42,6 @@ class CDF1D(abc.ABC):
     def domain(self) -> Tensor:
         """The domain on which polynomials used to form the CDF are 
         defined.
-        
         """
         return 
 
@@ -58,12 +55,14 @@ class CDF1D(abc.ABC):
         Parameters
         ----------
         ps: 
-            A matrix containing the values of the (unnormalised) target 
-            PDF evaluated at each of the nodes of the basis for the 
-            current CDF. There are two possible cases: the matrix 
-            contains a single column (if the PDF is the same for all 
-            zs) or a number of columns equal to the number of elements 
-            of zs (if the PDF is different for all zs).
+            An m * n matrix containing the values of the (unnormalised) 
+            Radon-Nikodym derivative of the target measure with respect 
+            to the weight measure, evaluated at each of the nodes of 
+            the basis for the current CDF. There are two possible 
+            cases: the matrix contains a single column (if the PDF is 
+            the same for all zs) or a number of columns equal to the 
+            number of elements of zs (if the PDF is different for all 
+            zs).
         zs:
             An n-dimensional vector containing points in the interval 
             [0, 1].
@@ -86,12 +85,14 @@ class CDF1D(abc.ABC):
         Parameters
         ----------
         ps:
-            A matrix containing the values of the (unnormalised) target 
-            PDF evaluated at each of the nodes of the basis for the 
-            current CDF. There are two possible cases: the matrix 
-            contains a single column (if the PDF is the same for all 
-            zs) or a number of columns equal to the number of elements 
-            of zs (if the PDF is different for all zs).
+            An m * n matrix containing the values of the (unnormalised) 
+            Radon-Nikodym derivative of the target measure with respect 
+            to the weight measure, evaluated at each of the nodes of 
+            the basis for the current CDF. There are two possible 
+            cases: the matrix contains a single column (if the PDF is 
+            the same for all zs) or a number of columns equal to the 
+            number of elements of zs (if the PDF is different for all 
+            zs).
         ls:
             An n-dimensional vector of values in the local domain at 
             which to evaluate the CDF.
@@ -114,11 +115,14 @@ class CDF1D(abc.ABC):
         Parameters
         ----------
         ps:
-            An m * n matrix containing the evaluations of the target 
-            PDF for each value of ls. The number of rows of ps should 
-            be equal to the number of nodes of the CDF basis, and the 
-            number of columns of ps should be equal to the number of 
-            elements of ls.
+            An m * n matrix containing the values of the (unnormalised) 
+            Radon-Nikodym derivative of the target measure with respect 
+            to the weight measure, evaluated at each of the nodes of 
+            the basis for the current CDF. There are two possible 
+            cases: the matrix contains a single column (if the PDF is 
+            the same for all zs) or a number of columns equal to the 
+            number of elements of zs (if the PDF is different for all 
+            zs).
         ls: 
             An n-dimensional vector containing a set of samples from 
             the local domain.
@@ -139,12 +143,11 @@ class CDF1D(abc.ABC):
     
     @staticmethod
     def check_pdf_positive(ps: Tensor) -> None:
-        """Verifies whether a set of evaluations of the target PDF are 
+        """Checks whether a set of evaluations of the target PDF are 
         positive.
-
         """
-        if torch.sum(ps < -EPS) > 0:
-            msg = "Negative PDF values found."
+        if (n_violations := (ps < -EPS).sum()) > 0:
+            msg = f"{n_violations} negative PDF values found."
             warnings.warn(msg)
         return
 
@@ -167,8 +170,8 @@ class CDF1D(abc.ABC):
         None
 
         """
-        if (num_violations := torch.sum(z0s * z1s > EPS)) > 0:
-            msg = (f"Rootfinding: {num_violations} initial intervals "
+        if (n_violations := (z0s * z1s > EPS).sum()) > 0:
+            msg = (f"Rootfinding: {n_violations} initial intervals "
                    + "without roots found.")
             warnings.warn(msg)
         return
@@ -215,8 +218,8 @@ class CDF1D(abc.ABC):
         Returns
         ------
         converged:
-            Boolean that indicates whether the maximum absolute size of
-            either the function or stepsize values is less than the 
+            A boolean that indicates whether the maximum absolute size 
+            of the function values or stepsize values is less than the 
             error tolerance.
         
         """

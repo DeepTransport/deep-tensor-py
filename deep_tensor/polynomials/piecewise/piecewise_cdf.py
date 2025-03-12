@@ -12,7 +12,7 @@ from ...constants import EPS
 from ...tools import check_finite
 
 
-class PiecewiseCDF(CDF1D, abc.ABC):  # TODO: add Piecewise as a parent
+class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
     
     def __init__(self, **kwargs):
         CDF1D.__init__(self, **kwargs)

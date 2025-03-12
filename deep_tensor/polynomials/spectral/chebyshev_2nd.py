@@ -97,8 +97,10 @@ class Chebyshev2nd(Spectral):
         
         thetas = self.l2theta(ls)
         thetas = thetas[:, None]
+        sin_thetas = thetas.sin()
+        sin_thetas[sin_thetas.abs() < EPS] = EPS
 
-        ps = self.norm * torch.sin(thetas * (self.n+1)) / thetas.sin()
+        ps = self.norm * torch.sin(thetas * (self.n+1)) / sin_thetas
 
         # Deal with endpoints
         mask_lhs = (ls + 1.0).abs() < EPS
@@ -112,10 +114,9 @@ class Chebyshev2nd(Spectral):
 
         thetas = self.l2theta(ls)
         thetas = thetas[:, None]
-        ls = ls[:, None]
-
         sin_thetas = thetas.sin()
         sin_thetas[sin_thetas.abs() < EPS] = EPS
+        ls = ls[:, None]
         
         ts = ls.square() - 1.0
         ts[ts > -EPS] = -EPS

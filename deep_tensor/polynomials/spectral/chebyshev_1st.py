@@ -118,8 +118,8 @@ class Chebyshev1st(Spectral):
         sin_thetas[sin_thetas.abs() < EPS] = EPS
 
         dpdls = self.norm * torch.hstack((
-            torch.zeros_like(thetas), 
-            torch.sin(thetas * self.n[1:]) * self.n[1:] / sin_thetas
+            torch.zeros_like(thetas),
+            self.n[1:] * torch.sin(thetas * self.n[1:]) / sin_thetas
         ))
         check_finite(dpdls)
         return dpdls 

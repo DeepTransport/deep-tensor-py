@@ -177,9 +177,9 @@ class TTDIRT():
         xs:
             An n * d matrix containing samples from the approximation 
             domain. If init_samples (samples drawn from the prior) are 
-            available, these are used; otherwise, a set of samples
-            are drawn from the weighting function associated with the 
-            bases for the reference density.     
+            available, these are used; otherwise, a set of samples are 
+            drawn from the weighting function associated with the bases 
+            for the reference density.     
         neglogliks:
             An n-dimensional vector containing the negative of the
             log-likelihood function evaluated at each sample.

@@ -169,6 +169,14 @@ class LagrangeP(Piecewise):
         self._nodes = value 
         return
     
+    @property
+    def cardinality(self):
+        return self.nodes.numel()
+    
+    @property
+    def domain(self):
+        return torch.tensor([-1.0, 1.0])
+    
     @property 
     def mass_R(self) -> Tensor:
         return self._mass_R
@@ -221,9 +229,6 @@ class LagrangeP(Piecewise):
 
         if not torch.all(inside := self.in_domain(ls)):
             warnings.warn("Some points are outside the domain.")
-
-        if not torch.any(inside):
-            return deriv_vals
         
         left_inds = self.get_left_hand_inds(ls[inside])
 

@@ -17,7 +17,13 @@ class Lagrange1(Piecewise):
     Parameters
     ----------
     num_elems:
-        The number of elements to use when forming the polynomials.
+        The number of equisized elements to divide the domain into when 
+        forming the polynomials. 
+
+    Notes
+    -----
+    When using a piecewise linear polynomial basis, the corresponding 
+    (conditional) CDFs are piecewise cubic.
         
     """
 

@@ -64,7 +64,6 @@ class Chebyshev1stTrigoCDF(TrigoCDF, Chebyshev1st):
         return int_pws
     
     def eval_int_basis_newton(self, thetas: Tensor) -> Tensor:
-
         int_pws = self.eval_int_basis(thetas)
         thetas = thetas[:, None]
         derivs = self.norm * torch.cos(thetas * self.n) / torch.pi
