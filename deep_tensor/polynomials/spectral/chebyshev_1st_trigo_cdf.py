@@ -55,16 +55,17 @@ class Chebyshev1stTrigoCDF(TrigoCDF, Chebyshev1st):
             ps = thetas / torch.pi 
             return ps
         
-        ps = torch.hstack((
+        # Cui et al, 2023
+        int_pws = torch.hstack((
             thetas / torch.pi, 
-            torch.sin(thetas * self.n[1:]) 
-                * ((torch.tensor(2.0).sqrt() / torch.pi) / self.n[1:])
+            torch.tensor(2.0).sqrt() / (torch.pi * self.n[1:]) 
+                * torch.sin(thetas * self.n[1:])
         ))
-        return ps
+        return int_pws
     
     def eval_int_basis_newton(self, thetas: Tensor) -> Tensor:
 
-        ps = self.eval_int_basis(thetas)
+        int_pws = self.eval_int_basis(thetas)
         thetas = thetas[:, None]
-        dpdls = torch.cos(thetas * self.n) * self.norm / torch.pi
-        return ps, dpdls
+        derivs = self.norm * torch.cos(thetas * self.n) / torch.pi
+        return int_pws, derivs

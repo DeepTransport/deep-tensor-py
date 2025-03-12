@@ -23,27 +23,16 @@ class BoundedPolyCDF(Chebyshev2ndUnweighted, SpectralCDF):
         return grid
     
     def eval_int_basis(self, ls: Tensor) -> Tensor:
+        """Evaluates the integral of each basis function at each 
+        element in ls.
+        """
         thetas = self.l2theta(ls)
         thetas = thetas[:, None]
-        ps = (thetas * (self.n+1)).cos() * self.norm / (self.n+1)
-        return ps
+        int_ps = (thetas * (self.n+1)).cos() * self.norm / (self.n+1)
+        check_finite(int_ps)
+        return int_ps
     
     def eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
-        
-        thetas = self.l2theta(ls)
-        thetas = thetas[:, None]
-        sin_thetas = thetas.sin()
-        sin_thetas[sin_thetas.abs() < EPS] = EPS
-
-        ps = (thetas * (self.n+1)).cos() * self.norm / (self.n+1)
-        dpdls = (thetas * (self.n+1)).sin() * self.norm / sin_thetas
-        
-        if (mask_lhs := (ls + 1.0).abs() <= EPS).sum() > 0:
-            dpdls[mask_lhs, :] = (self.n+1) * self.norm * torch.pow(-1.0, self.n)
-        
-        if (mask_rhs := (ls - 1.0).abs() <= EPS).sum() > 0:
-            dpdls[mask_rhs, :] = (self.n+1) * self.norm
-
-        check_finite(ps)
-        check_finite(dpdls)
-        return ps, dpdls
+        int_ps = self.eval_int_basis(ls)
+        ps = self.eval_basis(ls)
+        return int_ps, ps

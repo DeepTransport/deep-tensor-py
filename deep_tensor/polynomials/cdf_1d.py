@@ -182,8 +182,11 @@ class CDF1D(abc.ABC):
         """Checks whether the dimensions of the evaluation of the 
         target PDF(s) on the nodes of the basis of the CDF are 
         correct.
-        
         """
+
+        if ps.ndim != 2:
+            msg = "Input PDF must be two-dimensional."
+            raise Exception(msg)
         
         n_k, n_ps = ps.shape
 

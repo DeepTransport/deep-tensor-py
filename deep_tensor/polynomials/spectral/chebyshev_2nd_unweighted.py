@@ -4,6 +4,7 @@ from torch.distributions.beta import Beta
 
 from .spectral import Spectral
 from ...constants import EPS
+from ...tools import check_finite
 
 
 class Chebyshev2ndUnweighted(Spectral):
@@ -84,15 +85,18 @@ class Chebyshev2ndUnweighted(Spectral):
 
         thetas = self.l2theta(ls)
         thetas = thetas[:, None]
+        sin_thetas = thetas.sin()
+        sin_thetas[sin_thetas.abs() < EPS] = EPS
 
-        ps = (thetas * (self.n+1)).sin() * self.norm / thetas.sin()
+        ps = (thetas * (self.n+1)).sin() * self.norm / sin_thetas
 
-        if (mask_lhs := torch.abs(ls+1) < EPS).sum() > 0:
+        if (mask_lhs := (ls + 1.0).abs() < EPS).sum() > 0:
             ps[mask_lhs, :] = (self.n+1) * self.norm * torch.pow(-1.0, self.n)
         
-        if (mask_rhs := torch.abs(ls-1) < EPS).sum() > 0:
+        if (mask_rhs := (ls - 1.0).abs() < EPS).sum() > 0:
             ps[mask_rhs, :] = (self.n+1) * self.norm
         
+        check_finite(ps)
         return ps
 
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:

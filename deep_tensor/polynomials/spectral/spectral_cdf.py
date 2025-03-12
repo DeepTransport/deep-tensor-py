@@ -99,17 +99,8 @@ class SpectralCDF(CDF1D, abc.ABC):
         return
     
     def eval_int(self, coefs: Tensor, ls: Tensor) -> Tensor:
-        
-        basis_vals = self.eval_int_basis(ls)
-
-        if coefs.shape[1] == 1:
-            fs = basis_vals @ coefs
-            return fs.flatten()
-
-        if coefs.shape[1] != ls.numel():
-            raise Exception("Dimension mismatch.")
-        
-        fs = torch.sum(basis_vals * coefs.T, dim=1)
+        int_ps = self.eval_int_basis(ls)
+        fs = (int_ps * coefs.T).sum(dim=1)
         return fs
     
     def eval_int_search(
@@ -143,56 +134,34 @@ class SpectralCDF(CDF1D, abc.ABC):
     
     def eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
 
-        if ps.ndim == 1:
-            ps = ps[:, None]
-
         self.check_pdf_positive(ps)
         self.check_pdf_dims(ps, ls)
         
         coef = self.node2basis @ ps
+
+        # Compute value of CDF at leftmost node and normalising constant
         poly_base = self.cdf_basis2node[0] @ coef
-        # Normalising constant
-        poly_norm = (self.cdf_basis2node[-1] - self.cdf_basis2node[0]) @ coef
+        poly_norm = self.cdf_basis2node[-1] @ coef - poly_base
 
-        mask_left = ls < self.sampling_nodes[0]
-        mask_right = ls > self.sampling_nodes[-1]
-        mask_inside = ~(mask_left | mask_right)
-
-        zs = torch.zeros_like(ls)
-
-        if torch.any(mask_inside):
-            if ps.shape[1] == 1:
-                zs[mask_inside] = self.eval_int(coef, ls[mask_inside]) - poly_base
-            else:
-                tmp = self.eval_int(coef[:, mask_inside], ls[mask_inside])
-                zs[mask_inside] = tmp.flatten() - poly_base[mask_inside].flatten()
-        
-        if torch.any(mask_right):
-            if ps.shape[1] == 1:
-                zs[mask_right] = poly_norm 
-            else:
-                zs[mask_right] = poly_norm[mask_right]
-
-        zs = zs / poly_norm.flatten()
+        zs = (self.eval_int(coef, ls) - poly_base) / poly_norm
         return zs
 
     def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
-        
         coef = self.node2basis @ ps 
-        base = self.cdf_basis2node[0] @ coef
-
-        zs = self.eval_int(coef, ls) - base
+        poly_base = self.cdf_basis2node[0] @ coef
+        zs = self.eval_int(coef, ls) - poly_base
         return zs
     
     def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
-
-        if ps.ndim == 1:
-            ps = ps[:, None]
         
         self.check_pdf_positive(ps)
         self.check_pdf_dims(ps, zs)
         
+        # Coefficients of each basis function for each PDF
         coefs = self.node2basis @ ps
+
+        # Evaluate sum of integrals of each basis function at each 
+        # point on each grid for each PDF
         cdf_poly_nodes = self.cdf_basis2node @ coefs
         cdf_poly_base = cdf_poly_nodes[0]
         cdf_poly_nodes = cdf_poly_nodes - cdf_poly_base
@@ -230,7 +199,7 @@ class SpectralCDF(CDF1D, abc.ABC):
             
             dls = -zs / dzs 
             check_finite(dls)
-            dls[torch.isinf(dls)] = 0.0
+            dls[torch.isnan(dls)] = 0.0
             ls += dls 
             ls = torch.clamp(ls, l0s, l1s)
 
@@ -258,7 +227,7 @@ class SpectralCDF(CDF1D, abc.ABC):
 
             dls = -z1s * (l1s - l0s) / (z1s - z0s)
             check_finite(dls)
-            dls[torch.isinf(dls)] = 0.0
+            dls[torch.isnan(dls)] = 0.0
             ls = l1s + dls
 
             zs = self.eval_int_search(coefs, cdf_poly_base, zs_cdf, ls)
@@ -276,4 +245,3 @@ class SpectralCDF(CDF1D, abc.ABC):
                + f"{self.num_regula_falsi} iterations.")
         warnings.warn(msg)
         return ls
-       
