@@ -1,3 +1,4 @@
+from numpy import ndarray
 import torch
 from torch import Tensor
 
@@ -22,6 +23,9 @@ class BoundedDomain(LinearDomain):
         
         if bounds is None:
             bounds = torch.tensor([-1.0, 1.0])
+        
+        if isinstance(bounds, list) or isinstance(bounds, ndarray):
+            bounds = torch.tensor(bounds)
 
         self.check_bounds(bounds)
         self.bounds = bounds.double()

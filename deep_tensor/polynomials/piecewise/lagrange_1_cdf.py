@@ -122,7 +122,7 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
 
         return CDFDataLagrange1(n_cdfs, poly_coef, cdf_poly_grid, poly_norm) 
 
-    def eval_int_lag_local(
+    def eval_int_local(
         self, 
         cdf_data: CDFDataLagrange1,
         inds_left: Tensor,
@@ -139,7 +139,7 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         zs = zs_left + (dls_mat * coefs).sum(dim=1)
         return zs
 
-    def eval_int_lag_local_deriv(
+    def eval_int_local_deriv(
         self, 
         cdf_data: CDFDataLagrange1, 
         inds_left: Tensor,
@@ -147,7 +147,7 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
     ) -> Tuple[Tensor, Tensor]:
         
         j_inds = torch.arange(cdf_data.n_cdfs)
-        zs = self.eval_int_lag_local(cdf_data, inds_left, ls)
+        zs = self.eval_int_local(cdf_data, inds_left, ls)
 
         dls = (ls - self.grid[inds_left])[:, None]
         dls_mat = torch.hstack((torch.ones_like(dls), dls, dls**2))

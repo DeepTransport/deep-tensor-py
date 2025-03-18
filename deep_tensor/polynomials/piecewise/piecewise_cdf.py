@@ -19,7 +19,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_int_lag_local(
+    def eval_int_local(
         self, 
         cdf_data: CDFData,
         inds_left: Tensor,
@@ -50,7 +50,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_int_lag_local_deriv(
+    def eval_int_local_deriv(
         self, 
         cdf_data: CDFData,
         inds_left: Tensor,
@@ -107,20 +107,18 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         """
         return
         
-    def eval_int_lag(self, cdf_data: CDFData, ls: Tensor) -> Tensor:
+    def eval_int(self, cdf_data: CDFData, ls: Tensor) -> Tensor:
 
         if cdf_data.n_cdfs > 1 and cdf_data.n_cdfs != ls.numel():
             raise Exception("Data mismatch.")
 
-        zs = torch.zeros_like(ls)
-
         inds_left = torch.sum(self.grid < ls[:, None], dim=1) - 1
         inds_left = torch.clamp(inds_left, 0, self.num_elems-1)
         
-        zs = self.eval_int_lag_local(cdf_data, inds_left, ls)
+        zs = self.eval_int_local(cdf_data, inds_left, ls)
         return zs
 
-    def eval_int_lag_local_search(
+    def eval_int_local_search(
         self, 
         data: CDFData,
         inds_left: Tensor, 
@@ -155,10 +153,10 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
             the values of zs_cdf.
 
         """
-        dzs = self.eval_int_lag_local(data, inds_left, ls) - zs_cdf
+        dzs = self.eval_int_local(data, inds_left, ls) - zs_cdf
         return dzs
     
-    def eval_int_lag_local_newton(
+    def eval_int_local_newton(
         self, 
         cdf_data: CDFData,
         inds_left: Tensor, 
@@ -197,7 +195,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
             unnormalised CDF evaluated at each element in ls.
 
         """
-        zs, gradzs = self.eval_int_lag_local_deriv(cdf_data, inds_left, ls)
+        zs, gradzs = self.eval_int_local_deriv(cdf_data, inds_left, ls)
         dzs = zs - zs_cdf
         return dzs, gradzs
 
@@ -206,7 +204,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         self.check_pdf_positive(ps)
         cdf_data = self.pdf2cdf(ps)
 
-        zs = self.eval_int_lag(cdf_data, ls) / cdf_data.poly_norm
+        zs = self.eval_int(cdf_data, ls) / cdf_data.poly_norm
         zs = torch.clamp(zs, EPS, 1.0-EPS)
         return zs
     
@@ -250,21 +248,23 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         
         """
 
-        z0s = self.eval_int_lag_local_search(cdf_data, inds_left, zs_cdf, l0s)
-        z1s = self.eval_int_lag_local_search(cdf_data, inds_left, zs_cdf, l1s)
+        z0s = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, l0s)
+        z1s = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, l1s)
         self.check_initial_intervals(z0s, z1s)
 
         # Carry out the first iteration using the regula falsi method
         dls = -z1s * (l1s - l0s) / (z1s - z0s)
+        dls[torch.isinf(dls)] = 0.0
         dls[torch.isnan(dls)] = 0.0
         ls = l1s + dls
 
         for _ in range(self.num_newton):  
             
-            zs, dzs = self.eval_int_lag_local_newton(cdf_data, inds_left, zs_cdf, ls)
+            zs, dzs = self.eval_int_local_newton(cdf_data, inds_left, zs_cdf, ls)
             
             dls = -zs / dzs 
             check_finite(dls)
+            dls[torch.isinf(dls)] = 0.0
             dls[torch.isnan(dls)] = 0.0
             ls += dls 
             ls = torch.clamp(ls, l0s, l1s)
@@ -272,8 +272,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
             if self.converged(zs, dls):
                 return ls
         
-        msg = "Newton's method did not converge. Trying regula falsi..."
-        warnings.warn(msg)
+        self.print_unconverged(zs, dls, "Newton's method")
         return self.regula_falsi(cdf_data, inds_left, zs_cdf, l0s, l1s)
     
     def regula_falsi(
@@ -316,18 +315,19 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         
         """
         
-        z0s = self.eval_int_lag_local_search(cdf_data, inds_left, zs_cdf, l0s)
-        z1s = self.eval_int_lag_local_search(cdf_data, inds_left, zs_cdf, l1s)
+        z0s = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, l0s)
+        z1s = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, l1s)
         self.check_initial_intervals(z0s, z1s)
 
         for _ in range(self.num_regula_falsi):
 
             dls = -z1s * (l1s - l0s) / (z1s - z0s)
             check_finite(dls)
+            dls[torch.isinf(dls)] = 0.0
             dls[torch.isnan(dls)] = 0.0
             ls = l1s + dls
 
-            zs = self.eval_int_lag_local_search(cdf_data, inds_left, zs_cdf, ls)
+            zs = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, ls)
 
             if self.converged(zs, dls):
                 return ls 
@@ -338,9 +338,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
             z0s[zs < 0] = zs[zs < 0]
             z1s[zs > 0] = zs[zs > 0]
             
-        msg = ("Regula falsi did not converge in "
-               + f"{self.num_regula_falsi} iterations.")
-        warnings.warn(msg)
+        self.print_unconverged(zs, dls, "Regula falsi")
         return ls
     
     def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
@@ -350,7 +348,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         self.check_pdf_dims(ps, ls)
         
         cdf_data = self.pdf2cdf(ps)
-        zs = self.eval_int_lag(cdf_data, ls)
+        zs = self.eval_int(cdf_data, ls)
         return zs
     
     def invert_cdf_local(

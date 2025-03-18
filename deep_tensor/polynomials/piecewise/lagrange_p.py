@@ -127,20 +127,20 @@ class LagrangeP(Piecewise):
 
         n_nodes = self.num_elems * (self.local.cardinality - 1) + 1
 
-        self._nodes = self._compute_nodes(n_nodes)
+        self.nodes = self._compute_nodes(n_nodes)
 
         unweighed_mass = torch.zeros((self.cardinality, self.cardinality))
         self.jac = self.elem_size / (self.local.domain[1] - self.local.domain[0])
-        self._int_W = torch.zeros(self.cardinality)
+        self.int_W = torch.zeros(self.cardinality)
 
         for i in range(self.num_elems):
             ind = (torch.arange(self.local.cardinality) 
                    + i * (self.local.cardinality-1))
             unweighed_mass[ind[:, None], ind[None, :]] += self.local.mass * self.jac
-            self._int_W[ind] += self.local.weights * self.jac
+            self.int_W[ind] += self.local.weights * self.jac
 
         mass = unweighed_mass / self.domain_size
-        self._mass_R = torch.linalg.cholesky(mass).T
+        self.mass_R = torch.linalg.cholesky(mass).T
 
         # map the function value y to each local element
         j = torch.arange(self.local.cardinality-1, n_nodes, self.local.cardinality-1)

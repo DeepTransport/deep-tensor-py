@@ -205,8 +205,7 @@ class SpectralCDF(CDF1D, abc.ABC):
             if self.converged(zs, dls):
                 return ls
         
-        msg = "Newton's method did not converge. Trying regula falsi..."
-        warnings.warn(msg)
+        self.print_unconverged(zs, dls, "Newton's method")
         return self.regula_falsi(coefs, cdf_poly_base, zs_cdf, l0s, l1s)
     
     def regula_falsi(
@@ -240,7 +239,5 @@ class SpectralCDF(CDF1D, abc.ABC):
             z0s[zs < 0] = zs[zs < 0]
             z1s[zs > 0] = zs[zs > 0]
             
-        msg = ("Regula falsi did not converge in "
-               + f"{self.num_regula_falsi} iterations.")
-        warnings.warn(msg)
+        self.print_unconverged(zs, dls, "Regula falsi")
         return ls

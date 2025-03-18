@@ -226,3 +226,14 @@ class CDF1D(abc.ABC):
         error_fs = fs.abs().max()
         error_dls = dls.abs().max()
         return torch.min(error_fs, error_dls) < self.error_tol
+    
+    def print_unconverged(self, fs: Tensor, dls: Tensor, method: str) -> None:
+        
+        error_fs = fs.abs()
+        error_dls = dls.abs()
+        
+        unconverged = (torch.min(error_fs, error_dls) < self.error_tol)
+        msg = (f"{method} did not converge "
+               + f"({unconverged.sum()} unconverged samples).")
+        warnings.warn(msg)
+        return None

@@ -11,7 +11,7 @@ from .input_data import InputData
 from .tt_data import TTData
 from ..options import TTOptions
 from ..polynomials import Basis1D, Piecewise, Spectral
-from ..tools import deim, maxvol
+from ..tools import check_finite, deim, maxvol
 from ..tools.printing import cross_info
 
 
@@ -539,6 +539,7 @@ class TTFunc():
             ls = torch.hstack((ls_0, ls_1, ls_2))
         
         H = self.target_func(ls).reshape(r_p, n_k, r_k)
+        check_finite(H)
 
         # TODO: could be a separate method eventually
         if isinstance(poly, Spectral): 
@@ -579,7 +580,7 @@ class TTFunc():
 
         if error_tol is None: 
             error_tol = self.options.local_tol
-            
+        
         U, s, Vh = torch.linalg.svd(H, full_matrices=False)
             
         energies = torch.flip(s**2, dims=(0,)).cumsum(dim=0)
