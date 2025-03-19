@@ -253,8 +253,8 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
 
         # Carry out the first iteration using the regula falsi method
         dls = -z1s * (l1s - l0s) / (z1s - z0s)
-        dls[torch.isinf(dls)] = 0.0
-        dls[torch.isnan(dls)] = 0.0
+        dls[dls.isinf()] = 0.0
+        dls[dls.isnan()] = 0.0
         ls = l1s + dls
 
         for _ in range(self.num_newton):  
@@ -263,8 +263,8 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
             
             dls = -zs / dzs 
             check_finite(dls)
-            dls[torch.isinf(dls)] = 0.0
-            dls[torch.isnan(dls)] = 0.0
+            dls[dls.isinf()] = 0.0
+            dls[dls.isnan()] = 0.0
             ls += dls 
             ls = torch.clamp(ls, l0s, l1s)
 
@@ -277,11 +277,11 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
     def regula_falsi(
         self, 
         cdf_data: CDFData, 
-        inds_left: torch.Tensor,
-        zs_cdf: torch.Tensor, 
-        l0s: torch.Tensor, 
-        l1s: torch.Tensor
-    ) -> torch.Tensor:
+        inds_left: Tensor,
+        zs_cdf: Tensor, 
+        l0s: Tensor, 
+        l1s: Tensor
+    ) -> Tensor:
         """Inverts a CDF using the regula falsi method.
         
         Parameters
@@ -322,8 +322,8 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
 
             dls = -z1s * (l1s - l0s) / (z1s - z0s)
             check_finite(dls)
-            dls[torch.isinf(dls)] = 0.0
-            dls[torch.isnan(dls)] = 0.0
+            dls[dls.isinf()] = 0.0
+            dls[dls.isnan()] = 0.0
             ls = l1s + dls
 
             zs = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, ls)
