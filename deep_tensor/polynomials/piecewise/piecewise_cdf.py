@@ -1,6 +1,5 @@
 import abc
 from typing import Tuple
-import warnings
 
 import torch
 from torch import Tensor
