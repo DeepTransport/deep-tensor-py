@@ -103,15 +103,29 @@ class Tempering1(SingleBeta):
             return 
 
         beta = self.min_beta
-        ess = compute_ess_ratio(-beta*neglogliks)
-        while ess > self.ess_tol_init:
+        while True:
+            log_ratios = -beta*self.beta_factor*neglogliks
+            if compute_ess_ratio(log_ratios) < self.ess_tol:
+                beta = torch.minimum(torch.tensor(1.0), beta)
+                self.init_beta = beta
+                return
             beta *= self.beta_factor
-            ess = compute_ess_ratio(-beta*neglogliks)
-
-        beta = torch.minimum(torch.tensor(1.0), beta)
-        ess = compute_ess_ratio(-beta*neglogliks)
-        self.init_beta = beta
-        return
+    
+    @staticmethod
+    def compute_weights(
+        method,
+        beta_p, 
+        beta, 
+        neglogliks, 
+        neglogpris, 
+        neglogfxs
+    ) -> Tensor:
+        
+        if method == "aratio":
+            return -(beta-beta_p) * neglogliks
+        elif method == "eratio":
+            return -beta*neglogliks - neglogpris + neglogfxs
+        raise Exception("Unknown ratio method.")
 
     def adapt_density(
         self, 
@@ -129,23 +143,25 @@ class Tempering1(SingleBeta):
             return
             
         beta_p = self.betas[self.n_layers-1]
-        beta = torch.maximum(beta_p, self.min_beta)
+        beta = beta_p * self.beta_factor
 
-        if method == "eratio":
-            log_weights = -beta*neglogliks - neglogpris + neglogfxs
-            while compute_ess_ratio(log_weights) > self.ess_tol:
-                beta *= self.beta_factor
-                log_weights = -beta*neglogliks - neglogpris + neglogfxs
+        while True:
 
-        elif method == "aratio":
-            log_weights = -(beta - beta_p)*neglogliks
-            while compute_ess_ratio(log_weights) > self.ess_tol:
-                beta *= self.beta_factor
-                log_weights = -(beta - beta_p)*neglogliks
-
-        beta = torch.minimum(beta, torch.tensor(1.0))
-        self.betas = torch.cat((self.betas, beta.reshape(1)))
-        return
+            log_weights = Tempering1.compute_weights(
+                method, 
+                beta_p, 
+                beta * self.beta_factor, 
+                neglogliks, 
+                neglogpris, 
+                neglogfxs
+            )
+            
+            if compute_ess_ratio(log_weights) < self.ess_tol:
+                beta = torch.minimum(beta, torch.tensor(1.0))
+                self.betas = torch.cat((self.betas, beta.reshape(1)))
+                return
+            
+            beta *= self.beta_factor
 
     def get_ratio_func(
         self, 
@@ -162,15 +178,19 @@ class Tempering1(SingleBeta):
         if self.n_layers == 0:
             neglogratios = beta*neglogliks + neglogpris
             return neglogratios
-        
+
+        beta_p = self.betas[self.n_layers-1]
+
+        log_weights = Tempering1.compute_weights(
+            method, 
+            beta_p, 
+            beta, 
+            neglogliks, 
+            neglogpris, 
+            neglogfxs
+        )
         neglogrefs = -reference.log_joint_pdf(rs)[0]
-
-        if method == "eratio":
-            neglogratios = beta*neglogliks + neglogpris + neglogrefs - neglogfxs
-        elif method == "aratio":
-            beta_p = self.betas[self.n_layers-1]
-            neglogratios = (beta-beta_p) * neglogliks + neglogrefs
-
+        neglogratios = -log_weights + neglogrefs
         return neglogratios
     
     def ratio_func(
