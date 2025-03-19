@@ -6,7 +6,6 @@ from torch import Tensor
 from .chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
 from .legendre import Legendre
 from .spectral_cdf import SpectralCDF
-from ...constants import EPS
 from ...tools import check_finite
 
 
@@ -19,7 +18,7 @@ class BoundedPolyCDF(Chebyshev2ndUnweighted, SpectralCDF):
 
     def grid_measure(self, n: int) -> Tensor:
         grid = torch.linspace(*self.domain, n)
-        grid = torch.clamp(grid, self.domain[0]+EPS, self.domain[-1]-EPS)
+        # grid = torch.clamp(grid, self.domain[0]+EPS, self.domain[-1]-EPS)
         return grid
     
     def eval_int_basis(self, ls: Tensor) -> Tensor:
