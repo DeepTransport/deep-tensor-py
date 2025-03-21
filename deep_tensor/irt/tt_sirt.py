@@ -31,8 +31,11 @@ class TTSIRT(AbstractIRT):
         points will be used as a starting point for the new FTT.
     options:
         A set of options that control the construction of the FTT.
+    input_data:
+        An object that holds data used to construct and evaluate the 
+        quality of the FTT approximation to the target function.
     tt_data:
-        A structure that holds information about the FTT, including the 
+        An object that holds information about the FTT, including the 
         cores and interpolation points.
     defensive:
         The defensive parameter, $\tau$, which ensures that the tails
