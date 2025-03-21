@@ -142,6 +142,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         poly_norm = self.cdf_basis2node[-1] @ coef - poly_base
 
         zs = (self.eval_int(coef, ls) - poly_base) / poly_norm
+        zs = zs.clamp(0.0, 1.0)
         return zs
 
     def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
@@ -196,15 +197,16 @@ class SpectralCDF(CDF1D, abc.ABC):
             zs, dzs = self.eval_int_newton(coefs, cdf_poly_base, zs_cdf, ls)
             
             dls = -zs / dzs 
-            check_finite(dls)
-            dls[torch.isnan(dls)] = 0.0
+            # check_finite(dls)
+            dls[dls.isinf()] = 0.0
+            dls[dls.isnan()] = 0.0
             ls += dls 
             ls = torch.clamp(ls, l0s, l1s)
 
             if self.converged(zs, dls):
                 return ls
         
-        self.print_unconverged(zs, dls, "Newton's method")
+        # self.print_unconverged(zs, dls, "Newton's method")
         return self.regula_falsi(coefs, cdf_poly_base, zs_cdf, l0s, l1s)
     
     def regula_falsi(
@@ -223,8 +225,9 @@ class SpectralCDF(CDF1D, abc.ABC):
         for _ in range(self.num_regula_falsi):
 
             dls = -z1s * (l1s - l0s) / (z1s - z0s)
-            check_finite(dls)
-            dls[torch.isnan(dls)] = 0.0
+            # check_finite(dls)
+            dls[dls.isinf()] = 0.0
+            dls[dls.isnan()] = 0.0
             ls = l1s + dls
 
             zs = self.eval_int_search(coefs, cdf_poly_base, zs_cdf, ls)

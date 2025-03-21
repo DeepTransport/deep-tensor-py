@@ -101,19 +101,23 @@ class TTDIRT():
         self.prev_approx = prev_approx
         self.pre_sample_size = (self.dirt_options.num_samples 
                                 + self.dirt_options.num_debugs)
-
+        
         if self.init_samples is not None:
             if self.init_samples.shape[0] < self.pre_sample_size:
                 msg = ("More initialisation samples are required. "
                        + f"Need {self.pre_sample_size}, "
                        + f"got {self.init_samples.shape[0]}.")
                 raise Exception(msg)
-
+        
         self.irts: dict[int, TTSIRT] = {}
         self.num_eval = 0
         self.log_z = 0.0
 
-        bases_list = self._build_bases(self.bases, self.reference)
+        bases_list = [
+            ApproxBases(self.bases.polys, self.bases.domains, self.bases.dim),
+            ApproxBases(self.bases.polys, self.reference.domain, self.bases.dim)
+        ]
+
         self._build(func, bases_list)
         return
 
@@ -125,41 +129,6 @@ class TTDIRT():
     def n_layers(self, value):
         self.bridge.n_layers = value 
         return
-
-    def _build_bases(
-        self, 
-        bases: ApproxBases, 
-        reference: Reference
-    ) -> list[ApproxBases]:
-        """Returns a list of bases for the first and second levels of 
-        DIRT construction.
-
-        Parameters
-        ----------
-        bases:
-            An ApproxBases object for the approximation domain.
-        reference:
-            The reference density.
-
-        Returns
-        -------
-        bases_list:
-            A list of the bases for the first and second levels of DIRT
-            construction.
-        
-        """
-
-        if not isinstance(bases, ApproxBases):
-            msg = ("Currently, only a set of ApproxBases can be passed "
-                   + "into 'build_bases()'.")
-            raise NotImplementedError(msg)
-
-        bases_list = [
-            ApproxBases(bases.polys, bases.domains, bases.dim),
-            ApproxBases(bases.polys, reference.domain, bases.dim)
-        ]
-
-        return bases_list
 
     def _initialise(
         self, 

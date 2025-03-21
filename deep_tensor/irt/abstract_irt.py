@@ -456,6 +456,8 @@ class AbstractIRT(abc.ABC):
         indices = self._get_transform_indices(xs.shape[1], direction)
         ls = self.approx.bases.approx2local(xs, indices)[0]
         zs = self._eval_rt_local(ls, direction)
+        if zs.min() < 0.0:
+            pass
         return zs
     
     def eval_irt(

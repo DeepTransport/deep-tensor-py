@@ -4,7 +4,6 @@ import torch
 from torch import Tensor
 
 from ..basis_1d import Basis1D
-from ...constants import EPS
 from ...tools import check_finite
 
 
@@ -101,8 +100,7 @@ class Spectral(Basis1D, abc.ABC):
             of theta (theta = arccos(l)).
         
         """
+        ls = ls.clamp(-1.0, 1.0)
         thetas = ls.acos()
-        thetas[torch.abs(ls + 1.0) <= EPS] = torch.pi
-        thetas[torch.abs(ls - 1.0) <= EPS] = 0.0
         check_finite(thetas)
         return thetas

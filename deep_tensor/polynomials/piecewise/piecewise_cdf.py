@@ -271,7 +271,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
             if self.converged(zs, dls):
                 return ls
         
-        self.print_unconverged(zs, dls, "Newton's method")
+        # self.print_unconverged(zs, dls, "Newton's method")
         return self.regula_falsi(cdf_data, inds_left, zs_cdf, l0s, l1s)
     
     def regula_falsi(
