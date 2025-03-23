@@ -30,3 +30,4 @@ from .polynomials import (
     construct_cdf
 )
 from .references import GaussianReference, UniformReference
+from .tools import run_mcmc
