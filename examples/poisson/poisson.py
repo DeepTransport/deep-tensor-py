@@ -11,9 +11,10 @@ from dolfinx.fem import (
     locate_dofs_geometrical
 )
 from dolfinx.fem.petsc import LinearProblem
-from dolfinx.mesh import create_unit_square
+from dolfinx.mesh import create_unit_square, locate_entities
 from dolfinx.plot import vtk_mesh
 from ufl import (
+    Measure, 
     TestFunction, 
     TrialFunction, 
     dot, 
@@ -77,22 +78,22 @@ class DiffusionSolver():
         return
 
     @staticmethod
-    def side_boundary_indicator(x: np.ndarray) -> bool:
+    def side_boundary_indicator(x: np.ndarray) -> np.ndarray[bool]:
         """Returns a boolean which indicates whether a point is on the 
         left- or right-hand side of the domain.
         """
-        return np.logical_or(np.isclose(x[0], 0), np.isclose(x[0], 1))
+        return np.isclose(x[0], 0.0) | np.isclose(x[0], 1.0)
 
     @staticmethod
-    def side_boundaries(x: np.ndarray) -> float:
+    def side_boundaries(x: np.ndarray) -> np.ndarray:
         """Ensures that the value of the solution is equal to 1 on the
         left-hand boundary and 0 on the right-hand boundary.
         """
         return 1.0 - x[0]
     
-    def kappa(self, xs: np.ndarray, ks: np.ndarray) -> float:
-        """Returns the value of the diffusion coefficient at a given 
-        point in the domain.
+    def kappa(self, xs: np.ndarray, ks: np.ndarray) -> np.ndarray[bool]:
+        """Returns the value of the diffusion coefficient at a set of 
+        points in the domain.
 
         Parameters
         ----------
@@ -142,20 +143,39 @@ uh = solver.solve(ks)
 t1 = time.time()
 print(t1-t0)
 
-# V2 = functionspace(mesh, ("Lagrange", 2))
-# uex = Function(V2)
-# uex.interpolate(u_exact)
-# error_L2 = assemble_scalar(form((uh - uex)**2 * dx))
-# error_L2 = np.sqrt(MPI.COMM_WORLD.allreduce(error_L2, op=MPI.SUM))
+# Locate cell indices within domain (function omega_0) returns booleans that indicate whether points are in the domain
+# cells_0 = locate_entities(solver.mesh, solver.mesh.topology.dim, Omega_0)
+# dx_equivalent = Measure("dx", domain=solver.mesh, subdomain_id=cells_0)
 
-# u_vertex_values = uh.x.array
-# uex_1 = Function(V)
-# uex_1.interpolate(uex)
-# u_ex_vertex_values = uex_1.x.array
-# error_max = np.max(np.abs(u_vertex_values - u_ex_vertex_values))
-# error_max = MPI.COMM_WORLD.allreduce(error_max, op=MPI.MAX)
-# print(f"Error_L2 : {error_L2:.2e}")
-# print(f"Error_max : {error_max:.2e}")
+import dolfinx
+
+def inner_square(x):
+    return x[0] < 0.5
+
+tdim = solver.mesh.topology.dim
+cell_map = solver.mesh.topology.index_map(tdim)
+num_cells = cell_map.size_local + cell_map.num_ghosts
+all_cells = np.arange(num_cells, dtype=np.int32)
+
+marker = np.ones(num_cells, dtype=np.int32)
+
+t0 = time.time()
+marker[dolfinx.mesh.locate_entities(solver.mesh, tdim, inner_square)] = 2
+cell_tag = dolfinx.mesh.meshtags(solver.mesh, tdim, np.arange(num_cells, dtype=np.int32), marker)
+
+dx_alt = Measure("dx", domain=solver.mesh, subdomain_data=cell_tag)
+
+# dx_alt = Measure("dx", domain=solver.mesh)
+area = uh * dx_alt
+compiled_area = dolfinx.fem.form(area)
+local_area = dolfinx.fem.assemble_scalar(compiled_area)
+global_area = solver.mesh.comm.allreduce(local_area, op=MPI.SUM)
+# print(global_area)
+
+t1 = time.time()
+print(t1-t0)
+
+m = 9  # From Cui and Dolgov...
 
 pv.start_xvfb()
 
