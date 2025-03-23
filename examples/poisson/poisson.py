@@ -6,12 +6,14 @@ from dolfinx import default_scalar_type
 from dolfinx.fem import (
     Constant, 
     Function, 
+    assemble_scalar, 
     dirichletbc, 
+    form, 
     functionspace, 
     locate_dofs_geometrical
 )
 from dolfinx.fem.petsc import LinearProblem
-from dolfinx.mesh import create_unit_square, locate_entities
+from dolfinx.mesh import create_unit_square, locate_entities, meshtags
 from dolfinx.plot import vtk_mesh
 from ufl import (
     Measure, 
@@ -33,7 +35,8 @@ class DiffusionSolver():
         nx: int = 64, 
         ny: int = 64,
         dim_k: int = 11,
-        nu: int = 2
+        nu: int = 2,
+        m: int = 9
     ):
         """Initialises diffusion equation solver.
 
@@ -47,6 +50,8 @@ class DiffusionSolver():
             Dimension of parametrisation for diffusion coefficient.
         nu: 
             Component of parametrisation for diffusion coefficient.
+        m:
+            The number of observations.
             
         """
         
@@ -75,6 +80,10 @@ class DiffusionSolver():
         self.etas = (ks ** -(nu + 1.0)) / sum_ks
         self.rho_0s = ks - 0.5 * (taus**2 + taus)
         self.rho_1s = taus - self.rho_0s
+
+        # Define number of observations
+        self.m = m
+        self.build_obs_operator()
         return
 
     @staticmethod
@@ -90,6 +99,50 @@ class DiffusionSolver():
         left-hand boundary and 0 on the right-hand boundary.
         """
         return 1.0 - x[0]
+    
+    def build_obs_operator(self) -> None:
+        """Builds the integral operators used to form the observation 
+        operator.
+        """
+
+        eps = 1e-8  # TODO: move
+
+        dx = 1 / (np.sqrt(self.m) + 1)
+
+        tdim = self.mesh.topology.dim
+        cell_map = self.mesh.topology.index_map(tdim)
+        n_cells = cell_map.size_local + cell_map.num_ghosts
+        # all_cells = np.arange(num_cells, dtype=np.int32)
+        self.dxs = {}
+
+        for i in range(self.m):
+
+            row, col = i // int(np.sqrt(self.m)), i % int(np.sqrt(self.m))
+            x0, x1 = dx * col, dx * (col+2)
+            y0, y1 = dx * row, dx * (row+2)
+            def in_square(x):
+                return (x0-eps < x[0]) & (x[0] < x1+eps) & (y0-eps < x[1]) & (x[1] < y1+eps)
+
+            marker = np.zeros(n_cells, dtype=np.int32)
+            marker[locate_entities(self.mesh, tdim, in_square)] = 1
+            cell_tag = meshtags(self.mesh, tdim, np.arange(n_cells, dtype=np.int32), marker)
+
+            self.dxs[i] = Measure("dx", domain=self.mesh, subdomain_data=cell_tag)
+
+        return
+    
+    def get_obs(self, uh: Function) -> np.ndarray:
+        """TODO: write docstring."""
+        
+        obs = np.zeros(self.m)
+        for i in range(self.m):
+            area = uh * self.dxs[i](1)
+            local_area = assemble_scalar(form(area))
+            global_area = self.mesh.comm.allreduce(local_area, op=MPI.SUM)
+            # print(global_area)
+            obs[i] = global_area
+        
+        return obs
     
     def kappa(self, xs: np.ndarray, ks: np.ndarray) -> np.ndarray[bool]:
         """Returns the value of the diffusion coefficient at a set of 
@@ -136,46 +189,15 @@ class DiffusionSolver():
 
 solver = DiffusionSolver()
 
-ks = 2.0 * np.sqrt(3.0) * np.random.rand(solver.dim_k) - np.sqrt(3.0)
+for i in range(1):
 
-t0 = time.time()
-uh = solver.solve(ks)
-t1 = time.time()
-print(t1-t0)
+    ks = 2.0 * np.sqrt(3.0) * np.random.rand(solver.dim_k) - np.sqrt(3.0)
 
-# Locate cell indices within domain (function omega_0) returns booleans that indicate whether points are in the domain
-# cells_0 = locate_entities(solver.mesh, solver.mesh.topology.dim, Omega_0)
-# dx_equivalent = Measure("dx", domain=solver.mesh, subdomain_id=cells_0)
-
-import dolfinx
-
-def inner_square(x):
-    return x[0] < 0.5
-
-tdim = solver.mesh.topology.dim
-cell_map = solver.mesh.topology.index_map(tdim)
-num_cells = cell_map.size_local + cell_map.num_ghosts
-all_cells = np.arange(num_cells, dtype=np.int32)
-
-marker = np.ones(num_cells, dtype=np.int32)
-
-t0 = time.time()
-marker[dolfinx.mesh.locate_entities(solver.mesh, tdim, inner_square)] = 2
-cell_tag = dolfinx.mesh.meshtags(solver.mesh, tdim, np.arange(num_cells, dtype=np.int32), marker)
-
-dx_alt = Measure("dx", domain=solver.mesh, subdomain_data=cell_tag)
-
-# dx_alt = Measure("dx", domain=solver.mesh)
-area = uh * dx_alt
-compiled_area = dolfinx.fem.form(area)
-local_area = dolfinx.fem.assemble_scalar(compiled_area)
-global_area = solver.mesh.comm.allreduce(local_area, op=MPI.SUM)
-# print(global_area)
-
-t1 = time.time()
-print(t1-t0)
-
-m = 9  # From Cui and Dolgov...
+    t0 = time.time()
+    uh = solver.solve(ks)
+    solver.get_obs(uh)
+    t1 = time.time()
+    #print(t1-t0)
 
 pv.start_xvfb()
 
