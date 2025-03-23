@@ -129,33 +129,7 @@ class TestFourier(unittest.TestCase):
         self.assertTrue((poly.node2basis - node2basis_true).abs().max() < 1e-8)
         self.assertTrue((poly.omegas - omegas_true).abs().max() < 1e-8)
         self.assertTrue((poly.mass_R - mass_R_true).abs().max() < 1e-8)
-        pass
-
-    def test_eval_basis(self):
-
-        # poly = dt.Legendre(order=3)
-
-        # ls = torch.tensor([-1., -0.5, 0., 0.5, 1.])
-        # norm_true = torch.tensor([1., 3.**0.5, 5.**0.5, 7.**0.5])
-
-        # ps = poly.eval_basis(ls)
-        # ps_true = torch.tensor([[1., -1., 1., -1.],
-        #                         [1., -1./2., -1./8., 7./16.],
-        #                         [1., 0., -1./2., 0.],
-        #                         [1., 1./2., -1./8., -7./16.],
-        #                         [1., 1., 1., 1.]]) * norm_true
-
-        # dpdxs = poly.eval_basis_deriv(ls)
-        # dpdxs_true = torch.tensor([[0., 1., -3., 6.],
-        #                            [0., 1., -3./2., 9./24.],
-        #                            [0., 1., 0., -3./2.],
-        #                            [0., 1., 3./2., 9./24.],
-        #                            [0., 1., 3., 6.]]) * norm_true
-
-        # self.assertTrue((ps - ps_true).abs().max() < 1e-8)
-        # self.assertTrue((dpdxs - dpdxs_true).abs().max() < 1e-8)
-        # return
-        pass
+        return
 
 
 if __name__ == "__main__":
