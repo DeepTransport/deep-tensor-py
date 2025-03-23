@@ -100,3 +100,26 @@ for poly in bases_dict:
                 prev_approx=sirt.approx,
                 input_data=input_data
             )
+
+# import pickle
+
+# sirt = sirts["lagrange1"]["amen"]
+
+# print(sirt.approx.tt_data)
+
+# # with open("tt_data.pkl", "wb") as f:
+# #     pickle.dump(sirt.tt_data, f)
+
+# with open("tt_data.pkl", "wb") as f:
+#     pickle.dump(sirt.approx.tt_data, f)
+
+# with open("tt_data.pkl", "rb") as f:
+#     tt_data = pickle.load(f)
+
+# sirt = dt.TTSIRT(
+#     potential_func, 
+#     bases=bases_dict["lagrange1"],
+#     tt_data=tt_data
+# )
+
+# print(sirt.random(10))

@@ -26,7 +26,7 @@ def corner_plot(
         irt.dim, 
         irt.dim, 
         figsize=(2*irt.dim, 2*irt.dim),
-        sharex=True
+        # sharex=True
     )
 
     samples_min = samples.min(dim=0).values
@@ -35,6 +35,9 @@ def corner_plot(
 
     lims_min = samples_min - 0.05 * samples_range
     lims_max = samples_max + 0.05 * samples_range
+    
+    lims_min = lims_min * 0-3
+    lims_max = lims_max * 0+3
     
     bounds = torch.hstack((lims_min[:, None], lims_max[:, None]))
 

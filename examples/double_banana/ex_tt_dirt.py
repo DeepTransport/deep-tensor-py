@@ -63,7 +63,7 @@ for poly in polys:
             # Evaluate current approximation to target density
             fxs = dirt.eval_potential(grid, k+1)
             fxs = torch.exp(-fxs)
-            axes[0][0].contourf(xs_grid, ys_grid, fxs.reshape(n, n).T)
+            axes[0][0].contourf(xs_grid, ys_grid, fxs.reshape(n, n).T, levels=5)
             axes[0][0].set_xlabel("$x_{1}$")
             axes[0][0].set_ylabel("$x_{2}$")
             axes[0][0].set_title(r"$\hat{f}(x)$")
@@ -72,14 +72,14 @@ for poly in polys:
             neglogliks, neglogpris = model.potential_dirt(grid)
             fxs_true = torch.exp(-neglogliks*dirt.bridge.betas[k]-neglogpris)
             fxs_true /= (fxs_true.sum() * dx**2)
-            axes[0][1].contourf(xs_grid, ys_grid, fxs_true.reshape(n, n).T)
+            axes[0][1].contourf(xs_grid, ys_grid, fxs_true.reshape(n, n).T, levels=5)
             axes[0][1].set_xlabel("$x_{1}$")
             axes[0][1].set_ylabel("$x_{2}$")
             axes[0][1].set_title(r"$f(x)$")
 
             # Evaluate current approximation to ratio function
             ratio = dirt.irts[k].eval_pdf(grid)
-            axes[1][0].contourf(xs_grid, ys_grid, ratio.reshape(n, n).T)
+            axes[1][0].contourf(xs_grid, ys_grid, ratio.reshape(n, n).T, levels=5)
             axes[1][0].set_xlabel("$u_{1}$")
             axes[1][0].set_ylabel("$u_{2}$")
             axes[1][0].set_title("Ratio Func. (FTT)")
@@ -91,7 +91,7 @@ for poly in polys:
                 neglogliks, neglogpris = model.potential_dirt(xs)
                 neglogrefs = -dirt.reference.log_joint_pdf(grid)[0]
                 ratio_true = torch.exp(-neglogliks*(dirt.bridge.betas[k]-dirt.bridge.betas[k-1])-neglogrefs)
-                axes[1][1].contourf(xs_grid, ys_grid, ratio_true.reshape(n, n).T)
+                axes[1][1].contourf(xs_grid, ys_grid, ratio_true.reshape(n, n).T, levels=5)
                 axes[1][1].set_xlabel("$u_{1}$")
                 axes[1][1].set_ylabel("$u_{2}$")
                 axes[1][1].set_title("Ratio Func. (True)")
