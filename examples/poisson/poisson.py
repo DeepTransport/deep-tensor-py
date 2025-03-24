@@ -28,7 +28,7 @@ import numpy as np
 import pyvista as pv
 
 
-class DiffusionSolver():
+class PoissonSolver():
 
     def __init__(
         self,
@@ -71,19 +71,13 @@ class DiffusionSolver():
         u_bc.interpolate(self.side_boundaries)
         self.dirichlet = dirichletbc(u_bc, dofs_D)
 
-        # Generate parameters associated with the diffusion coefficient
         self.dim_k = dim_k
-        ks = np.arange(1, dim_k+1)
-        sum_ks = np.sum(ks ** -(nu + 1.0))
-        taus = np.floor(0.5 * (np.sqrt(1.0 + 0.5*ks) - 1.0))
-
-        self.etas = (ks ** -(nu + 1.0)) / sum_ks
-        self.rho_0s = ks - 0.5 * (taus**2 + taus)
-        self.rho_1s = taus - self.rho_0s
-
-        # Define number of observations
+        self.nu = nu
         self.m = m
+
+        self.generate_coefficient_params()
         self.build_obs_operator()
+
         return
 
     @staticmethod
@@ -100,6 +94,22 @@ class DiffusionSolver():
         """
         return 1.0 - x[0]
     
+    def generate_coefficient_params(self) -> None:
+        """Generates parameters associated with the diffusion 
+        coefficient.
+        """
+
+        ks = np.arange(1, self.dim_k+1)
+        sum_ks = np.sum(ks ** -(self.nu + 1.0))
+        # taus = np.floor(0.5 * (np.sqrt(1.0 + 0.5*ks) - 1.0))
+        taus = np.floor(-0.5 + np.sqrt(0.25 + 2.0 * ks))  # from Dolgov et al. (2020)
+
+        self.etas = (ks ** -(self.nu + 1.0)) / sum_ks
+        self.rho_0s = ks - 0.5 * (taus**2 + taus)
+        self.rho_1s = taus - self.rho_0s
+        
+        return
+
     def build_obs_operator(self) -> None:
         """Builds the integral operators used to form the observation 
         operator.
@@ -139,7 +149,7 @@ class DiffusionSolver():
             area = uh * self.dxs[i](1)
             local_area = assemble_scalar(form(area))
             global_area = self.mesh.comm.allreduce(local_area, op=MPI.SUM)
-            # print(global_area)
+            print(global_area)
             obs[i] = global_area
         
         return obs
@@ -185,30 +195,33 @@ class DiffusionSolver():
 
         problem = LinearProblem(a=a, L=L, bcs=[self.dirichlet])
         uh = problem.solve()
-        return uh
+        return self.k, uh
 
-solver = DiffusionSolver()
+if __name__ == "__main__":
 
-for i in range(1):
+    solver = PoissonSolver()
 
-    ks = 2.0 * np.sqrt(3.0) * np.random.rand(solver.dim_k) - np.sqrt(3.0)
+    for i in range(1):
 
-    t0 = time.time()
-    uh = solver.solve(ks)
-    solver.get_obs(uh)
-    t1 = time.time()
-    #print(t1-t0)
+        ks = 2.0 * np.sqrt(3.0) * np.random.rand(solver.dim_k) - np.sqrt(3.0)
 
-pv.start_xvfb()
+        t0 = time.time()
+        k, uh = solver.solve(ks)
+        solver.get_obs(uh)
+        t1 = time.time()
+        #print(t1-t0)
 
-pyvista_cells, cell_types, geometry = vtk_mesh(solver.V)
-grid = pv.UnstructuredGrid(pyvista_cells, cell_types, geometry)
-grid.point_data["u"] = uh.x.array
-grid.set_active_scalars("u")
+    pv.start_xvfb()
 
-plotter = pv.Plotter()
-plotter.add_text("u_h", position="upper_edge", font_size=14, color="black")
-plotter.add_mesh(grid, show_edges=True)
-plotter.view_xy()
+    pyvista_cells, cell_types, geometry = vtk_mesh(solver.V)
+    grid = pv.UnstructuredGrid(pyvista_cells, cell_types, geometry)
+    # grid.point_data["u"] = uh.x.array
+    grid.point_data["u"] = k.x.array
+    grid.set_active_scalars("u")
 
-plotter.show()
+    plotter = pv.Plotter()
+    plotter.add_text("u_h", position="upper_edge", font_size=14, color="black")
+    plotter.add_mesh(grid, show_edges=True)
+    plotter.view_xy()
+
+    plotter.show()
