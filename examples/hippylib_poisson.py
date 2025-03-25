@@ -6,9 +6,10 @@ import ufl
 from hippylib import *
 
 import logging
-logging.getLogger('FFC').setLevel(logging.WARNING)
-logging.getLogger('UFL').setLevel(logging.WARNING)
-dl.set_log_active(False)
+
+#logging.getLogger('FFC').setLevel(logging.WARNING)
+#logging.getLogger('UFL').setLevel(logging.WARNING)
+#dl.set_log_active(False)
 
 np.random.seed(seed=1)
 
@@ -16,7 +17,7 @@ def true_model(pri: modeling._Prior):
 
     noise = dl.Vector()
     pri.init_vector(noise, "noise")
-    parRandom.normal(1.0, noise)  # noise with a variance of 1.0
+    parRandom.normal(1.0, noise)  # iid Gaussian noise
 
     mtrue = dl.Vector()
     pri.init_vector(mtrue, 0)
@@ -43,7 +44,7 @@ def u_boundary(x: np.ndarray, on_boundary: bool) -> bool:
     """
     return on_boundary and (x[1] < dl.DOLFIN_EPS or x[1] > 1.0 - dl.DOLFIN_EPS)
 
-# TODO: figure out what these mean
+# Boundary conditions for forward and adjoint problems
 u_bdr = dl.Expression("x[1]", degree=1)
 u_bdr0 = dl.Constant(0.0)
 bc = dl.DirichletBC(Vh[STATE], u_bdr, u_boundary)
@@ -69,7 +70,7 @@ def pde_varf(u, m, p):
 # bc = boundary conditions for the forward problem
 # bc0 = boundary conditions for the adjoint and incremental problems
 # This class solves the forward/adjoint/incremental problems, and 
-# evaluates the first and second partial deriviates of the forward 
+# evaluates the first and second partial derivatives of the forward 
 # problem with respect to the state/parameter/adjoint variables
 pde = PDEVariationalProblem(Vh, pde_varf, bc, bc0, is_fwd_linear=True)
 
@@ -78,20 +79,20 @@ gamma = 0.1
 delta = 0.5
 
 # Define anisotropy parameters
-theta0 = 2.0
-theta1 = 0.5
-alpha = np.pi / 4.0
+# theta0 = 2.0
+# theta1 = 0.5
+# alpha = np.pi / 4.0
 
-anis_diff = dl.CompiledExpression(ExpressionModule.AnisTensor2D(), degree=1)
-anis_diff.set(theta0, theta1, alpha)
+# anis_diff = dl.CompiledExpression(ExpressionModule.AnisTensor2D(), degree=1)
+# anis_diff.set(theta0, theta1, alpha)
 
-pri = BiLaplacianPrior(Vh[PARAMETER], gamma, delta, anis_diff, robin_bc=True)
+pri = BiLaplacianPrior(Vh[PARAMETER], gamma, delta, robin_bc=True) # anis_diff
 mtrue = true_model(pri)
 
-print("Prior regularization: (delta_x - gamma*Laplacian)^order: delta={0}, gamma={1}, order={2}".format(delta, gamma,2))    
+print("Prior regularization: (delta_x - gamma*Laplacian)^order: delta={0}, gamma={1}, order={2}".format(delta, gamma, 2))    
 
 # Plot truth and prior mean
-objs = [dl.Function(Vh[PARAMETER],mtrue), dl.Function(Vh[PARAMETER],pri.mean)]
+objs = [dl.Function(Vh[PARAMETER], mtrue), dl.Function(Vh[PARAMETER], pri.mean)]
 mytitles = ["True Parameter", "Prior mean"]
 nb.multi1_plot(objs, mytitles)
 plt.show()
