@@ -60,8 +60,15 @@ class Piecewise(Basis1D, abc.ABC):
         """
 
         left_inds = ((ls-self.domain[0]) / self.elem_size).floor().int()
-        left_inds[left_inds == self.num_elems] = self.num_elems - 1
+        left_inds = left_inds.clamp(0, self.num_elems-1)
         return left_inds
+    
+    def map_to_element(self, ls: Tensor, left_inds: Tensor) -> Tensor:
+        """Maps from a set of points in the global space to the 
+        positions of the points of the elements they lie on, 
+        normalising into the range [0, 1].
+        """
+        return (ls - self.grid[left_inds]) / self.elem_size
 
     def sample_measure(self, n: int) -> Tensor:
         return self.domain[0] + self.domain_size * torch.rand(n)

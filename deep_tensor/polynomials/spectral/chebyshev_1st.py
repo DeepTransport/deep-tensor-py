@@ -2,6 +2,7 @@ import torch
 from torch import Tensor
 
 from .spectral import Spectral 
+from ..basis_1d import Basis1D
 from ...constants import EPS
 from ...tools import check_finite
 
@@ -70,21 +71,25 @@ class Chebyshev1st(Spectral):
     def constant_weight(self) -> bool: 
         return False
 
+    @Basis1D._check_samples
     def eval_measure(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
         return 1.0 / (torch.pi * ts.sqrt())
     
+    @Basis1D._check_samples
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
         return (ls / torch.pi) * ts.pow(-3.0/2.0)
 
+    @Basis1D._check_samples
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
         return -0.5 * ts.log() - torch.tensor(torch.pi).log()
 
+    @Basis1D._check_samples
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
@@ -101,12 +106,14 @@ class Chebyshev1st(Spectral):
         samples = l0 + torch.rand(n) * (l1 - l0)
         return samples
     
+    @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
         thetas = self.l2theta(ls)
         thetas = thetas[:, None]
         ps = self.norm * torch.cos(thetas * self.n)
         return ps
     
+    @Basis1D._check_samples
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
 
         if self.order == 0:

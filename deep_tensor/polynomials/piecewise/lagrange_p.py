@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 
 from .piecewise import Piecewise
+from ..basis_1d import Basis1D
 from ..spectral.jacobi_11 import Jacobi11
 from ...constants import EPS
 from ...tools import integrate
@@ -219,6 +220,13 @@ class LagrangeP(Piecewise):
         self._mass_R = value 
         return
     
+    @staticmethod
+    def _adjust_dls(dls: Tensor) -> Tensor:
+        """Ensures that no values of the dls matrix are equal to 0."""
+        dls[(dls >= 0) & (dls.abs() < EPS)] = EPS
+        dls[(dls < 0) & (dls.abs() < EPS)] = -EPS 
+        return dls
+    
     def _compute_nodes(self, n_nodes: int) -> Tensor:
         """Computes the values of the global nodes. 
         TODO: give more detail on this.
@@ -230,56 +238,47 @@ class LagrangeP(Piecewise):
             nodes[ind] = self.grid[i] + self.elem_size * self.local.nodes
         return nodes
 
+    @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
         
-        basis_vals = torch.zeros((ls.numel(), self.cardinality))
-
-        if not torch.all(inside := self.in_domain(ls)):
-            warnings.warn("Some points are outside the domain.")
-
-        if not torch.any(inside):
-            return basis_vals
+        n_ls = ls.numel()
+        ps = torch.zeros((n_ls, self.cardinality))
         
-        left_inds = self.get_left_hand_inds(ls[inside])
-
-        ls_local = (ls[inside] - self.grid[left_inds]) / self.elem_size
+        left_inds = self.get_left_hand_inds(ls)
+        ls_local = self.map_to_element(ls, left_inds)
         
-        diffs = ls_local.repeat(self.local.cardinality, 1).T - self.local.nodes.repeat(inside.sum(), 1)
-        diffs[diffs.abs() < EPS] = EPS
+        dls = ls_local[:, None] - self.local.nodes
+        dls = self._adjust_dls(dls)
+        sum_terms = self.local.omega / dls
+        ps_loc = sum_terms / sum_terms.sum(1, keepdim=True)
 
-        temp_m = self.local.omega.repeat(inside.sum(), 1) / diffs
-        lbs = temp_m / temp_m.sum(1, keepdim=True)
-        coi = self.global2local[left_inds].T.flatten()
-        roi = inside.nonzero().flatten().repeat(self.local.cardinality)
-        
-        # Evaluation of the internal interpolation
-        basis_vals[roi, coi] = lbs.T.flatten()
-        return basis_vals
+        ii = torch.arange(n_ls).repeat_interleave(self.local.cardinality)
+        jj = self.global2local[left_inds].flatten()
+        ps[ii, jj] = ps_loc.flatten()
+        return ps
     
-    def eval_basis_deriv(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
+    @Basis1D._check_samples
+    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
         
-        deriv_vals = torch.zeros((ls.numel(), self.cardinality))
+        self._check_in_domain(ls)
 
-        if not torch.all(inside := self.in_domain(ls)):
-            warnings.warn("Some points are outside the domain.")
+        n_ls = ls.numel()
+        dpdls = torch.zeros((n_ls, self.cardinality))
         
-        left_inds = self.get_left_hand_inds(ls[inside])
-
-        ls_local = (ls[inside] - self.grid[left_inds]) / self.elem_size
+        left_inds = self.get_left_hand_inds(ls)
+        ls_local = self.map_to_element(ls, left_inds)
         
-        diffs = ls_local.repeat(self.local.cardinality, 1).T - self.local.nodes.repeat(inside.sum(), 1)
-        diffs[diffs.abs() < EPS] = EPS
-
-        temp_m1 = self.local.omega.repeat(inside.sum(), 1) / diffs
-        temp_m2 = self.local.omega.repeat(inside.sum(), 1) / (diffs ** 2)
-
-        a = 1.0 / torch.sum(temp_m1, dim=1, keepdim=True)
-        b = torch.sum(temp_m2, dim=1, keepdim=True) * torch.pow(a, 2)
-
-        lbs = (temp_m1 * b - temp_m2 * a) / self.jac
-        coi = self.global2local[left_inds].T.flatten()
-        roi = inside.nonzero().flatten().repeat(self.local.cardinality)
+        dls = ls_local[:, None] - self.local.nodes
+        dls = self._adjust_dls(dls)
         
-        # Evaluation of the internal interpolation
-        deriv_vals[roi, coi] = lbs.T.flatten()
-        return deriv_vals
+        sum_terms = self.local.omega / dls
+        sum_terms_sq = self.local.omega / dls.square()
+
+        coefs_b = 1.0 / torch.sum(sum_terms, dim=1, keepdim=True)
+        coefs_a = torch.sum(sum_terms_sq, dim=1, keepdim=True) * coefs_b.square()
+
+        dpdls_loc = (coefs_a * sum_terms - coefs_b * sum_terms_sq) / self.jac
+        ii = torch.arange(n_ls).repeat_interleave(self.local.cardinality)
+        jj = self.global2local[left_inds].flatten()
+        dpdls[ii, jj] = dpdls_loc.flatten()
+        return dpdls

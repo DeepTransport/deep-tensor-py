@@ -4,6 +4,7 @@ import torch
 from torch import Tensor
 
 from .piecewise import Piecewise
+from ..basis_1d import Basis1D
 
 
 # Integrals and weights of adjacent basis functions mapped to [0, 1]
@@ -79,43 +80,31 @@ class Lagrange1(Piecewise):
         self._int_W = value 
         return
 
+    @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
-
-        if not torch.all(inside := self.in_domain(ls)):
-            warnings.warn("Some points are outside the domain.")
-
-        if not torch.any(inside):
-            ps = torch.zeros((ls.numel(), self.cardinality))
-            return ps
         
-        inside_inds = inside.nonzero().flatten()
-        left_inds = self.get_left_hand_inds(ls[inside])
+        inds = torch.arange(ls.numel())
+        left_inds = self.get_left_hand_inds(ls)
 
         # Convert to local coordinates
-        ls_local = (ls[inside]-self.grid[left_inds]) / self.elem_size
+        ls_local = (ls-self.grid[left_inds]) / self.elem_size
 
-        ii = torch.hstack((inside_inds, inside_inds))
+        ii = torch.hstack((inds, inds))
         jj = torch.hstack((left_inds, left_inds+1))
         vals = torch.hstack((1.0-ls_local, ls_local))
         ps = torch.zeros((ls.numel(), self.cardinality))
         ps[ii, jj] = vals
         return ps
         
+    @Basis1D._check_samples
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
-
-        if not torch.all(inside := self.in_domain(ls)):
-            warnings.warn("Some points are outside the domain.")
-
-        if not torch.any(inside):
-            dpdls = torch.zeros((ls.numel(), self.cardinality()))
-            return dpdls
         
-        inside_inds = inside.nonzero().flatten()
-        left_inds = self.get_left_hand_inds(ls[inside])
+        inds = torch.arange(ls.numel())
+        left_inds = self.get_left_hand_inds(ls)
 
-        ii = torch.hstack((inside_inds, inside_inds))
+        ii = torch.hstack((inds, inds))
         jj = torch.hstack((left_inds, left_inds+1))
-        derivs = torch.ones_like(ls[inside]) / self.elem_size
+        derivs = torch.ones_like(ls) / self.elem_size
         vals = torch.hstack((-derivs, derivs))
         dpdls = torch.zeros((ls.numel(), self.cardinality))
         dpdls[ii, jj] = vals

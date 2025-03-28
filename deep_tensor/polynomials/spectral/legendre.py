@@ -2,6 +2,7 @@ import torch
 from torch import Tensor
 
 from .recurr import Recurr
+from ..basis_1d import Basis1D
 
 
 class Legendre(Recurr):
@@ -39,15 +40,19 @@ class Legendre(Recurr):
     def weights(self) -> Tensor:
         return self._weights
 
+    @Basis1D._check_samples
     def eval_measure(self, ls: Tensor) -> Tensor:
         return torch.full(ls.shape, 0.5)
     
+    @Basis1D._check_samples
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)
 
+    @Basis1D._check_samples
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         return torch.full(ls.shape, torch.tensor(0.5).log())
         
+    @Basis1D._check_samples
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)
     

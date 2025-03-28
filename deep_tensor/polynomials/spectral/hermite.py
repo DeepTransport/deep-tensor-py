@@ -2,6 +2,7 @@ import torch
 from torch import Tensor
 
 from .recurr import Recurr
+from ..basis_1d import Basis1D
 from ...constants import EPS
 
 
@@ -46,14 +47,18 @@ class Hermite(Recurr):
     def sample_measure_skip(self, n: int) -> Tensor:
         return self.sample_measure(n)
     
+    @Basis1D._check_samples
     def eval_measure(self, ls: Tensor) -> Tensor:
         return torch.exp(-0.5 * ls.square()) / torch.tensor(2.0*torch.pi).sqrt()
 
+    @Basis1D._check_samples
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         return -0.5 * (ls.square() + torch.log(2.0*torch.pi))
     
+    @Basis1D._check_samples
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return -ls * torch.exp(-0.5 * ls.square()) / torch.sqrt(2.0*torch.pi)
     
+    @Basis1D._check_samples
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         return -ls

@@ -3,6 +3,7 @@ from torch import Tensor
 from torch.distributions.beta import Beta
 
 from .spectral import Spectral
+from ..basis_1d import Basis1D
 from ...constants import EPS
 from ...tools import check_finite
 
@@ -67,18 +68,21 @@ class Chebyshev2nd(Spectral):
         ls = left + torch.rand(n) * (right - left)
         return ls
     
+    @Basis1D._check_samples
     def eval_measure(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
         ws = 2.0 * ts.sqrt() / torch.pi 
         return ws
     
+    @Basis1D._check_samples
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
         ws = 0.5 * ts.log() + torch.tensor(2.0/torch.pi).log()
         return ws
     
+    @Basis1D._check_samples
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         ts = 1.0 / (1.0 - ls.square())
         check_finite(ts)
@@ -86,6 +90,7 @@ class Chebyshev2nd(Spectral):
         ws = -2.0 * ls * ts.sqrt() / torch.pi
         return ws
     
+    @Basis1D._check_samples
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS 
@@ -93,6 +98,7 @@ class Chebyshev2nd(Spectral):
         check_finite(ws)
         return ws
     
+    @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
         
         thetas = self.l2theta(ls)
@@ -110,6 +116,7 @@ class Chebyshev2nd(Spectral):
         check_finite(ps)
         return ps
     
+    @Basis1D._check_samples
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
 
         thetas = self.l2theta(ls)

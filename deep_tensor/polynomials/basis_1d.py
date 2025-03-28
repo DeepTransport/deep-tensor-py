@@ -1,4 +1,6 @@
 import abc
+from typing import Callable
+import warnings
 
 import torch
 from torch import Tensor 
@@ -203,43 +205,59 @@ class Basis1D(abc.ABC, object):
     def cardinality(self) -> int:
         """The number of nodes associated with the basis."""
         return self.nodes.numel()
-
-    def in_domain(self, ls: Tensor) -> Tensor:
-        """Returns a boolean mask that indicates whether each of a set
-        of points is contained within the local domain of the basis.
-        
-        Parameters
-        ----------
-        ls: 
-            An n-dimensional vector.
-
-        Returns
-        -------
-        inside:
-            An n-dimensional boolean mask that indicates whether each 
-            element of ls is contained within the local domain.
-        
-        """
-        return (ls >= self.domain[0]) & (ls <= self.domain[1])
     
-    def out_domain(self, ls: Tensor) -> Tensor:
+    def _out_domain(self, ls: Tensor) -> Tensor:
         """Returns a boolean mask that indicates whether each of a set
-        of points is outside the local domain of the basis.
-        
-        Parameters
-        ----------
-        ls: 
-            A set of points.
-
-        Returns
-        -------
-        outside:
-            A boolean mask that indicates whether each element of ls 
-            is outside the local domain.
-        
+        of points is outside the local domain of the basis.        
         """
         return (ls < self.domain[0]) | (ls > self.domain[1])
     
+    def _check_in_domain(self, ls: Tensor) -> Tensor:
+        """Checks whether a set of points are inside the domain, and 
+        issues a warning if not.
+        """
+        if (outside := self._out_domain(ls)).any():
+            msg = f"{outside.sum()} points are outside the domain."
+            warnings.warn(msg)
+        return
+    
+    def _check_eval_dims(self, coefs: Tensor, ls: Tensor) -> None:
+        """Checks that the arguments of 'eval_radon', 'eval', 
+        'eval_radon_deriv' and 'eval_deriv' have the correct 
+        dimensions.
+        """
+        if ls.ndim != 1:
+            msg = "'ls' must be a vector."
+            raise Exception(msg)
+        if coefs.shape[0] != self.cardinality:
+            msg = ("Coefficient vector must have the same cardinality "
+                   + "as the basis.")
+            raise Exception(msg)
+        return
+    
+    @staticmethod
+    def _check_eval_args(func) -> Callable:
+        """Checks that the samples used as part of a call to 
+        'eval_radon', 'eval', 'eval_radon_deriv' and 'eval_deriv' have 
+        the appropriate dimensions and are contained within the domain.
+        """
+        def _func(self, coefs: Tensor, ls: Tensor) -> Tensor:
+            self._check_eval_dims(coefs, ls)
+            self._check_in_domain(ls)
+            return func(self, coefs, ls)
+        return _func
+    
+    @staticmethod
+    def _check_samples(func) -> Callable:
+        """Checks that a set of samples have the appropriate dimension 
+        and are contained within the domain of the basis.
+        """
+        def _func(self, ls: Tensor) -> Tensor:
+            self._check_in_domain(ls)
+            return func(self, ls)
+        return _func
+    
+    @_check_eval_args
     def eval_radon(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the approximated function at a given vector of 
         points.
@@ -266,16 +284,11 @@ class Basis1D(abc.ABC, object):
             coeffs).
         
         """
-
-        fls = torch.zeros((ls.numel(), coeffs.shape[1]))
-        
-        if not torch.any(inside := self.in_domain(ls)):
-            return fls
-        
-        basis_vals = self.eval_basis(ls[inside])
-        fls[inside] = basis_vals @ coeffs
+        basis_vals = self.eval_basis(ls)
+        fls = basis_vals @ coeffs
         return fls
         
+    @_check_eval_args
     def eval_radon_deriv(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the derivative of the approximated function at
         a set of points.
@@ -298,16 +311,11 @@ class Basis1D(abc.ABC, object):
             The values of the derivative of the function at each point.
         
         """
-
-        gradfls = torch.zeros((ls.numel(), coeffs.shape[1]))
-
-        if not torch.any(inside := self.in_domain(ls)):
-            return gradfls 
-        
-        deriv_vals = self.eval_basis_deriv(ls[inside])
-        gradfls[inside] = deriv_vals @ coeffs
+        deriv_vals = self.eval_basis_deriv(ls)
+        gradfls = deriv_vals @ coeffs
         return gradfls
 
+    @_check_eval_args
     def eval(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the product of approximated function and the 
         weighting function at a given vector of points.
@@ -368,21 +376,16 @@ class Basis1D(abc.ABC, object):
         
         """
         
-        gradfwls = torch.zeros((ls.numel(), coeffs.shape[1]))
-
-        if not torch.any(inside := self.in_domain(ls)):
-            return gradfwls
-        
         # Compute first term of product rule
-        dpdls = self.eval_basis_deriv(ls[inside])
-        wls = self.eval_measure(ls[inside])
-        gradfwls[inside] = dpdls @ coeffs * wls[:, None]
+        dpdls = self.eval_basis_deriv(ls)
+        wls = self.eval_measure(ls)
+        gradfwls = dpdls @ coeffs * wls[:, None]
 
         # Compute second term of product rule
         if not self.constant_weight:
-            basis_vals = self.eval_basis(ls[inside])
-            gradwls = self.eval_measure_deriv(ls[inside])
-            gradfwls[inside] += (basis_vals @ coeffs) * gradwls[:, None]
+            basis_vals = self.eval_basis(ls)
+            gradwls = self.eval_measure_deriv(ls)
+            gradfwls += (basis_vals @ coeffs) * gradwls[:, None]
 
         return gradfwls
  
