@@ -12,19 +12,27 @@ LOCAL_WEIGHTS = torch.tensor([1.0, 1.0]) / 2.0
 
 
 class Lagrange1(Piecewise):
-    """Piecewise linear polynomials.
+    r"""Piecewise linear polynomials.
     
     Parameters
     ----------
     num_elems:
-        The number of equisized elements to divide the domain into when 
-        forming the polynomials. 
+        The number of elements to use.
 
     Notes
     -----
-    When using a piecewise linear polynomial basis, the corresponding 
-    (conditional) CDFs are piecewise cubic.
-        
+    To construct a piecewise linear basis, we divide the interval 
+    $[0, 1]$ into `num_elems` equisized elements. Then, within each 
+    element a given function can be represented by
+    $$
+        f(x) \approx f(x_{0}) 
+            + \frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),
+    $$
+    where $x_{0}$ and $x_{1}$ denote the endpoints of the element.
+
+    The corresponding (conditional) CDFs are represented using a 
+    piecewise cubic basis which uses the same elements.
+    
     """
 
     def __init__(self, num_elems: int):

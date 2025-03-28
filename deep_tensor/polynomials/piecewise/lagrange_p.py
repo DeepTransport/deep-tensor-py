@@ -103,14 +103,47 @@ class LagrangeRef():
 
 
 class LagrangeP(Piecewise):
-    """Higher-order piecewise Lagrange polynomials.
+    r"""Higher-order piecewise Lagrange polynomials.
 
     Parameters
     ----------
     order:
-        The maximum degree of the polynomials.
+        The degree of the polynomials.
     num_elems:
-        The number of elements to use when forming the polynomials.
+        The number of elements to use.
+
+    Notes
+    -----
+    To construct a higher-order Lagrange basis, we divide the interval 
+    $[0, 1]$ into `num_elems` equisized elements, and use a set of 
+    Lagrange polynomials of degree $N=\,$`order` within each element.
+     
+    Within a given element, we choose a set of interpolation points, 
+    $\{x_{n}\}_{n=0}^{N}$, which consist of the endpoints of the 
+    element and the roots of the Jacobi polynomial of degree $N-3$ 
+    (mapped into the domain of the element). Then, a given function can 
+    be approximated (within the element) as
+    $$
+        f(x) \approx \sum_{n=0}^{N} f(x_{n})\ell_{n}(x),
+    $$
+    where the *Lagrange polynomials* $\{\ell_{n}(x)\}_{n=0}^{N}$ are 
+    given by
+    $$
+        \ell_{n}(x) = \frac{\prod_{k = 0, k \neq n}^{N}(x-x_{k})}
+            {\prod_{k = 0, k \neq n}^{N}(x_{n}-x_{k})}.
+    $$
+    To evaluate the interpolant, we use the second (true) form of the 
+    Barycentric formula, which is more efficient and stable than the 
+    above formula.
+
+    We use piecewise Chebyshev polynomials of the second kind to 
+    represent the corresponding (conditional) CDFs.
+
+    References
+    ----------
+    Berrut, J and Trefethen, LN (2004). *[Barycentric Lagrange 
+    interpolation](https://doi.org/10.1137/S0036144502417715).* 
+    SIAM Review, **46**, 501--517.
     
     """
 
