@@ -1,6 +1,3 @@
-from typing import Tuple
-import warnings
-
 import torch
 from torch import Tensor
 
@@ -11,7 +8,8 @@ from ...constants import EPS
 from ...tools import integrate
 
 
-class LagrangeRef():
+
+class _LagrangeRef():
     
     def __init__(self, n: int):
         """Defines the reference Lagrange basis, in the reference
@@ -34,6 +32,7 @@ class LagrangeRef():
         jacobi = Jacobi11(order=n-3)
         
         self.domain = torch.tensor([0.0, 1.0])
+        self.domain_size = self.domain[1] - self.domain[0]
         self.cardinality = n
         self.es = torch.eye(n)
         self.nodes = torch.zeros(self.cardinality)
@@ -61,7 +60,7 @@ class LagrangeRef():
         """
         weights = torch.zeros(self.cardinality)
         for i in range(self.cardinality):
-            f_i = lambda x: self.eval(self.es[i], x)
+            f_i = lambda x: self._eval(self.es[i], x)
             weights[i] = integrate(f_i, *self.domain)
         return weights
     
@@ -74,33 +73,36 @@ class LagrangeRef():
         for i in range(self.cardinality):
             for j in range(i, self.cardinality):
                 e_i, e_j = self.es[i], self.es[j]
-                f_ij = lambda ls: self.eval(e_i, ls) * self.eval(e_j, ls)
+                f_ij = lambda ls: self._eval(e_i, ls) * self._eval(e_j, ls)
                 integral = integrate(f_ij, *self.domain)
-                mass[i, j], mass[j, i] = integral, integral
+                mass[i, j] = mass[j, i] = integral
         return mass
 
-    def eval(self, fls: Tensor, ls: Tensor) -> Tensor:
-        """TODO: write docstring."""
-
-        m = ls.numel()
-        n = self.cardinality
-        f = torch.zeros((m, ))
-
-        inside = (ls >= self.domain[0]) & (ls <= self.domain[1])
-        if not inside.all():
-            msg = "Points outside of domain."
-            warnings.warn(msg)
-
-        n_in = inside.sum()
-
-        diffs = ls[inside].repeat(n, 1).T - self.nodes.repeat(n_in, 1)
-        diffs[diffs.abs() < EPS] = EPS  # avoid division by 0
-
-        temp_m = self.omega.repeat(n_in, 1) / diffs
-
-        # Evaluation of the internal interpolation
-        f[inside] = (fls.repeat(n_in, 1) * temp_m).sum(dim=1) / temp_m.sum(dim=1)
-        return f
+    def _eval(self, coefs: Tensor, ls: Tensor) -> Tensor:
+        """Returns the value of the polynomial basis at each of a set 
+        of points.
+        
+        Parameters
+        ----------
+        coefs:
+            An m-dimensional vector containing the coefficient 
+            associated with each Lagrange polynomial.
+        ls:
+            An n-dimensional vector containing a set of points at which 
+            to evaluate the polynomial basis.
+        
+        Returns
+        -------
+        ps: 
+            An n-dimensional vector containing the value of the basis 
+            evaluated at each point in ls.
+        
+        """
+        dls = ls[:, None] - self.nodes
+        dls = LagrangeP._adjust_dls(dls)
+        sum_terms = self.omega / dls
+        ps = (coefs * sum_terms).sum(dim=1) / sum_terms.sum(dim=1)
+        return ps
 
 
 class LagrangeP(Piecewise):
@@ -156,32 +158,20 @@ class LagrangeP(Piecewise):
             raise Exception(msg)
 
         Piecewise.__init__(self, order, num_elems)
-        
-        self.local = LagrangeRef(self.order+1)
+        self.local = _LagrangeRef(self.order+1)
 
-        n_nodes = self.num_elems * (self.local.cardinality - 1) + 1
+        # Define Jacobian of mapping from the domain of the LagrangeRef 
+        # polynomial to an element
+        self.jac = self.elem_size / self.local.domain_size
 
-        self.nodes = self._compute_nodes(n_nodes)
+        self._compute_nodes()
+        self._compute_mass()
+        self._compute_int_W()
 
-        unweighed_mass = torch.zeros((self.cardinality, self.cardinality))
-        self.jac = self.elem_size / (self.local.domain[1] - self.local.domain[0])
-        self.int_W = torch.zeros(self.cardinality)
-
-        for i in range(self.num_elems):
-            ind = (torch.arange(self.local.cardinality) 
-                   + i * (self.local.cardinality-1))
-            unweighed_mass[ind[:, None], ind[None, :]] += self.local.mass * self.jac
-            self.int_W[ind] += self.local.weights * self.jac
-
-        mass = unweighed_mass / self.domain_size
-        self.mass_R = torch.linalg.cholesky(mass).T
-
-        # map the function value y to each local element
-        j = torch.arange(self.local.cardinality-1, n_nodes, self.local.cardinality-1)
-        self.global2local = torch.vstack((
-            torch.arange(self.cardinality-1).reshape(self.num_elems, self.local.cardinality-1).T, 
-            j[None, :]
-        )).T
+        # elem_nodes[i] return the nodes corresponding to element i
+        self.elem_nodes = torch.tensor([
+            range(n*self.order, (n+1)*self.order+1) 
+            for n in range(self.num_elems)])
 
         return
     
@@ -227,16 +217,41 @@ class LagrangeP(Piecewise):
         dls[(dls < 0) & (dls.abs() < EPS)] = -EPS 
         return dls
     
-    def _compute_nodes(self, n_nodes: int) -> Tensor:
-        """Computes the values of the global nodes. 
-        TODO: give more detail on this.
+    def _compute_nodes(self) -> Tensor:
+        """Computes the values of the global nodes. The grid of the 
+        polynomial is divided into 'num_elems' equispaced elements. 
+        Within each element, the nodes of the Jacobi polynomial of the 
+        appropriate order are used.
         """
+        n_loc = self.local.cardinality
+        n_nodes = self.num_elems * (n_loc-1) + 1
         nodes = torch.zeros(n_nodes)
         for i in range(self.num_elems):
-            ind = (torch.arange(self.local.cardinality) 
-                   + i * (self.local.cardinality-1))
-            nodes[ind] = self.grid[i] + self.elem_size * self.local.nodes
-        return nodes
+            inds_elem = torch.arange(n_loc) + i * (n_loc-1)
+            nodes[inds_elem] = self.grid[i] + self.elem_size * self.local.nodes    
+        self.nodes = nodes
+        return
+    
+    def _compute_mass(self) -> Tensor:
+        """Computes the mass matrix and its Cholesky factor."""
+        n_loc = self.local.cardinality
+        mass_elem = self.local.mass * (0.5 * self.jac)
+        self.mass = torch.zeros((self.cardinality, self.cardinality))
+        for i in range(self.num_elems):
+            inds_elem = torch.arange(n_loc) + i * (n_loc-1)
+            self.mass[inds_elem[:, None], inds_elem[None, :]] += mass_elem
+        self.mass_R = torch.linalg.cholesky(self.mass).T
+        return
+    
+    def _compute_int_W(self) -> Tensor:
+        """Computes the integration operator."""
+        n_loc = self.local.cardinality
+        weights_elem = self.local.weights * (0.5 * self.jac)
+        self.int_W = torch.zeros(self.cardinality)
+        for i in range(self.num_elems):
+            inds_elem = torch.arange(n_loc) + i * (n_loc-1)
+            self.int_W[inds_elem] += weights_elem
+        return
 
     @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
@@ -253,7 +268,7 @@ class LagrangeP(Piecewise):
         ps_loc = sum_terms / sum_terms.sum(1, keepdim=True)
 
         ii = torch.arange(n_ls).repeat_interleave(self.local.cardinality)
-        jj = self.global2local[left_inds].flatten()
+        jj = self.elem_nodes[left_inds].flatten()
         ps[ii, jj] = ps_loc.flatten()
         return ps
     
@@ -279,6 +294,6 @@ class LagrangeP(Piecewise):
 
         dpdls_loc = (coefs_a * sum_terms - coefs_b * sum_terms_sq) / self.jac
         ii = torch.arange(n_ls).repeat_interleave(self.local.cardinality)
-        jj = self.global2local[left_inds].flatten()
+        jj = self.elem_nodes[left_inds].flatten()
         dpdls[ii, jj] = dpdls_loc.flatten()
         return dpdls

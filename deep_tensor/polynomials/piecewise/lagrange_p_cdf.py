@@ -18,32 +18,32 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         PiecewiseCDF.__init__(self, **kwargs)
 
         # Define local CDF polynomial
-        self.cheby, self.cdf_basis2node = self.lag2cheby(poly)
+        self.cheby, self.cdf_basis2node = self._lag2cheby(poly)
 
-        n_cheby = self.cheby.cardinality
-        n_nodes = self.num_elems * (n_cheby - 1) + 1
         self.mass = None 
         self.mass_R = None 
         self.int_W = None
-        self.nodes = torch.zeros(n_nodes)
+        self._compute_cdf_nodes()
 
-        for i in range(self.num_elems):
-            inds = torch.arange(self.cheby.cardinality) + i * (n_cheby - 1)
-            self.nodes[inds] = self.cheby.nodes * self.elem_size + self.grid[i]
-
-        if n_cheby > 2:
-            # Operator which maps a function evaluated at each node to 
-            # the value of the function evaluated at each node of each 
-            # element
-            global2local = torch.arange(n_nodes-1).reshape(self.num_elems, n_cheby-1)
-            self.global2local = torch.hstack((global2local, global2local[:, -1:]+1)).flatten()
-
-        else: 
-            raise NotImplementedError()
+        n_cheby = self.cheby.cardinality
+        self.elem_nodes = torch.tensor([
+            range(n*n_cheby-n, (n+1)*n_cheby-n) 
+            for n in range(self.num_elems)])
 
         return
     
-    def lag2cheby(self, poly: LagrangeP) -> Tuple[BoundedPolyCDF, Tensor]:
+    def _compute_cdf_nodes(self) -> None:
+        """Computes the collocation points in each element."""
+        n_cheby = self.cheby.cardinality
+        n_nodes = self.num_elems * (n_cheby - 1) + 1
+        nodes = torch.zeros(n_nodes)
+        for i in range(self.num_elems):
+            inds = torch.arange(n_cheby) + i * (n_cheby - 1)
+            nodes[inds] = self.grid[i] + self.cheby.nodes * self.elem_size
+        self.nodes = nodes
+        return
+
+    def _lag2cheby(self, poly: LagrangeP) -> Tuple[BoundedPolyCDF, Tensor]:
         """Defines a data structure which maps Lagrange polynomials to 
         Chebyshev polynomials with preserved boundary values. 
 
@@ -61,9 +61,7 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         cheby = BoundedPolyCDF(poly)
         n_nodes = cheby.cardinality
 
-        if n_nodes < 3:
-            msg = "Must use more than three nodes."
-            raise Exception(msg)
+        assert n_nodes > 3, "Must use more than three nodes."
 
         cheby_2nd = Chebyshev2ndUnweighted(n_nodes-3)
         ref_nodes = [cheby.domain[0], *cheby_2nd.nodes, cheby.domain[1]]
@@ -89,7 +87,7 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         # Form tensor containing the value of the PDF at each node in 
         # each element
         shape = (self.num_elems, self.cheby.cardinality, n_cdfs)
-        ps_local = ps[self.global2local, :].reshape(*shape)
+        ps_local = ps[self.elem_nodes.flatten(), :].reshape(*shape)
         
         # Compute the coefficients of each Chebyshev polynomial in each 
         # element for each PDF
@@ -98,8 +96,6 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         cdf_poly_grid = torch.zeros(self.num_elems+1, n_cdfs)
         cdf_poly_nodes = torch.zeros(self.cardinality, n_cdfs)
         poly_base = torch.zeros(self.num_elems, n_cdfs)
-
-        inds = self.global2local.reshape(self.num_elems, -1)
 
         for i in range(self.num_elems):
 
@@ -110,7 +106,7 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
             poly_base[i] = integrals[0]
             # Compute value of poly at nodes of CDF corresponding to 
             # current element
-            cdf_poly_nodes[inds[i]] = cdf_poly_grid[i] + integrals - integrals[0]
+            cdf_poly_nodes[self.elem_nodes[i]] = cdf_poly_grid[i] + integrals - integrals[0]
             # Compute value of CDFs at the right-hand edge of element
             cdf_poly_grid[i+1] = cdf_poly_grid[i] + integrals[-1] - integrals[0]
         
