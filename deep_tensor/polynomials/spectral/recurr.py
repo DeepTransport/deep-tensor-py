@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 
 from .spectral import Spectral
+from ..basis_1d import Basis1D
 
 
 class Recurr(Spectral, abc.ABC):
@@ -88,14 +89,10 @@ class Recurr(Spectral, abc.ABC):
         weights = eigvecs[0] ** 2
         return eigvals, weights
 
+    @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
-
-        if self.order == 0:
-            return torch.full((ls.numel(), 1), self.norm)
         
         ps = torch.zeros((ls.numel(), self.order+1))
-        
-        # Evaluate recurrence relation
         ps[:, 0] = 1.0
         ps[:, 1] = self.a[0] * ls + self.b[0]
         for j in range(1, self.order):
@@ -103,20 +100,17 @@ class Recurr(Spectral, abc.ABC):
                           - self.c[j] * ps[:, j-1].clone())
         
         return ps * self.norm
-        
+    
+    @Basis1D._check_samples
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
         
-        if self.order == 0:
-            return torch.full((ls.numel(), 1), 0.0)
-        
-        dpdxs = torch.zeros((ls.numel(), self.order+1))
+        dpdls = torch.zeros((ls.numel(), self.order+1))
         ps = self.eval_basis(ls) / self.norm
         
-        # Evaluate recurrence relation
-        dpdxs[:, 1] = self.a[0] * ps[:, 0]
+        dpdls[:, 1] = self.a[0] * ps[:, 0]
         for j in range(1, self.order):
-            dpdxs[:, j+1] = (self.a[j] * ps[:, j] 
-                             + (self.a[j] * ls + self.b[j]) * dpdxs[:, j]
-                             - self.c[j] * dpdxs[:, j-1])
+            dpdls[:, j+1] = (self.a[j] * ps[:, j] 
+                             + (self.a[j] * ls + self.b[j]) * dpdls[:, j].clone()
+                             - self.c[j] * dpdls[:, j-1].clone())
 
-        return dpdxs * self.norm
+        return dpdls * self.norm
