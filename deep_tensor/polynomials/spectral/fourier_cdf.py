@@ -5,7 +5,6 @@ from torch import Tensor
 
 from .spectral_cdf import SpectralCDF
 from .fourier import Fourier
-from ...constants import EPS
 
 
 class FourierCDF(SpectralCDF, Fourier):
@@ -52,7 +51,6 @@ class FourierCDF(SpectralCDF, Fourier):
 
     def grid_measure(self, n: int) -> Tensor:
         ls = torch.linspace(*self.domain, n)
-        ls = ls.clamp(self.domain[0] + EPS, self.domain[-1] - EPS)
         return ls
 
     def eval_int_basis(self, ls: Tensor) -> Tensor:

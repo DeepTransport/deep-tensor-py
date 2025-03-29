@@ -21,17 +21,17 @@ class HermiteCDF(Hermite, SpectralCDF):
     
     def eval_int_basis(self, ls: Tensor) -> Tensor:
         ps = self.eval_basis(ls)
-        ws = self.eval_measure(ls)
+        ws = self.eval_measure(ls)[:, None]
         ps[:, 1:] = -ps[:, :-1] * self.norm[1:] / self.norm[:-1]
-        ps *= ws[:, None]
+        ps *= ws
         ps[:, 0] = 0.5 * torch.erf(ls / torch.tensor(2.0).sqrt())
         return ps
     
     def eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         ps = self.eval_basis(ls)
-        ws = self.eval_measure(ls)
-        dpdls = ps * ws[:, None]
+        ws = self.eval_measure(ls)[:, None]
+        dpdls = ps * ws
         ps[:, 1:] = -ps[:, :-1] * self.norm[1:] / self.norm[:-1]
-        ps *= ws[:, None]
+        ps *= ws
         ps[:, 0] = 0.5 * torch.erf(ls / torch.tensor(2.0).sqrt())
         return ps, dpdls

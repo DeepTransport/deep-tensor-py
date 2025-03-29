@@ -39,6 +39,10 @@ class Recurr(Spectral, abc.ABC):
             to 1.
 
         """
+
+        if order < 1:
+            raise Exception("Order must be at least 1.")
+        
         self.order = order
         self.a = a
         self.b = b
@@ -46,6 +50,7 @@ class Recurr(Spectral, abc.ABC):
         self.norm = norm
         self._nodes, self._weights = self.compute_nodes_weights(a, b, c)
         self.__post_init__()
+        
         return
 
     @staticmethod

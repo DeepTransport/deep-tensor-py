@@ -84,8 +84,7 @@ class Spectral(Basis1D, abc.ABC):
     @staticmethod
     def l2theta(ls: Tensor) -> Tensor:
         """Converts a set of values from a local domain to a set of 
-        theta values (theta = arccos(l)), adjusting the endpoints in 
-        case of singularities.
+        theta values (theta = arccos(l)).
 
         Parameters
         ----------
@@ -100,7 +99,6 @@ class Spectral(Basis1D, abc.ABC):
             of theta (theta = arccos(l)).
         
         """
-        ls = ls.clamp(-1.0, 1.0)
-        thetas = ls.acos()
+        thetas = ls.clamp(-1.0, 1.0).acos()
         check_finite(thetas)
         return thetas

@@ -51,10 +51,6 @@ class Chebyshev1stTrigoCDF(TrigoCDF, Chebyshev1st):
         
         thetas = thetas[:, None]
         
-        if self.order == 0:
-            ps = thetas / torch.pi 
-            return ps
-        
         # Cui et al, 2023
         int_pws = torch.hstack((
             thetas / torch.pi, 

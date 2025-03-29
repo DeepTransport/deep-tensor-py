@@ -11,7 +11,7 @@ class SpectralCDF(CDF1D, abc.ABC):
 
     def __init__(self, **kwargs):
         CDF1D.__init__(self, **kwargs)
-        n_sampling_nodes = max(2*self.cardinality, 200)
+        n_sampling_nodes = max(2*self.cardinality, 200)  # why?
         self.sampling_nodes = self.grid_measure(n_sampling_nodes)
         self.cdf_basis2node = self.eval_int_basis(self.sampling_nodes)
         return

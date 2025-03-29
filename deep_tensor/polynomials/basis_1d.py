@@ -2,7 +2,6 @@ import abc
 from typing import Callable
 import warnings
 
-import torch
 from torch import Tensor 
 
 
@@ -378,14 +377,14 @@ class Basis1D(abc.ABC, object):
         
         # Compute first term of product rule
         dpdls = self.eval_basis_deriv(ls)
-        wls = self.eval_measure(ls)
-        gradfwls = dpdls @ coeffs * wls[:, None]
+        wls = self.eval_measure(ls)[:, None]
+        gradfwls = dpdls @ coeffs * wls
 
         # Compute second term of product rule
         if not self.constant_weight:
             basis_vals = self.eval_basis(ls)
-            gradwls = self.eval_measure_deriv(ls)
-            gradfwls += (basis_vals @ coeffs) * gradwls[:, None]
+            gradwls = self.eval_measure_deriv(ls)[:, None]
+            gradfwls += (basis_vals @ coeffs) * gradwls
 
         return gradfwls
  
