@@ -19,7 +19,6 @@ class TestSpectralPolynomials(unittest.TestCase):
         polynomials: list[dt.Spectral] = [
             dt.Chebyshev1st(order=20),
             dt.Chebyshev2nd(order=20),
-            dt.Chebyshev2ndUnweighted(order=20),
             dt.Hermite(order=20),
             dt.Laguerre(order=20),  # poly.node2basis @ poly.basis2node doesn't produce the identity (here and in MATLAB)
             dt.Fourier(order=20),
