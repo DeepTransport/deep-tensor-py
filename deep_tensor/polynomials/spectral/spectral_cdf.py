@@ -1,7 +1,6 @@
 import abc
 from typing import Tuple
 
-import torch
 from torch import Tensor
 
 from ..cdf_1d import CDF1D

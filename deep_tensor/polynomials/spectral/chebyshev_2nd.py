@@ -71,29 +71,27 @@ class Chebyshev2nd(Spectral):
     @Basis1D._check_samples
     def eval_measure(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
-        ts[ts < EPS] = EPS
         ws = 2.0 * ts.sqrt() / torch.pi 
         return ws
     
     @Basis1D._check_samples
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
-        ts[ts < EPS] = EPS
-        ws = 0.5 * ts.log() + torch.tensor(2.0/torch.pi).log()
-        return ws
+        logws = 0.5 * ts.log() + torch.tensor(2.0/torch.pi).log()
+        return logws
     
     @Basis1D._check_samples
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
+        ls[ls < EPS] = EPS
         ts = 1.0 / (1.0 - ls.square())
         check_finite(ts)
-        ts[ts < EPS] = EPS
-        ws = -2.0 * ls * ts.sqrt() / torch.pi
-        return ws
+        dwdls = -2.0 * ls * ts.sqrt() / torch.pi
+        return dwdls
     
     @Basis1D._check_samples
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         ts = 1.0 - ls.square()
-        ts[ts < EPS] = EPS 
+        ts[ts < EPS] = EPS
         ws = -ls / ts
         check_finite(ws)
         return ws
@@ -101,8 +99,7 @@ class Chebyshev2nd(Spectral):
     @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
         
-        thetas = self.l2theta(ls)
-        thetas = thetas[:, None]
+        thetas = self.l2theta(ls)[:, None]
         sin_thetas = thetas.sin()
         sin_thetas[sin_thetas.abs() < EPS] = EPS
 
@@ -119,8 +116,7 @@ class Chebyshev2nd(Spectral):
     @Basis1D._check_samples
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
 
-        thetas = self.l2theta(ls)
-        thetas = thetas[:, None]
+        thetas = self.l2theta(ls)[:, None]
         sin_thetas = thetas.sin()
         sin_thetas[sin_thetas.abs() < EPS] = EPS
         ls = ls[:, None]

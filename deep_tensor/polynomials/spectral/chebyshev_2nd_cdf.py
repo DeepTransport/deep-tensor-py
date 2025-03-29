@@ -3,16 +3,16 @@ from typing import Tuple
 import torch
 from torch import Tensor
 
-from .chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
+from .chebyshev_2nd import Chebyshev2nd
 from .legendre import Legendre
 from .spectral_cdf import SpectralCDF
 from ...tools import check_finite
 
 
-class BoundedPolyCDF(Chebyshev2ndUnweighted, SpectralCDF):
+class Chebyshev2ndCDF(Chebyshev2nd, SpectralCDF):
 
     def __init__(self, poly: Legendre, **kwargs):        
-        Chebyshev2ndUnweighted.__init__(self, order=2*poly.order)
+        Chebyshev2nd.__init__(self, order=2*poly.order)
         SpectralCDF.__init__(self, **kwargs)
         return
 

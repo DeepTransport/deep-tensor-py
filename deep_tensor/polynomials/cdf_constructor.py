@@ -6,7 +6,7 @@ from .piecewise.lagrange_1_cdf import Lagrange1CDF
 from .piecewise.lagrange_p import LagrangeP
 from .piecewise.lagrange_p_cdf import LagrangePCDF
 
-from .spectral.bounded_poly_cdf import BoundedPolyCDF
+from .spectral.chebyshev_2nd_cdf import Chebyshev2ndCDF
 from .spectral.chebyshev_1st import Chebyshev1st
 from .spectral.chebyshev_1st_cdf import Chebyshev1stCDF
 from .spectral.chebyshev_1st_trigo_cdf import Chebyshev1stTrigoCDF
@@ -29,7 +29,7 @@ POLY_CDFS = {
     Lagrange1: Lagrange1CDF,
     LagrangeP: LagrangePCDF,
     Laguerre: LaguerreCDF,
-    Legendre: BoundedPolyCDF
+    Legendre: Chebyshev2ndCDF
 }
 
 

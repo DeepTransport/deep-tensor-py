@@ -6,8 +6,8 @@ from torch import Tensor
 from .lagrange_p import LagrangeP
 from ..cdf_data import CDFDataLagrangeP
 from ..piecewise.piecewise_cdf import PiecewiseCDF
-from ..spectral.bounded_poly_cdf import BoundedPolyCDF
-from ..spectral.chebyshev_2nd_unweighted import Chebyshev2ndUnweighted
+from ..spectral.chebyshev_2nd_cdf import Chebyshev2ndCDF
+from ..spectral.chebyshev_2nd import Chebyshev2nd
 
 
 class LagrangePCDF(LagrangeP, PiecewiseCDF):
@@ -43,7 +43,7 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         self.nodes = nodes
         return
 
-    def _lag2cheby(self, poly: LagrangeP) -> Tuple[BoundedPolyCDF, Tensor]:
+    def _lag2cheby(self, poly: LagrangeP) -> Tuple[Chebyshev2ndCDF, Tensor]:
         """Defines a data structure which maps Lagrange polynomials to 
         Chebyshev polynomials with preserved boundary values. 
 
@@ -58,12 +58,12 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         
         """
 
-        cheby = BoundedPolyCDF(poly)
+        cheby = Chebyshev2ndCDF(poly)
         n_nodes = cheby.cardinality
 
         assert n_nodes > 3, "Must use more than three nodes."
 
-        cheby_2nd = Chebyshev2ndUnweighted(n_nodes-3)
+        cheby_2nd = Chebyshev2nd(n_nodes-3)
         ref_nodes = [cheby.domain[0], *cheby_2nd.nodes, cheby.domain[1]]
         ref_nodes = torch.tensor(ref_nodes)
 
