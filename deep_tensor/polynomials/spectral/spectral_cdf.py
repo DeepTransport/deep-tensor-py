@@ -173,7 +173,6 @@ class SpectralCDF(CDF1D, abc.ABC):
         l1s = self.sampling_nodes[left_inds+1]
         
         ls = self.newton(coefs, cdf_poly_base, zs_cdf, l0s, l1s)
-        check_finite(ls)
         return ls
 
     def newton(
@@ -189,20 +188,11 @@ class SpectralCDF(CDF1D, abc.ABC):
         z1s = self.eval_int_search(coefs, cdf_poly_base, zs_cdf, l1s)
         self.check_initial_intervals(z0s, z1s)
 
-        # Carry out the first iteration using the regula falsi method
-        ls = l1s - z1s * (l1s - l0s) / (z1s - z0s)
+        ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
 
         for _ in range(self.num_newton):  
-            
             zs, dzs = self.eval_int_newton(coefs, cdf_poly_base, zs_cdf, ls)
-            
-            dls = -zs / dzs 
-            # check_finite(dls)
-            dls[dls.isinf()] = 0.0
-            dls[dls.isnan()] = 0.0
-            ls += dls 
-            ls = torch.clamp(ls, l0s, l1s)
-
+            ls, dls = self._newton_step(ls, zs, dzs, l0s, l1s)
             if self.converged(zs, dls):
                 return ls
         
@@ -224,14 +214,8 @@ class SpectralCDF(CDF1D, abc.ABC):
 
         for _ in range(self.num_regula_falsi):
 
-            dls = -z1s * (l1s - l0s) / (z1s - z0s)
-            # check_finite(dls)
-            dls[dls.isinf()] = 0.0
-            dls[dls.isnan()] = 0.0
-            ls = l1s + dls
-
+            ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
             zs = self.eval_int_search(coefs, cdf_poly_base, zs_cdf, ls)
-
             if self.converged(zs, dls):
                 return ls 
 

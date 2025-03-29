@@ -1,4 +1,5 @@
 import abc 
+from typing import Tuple
 import warnings
 
 import torch
@@ -200,6 +201,35 @@ class CDF1D(abc.ABC):
         
         return
     
+    @staticmethod
+    def _regula_falsi_step(
+        z0s: Tensor, 
+        z1s: Tensor,
+        l0s: Tensor, 
+        l1s: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        """Carries out a single regula falsi iteration."""
+        dls = -z1s * (l1s - l0s) / (z1s - z0s)
+        dls[dls.isinf() | dls.isnan()] = 0.0
+        ls = l1s + dls
+        ls = torch.clamp(ls, l0s, l1s)
+        return ls, dls
+    
+    @staticmethod
+    def _newton_step(
+        ls: Tensor,
+        zs: Tensor,
+        dzs: Tensor,
+        l0s: Tensor, 
+        l1s: Tensor 
+    ) -> Tuple[Tensor, Tensor]:
+        """Carries out a single Newton iteration."""
+        dls = -zs / dzs 
+        dls[dls.isinf() | dls.isnan()] = 0.0
+        ls += dls 
+        ls = torch.clamp(ls, l0s, l1s)
+        return ls, dls
+    
     def converged(self, fs: Tensor, dls: Tensor) -> bool:
         """Returns a boolean that indicates whether a rootfinding 
         method has converged.
@@ -231,9 +261,12 @@ class CDF1D(abc.ABC):
         
         error_fs = fs.abs()
         error_dls = dls.abs()
+        unconverged = (torch.min(error_fs, error_dls) >= self.error_tol)
+        max_residual = error_fs.abs().max()
         
-        unconverged = (torch.min(error_fs, error_dls) < self.error_tol)
         msg = (f"{method} did not converge "
-               + f"({unconverged.sum()} unconverged samples).")
+               + f"({unconverged.sum()} unconverged samples). "
+               + f"Maximum residual: {max_residual:.4e}.")
         warnings.warn(msg)
+
         return None

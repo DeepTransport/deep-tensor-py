@@ -204,7 +204,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         cdf_data = self.pdf2cdf(ps)
 
         zs = self.eval_int(cdf_data, ls) / cdf_data.poly_norm
-        zs = torch.clamp(zs, EPS, 1.0-EPS)
+        zs = torch.clamp(zs, 0.0, 1.0)
         return zs
     
     def newton(
@@ -251,23 +251,11 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         z1s = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, l1s)
         self.check_initial_intervals(z0s, z1s)
 
-        # Carry out the first iteration using the regula falsi method
-        dls = -z1s * (l1s - l0s) / (z1s - z0s)
-        dls[dls.isinf()] = 0.0
-        dls[dls.isnan()] = 0.0
-        ls = l1s + dls
+        ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
 
-        for _ in range(self.num_newton):  
-            
+        for _ in range(self.num_newton):
             zs, dzs = self.eval_int_local_newton(cdf_data, inds_left, zs_cdf, ls)
-            
-            dls = -zs / dzs 
-            check_finite(dls)
-            dls[dls.isinf()] = 0.0
-            dls[dls.isnan()] = 0.0
-            ls += dls 
-            ls = torch.clamp(ls, l0s, l1s)
-
+            ls, dls = self._newton_step(ls, zs, dzs, l0s, l1s)
             if self.converged(zs, dls):
                 return ls
         
@@ -320,14 +308,8 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
 
         for _ in range(self.num_regula_falsi):
 
-            dls = -z1s * (l1s - l0s) / (z1s - z0s)
-            check_finite(dls)
-            dls[dls.isinf()] = 0.0
-            dls[dls.isnan()] = 0.0
-            ls = l1s + dls
-
+            ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
             zs = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, ls)
-
             if self.converged(zs, dls):
                 return ls 
 
