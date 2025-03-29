@@ -17,13 +17,12 @@ class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
     
     def grid_measure(self, n: int) -> Tensor:
         ls = torch.linspace(*self.domain, n)
-        ls = ls.clamp(self.domain[0]-EPS, self.domain[-1]+EPS)
+        # ls = ls.clamp(self.domain[0], self.domain[-1]+EPS)
         return ls
 
     def eval_int_basis(self, ls: Tensor) -> Tensor:
         
-        thetas = self.l2theta(ls)
-        thetas = thetas[:, None]
+        thetas = self.l2theta(ls)[:, None]
 
         if self.order == 0:
             basis_vals = -thetas / torch.pi
@@ -39,13 +38,9 @@ class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
         return basis_vals
     
     def eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
-
-        thetas = self.l2theta(ls)
-        thetas = thetas[:, None]
-
+        thetas = self.l2theta(ls)[:, None]
         basis_vals = self.eval_int_basis(ls)
         derivs = self.norm * torch.cos(thetas * self.n)
-        ws = self.eval_measure(ls)
-        derivs = derivs * ws[:, None]
-        
+        ws = self.eval_measure(ls)[:, None]
+        derivs = derivs * ws
         return basis_vals, derivs

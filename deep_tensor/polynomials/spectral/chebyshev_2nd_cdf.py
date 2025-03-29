@@ -17,16 +17,13 @@ class Chebyshev2ndCDF(Chebyshev2nd, SpectralCDF):
         return
 
     def grid_measure(self, n: int) -> Tensor:
-        grid = torch.linspace(*self.domain, n)
-        # grid = torch.clamp(grid, self.domain[0]+EPS, self.domain[-1]-EPS)
-        return grid
+        return torch.linspace(*self.domain, n)
     
     def eval_int_basis(self, ls: Tensor) -> Tensor:
         """Evaluates the integral of each basis function at each 
         element in ls.
         """
-        thetas = self.l2theta(ls)
-        thetas = thetas[:, None]
+        thetas = self.l2theta(ls)[:, None]
         int_ps = (thetas * (self.n+1)).cos() * self.norm / (self.n+1)
         check_finite(int_ps)
         return int_ps

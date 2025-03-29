@@ -13,9 +13,7 @@ class TrigoCDF(SpectralCDF):
         return
     
     def grid_measure(self, n: int) -> Tensor:
-        ls = torch.linspace(-torch.pi, 0.0, n)
-        ls = ls.clamp(-torch.pi + EPS, -EPS)
-        return ls
+        return torch.linspace(-torch.pi, 0.0, n)
     
     def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
         thetas = Spectral.l2theta(ls)

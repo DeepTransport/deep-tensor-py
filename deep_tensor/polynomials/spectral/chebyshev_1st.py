@@ -119,8 +119,7 @@ class Chebyshev1st(Spectral):
         if self.order == 0:
             return torch.zeros((ls.numel(), 1))
 
-        thetas = self.l2theta(ls)
-        thetas = thetas[:, None]
+        thetas = self.l2theta(ls)[:, None]
         sin_thetas = thetas.sin()
         sin_thetas[sin_thetas.abs() < EPS] = EPS
 
