@@ -7,8 +7,6 @@ from torch import Tensor
 from .piecewise import Piecewise
 from ..cdf_1d import CDF1D
 from ..cdf_data import CDFData
-from ...constants import EPS
-from ...tools import check_finite
 
 
 class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
@@ -18,7 +16,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_int_local(
+    def eval_int_elem(
         self, 
         cdf_data: CDFData,
         inds_left: Tensor,
@@ -49,7 +47,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         return
 
     @abc.abstractmethod
-    def eval_int_local_deriv(
+    def eval_int_elem_deriv(
         self, 
         cdf_data: CDFData,
         inds_left: Tensor,
@@ -114,10 +112,10 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         inds_left = torch.sum(self.grid < ls[:, None], dim=1) - 1
         inds_left = torch.clamp(inds_left, 0, self.num_elems-1)
         
-        zs = self.eval_int_local(cdf_data, inds_left, ls)
+        zs = self.eval_int_elem(cdf_data, inds_left, ls)
         return zs
 
-    def eval_int_local_search(
+    def eval_int_elem_diff(
         self, 
         data: CDFData,
         inds_left: Tensor, 
@@ -152,10 +150,10 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
             the values of zs_cdf.
 
         """
-        dzs = self.eval_int_local(data, inds_left, ls) - zs_cdf
+        dzs = self.eval_int_elem(data, inds_left, ls) - zs_cdf
         return dzs
     
-    def eval_int_local_newton(
+    def eval_int_elem_newton(
         self, 
         cdf_data: CDFData,
         inds_left: Tensor, 
@@ -194,7 +192,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
             unnormalised CDF evaluated at each element in ls.
 
         """
-        zs, gradzs = self.eval_int_local_deriv(cdf_data, inds_left, ls)
+        zs, gradzs = self.eval_int_elem_deriv(cdf_data, inds_left, ls)
         dzs = zs - zs_cdf
         return dzs, gradzs
 
@@ -247,14 +245,14 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         
         """
 
-        z0s = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, l0s)
-        z1s = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, l1s)
+        z0s = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l0s)
+        z1s = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l1s)
         self.check_initial_intervals(z0s, z1s)
 
         ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
 
         for _ in range(self.num_newton):
-            zs, dzs = self.eval_int_local_newton(cdf_data, inds_left, zs_cdf, ls)
+            zs, dzs = self.eval_int_elem_newton(cdf_data, inds_left, zs_cdf, ls)
             ls, dls = self._newton_step(ls, zs, dzs, l0s, l1s)
             if self.converged(zs, dls):
                 return ls
@@ -302,14 +300,14 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         
         """
         
-        z0s = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, l0s)
-        z1s = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, l1s)
+        z0s = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l0s)
+        z1s = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l1s)
         self.check_initial_intervals(z0s, z1s)
 
         for _ in range(self.num_regula_falsi):
 
             ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
-            zs = self.eval_int_local_search(cdf_data, inds_left, zs_cdf, ls)
+            zs = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, ls)
             if self.converged(zs, dls):
                 return ls 
 
@@ -332,7 +330,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         zs = self.eval_int(cdf_data, ls)
         return zs
     
-    def invert_cdf_local(
+    def invert_cdf_elem(
         self, 
         cdf_data: CDFData, 
         inds_left: Tensor,
@@ -376,5 +374,5 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         inds_left = (cdf_data.cdf_poly_grid <= zs_cdf).sum(dim=0) - 1
         inds_left = torch.clamp(inds_left, 0, self.num_elems-1)
 
-        ls = self.invert_cdf_local(cdf_data, inds_left, zs_cdf)
+        ls = self.invert_cdf_elem(cdf_data, inds_left, zs_cdf)
         return ls

@@ -124,7 +124,7 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
 
         return data
 
-    def eval_int_local(
+    def eval_int_elem(
         self, 
         cdf_data: CDFDataLagrangeP, 
         inds_left: Tensor, 
@@ -145,7 +145,7 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         zs = zs_left + (ps * coefs).sum(dim=1)
         return zs
     
-    def eval_int_local_deriv(
+    def eval_int_elem_deriv(
         self, 
         cdf_data: CDFDataLagrangeP, 
         inds_left: Tensor, 
@@ -168,7 +168,7 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         dzdls = (dpdls * coefs).sum(dim=1)
         return zs, dzdls
     
-    def invert_cdf_local(
+    def invert_cdf_elem(
         self, 
         cdf_data: CDFDataLagrangeP, 
         inds_left: Tensor, 

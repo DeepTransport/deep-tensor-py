@@ -327,8 +327,6 @@ class TTSIRT(AbstractIRT):
             gls = torch.einsum("jl, ilk", gs, Ps)
             ps = gls.square().sum(dim=2) + self.defensive
             ls[:, k] = self.oned_cdfs[k].invert_cdf(ps, zs[:, k])
-            if ls[:, k].min() < -1.0:
-                self.oned_cdfs[k].invert_cdf(ps, zs[:, k])
 
             Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)

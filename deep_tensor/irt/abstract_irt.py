@@ -492,7 +492,7 @@ class AbstractIRT(abc.ABC):
             the potential function evaluated at each sample in `xs`.
         
         """
-        zs = torch.clamp(zs, Z_MIN, Z_MAX)
+        # zs = torch.clamp(zs, Z_MIN, Z_MAX)
         direction = AbstractIRT._get_direction(subset)
         indices = self._get_transform_indices(zs.shape[1], direction)
         ls, neglogfls = self._eval_irt_local(zs, direction)
