@@ -12,45 +12,23 @@ class Fourier(Spectral):
     ----------
     order:
         The number of sine functions the basis is composed of. The 
-        total number of basis functions, $N$, is equal to `2*order+2`.
+        total number of basis functions, $n$, is equal to `2*order+2`.
     
     Notes
     -----
-    The Fourier basis for the interval $[-1, 1]$, with cardinality $N$, 
+    The Fourier basis for the interval $[-1, 1]$, with cardinality $n$, 
     is given by
     $$
-        \left\{1, \sqrt{2}\sin(\pi x), \dots, \sqrt{2}\sin(n \pi x), 
-        \sqrt{2}\cos(\pi x), \dots, \sqrt{2}\cos(n \pi x), 
-        \sqrt{2}\cos(N \pi x / 2)\right\},
+        \left\{1, \sqrt{2}\sin(\pi x), \dots, \sqrt{2}\sin(k \pi x), 
+        \sqrt{2}\cos(\pi x), \dots, \sqrt{2}\cos(k \pi x), 
+        \sqrt{2}\cos(n \pi x / 2)\right\},
     $$
-    where $n = 1, 2, \dots, \tfrac{N}{2}-1$. 
+    where $k = 1, 2, \dots, \tfrac{n}{2}-1$. 
     
     The basis functions are orthonormal with respect to the 
     (normalised) weight function given by
-    $$\lambda(x) = \frac{1}{2}.$$
-
-    A given function can be represented in the Fourier basis as 
     $$
-        f(x) \approx 
-            a_{0} 
-            + \sum_{n=1}^{N/2}a_{n} \sqrt{2} \cos(n \pi x) 
-            + \sum_{n=1}^{N/2-1}b_{n} \sqrt{2} \sin(n \pi x),
-    $$
-    where the coefficients can be computed using the trapezoidal rule:
-    $$
-        \begin{align}
-            a_{0} &= \frac{1}{N}\sum_{k=1}^{N} f(x_{k}), && \\
-            a_{n} &= \frac{1}{N}\sum_{k=1}^{N} f(x_{k}) \sqrt{2} \cos(n \pi x_{k}), 
-                &&\quad n = 1, 2, \dots, \frac{N}{2} - 1, \\
-            b_{n} &= \frac{1}{N}\sum_{k=1}^{N} f(x_{k}) \sqrt{2} \sin(n \pi x_{k}),
-                &&\quad n = 1, 2, \dots, \frac{N}{2} - 1, \\
-            a_{N/2} &= \frac{1}{2N}\sum_{k=1}^{N} f(x_{k}) \sqrt{2} \cos(N \pi x_{k} / 2).
-                &&
-        \end{align}
-    $$
-    The collocation points $\{x_{n}\}_{n=1}^{N}$ are given by
-    $$
-        x_{n} = -1 + \frac{2n}{N}.
+        \lambda(x) = \frac{1}{2}.
     $$
 
     References

@@ -9,12 +9,32 @@ from ...tools import check_finite
 
 
 class Chebyshev2nd(Spectral):
-    """Chebyshev polynomials of the second kind.
+    r"""Chebyshev polynomials of the second kind.
     
     Parameters
     ----------
     order:
         The maximum order of the polynomials.
+
+    Notes
+    -----
+    The (normalised) Chebyshev polynomials of the second kind, defined 
+    on $(-1, 1)$, are given by
+    $$
+        p_{k}(x) = \frac{\sin((k+1)\arccos(x))}{\sin{(\arccos(x))}}, 
+            \qquad k = 0, 1, \dots, n.
+    $$
+    The polynomials are orthogonal with respect to the (normalised) 
+    weighting function given by
+    $$
+        \lambda(x) = \frac{2\sqrt{1-x^{2}}}{\pi}.
+    $$
+
+    References
+    ----------
+    Boyd, JP (2001, Appendix A.2). *[Chebyshev and Fourier spectral 
+    methods](https://link.springer.com/book/9783540514879).* Lecture 
+    Notes in Engineering, Volume 49.
         
     """
 

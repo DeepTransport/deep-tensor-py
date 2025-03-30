@@ -8,15 +8,30 @@ from ...tools import check_finite
 
 
 class Chebyshev1st(Spectral):
-    """Chebyshev polynomials of the first kind.
-
-    We use the Gauss-Chebyshev set of collocation points.
+    r"""Chebyshev polynomials of the first kind.
 
     Parameters
     ----------
     order:
         The maximum order of the polynomials.
-     
+
+    Notes
+    -----
+    The (normalised) Chebyshev polynomials of the first kind, defined 
+    on $(-1, 1)$, are given by 
+    $$
+    \begin{align}
+        p_{0}(x) &= 1, \\
+        p_{k}(x) &= \sqrt{2}\cos(k\arccos(x)), 
+            \qquad k = 1, 2, \dots, n.
+    \end{align}
+    $$
+    The polynomials are orthogonal with respect to the (normalised) 
+    weighting function given by
+    $$
+        \lambda(x) = \frac{1}{\pi\sqrt{1-x^{2}}}.
+    $$
+
     References
     ----------
     Boyd, JP (2001, Appendix A.2). *[Chebyshev and Fourier spectral 
@@ -25,7 +40,7 @@ class Chebyshev1st(Spectral):
 
     Cui, T, Dolgov, S and Zahm, O (2023). *[Self-reinforced polynomial 
     approximation methods for concentrated probability 
-    densities.](https://arxiv.org/abs/2303.02554)*.
+    densities](https://arxiv.org/abs/2303.02554)*. arXiv preprint.
 
     """
 
@@ -115,9 +130,6 @@ class Chebyshev1st(Spectral):
     
     @Basis1D._check_samples
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
-
-        if self.order == 0:
-            return torch.zeros((ls.numel(), 1))
 
         thetas = self.l2theta(ls)[:, None]
         sin_thetas = thetas.sin()

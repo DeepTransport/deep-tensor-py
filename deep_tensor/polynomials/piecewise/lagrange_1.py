@@ -33,6 +33,10 @@ class Lagrange1(Piecewise):
 
     The corresponding (conditional) CDFs are represented using a 
     piecewise cubic basis which uses the same elements.
+
+    We use piecewise cubic polynomials to represent the (conditional) 
+    CDFs corresponding to the piecewise linear representation of the 
+    (square root of) the target density function.
     
     """
 
