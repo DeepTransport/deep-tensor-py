@@ -11,7 +11,7 @@ class SpectralCDF(CDF1D, abc.ABC):
 
     def __init__(self, **kwargs):
         CDF1D.__init__(self, **kwargs)
-        n_sampling_nodes = max(2*self.cardinality, 200)  # why?
+        n_sampling_nodes = 2*self.cardinality  # max(2*self.cardinality, 200) (why?)
         self.sampling_nodes = self.grid_measure(n_sampling_nodes)
         self.cdf_basis2node = self.eval_int_basis(self.sampling_nodes)
         return
@@ -85,11 +85,6 @@ class SpectralCDF(CDF1D, abc.ABC):
             ls.
         
         """
-        return
-
-    def update_sampling_nodes(self, sampling_nodes: Tensor) -> None:
-        self.sampling_nodes = sampling_nodes 
-        self.cdf_basis2node = self.eval_int_basis(self.sampling_nodes)
         return
     
     def eval_int(self, coefs: Tensor, ls: Tensor) -> Tensor:
