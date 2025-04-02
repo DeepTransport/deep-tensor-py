@@ -6,14 +6,10 @@ from torch import Tensor
 from torch.autograd.functional import jacobian
 from torch.quasirandom import SobolEngine
 
-from ..constants import EPS
 from ..ftt import ApproxBases, Direction, InputData, TTData, TTFunc
 from ..options import TTOptions
 from ..polynomials import CDF1D
 
-
-Z_MIN = torch.tensor(EPS)
-Z_MAX = torch.tensor(1.0-EPS)
 
 PotentialFunc = Callable[[Tensor], Tensor]
 
@@ -456,8 +452,6 @@ class AbstractIRT(abc.ABC):
         indices = self._get_transform_indices(xs.shape[1], direction)
         ls = self.approx.bases.approx2local(xs, indices)[0]
         zs = self._eval_rt_local(ls, direction)
-        if zs.min() < 0.0:
-            pass
         return zs
     
     def eval_irt(
@@ -492,7 +486,6 @@ class AbstractIRT(abc.ABC):
             the potential function evaluated at each sample in `xs`.
         
         """
-        # zs = torch.clamp(zs, Z_MIN, Z_MAX)
         direction = AbstractIRT._get_direction(subset)
         indices = self._get_transform_indices(zs.shape[1], direction)
         ls, neglogfls = self._eval_irt_local(zs, direction)
@@ -681,33 +674,6 @@ class AbstractIRT(abc.ABC):
         for k in range(self.dim):
             Jacs[:, :, k] *= dldxs[:, k]
         return Jacs
-    
-    # def eval_rt_jac_prod(self, xs: Tensor, vs: Tensor) -> Tensor:
-    #     """
-    #     xs: samples to compute RT with.
-    #     vs: samples to compute J(x)v with
-    #     """
-    #     TTFunc._check_sample_dim(xs, self.dim, strict=True)
-    #     Js = self._eval_rt_jac_prod_autodiff(xs, vs)
-    #     return Js
-
-    # def _eval_rt_jac_prod_autodiff(self, xs: Tensor, vs: Tensor) -> Tensor:
-
-    #     n_xs, d_xs = xs.shape
-
-    #     def _eval_rt(xs: Tensor) -> Tensor:
-    #         xs = xs.reshape(n_xs, self.dim)
-    #         return self.eval_rt(xs).sum(dim=0)
-        
-    #     Jvs: Tensor = torch.func.jvp(  # torch.func.jvp?
-    #         _eval_rt, 
-    #         primals=xs,#.flatten(), 
-    #         tangents=vs#.flatten()
-    #     )[1]
-
-    #     print(Jvs.shape)
-
-    #     return Jvs.reshape(n_xs, d_xs)
 
     def random(self, n: int) -> Tensor: 
         """Generates a set of random samples. 
