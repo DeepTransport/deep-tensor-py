@@ -5,7 +5,6 @@ from torch import Tensor
 from torch.quasirandom import SobolEngine
 
 from .reference import Reference
-from ..constants import EPS
 from ..domains import BoundedDomain
 from ..tools import check_finite
 
@@ -32,7 +31,6 @@ class UniformReference(Reference):
     
     def invert_cdf(self, zs: Tensor) -> Tensor:
         check_finite(zs)
-        zs = torch.clamp(zs, EPS, 1.0-EPS)
         rs = self.domain.left + zs / self.pdf
         return rs
     

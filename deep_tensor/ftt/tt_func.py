@@ -3,6 +3,7 @@ import warnings
 
 import torch
 from torch import Tensor
+from torch import linalg
 from torch.autograd.functional import jacobian
 
 from .approx_bases import ApproxBases
@@ -396,7 +397,7 @@ class TTFunc():
             inds, B = maxvol(U)
             U_interp = U[inds]
         
-        if (cond := torch.linalg.cond(U_interp)) > MAX_COND:
+        if (cond := linalg.cond(U_interp)) > MAX_COND:
             msg = f"Poor condition number in interpolation: {cond}."
             warnings.warn(msg)
 
@@ -422,9 +423,9 @@ class TTFunc():
         elif self.options.int_method == "maxvol":
             inds, _ = maxvol(nodes)
             U_interp = nodes[inds]
-            B = U @ torch.linalg.inv(U_interp)
+            B = U @ linalg.inv(U_interp)
         
-        if (cond := torch.linalg.cond(U_interp)) > MAX_COND:
+        if (cond := linalg.cond(U_interp)) > MAX_COND:
             msg = f"Poor condition number in interpolation ({cond})."
             warnings.warn(msg)
 
@@ -581,11 +582,10 @@ class TTFunc():
         if error_tol is None: 
             error_tol = self.options.local_tol
         
-        U, s, Vh = torch.linalg.svd(H, full_matrices=False)
+        U, s, Vh = linalg.svd(H, full_matrices=False)
             
-        energies = torch.flip(s**2, dims=(0,)).cumsum(dim=0)
-        tol = 0.1 * energies[-1] * error_tol ** 2
-        
+        energies = s.square().flip(dims=(0,)).cumsum(dim=0)
+        tol = 0.1 * energies[-1] * error_tol ** 2        
         rank = torch.sum(energies > tol)
         rank = torch.clamp(rank, 1, self.options.max_rank)
 
@@ -613,7 +613,7 @@ class TTFunc():
 
         nr_k = U.shape[0]
         U = U.T.reshape(-1, poly.cardinality).T
-        U = torch.linalg.solve(poly.mass_R, U)
+        U = linalg.solve(poly.mass_R, U)
         U = U.T.reshape(-1, nr_k).T
         return U
     
@@ -732,12 +732,12 @@ class TTFunc():
         if isinstance(poly, Piecewise):
             T = T.T.reshape(-1, poly.cardinality) @ poly.mass_R.T
             T = T.reshape(-1, U.shape[0]).T
-            Q, R = torch.linalg.qr(T)
-            U = torch.linalg.solve(poly.mass_R, Q.T.reshape(-1, poly.cardinality).T)
+            Q, R = linalg.qr(T)
+            U = linalg.solve(poly.mass_R, Q.T.reshape(-1, poly.cardinality).T)
             U = U.T.reshape(-1, Q.shape[0]).T
 
         else:
-            U, R = torch.linalg.qr(T)
+            U, R = linalg.qr(T)
 
         r_new = U.shape[-1]
 
