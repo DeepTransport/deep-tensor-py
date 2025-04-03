@@ -7,7 +7,7 @@ import time
 
 from torch.linalg import norm
 
-from examples.ou_process.setup_ou_domain_mappings import *
+from examples.ou_process.setup_ou import *
 
 
 subsets = ["first", "last"]
@@ -27,7 +27,8 @@ print("")
 print(" | ".join(headers))
 print("-+-".join(["-" * 16] * len(headers)))
 
-zs = torch.rand((10_000, dim))
+n_zs = 10_000
+zs = torch.rand((n_zs, dim))
 
 for poly in polys_dict:
     for method in options_dict:
@@ -66,9 +67,8 @@ for poly in polys_dict:
             ]
             print(" | ".join(info))
 
-            axes[i][0].scatter(torch.arange(10_000), torch.abs(potential_true - potential_xs), s=4)
-            axes[i][0].set_ylim(bottom=0.0)
-            axes[i][0].set_ylabel("Error")
+            axes[i][0].hist((potential_true - potential_xs).abs().log())
+            axes[i][0].set_xlabel("log(Error)")
             axes[i][0].set_title("Error in potential function")
 
             axes[i][1].scatter(potential_true, potential_xs, s=4)
@@ -76,4 +76,5 @@ for poly in polys_dict:
             axes[i][1].set_ylabel("FTT")
             axes[i][1].set_title("True potential vs FTT")
             
-        plt.savefig(f"examples/ou_process/figures/02_marginal_{poly}_{method}.pdf")
+        fname = f"examples/ou_process/figures/02_marginal_{poly}_{method}.png"
+        plt.savefig(fname, dpi=500)

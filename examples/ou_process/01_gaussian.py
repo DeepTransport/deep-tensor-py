@@ -72,6 +72,6 @@ for poly in polys_dict:
         axes[1].set_ylabel("FTT")
         axes[1].set_title("True potential vs FTT")
         
-        plt.savefig(f"{figure_folder}/01_gaussian_{poly}_{method}.pdf")
+        plt.savefig(f"{figure_folder}/01_gaussian_{poly}_{method}.png", dpi=500)
 
         # corner_plot(sirt, xs, f"{figure_folder}/01_gaussian_{poly}_{method}_corner.pdf")

@@ -7,7 +7,7 @@ import time
 
 from torch.linalg import norm
 
-from examples.ou_process.setup_ou_domain_mappings import *
+from examples.ou_process.setup_ou import *
 
 
 subsets = ["first", "last"]
@@ -26,8 +26,8 @@ print("")
 print(" | ".join(headers))
 print("-+-".join(["-" * 16] * len(headers)))
 
-
-zs = torch.rand((10_000, dim))
+n_zs = 10_000
+zs = torch.rand((n_zs, dim))
 
 m = 2
 indices_l = torch.arange(m)
@@ -35,6 +35,10 @@ indices_r = torch.arange(m, dim)
 
 for poly in polys_dict:
     for method in options_dict:
+
+        fig, axes = plt.subplots(2, 2, figsize=(6, 6))
+        for ax in axes.flat:
+            ax.set_box_aspect(1)
 
         for i, subset in enumerate(subsets):
 
@@ -50,7 +54,7 @@ for poly in polys_dict:
                 inds_cov = indices_l
 
             t0 = time.time()
-            ys_cond_sirt, neglogfys_cond_sirt = sirt.eval_cirt(
+            ys_cond_sirt, potential_cond_sirt = sirt.eval_cirt(
                 xs_cond, 
                 zs_cond,
                 subset
@@ -58,20 +62,20 @@ for poly in polys_dict:
             t1 = time.time()
             
             if subset == "first":
-                neglogfys_cond_true = model.eval_potential_cond(
+                potential_cond_true = model.eval_potential_cond(
                     xs_cond, 
                     ys_cond_sirt, 
                     subset=subset
                 )
             else:
-                neglogfys_cond_true = model.eval_potential_cond(
+                potential_cond_true = model.eval_potential_cond(
                     ys_cond_sirt,
                     xs_cond, 
                     subset=subset
                 )
 
-            fys_cond_sirt = torch.exp(-neglogfys_cond_sirt)
-            fys_cond_true = torch.exp(-neglogfys_cond_true)
+            fys_cond_sirt = torch.exp(-potential_cond_sirt)
+            fys_cond_true = torch.exp(-potential_cond_true)
             approx_error = norm(fys_cond_true - fys_cond_sirt) 
 
             cov_cond_true = model.C[inds_cov[:, None], inds_cov[None, :]]
@@ -88,6 +92,14 @@ for poly in polys_dict:
             ]
             print(" | ".join(info))
 
-            # plt.scatter(torch.arange(10_000), torch.abs(torch.exp(-neglogfys_cond_sirt) - torch.exp(-neglogfys_cond_true)))
-            # plt.scatter(neglogfys_cond_sirt, neglogfys_cond_true)
-            # plt.show()
+            axes[i][0].hist((potential_cond_true - potential_cond_sirt).abs().log())
+            axes[i][0].set_xlabel("log(Error)")
+            axes[i][0].set_title("Error in potential function")
+
+            axes[i][1].scatter(potential_cond_true, potential_cond_sirt, s=4)
+            axes[i][1].set_xlabel("True potential")
+            axes[i][1].set_ylabel("FTT")
+            axes[i][1].set_title("True potential vs FTT")
+
+        fname = f"examples/ou_process/figures/03_conditional_{poly}_{method}.png"
+        plt.savefig(fname, dpi=500) 

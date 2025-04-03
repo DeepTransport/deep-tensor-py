@@ -1,6 +1,5 @@
 """Verifies that the Jacobian, dz/dx, of the Rosenblatt transport is 
 being constructed correctly using a finite difference check.
-
 """
 
 import time
@@ -64,7 +63,7 @@ for poly in polys_dict:
             Js = Js.reshape(dim, dim * n_zs)
             t1 = time.time()
 
-            # Js_fd = sirt.eval_rt_jac(xs, method="autodiff").reshape(dim, dim*n_zs)
+            # Js_fd = sirt.eval_rt_jac(xs, method="autodiff", subset=subset).reshape(dim, dim*n_zs)
             Js_fd = compute_finite_difference_jac(sirt, xs, subset)
 
             plt.figure(figsize=(6, 6))
@@ -72,7 +71,9 @@ for poly in polys_dict:
             plt.title("Jacobian Finite Difference Check")
             plt.ylabel(r"$J_{\mathrm{fd}}$")
             plt.xlabel(r"$J$")
-            plt.savefig(f"examples/ou_process/figures/04_jacobian_{poly}_{method}_{subset}.png", dpi=500)
+
+            fname = f"examples/ou_process/figures/04_jacobian_{poly}_{method}_{subset}.png"
+            plt.savefig(fname, dpi=500)
             plt.close()
 
             approx_error = norm(Js - Js_fd)
