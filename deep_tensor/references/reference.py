@@ -3,7 +3,6 @@ from typing import Tuple
 
 from torch import Tensor
 
-from ..constants import EPS
 from ..domains import Domain
 
 
@@ -153,7 +152,7 @@ class Reference(abc.ABC):
         """Raises an error if any of a set of samples are outside the
         domain of the reference.
         """
-        outside = (rs < self.domain.left-EPS) & (self.domain.right+EPS < rs)
+        outside = (rs < self.domain.left) | (self.domain.right < rs)
         if (n_outside := outside.sum()) > 0:
             msg = f"{n_outside} points lie outside domain of reference."
             raise Exception(msg)
