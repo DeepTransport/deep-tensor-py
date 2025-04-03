@@ -10,7 +10,7 @@ from .fourier import Fourier
 class FourierCDF(SpectralCDF, Fourier):
 
     def __init__(self, poly: Fourier, **kwargs):
-        Fourier.__init__(self, 2 * poly.order)
+        Fourier.__init__(self, 2*poly.order)
         SpectralCDF.__init__(self, **kwargs)
         return
     

@@ -5,7 +5,6 @@ from torch import Tensor
 
 from .chebyshev_1st import Chebyshev1st
 from .spectral_cdf import SpectralCDF
-from ...constants import EPS
 
 
 class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
@@ -17,16 +16,11 @@ class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
     
     def grid_measure(self, n: int) -> Tensor:
         ls = torch.linspace(*self.domain, n)
-        # ls = ls.clamp(self.domain[0], self.domain[-1]+EPS)
         return ls
 
     def eval_int_basis(self, ls: Tensor) -> Tensor:
         
         thetas = self.l2theta(ls)[:, None]
-
-        if self.order == 0:
-            basis_vals = -thetas / torch.pi
-            return basis_vals
 
         basis_vals = -torch.hstack((
             thetas / torch.pi, 
