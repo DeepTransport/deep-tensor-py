@@ -1,6 +1,5 @@
 """Evaluates the quality of the FTT surrogate to the joint distribution 
 for the OU process.
-
 """
 
 import time

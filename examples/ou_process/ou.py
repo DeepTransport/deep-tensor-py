@@ -1,7 +1,5 @@
 import torch
 
-from deep_tensor import Direction
-
 
 class OU():
 
