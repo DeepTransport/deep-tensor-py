@@ -244,11 +244,7 @@ class TTSIRT(AbstractIRT):
             ps = gs.square().sum(dim=2) + self.defensive
 
             # Evaluate CDF to obtain corresponding uniform variates
-            if ls[:, k].min() < -1.0:
-                print("here")
             zs[:, k] = self.oned_cdfs[k].eval_cdf(ps, ls[:, k])
-            if zs[:, k].min() < 0.0:
-                print("here")
 
             # Compute incremental product of tensor cores for each sample
             Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])

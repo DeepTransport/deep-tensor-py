@@ -609,11 +609,7 @@ class TTDIRT():
         neglogfxs = -self.reference.log_joint_pdf(xs)[0]
 
         for i in range(n_layers-1, -1, -1):
-
-            # Evaluate reference density
             neglogrefs = -self.reference.log_joint_pdf(xs)[0]
-
-            # Evaluate the current mapping Q
             zs = self.reference.eval_cdf(xs)[0]
             xs, neglogsirts = self.irts[i].eval_irt(zs, subset)
             neglogfxs += neglogsirts - neglogrefs
