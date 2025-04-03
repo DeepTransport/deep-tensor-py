@@ -84,7 +84,7 @@ class SpaceTimePointwiseStateObservation(Misfit):
                 self.B.transpmult(self.Bu_snapshot, self.u_snapshot) 
                 out.store(self.u_snapshot, t)           
         else:
-            pass
+            raise NotImplementedError()
             
     def setLinearizationPoint(self, x, gauss_newton_approx=False):
         pass
