@@ -189,31 +189,31 @@ class Tempering1(SingleBeta):
             neglogpris, 
             neglogfxs
         )
-        neglogrefs = -reference.log_joint_pdf(rs)[0]
+        neglogrefs = reference.eval_potential(rs)[0]
         neglogratios = -log_weights + neglogrefs
         return neglogratios
     
-    def ratio_func(
-        self, 
-        func: Callable, 
-        rs: Tensor,
-        irt_func: Callable,
-        reference: Reference,
-        method: str
-    ) -> Tensor:
+    # def ratio_func(
+    #     self, 
+    #     func: Callable, 
+    #     rs: Tensor,
+    #     irt_func: Callable,
+    #     reference: Reference,
+    #     method: str
+    # ) -> Tensor:
         
-        # Push samples forward to the approximation of the current target
-        xs, neglogfxs = irt_func(rs)
-        neglogliks, neglogpris = func(xs)
-        neglogratios = self.get_ratio_func(
-            reference, 
-            method, 
-            rs, 
-            neglogliks, 
-            neglogpris, 
-            neglogfxs
-        )
-        return neglogratios
+    #     # Push samples forward to the approximation of the current target
+    #     xs, neglogfxs = irt_func(rs)
+    #     neglogliks, neglogpris = func(xs)
+    #     neglogratios = self.get_ratio_func(
+    #         reference, 
+    #         method, 
+    #         rs, 
+    #         neglogliks, 
+    #         neglogpris, 
+    #         neglogfxs
+    #     )
+    #     return neglogratios
     
     def compute_log_weights(
         self, 

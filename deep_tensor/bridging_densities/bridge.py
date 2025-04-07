@@ -66,42 +66,42 @@ class Bridge(abc.ABC):
         """
         return
 
-    @abc.abstractmethod
-    def ratio_func(
-        func: Callable, 
-        rs: Tensor,
-        irt_func: Callable,
-        reference: Reference,
-        method: str
-    ) -> Tensor:
-        """Returns the negative log-ratio function associated with a 
-        set of samples from the reference density.
+    # @abc.abstractmethod
+    # def ratio_func(
+    #     func: Callable, 
+    #     rs: Tensor,
+    #     irt_func: Callable,
+    #     reference: Reference,
+    #     method: str
+    # ) -> Tensor:
+    #     """Returns the negative log-ratio function associated with a 
+    #     set of samples from the reference density.
         
-        Parameters
-        ----------
-        func:
-            User-defined function that returns the negative 
-            log-likelihood and negative log-prior density of a sample 
-            in the approximation domain.
-        rs:
-            An n * d matrix containing samples from the reference 
-            density.
-        irt_func:
-            Function that computes the inverse Rosenblatt transform.
-        reference:
-            The reference density.
-        method:
-            The method to use when computing the ratio function; can be
-            'aratio' (approximate ratio) or 'eratio' (exact ratio).
+    #     Parameters
+    #     ----------
+    #     func:
+    #         User-defined function that returns the negative 
+    #         log-likelihood and negative log-prior density of a sample 
+    #         in the approximation domain.
+    #     rs:
+    #         An n * d matrix containing samples from the reference 
+    #         density.
+    #     irt_func:
+    #         Function that computes the inverse Rosenblatt transform.
+    #     reference:
+    #         The reference density.
+    #     method:
+    #         The method to use when computing the ratio function; can be
+    #         'aratio' (approximate ratio) or 'eratio' (exact ratio).
         
-        Returns
-        -------
-        neglogratio: 
-            An n-dimensional vector containing the negative log-ratio 
-            function evaluated for each sample.
+    #     Returns
+    #     -------
+    #     neglogratio: 
+    #         An n-dimensional vector containing the negative log-ratio 
+    #         function evaluated for each sample.
 
-        """
-        return
+    #     """
+    #     return
     
     @abc.abstractmethod 
     def set_init(self, neglogliks: Tensor) -> None:

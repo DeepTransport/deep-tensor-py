@@ -12,19 +12,12 @@ from ..tools import check_finite
 
 class SymmetricReference(Reference, abc.ABC):
     
-    def __init__(
-        self, 
-        mu: float = 0.0, 
-        sigma: float = 1.0,
-        domain: Domain = None
-    ):
+    def __init__(self, domain: Domain = None):
         
         if domain is None:
             bounds = torch.tensor([-4.0, 4.0])
             domain = BoundedDomain(bounds=bounds)
 
-        self.mu = mu
-        self.sigma = sigma
         self.domain = domain
         self.is_truncated = isinstance(domain, BoundedDomain)
         self.set_cdf_bounds()
@@ -73,7 +66,7 @@ class SymmetricReference(Reference, abc.ABC):
             A vector or matrix of the same dimension as us, containing 
             the PDF of the unit reference distribution evaluated at 
             each element of us.
-        grad_ps:
+        dpdus:
             A vector or matrix of the same dimension as us, containing 
             the gradient of the PDF of the unit reference distribution 
             evaluated at each element of us.
@@ -103,9 +96,10 @@ class SymmetricReference(Reference, abc.ABC):
         return
     
     @abc.abstractmethod
-    def log_joint_unit_pdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
-        """Returns the log-PDF and gradient of the log-PDF of the 
-        reference distribution evaluated at each element of us.
+    def eval_unit_potential(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+        """Returns the negative log-PDF and gradient of the negative 
+        log-PDF of the reference distribution evaluated at each element 
+        of us.
 
         Parameters
         ----------
@@ -115,10 +109,10 @@ class SymmetricReference(Reference, abc.ABC):
 
         Returns
         -------
-        logps:
+        log_ps:
             A d-dimensional vector containing the PDF of the joint unit 
             reference distribution evaluated at each sample in us.
-        loggrad_ps:
+        log_dpdus:
             An n * d matrix containing the log of the gradient of the 
             joint unit reference density evaluated at each sample in 
             us.
@@ -132,70 +126,42 @@ class SymmetricReference(Reference, abc.ABC):
         """
         
         if self.is_truncated:
-            sigma_left = (self.domain.left-self.mu) / self.sigma
-            sigma_right = (self.domain.right-self.mu) / self.sigma
-            self.left = self.eval_unit_cdf(sigma_left)[0]
-            self.right = self.eval_unit_cdf(sigma_right)[0]
+            self.cdf_left = self.eval_unit_cdf(self.domain.left)[0]
+            self.cdf_right = self.eval_unit_cdf(self.domain.right)[0]
         else:
-            self.left = 0.0
-            self.right = 1.0
+            self.cdf_left = 0.0
+            self.cdf_right = 1.0
 
         # Normalising constant for PDF
-        self.norm = self.right - self.left
+        self.norm = self.cdf_right - self.cdf_left
         return
-
-    def map_to_unit(self, xs: Tensor) -> Tensor:
-        """Maps a set of variates from the reference density to samples
-        from the density of the same form, but with zero mean and unit 
-        variance.
-        
-        Parameters
-        ----------
-        rs:
-            An n * d matrix containing samples from the reference 
-            density.
-        
-        Returns
-        -------
-        us:
-            The corresponding samples after transforming such that they
-            have zero mean and unit variance.
-        
-        """
-        us = (xs - self.mu) / self.sigma
-        return us
 
     def eval_cdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         self._check_samples_in_domain(rs)
-        us = self.map_to_unit(rs)
-        zs, dzdus = self.eval_unit_cdf(us)
-        zs = (zs - self.left) / self.norm
-        dzdrs = dzdus / (self.sigma * self.norm)
+        zs, dzdrs = self.eval_unit_cdf(rs)
+        zs = (zs - self.cdf_left) / self.norm
+        dzdrs = dzdrs / self.norm
         return zs, dzdrs
     
     def eval_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         self._check_samples_in_domain(rs)
-        us = self.map_to_unit(rs)
-        ps, grad_ps = self.eval_unit_pdf(us)
-        ps /= (self.sigma * self.norm)
-        grad_ps /= (self.sigma**2 * self.norm)
-        return ps, grad_ps
+        ps, dpdrs = self.eval_unit_pdf(rs)
+        ps = ps / self.norm
+        dpdrs = dpdrs / self.norm
+        return ps, dpdrs
 
     def invert_cdf(self, zs: Tensor) -> Tensor:
         check_finite(zs)
-        zs = self.left + zs * self.norm
+        zs = self.cdf_left + zs * self.norm
         us = self.invert_unit_cdf(zs)
-        rs = self.mu + self.sigma * us
-        return rs
+        return us
         
-    def log_joint_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+    def eval_potential(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         self._check_samples_in_domain(rs)
         d_rs = rs.shape[1]
-        us = self.map_to_unit(rs)
-        log_ps, log_grad_ps = self.log_joint_unit_pdf(us)
-        log_ps -= d_rs * (self.sigma * self.norm).log()
-        log_grad_ps /= self.sigma
-        return log_ps, log_grad_ps
+        log_ps, log_dpdrs = self.eval_unit_potential(rs)
+        log_ps = log_ps + d_rs * self.norm.log()
+        return log_ps, log_dpdrs
     
     def random(self, d: int, n: int) -> Tensor:
         r"""Generates a set of random samples.

@@ -7,19 +7,20 @@ from torch import Tensor
 
 from .tt_sirt import TTSIRT
 from ..bridging_densities import Bridge, Tempering1
-from ..domains import BoundedDomain
 from ..ftt import ApproxBases, InputData
 from ..options import DIRTOptions, TTOptions
-from ..references import Reference, GaussianReference
+from ..polynomials import Basis1D
+from ..prior_transformation import PriorTransformation
 from ..tools import compute_f_divergence
 from ..tools.printing import dirt_info
 
 
-DIRTFunc = Callable[[Tensor], Tuple[Tensor, Tensor]]
-
-
 class TTDIRT():
     r"""Deep (squared) inverse Rosenblatt transport.
+
+    TODO: polynomials can be different but the domain will be the same 
+    in all dimensions, and it will be the one used with the reference 
+    measure
 
     Parameters
     ----------
@@ -59,66 +60,74 @@ class TTDIRT():
 
     References
     ----------
-    Cui, T and Dolgov, S (2022). *[Deep composition of Tensor-Trains 
+    Cui, T and Dolgov, S (2022). *[Deep composition of tensor-trains 
     using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).* 
     Foundations of Computational Mathematics, **22**, 1863--1922.
     
     """
 
     def __init__(self, 
-        func: DIRTFunc, 
-        bases: ApproxBases, 
+        # func: DIRTFunc, 
+        negloglik: Callable[[Tensor], Tensor],
+        prior: PriorTransformation,
+        bases: Basis1D | list[Basis1D], 
         bridge: Bridge|None = None,
-        reference: Reference|None = None,
+        # reference: Reference|None = None,
         sirt_options: TTOptions|None = None,
         dirt_options: DIRTOptions|None = None,
-        init_samples: Tensor|None = None,
+        # init_samples: Tensor|None = None,
         prev_approx: dict[int, TTSIRT]|None = None
     ):
+        
+        def negloglik_Q(rs: Tensor) -> Tensor:
+            """Computes the negative log-likelihood of a set of samples 
+            from the reference domain, by first transforming them using 
+            the mapping Q.
+            """
+            xs = self.prior.Q(rs)
+            return negloglik(xs)
 
         if bridge is None:
             bridge = Tempering1(min_beta=1e-3, ess_tol=0.4)
-        
-        if reference is None:
-            bounds = torch.tensor([-4.0, 4.0])
-            domain = BoundedDomain(bounds=bounds)
-            reference = GaussianReference(mu=0.0, sigma=1.0, domain=domain)
-        
         if sirt_options is None:
             sirt_options = TTOptions(max_cross=1, tt_method="amen")
-        
         if dirt_options is None:
             dirt_options = DIRTOptions()
 
-        self.func = func
-        self.bases = bases
-        self.dim = bases.dim
+        # self.func = func
+        self.negloglik = negloglik_Q
+        self.prior = prior
+        self.reference = self.prior.reference
+        self.bases = ApproxBases(bases, self.prior.reference.domain, self.prior.dim)
+        self.dim = prior.dim
         self.bridge = bridge
-        self.reference = reference 
+        # self.reference = reference 
         self.sirt_options = sirt_options
         self.dirt_options = dirt_options
-        self.init_samples = init_samples
+        # self.init_samples = init_samples
         self.prev_approx = prev_approx
         self.pre_sample_size = (self.dirt_options.num_samples 
                                 + self.dirt_options.num_debugs)
         
-        if self.init_samples is not None:
-            if self.init_samples.shape[0] < self.pre_sample_size:
-                msg = ("More initialisation samples are required. "
-                       + f"Need {self.pre_sample_size}, "
-                       + f"got {self.init_samples.shape[0]}.")
-                raise Exception(msg)
+        # if self.init_samples is not None:
+        #     if self.init_samples.shape[0] < self.pre_sample_size:
+        #         msg = ("More initialisation samples are required. "
+        #                + f"Need {self.pre_sample_size}, "
+        #                + f"got {self.init_samples.shape[0]}.")
+        #         raise Exception(msg)
         
         self.irts: dict[int, TTSIRT] = {}
         self.num_eval = 0
         self.log_z = 0.0
 
-        bases_list = [
-            ApproxBases(self.bases.polys, self.bases.domains, self.bases.dim),
-            ApproxBases(self.bases.polys, self.reference.domain, self.bases.dim)
-        ]
+        # bases_list = [
+        #     ApproxBases(self.bases.polys, self.bases.domains, self.bases.dim),
+        #     ApproxBases(self.bases.polys, self.reference.domain, self.bases.dim)
+        # ]
+        # I don't think this is necessary any more--the reference 
+        # domain should be the same as the approximation bases domain
 
-        self._build(func, bases_list)
+        self._build()
         return
 
     @property 
@@ -130,49 +139,49 @@ class TTDIRT():
         self.bridge.n_layers = value 
         return
 
-    def _initialise(
-        self, 
-        bases: ApproxBases
-    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-        """Generates a set of samples to initialise the FTT with.
+    # def _initialise(
+    #     self, 
+    #     bases: ApproxBases
+    # ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    #     """Generates a set of samples to initialise the FTT with.
         
-        Parameters
-        ----------
-        bases: 
-            A set of bases for the approximation domain.
+    #     Parameters
+    #     ----------
+    #     bases: 
+    #         A set of bases for the approximation domain.
 
-        Returns
-        -------
-        xs:
-            An n * d matrix containing samples from the approximation 
-            domain. If init_samples (samples drawn from the prior) are 
-            available, these are used; otherwise, a set of samples are 
-            drawn from the weighting function associated with the bases 
-            for the reference density.     
-        neglogliks:
-            An n-dimensional vector containing the negative of the
-            log-likelihood function evaluated at each sample.
-        neglogpris: 
-            An n-dimensional vector containing the negative logarithm
-            of the prior density evaluated at each sample.
-        neglogfxs:
-            An n-dimensional vector containing the negative logarithm 
-            of the density the samples are drawn from.
+    #     Returns
+    #     -------
+    #     xs:
+    #         An n * d matrix containing samples from the approximation 
+    #         domain. If init_samples (samples drawn from the prior) are 
+    #         available, these are used; otherwise, a set of samples are 
+    #         drawn from the weighting function associated with the bases 
+    #         for the reference density.     
+    #     neglogliks:
+    #         An n-dimensional vector containing the negative of the
+    #         log-likelihood function evaluated at each sample.
+    #     neglogpris: 
+    #         An n-dimensional vector containing the negative logarithm
+    #         of the prior density evaluated at each sample.
+    #     neglogfxs:
+    #         An n-dimensional vector containing the negative logarithm 
+    #         of the density the samples are drawn from.
         
-        """
+    #     """
 
-        if self.init_samples is None:
-            if self.dirt_options.verbose:
-                dirt_info("Drawing initialisation samples...")
-            xs, neglogfxs = bases.sample_measure(self.pre_sample_size)
-            neglogliks, neglogpris = self.func(xs)
-        else:
-            xs = self.init_samples
-            neglogliks, neglogpris = self.func(xs)
-            neglogfxs = neglogpris  # Samples are drawn from the prior
-            self.bridge.set_init(neglogliks)
+    #     if self.init_samples is None:
+    #         if self.dirt_options.verbose:
+    #             dirt_info("Drawing initialisation samples...")
+    #         xs, neglogfxs = bases.sample_measure(self.pre_sample_size)
+    #         neglogliks, neglogpris = self.func(xs)
+    #     else:
+    #         xs = self.init_samples
+    #         neglogliks, neglogpris = self.func(xs)
+    #         neglogfxs = neglogpris  # Samples are drawn from the prior
+    #         self.bridge.set_init(neglogliks)
 
-        return xs, neglogliks, neglogpris, neglogfxs
+    #     return xs, neglogliks, neglogpris, neglogfxs
 
     def _get_potential_to_density(
         self, 
@@ -255,8 +264,8 @@ class TTDIRT():
 
     def _get_new_layer(
         self, 
-        func: DIRTFunc, 
-        bases_list: list[ApproxBases], 
+        # func: Callable[[Tensor], Tensor], 
+        # bases_list: list[ApproxBases], 
         xs: Tensor, 
         neglogratios: Tensor
     ) -> TTSIRT:
@@ -288,23 +297,36 @@ class TTDIRT():
 
         def updated_func(rs: Tensor) -> Tensor:
 
-            return self.bridge.ratio_func(
-                func, 
+            xs, neglogfxs = self._eval_irt(rs)
+            neglogliks = self.negloglik(xs)
+            neglogpris = self.reference.eval_potential(xs)[0]
+
+            neglogratios = self.bridge.get_ratio_func(
+                self.reference,
+                self.dirt_options.method,
                 rs, 
-                self.eval_irt, 
-                self.reference, 
-                self.dirt_options.method
+                neglogliks, 
+                neglogpris, 
+                neglogfxs
             )
+
+            # return self.bridge.ratio_func(
+            #     func, 
+            #     rs, 
+            #     self.eval_irt, 
+            #     self.reference, 
+            #     self.dirt_options.method
+            # )
+
+            return neglogratios
 
         if self.prev_approx is None:
             
             # Generate debugging and initialisation samples
-            bases_i = bases_list[min(self.n_layers, 1)] 
-            input_data = self._get_inputdata(bases_i, xs, neglogratios)
+            # bases_i = bases_list[min(self.n_layers, 1)] 
+            input_data = self._get_inputdata(self.bases, xs, neglogratios)
 
-            # First layer may have different domain to second. 
-            # In this case it won't be very useful.
-            if self.n_layers <= 1:
+            if self.n_layers == 0:
                 approx = None 
                 tt_data = None
             else:
@@ -314,7 +336,8 @@ class TTDIRT():
 
             sirt = TTSIRT(
                 updated_func,
-                bases=bases_i,
+                prior=self.prior,
+                bases=self.bases.polys,
                 prev_approx=approx,
                 options=self.sirt_options,
                 input_data=input_data,
@@ -343,32 +366,31 @@ class TTDIRT():
         
         return sirt
     
-    def _build(self, func: DIRTFunc, bases_list: list[ApproxBases]) -> None:
+    def _build(self) -> None:
         """Constructs a DIRT to approximate a given probability 
         density.
-        
-        Parameters
-        ----------
-        func:
-            A function that returns the negative log-likelihood and 
-            negative log-prior density associated with a sample (or 
-            samples) from the approximation domain.
-        bases_list: 
-            A list of approximation bases for the first and second
-            levels of DIRT construction.
-        
         """
+
+        rs = self.reference.random(self.dim, self.pre_sample_size)
+        neglogliks = self.negloglik(rs)
+        neglogpris = self.reference.eval_potential(rs)[0]
+        # neglogliks, neglogpris = self.func(xs)
         
         while self.n_layers < self.dirt_options.max_layers:
 
-            if self.n_layers == 0:
-                (xs, neglogliks, 
-                 neglogpris, neglogfxs) = self._initialise(bases_list[0])
-                rs = xs.clone()  # DIRT mapping is the identity
-            else:
-                rs = self.reference.random(self.dim, self.pre_sample_size)
-                xs, neglogfxs = self.eval_irt(rs)
-                neglogliks, neglogpris = func(xs)
+            # if self.n_layers == 0:
+            #     (xs, neglogliks, 
+            #      neglogpris, neglogfxs) = self._initialise(bases_list[0])  
+            #     rs = xs.clone()  # DIRT mapping is the identity
+            # else:
+            #     rs = self.reference.random(self.dim, self.pre_sample_size)
+            
+            # Transform samples such that they are distributed 
+            # according to current approximation
+            xs, neglogfxs = self._eval_irt(rs)
+            neglogliks = self.negloglik(xs)
+            neglogpris = self.reference.eval_potential(xs)[0]
+            # neglogliks, neglogpris = func(xs)
         
             self.bridge.adapt_density(
                 self.dirt_options.method, 
@@ -400,11 +422,12 @@ class TTDIRT():
                     neglogfxs
                 )
 
+            # TODO: change this to re-order by weights
             resampled_inds = self.bridge.resample(log_weights)
 
             self.irts[self.n_layers] = self._get_new_layer(
-                func, 
-                bases_list, 
+                # func, 
+                # bases_list, 
                 xs[resampled_inds], 
                 neglogratios[resampled_inds]
             )
@@ -420,6 +443,8 @@ class TTDIRT():
 
         msg = "Maximum number of DIRT layers reached. Building final layer..."
         warnings.warn(msg)
+
+        raise NotImplementedError()
 
         xs, neglogfxs = self.eval_irt(rs)
         neglogliks, neglogpris = func(xs)
@@ -512,7 +537,7 @@ class TTDIRT():
         fxs = torch.exp(-neglogfxs)
         return fxs
 
-    def eval_rt(
+    def _eval_rt(
         self,
         xs: Tensor,
         n_layers: Tensor = torch.inf,
@@ -522,7 +547,7 @@ class TTDIRT():
         
         Parameters
         ----------
-        xs:
+        ms:
             An $n \times k$ matrix of random variables drawn from the 
             density defined by the current DIRT.
         n_layers:
@@ -555,19 +580,67 @@ class TTDIRT():
 
         for i in range(n_layers):
             
-            zs = self.irts[i].eval_rt(rs)
-            neglogsirts = self.irts[i].eval_potential(rs, subset)
+            zs = self.irts[i]._eval_rt(rs)
+            neglogsirts = self.irts[i]._eval_potential(rs, subset)
 
             rs = self.reference.invert_cdf(zs)
-            neglogrefs = -self.reference.log_joint_pdf(rs)[0]
+            neglogrefs = self.reference.eval_potential(rs)[0]
             neglogfxs += neglogsirts - neglogrefs
 
-        neglogrefs = -self.reference.log_joint_pdf(rs)[0]
+        neglogrefs = self.reference.eval_potential(rs)[0]
         neglogfxs += neglogrefs
 
         return rs, neglogfxs
+    
+    def eval_rt(
+        self,
+        ms: Tensor,
+        n_layers: Tensor = torch.inf,
+        subset: str|None = None
+    ) -> Tuple[Tensor, Tensor]:
+        r"""Evaluates the deep Rosenblatt transport.
+        
+        Parameters
+        ----------
+        ms:
+            An $n \times k$ matrix of random variables drawn from the 
+            density defined by the current DIRT.
+        n_layers:
+            The number of layers of the deep inverse Rosenblatt 
+            transport to push the samples forward under. If not 
+            specified, the samples will be pushed forward through all 
+            the layers.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
 
-    def eval_irt(
+        Returns
+        -------
+        rs:
+            An $n \times k$ matrix containing the composition of 
+            mappings evaluated at each value of `xs`.
+        neglogfxs:
+            An $n$-dimensional vector containing the potential function 
+            of the pullback of the reference density under the current 
+            composition of mappings, evaluated at each sample in `xs`.
+
+        """
+
+        n_layers = min(n_layers, self.n_layers)
+
+        xs = self.prior.Q_inv(ms)
+
+        rs, neglogfxs = self._eval_rt(xs, n_layers, subset)
+
+        # TODO: could eventually move this to the start
+        neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
+        neglogfxs += neglogabsdet_ms
+
+        return rs, neglogfxs
+
+    def _eval_irt(
         self, 
         rs: Tensor, 
         n_layers: int = torch.inf,
@@ -594,8 +667,7 @@ class TTDIRT():
         -------
         xs: 
             An $n \times k$ matrix containing the corresponding samples 
-            from the approximation domain, after applying the deep 
-            inverse Rosenblatt transport.
+            after applying the deep inverse Rosenblatt transport.
         neglogfxs:
             An $n$-dimensional vector containing the potential function
             of the pullback of the reference density under the current 
@@ -606,15 +678,62 @@ class TTDIRT():
         n_layers = min(n_layers, self.n_layers)
         xs = rs.clone()
 
-        neglogfxs = -self.reference.log_joint_pdf(xs)[0]
+        neglogfxs = self.reference.eval_potential(xs)[0]
 
         for i in range(n_layers-1, -1, -1):
-            neglogrefs = -self.reference.log_joint_pdf(xs)[0]
+            neglogrefs = self.reference.eval_potential(xs)[0]
             zs = self.reference.eval_cdf(xs)[0]
-            xs, neglogsirts = self.irts[i].eval_irt(zs, subset)
+            xs, neglogsirts = self.irts[i]._eval_irt(zs, subset)
             neglogfxs += neglogsirts - neglogrefs
 
         return xs, neglogfxs
+
+    def eval_irt(
+        self, 
+        ms: Tensor, 
+        n_layers: int = torch.inf,
+        subset: str|None = None
+    ) -> Tuple[Tensor, Tensor]:
+        r"""Evaluates the deep inverse Rosenblatt transport.
+
+        Parameters
+        ----------
+        rs:
+            An $n \times k$ matrix containing samples distributed 
+            according to the reference density.
+        n_layers: 
+            The number of layers of the deep inverse Rosenblatt 
+            transport to pull the samples back under. If not specified,
+            the samples will be pulled back through all the layers.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+
+        Returns
+        -------
+        ms: 
+            An $n \times k$ matrix containing the corresponding samples 
+            from the approximation domain, after applying the deep 
+            inverse Rosenblatt transport.
+        neglogfms:
+            An $n$-dimensional vector containing the potential function
+            of the pullback of the reference density under the current 
+            composition of mappings, evaluated at each sample in `xs`.
+
+        """
+
+        rs = self.prior.Q_inv(ms)
+
+        xs, neglogfxs = self._eval_irt(rs, n_layers, subset)
+
+        # Map samples back into actual domain
+        ms = self.prior.Q(xs)
+        neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
+        neglogfms = neglogfxs + neglogabsdet_ms
+
+        return ms, neglogfms
     
     def random(self, n: int) -> Tensor: 
         """Generates a set of random samples. 

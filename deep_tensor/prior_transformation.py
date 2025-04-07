@@ -22,6 +22,8 @@ class PriorTransformation():
         distribution.
     Q_inv: 
         The inverse of `Q`.
+    dim: 
+        The dimension of the parameter.
 
     """
 
@@ -29,9 +31,13 @@ class PriorTransformation():
         self, 
         reference: Reference,
         Q: Callable[[Tensor], Tensor],
-        Q_inv: Callable[[Tensor], Tensor]
+        Q_inv: Callable[[Tensor], Tensor],
+        neglogabsdet_Q_inv: Callable[[Tensor], Tensor],
+        dim: int
     ):
         self.reference = reference
         self.Q = Q
         self.Q_inv = Q_inv
+        self.neglogabsdet_Q_inv = neglogabsdet_Q_inv
+        self.dim = dim
         return

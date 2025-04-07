@@ -1,12 +1,11 @@
-from typing import Callable, Tuple
+from typing import Tuple
 
 import torch
 from torch import Tensor
 
 from .abstract_irt import AbstractIRT
-from ..ftt import ApproxBases, Direction, InputData, TTData, TTFunc
-from ..options import TTOptions
-from ..polynomials import CDF1D, construct_cdf
+from ..ftt import Direction, TTFunc
+from ..polynomials import CDF1D
 
 
 class TTSIRT(AbstractIRT):
@@ -43,67 +42,11 @@ class TTSIRT(AbstractIRT):
 
     References
     ----------
-    Cui, T and Dolgov, S (2022). *[Deep composition of Tensor-Trains 
+    Cui, T and Dolgov, S (2022). *[Deep composition of tensor-trains 
     using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).* 
     Foundations of Computational Mathematics, **22**, 1863--1922.
 
     """
-
-    def __init__(
-        self, 
-        potential: Callable[[Tensor], Tensor], 
-        bases: ApproxBases|None = None,
-        prev_approx: TTFunc|None = None,
-        options: TTOptions|None = None, 
-        input_data: InputData|None = None, 
-        tt_data: TTData|None = None,
-        defensive: float = 1e-8
-    ):
-        
-        def target_func(ls: Tensor) -> Tensor:
-            """Returns the square root of the ratio between the target 
-            density and the weighting function evaluated at a set of 
-            points in the local domain.
-            """
-            return self._potential2density(potential, ls)
-        
-        AbstractIRT.__init__(
-            self,
-            potential, 
-            bases,
-            prev_approx, 
-            options, 
-            input_data,
-            tt_data
-        )
-
-        # Define coefficient tensors and marginalisation coefficents
-        self.Bs_f: dict[int, Tensor] = {}
-        self.Rs_f: dict[int, Tensor] = {}
-        self.Bs_b: dict[int, Tensor] = {}
-        self.Rs_b: dict[int, Tensor] = {}
-        
-        self.defensive = defensive
-
-        self.approx = TTFunc(
-            target_func, 
-            self.bases,
-            options=self.options, 
-            input_data=self.input_data,
-            tt_data=self.tt_data
-        )
-        self.approx._cross()
-        if self.approx.use_amen:
-            self.approx._round()  # why?
-
-        self.oned_cdfs = {}
-        tol = self.approx.options.cdf_tol
-        for k in range(self.dim):
-            self.oned_cdfs[k] = construct_cdf(self.bases.polys[k], error_tol=tol)
-
-        self._marginalise_forward()
-        self._marginalise_backward()
-        return
 
     @property 
     def oned_cdfs(self) -> dict[int, CDF1D]:
@@ -190,19 +133,19 @@ class TTSIRT(AbstractIRT):
         self.z = self.z_func + self.defensive
         return
 
-    def _potential2density(
-        self, 
-        potential_func: Callable[[Tensor], Tensor], 
-        ls: Tensor
-    ) -> Tensor:
+    # def _potential2density(
+    #     self, 
+    #     potential_func: Callable[[Tensor], Tensor], 
+    #     ls: Tensor
+    # ) -> Tensor:
         
-        xs = self.bases.local2approx(ls)[0]
-        neglogfxs = potential_func(xs)
-        neglogwxs = self.bases.eval_measure_potential(xs)[0]
+    #     xs = self.bases.local2approx(ls)[0]
+    #     neglogfxs = potential_func(xs)
+    #     neglogwxs = self.bases.eval_measure_potential(xs)[0]
         
-        # The ratio of f and w is invariant to changes of coordinate
-        gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
-        return gs
+    #     # The ratio of f and w is invariant to changes of coordinate
+    #     gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
+    #     return gs
 
     def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
 

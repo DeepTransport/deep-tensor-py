@@ -8,7 +8,8 @@ from torch.quasirandom import SobolEngine
 
 from ..ftt import ApproxBases, Direction, InputData, TTData, TTFunc
 from ..options import TTOptions
-from ..polynomials import CDF1D
+from ..polynomials import Basis1D, CDF1D, construct_cdf
+from ..prior_transformation import PriorTransformation
 
 
 PotentialFunc = Callable[[Tensor], Tensor]
@@ -18,22 +19,52 @@ class AbstractIRT(abc.ABC):
 
     def __init__(
         self, 
-        potential: Callable[[Tensor], Tensor],
-        bases: ApproxBases|None, 
-        prev_approx: TTFunc|None,
-        options: TTOptions|None,
-        input_data: InputData|None,
-        tt_data: TTData|None
+        potential: Callable[[Tensor], Tensor], 
+        # negloglik: Callable[[Tensor], Tensor],
+        prior: PriorTransformation,
+        bases: Basis1D|list[Basis1D]|None = None,
+        prev_approx: TTFunc|None = None,
+        options: TTOptions|None = None, 
+        input_data: InputData|None = None, 
+        tt_data: TTData|None = None,
+        defensive: float = 1e-8
     ):
+        
+        # def negloglik_Q(xs: Tensor) -> Tensor:
+        #     """Computes the negative log-likelihood of a set of samples 
+        #     from the reference domain, by first transforming them using 
+        #     the mapping Q.
+        #     """
+        #     ms = self.prior.Q(xs)
+        #     return negloglik(ms)
+        
+        def target_func(ls: Tensor) -> Tensor:
+            """Returns the square root of the ratio between the target 
+            density and the weighting function evaluated at a set of 
+            points in the local domain.
+            """
 
-        # TODO: allow for dimension to be passed in
+            xs = self.bases.local2approx(ls)[0]
+
+            # neglogliks = self.negloglik(xs)
+            # neglogpris = self.reference.eval_potential(xs)[0]
+            # neglogfxs = neglogliks + neglogpris
+            neglogfxs = self.potential(xs)
+            neglogwxs = self.bases.eval_measure_potential(xs)[0]
+            
+            # The ratio of f and w is invariant to changes of coordinate
+            # return self._potential2density(potential, ls)
+            gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
+            return gs
+        
+        # TODO: move this back into AbstractIRT.__init__
         if bases is None and prev_approx is None:
             msg = ("Must pass in a previous approximation or a set of "
                    + "approximation bases.")
             raise Exception(msg)
 
         if prev_approx is not None:
-            bases = prev_approx.bases 
+            bases = prev_approx.bases.polys
             options = prev_approx.options
             tt_data = prev_approx.tt_data
 
@@ -43,13 +74,44 @@ class AbstractIRT(abc.ABC):
         if input_data is None:
             input_data = InputData()
 
-        self.potential = potential 
-        self.bases = bases
-        self.dim = self.bases.dim
+        self.potential = potential
+        # self.negloglik = negloglik_Q
+        self.prior = prior
+        self.reference = self.prior.reference
+        # self.bases = bases
+        self.bases = ApproxBases(bases, self.prior.reference.domain, self.prior.dim)
+        self.dim = prior.dim
         # self.approx = prev_approx
         self.options = options 
         self.input_data = input_data
         self.tt_data = tt_data
+        self.defensive = defensive
+
+        # Define coefficient tensors and marginalisation coefficents
+        self.Bs_f: dict[int, Tensor] = {}
+        self.Rs_f: dict[int, Tensor] = {}
+        self.Bs_b: dict[int, Tensor] = {}
+        self.Rs_b: dict[int, Tensor] = {}
+
+        self.approx = TTFunc(
+            target_func, 
+            self.bases,
+            options=self.options, 
+            input_data=self.input_data,
+            tt_data=self.tt_data
+        )
+        self.approx._cross()
+        if self.approx.use_amen:
+            self.approx._round()  # why?
+
+        self.oned_cdfs = {}
+        tol = self.approx.options.cdf_tol
+        for k in range(self.dim):
+            self.oned_cdfs[k] = construct_cdf(self.bases.polys[k], error_tol=tol)
+
+        # TODO: could add these as abstract methods
+        self._marginalise_forward()
+        self._marginalise_backward()
         return
 
     @property
@@ -91,34 +153,34 @@ class AbstractIRT(abc.ABC):
         """
         return
 
-    @abc.abstractmethod
-    def _potential2density(
-        self, 
-        potential_func: Callable[[Tensor], Tensor], 
-        ls: Tensor
-    ) -> Tensor:
-        """Computes the value of the target function being approximated 
-        by the FTT for a sample, or set of samples, from the local 
-        domain. 
+    # @abc.abstractmethod
+    # def _potential2density(
+    #     self, 
+    #     potential_func: Callable[[Tensor], Tensor], 
+    #     ls: Tensor
+    # ) -> Tensor:
+    #     """Computes the value of the target function being approximated 
+    #     by the FTT for a sample, or set of samples, from the local 
+    #     domain. 
 
-        Parameters
-        ----------
-        potential_func:
-            A function that returns the potential of the target density 
-            function at a given point in the approximation domain.
-        ls:
-            An n * d matrix containing a set of n samples from the 
-            local domain.
+    #     Parameters
+    #     ----------
+    #     potential_func:
+    #         A function that returns the potential of the target density 
+    #         function at a given point in the approximation domain.
+    #     ls:
+    #         An n * d matrix containing a set of n samples from the 
+    #         local domain.
 
-        Returns
-        ------
-        gs:
-            An n-dimensional vector containing the value of the 
-            function being approximated by the FTT for each sample in 
-            ls.
+    #     Returns
+    #     ------
+    #     gs:
+    #         An n-dimensional vector containing the value of the 
+    #         function being approximated by the FTT for each sample in 
+    #         ls.
         
-        """
-        return
+    #     """
+    #     return
     
     @abc.abstractmethod 
     def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
@@ -348,7 +410,7 @@ class AbstractIRT(abc.ABC):
         self._z = self.z_func + defensive
         return
     
-    def eval_potential(
+    def _eval_potential(
         self, 
         xs: Tensor, 
         subset: str|None = None
@@ -383,8 +445,43 @@ class AbstractIRT(abc.ABC):
         neglogfls = self._eval_potential_local(ls, direction)
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
+    
+    def eval_potential(
+        self, 
+        ms: Tensor, 
+        subset: str|None = None
+    ) -> Tensor:
+        r"""Evaluates the potential function.
 
-    def eval_pdf(
+        Returns the joint potential function, or the marginal potential 
+        function for the first $k$ variables or the last $k$ variables,
+        evaluated at a set of samples.
+
+        Parameters
+        ----------
+        ms:
+            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
+            samples from the approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+        
+        Returns
+        -------
+        neglogfxs:
+            The potential function of the approximation to the target 
+            density evaluated at each sample in `xs`.
+
+        """
+        xs = self.prior.Q_inv(ms)
+        neglogfxs = self._eval_potential(xs, subset)
+        neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
+        neglogfms = neglogfxs + neglogabsdet_ms
+        return neglogfms
+
+    def _eval_pdf(
         self, 
         xs: Tensor,
         subset: str|None = None
@@ -397,7 +494,7 @@ class AbstractIRT(abc.ABC):
         
         Parameters
         ----------
-        xs:
+        ms:
             An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
             samples from the approximation domain.
         subset: 
@@ -408,17 +505,51 @@ class AbstractIRT(abc.ABC):
 
         Returns
         -------
-        fxs:
+        fms:
             An $n$-dimensional vector containing the value of the 
             approximation to the target density evaluated at each 
             element in `xs`.
         
         """
-        neglogfxs = self.eval_potential(xs, subset)
+        neglogfxs = self._eval_potential(xs, subset)
         fxs = torch.exp(-neglogfxs)
         return fxs
+
+    def eval_pdf(
+        self, 
+        ms: Tensor,
+        subset: str|None = None
+    ) -> Tensor: 
+        r"""Evaluates the density function.
+
+        Returns the joint density function, or the marginal density 
+        function for the first $k$ variables or the last $k$ variables, 
+        evaluated at a set of samples.
+        
+        Parameters
+        ----------
+        ms:
+            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
+            samples from the approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+
+        Returns
+        -------
+        fms:
+            An $n$-dimensional vector containing the value of the 
+            approximation to the target density evaluated at each 
+            element in `xs`.
+        
+        """
+        neglogfms = self.eval_potential(ms, subset)
+        fms = torch.exp(-neglogfms)
+        return fms
     
-    def eval_rt(
+    def _eval_rt(
         self, 
         xs: Tensor,
         subset: str|None = None
@@ -453,8 +584,42 @@ class AbstractIRT(abc.ABC):
         ls = self.approx.bases.approx2local(xs, indices)[0]
         zs = self._eval_rt_local(ls, direction)
         return zs
+
+    def eval_rt(
+        self, 
+        ms: Tensor,
+        subset: str|None = None
+    ) -> Tensor:
+        r"""Evaluates the Rosenblatt transport.
+
+        Returns the joint Rosenblatt transport, or the marginal 
+        Rosenblatt transport for the first $k$ variables or the last 
+        $k$ variables, evaluated at a set of samples.
+
+        Parameters
+        ----------
+        xs: 
+            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
+            samples from the approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+        
+        Returns
+        -------
+        zs:
+            An $n \times k$ matrix containing the corresponding 
+            samples, from the unit hypercube, after applying the 
+            Rosenblatt transport.
+
+        """
+        xs = self.prior.Q_inv(ms)
+        zs = self._eval_rt(xs, subset)
+        return zs
     
-    def eval_irt(
+    def _eval_irt(
         self, 
         zs: Tensor,
         subset: str|None = None
@@ -492,6 +657,47 @@ class AbstractIRT(abc.ABC):
         xs, dxdls = self.bases.local2approx(ls, indices)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs
+
+    def eval_irt(
+        self, 
+        zs: Tensor,
+        subset: str|None = None
+    ) -> Tuple[Tensor, Tensor]:
+        r"""Evaluates the inverse Rosenblatt transport.
+        
+        Returns the joint inverse Rosenblatt transport, or the marginal 
+        inverse Rosenblatt transport for the first $k$ variables or the 
+        last $k$ variables, evaluated at a set of samples.
+        
+        Parameters
+        ----------
+        zs: 
+            An $n \times k$ matrix containing samples from the unit 
+            hypercube.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+        
+        Returns
+        -------
+        xs: 
+            An $n \times k$ matrix containing the corresponding samples 
+            from the approximation to the target density function.
+        neglogfxs: 
+            An $n$-dimensional vector containing the approximation to 
+            the potential function evaluated at each sample in `xs`.
+        
+        """
+        xs, neglogfxs = self._eval_irt(zs, subset)
+
+        # Map samples back into actual domain
+        ms = self.prior.Q(xs)
+        neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
+        neglogfms = neglogfxs + neglogabsdet_ms
+
+        return ms, neglogfms
     
     def eval_cirt(
         self, 

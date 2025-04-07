@@ -1,5 +1,4 @@
 from typing import Tuple
-import warnings
 
 import torch
 from torch import Tensor
@@ -30,41 +29,23 @@ class ApproxBases():
 
     def __init__(
         self, 
-        polys: Basis1D|list[Basis1D], 
-        domains: Domain|list[Domain], 
-        dim: int|None = None
+        polys: Basis1D | list[Basis1D],  # TODO: rename polys to bases?
+        domain: Domain, 
+        dim: int
     ):
         
         if isinstance(polys, Basis1D):
             polys = [polys]
-        if isinstance(domains, Domain):
-            domains = [domains]
-
-        if dim is None:
-            dim = max(len(polys), len(domains))
-            if dim == 1:
-                msg = ("Dimension has been inferred to be equal to 1. "
-                       + "If this is not correct, pass in explicitly.")
-                warnings.warn(msg)
-
-        if len(domains) == 1:
-            domains *= dim
         if len(polys) == 1:
             polys *= dim
-
-        if len(domains) != dim:
-            msg = ("Dimension of domain does not equal specified " 
-                   + f"dimension (expected {dim}, got {len(domains)}).")
-            raise Exception(msg)
-        
         if len(polys) != dim:
             msg = ("Dimension of polynomials does not equal specified " 
                    + f"dimension (expected {dim}, got {len(polys)}).")
             raise Exception(msg)
 
-        self.dim = dim
-        self.domains = domains 
         self.polys = polys
+        self.domain = domain
+        self.dim = dim
         return
     
     @staticmethod
@@ -77,46 +58,29 @@ class ApproxBases():
             raise Exception(msg)
         return
 
-    def get_cardinalities(self, indices: Tensor|None = None) -> Tensor:
-        """Returns the cardinalities of (a subset of) the polynomials 
-        that form the current basis.
+    # def get_cardinalities(self, indices: Tensor|None = None) -> Tensor:
+    #     """Returns the cardinalities of (a subset of) the polynomials 
+    #     that form the current basis.
 
-        Parameters
-        ----------
-        indices:
-            The indices of the polynomials whose cardinalities should 
-            be returned. If this is not passed in, the cardinalities 
-            of all polynomials of the basis are returned.
+    #     Parameters
+    #     ----------
+    #     indices:
+    #         The indices of the polynomials whose cardinalities should 
+    #         be returned. If this is not passed in, the cardinalities 
+    #         of all polynomials of the basis are returned.
 
-        Returns
-        -------
-        cardinalities:
-            A d-dimensional vector containing the cardinalities of each 
-            polynomial.
+    #     Returns
+    #     -------
+    #     cardinalities:
+    #         A d-dimensional vector containing the cardinalities of each 
+    #         polynomial.
         
-        """
+    #     """
 
-        if indices is None:
-            indices = torch.arange(self.dim)
+    #     if indices is None:
+    #         indices = torch.arange(self.dim)
         
-        return torch.tensor([self.polys[i].cardinality for i in indices])
-        
-    def duplicate_bases(self):
-        raise NotImplementedError()
-    
-    def remove_bases(self, indices: Tensor) -> None:
-        """Removes a set of bases.
-        
-        Parameters
-        ----------
-        indices:
-            The indices of the bases to remove.
-        
-        """
-        for i in indices:
-            del self.polys[i]
-            del self.domains[i]
-        return
+    #     return torch.tensor([self.polys[i].cardinality for i in indices])
 
     def local2approx(
         self, 
@@ -154,8 +118,7 @@ class ApproxBases():
         xs = torch.empty_like(ls)
         dxdls = torch.empty_like(ls)
         for i, ls_i in enumerate(ls.T):
-            domain = self.domains[indices[i]]
-            xs[:, i], dxdls[:, i] = domain.local2approx(ls_i)
+            xs[:, i], dxdls[:, i] = self.domain.local2approx(ls_i)
 
         return xs, dxdls
 
@@ -196,8 +159,7 @@ class ApproxBases():
         ls = torch.empty_like(xs)
         dldxs = torch.empty_like(xs)
         for i, xs_i in enumerate(xs.T):
-            domain = self.domains[indices[i]]
-            ls[:, i], dldxs[:, i] = domain.approx2local(xs_i)
+            ls[:, i], dldxs[:, i] = self.domain.approx2local(xs_i)
 
         return ls, dldxs
 
@@ -237,8 +199,7 @@ class ApproxBases():
         d2logxdl2s = torch.empty_like(ls)
 
         for i, ls_i in enumerate(ls.T):
-            domain = self.domains[indices[i]]
-            dlogxdl, d2logxdl2 = domain.local2approx_log_density(ls_i)
+            dlogxdl, d2logxdl2 = self.domain.local2approx_log_density(ls_i)
             dlogxdls[:, i], d2logxdl2s[:, i] = dlogxdl, d2logxdl2
 
         return dlogxdls, d2logxdl2s
@@ -280,8 +241,7 @@ class ApproxBases():
         logd2ldx2s = torch.empty_like(xs)
 
         for i, xs_i in enumerate(xs.T):
-            domain = self.domains[indices[i]]
-            logdldx, logd2ldx2 = domain.approx2local_log_density(xs_i)
+            logdldx, logd2ldx2 = self.domain.approx2local_log_density(xs_i)
             logdldxs[:, i], logd2ldx2s[:, i] = logdldx, logd2ldx2
 
         return logdldxs, logd2ldx2s

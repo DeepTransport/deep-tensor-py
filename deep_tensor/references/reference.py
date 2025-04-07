@@ -84,7 +84,7 @@ class Reference(abc.ABC):
         return
     
     @abc.abstractmethod
-    def log_joint_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+    def eval_potential(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         """Returns the joint log-PDF and gradient of the log-PDF of 
         each of a set of points distributed according to the joint 
         reference density. 
