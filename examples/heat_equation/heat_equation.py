@@ -1,6 +1,9 @@
 from dolfin import *
 import matplotlib.pyplot as plt
 
+"""From https://fenics-handson.readthedocs.io/en/latest/heat/doc.html
+"""
+
 
 def create_timestep_solver(get_data, dsN, theta, u_old, u_new):
     """Prepare timestep solver by theta-scheme for given
@@ -38,7 +41,7 @@ def create_timestep_solver(get_data, dsN, theta, u_old, u_new):
 
         # Push log level
         old_level = get_log_level()
-        warning = LogLevel.WARNING if cpp.__version__ > '2017.2.0' else WARNING
+        warning = LogLevel.WARNING # if cpp.__version__ > '2017.2.0' else WARNING
         set_log_level(warning)
 
         # Run the solver
