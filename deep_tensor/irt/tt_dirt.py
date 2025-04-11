@@ -6,7 +6,7 @@ import torch
 from torch import Tensor
 
 from .tt_sirt import TTSIRT
-from ..bridging_densities import Bridge, Tempering1
+from ..bridging_densities import Bridge, Tempering
 from ..ftt import ApproxBases, InputData
 from ..options import DIRTOptions, TTOptions
 from ..polynomials import Basis1D
@@ -73,7 +73,7 @@ class TTDIRT():
             return negloglik(xs)
 
         if bridge is None:
-            bridge = Tempering1(min_beta=1e-3, ess_tol=0.4)
+            bridge = Tempering(min_beta=1e-3, ess_tol=0.4)
         if sirt_options is None:
             sirt_options = TTOptions(max_cross=1, tt_method="amen")
         if dirt_options is None:
@@ -213,7 +213,7 @@ class TTDIRT():
             neglogliks = self.negloglik(xs)
             neglogpris = self.reference.eval_potential(xs)[0]
 
-            neglogratios = self.bridge.get_ratio_func(
+            neglogratios = self.bridge._get_ratio_func(
                 self.reference,
                 self.dirt_options.method,
                 rs, 
@@ -288,14 +288,14 @@ class TTDIRT():
             neglogpris = self.reference.eval_potential(xs)[0]
             # neglogliks, neglogpris = func(xs)
         
-            self.bridge.adapt_density(
+            self.bridge._adapt_density(
                 self.dirt_options.method, 
                 neglogliks, 
                 neglogpris, 
                 neglogfxs
             )
 
-            neglogratios = self.bridge.get_ratio_func(
+            neglogratios = self.bridge._get_ratio_func(
                 self.reference,
                 self.dirt_options.method, 
                 rs, 
@@ -304,27 +304,22 @@ class TTDIRT():
                 neglogfxs
             )
             
-            log_weights = self.bridge.compute_log_weights(
+            log_weights = self.bridge._compute_log_weights(
                 neglogliks,
                 neglogpris, 
                 neglogfxs
             )
 
             if self.dirt_options.verbose:
-                self.bridge.print_progress(
+                self.bridge._print_progress(
                     log_weights, 
                     neglogliks, 
                     neglogpris, 
                     neglogfxs
                 )
 
-            # TODO: change this to re-order by weights
-            resampled_inds = self.bridge.resample(log_weights)
-
-            self.irts[self.n_layers] = self._get_new_layer(
-                xs[resampled_inds], 
-                neglogratios[resampled_inds]
-            )
+            xs, neglogratios = self.bridge._reorder(xs, neglogratios, log_weights)
+            self.irts[self.n_layers] = self._get_new_layer(xs, neglogratios)
 
             self.log_z += self.irts[self.n_layers].z.log()
             self.num_eval += self.irts[self.n_layers].approx.num_eval

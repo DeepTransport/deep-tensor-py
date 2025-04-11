@@ -1,7 +1,7 @@
 import torch
 torch.set_default_dtype(torch.float64)
 
-from .bridging_densities import Tempering1
+from .bridging_densities import SingleLayer, Tempering
 from .domains import (
     AlgebraicMapping, 
     BoundedDomain, 

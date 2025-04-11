@@ -1,5 +1,4 @@
 import abc
-from typing import Callable
 
 import torch
 from torch import Tensor
@@ -25,7 +24,7 @@ class Bridge(abc.ABC):
         return
 
     @abc.abstractmethod
-    def get_ratio_func(
+    def _get_ratio_func(
         self, 
         reference: Reference, 
         method: str,
@@ -65,98 +64,9 @@ class Bridge(abc.ABC):
             
         """
         return
-
-    # @abc.abstractmethod
-    # def ratio_func(
-    #     func: Callable, 
-    #     rs: Tensor,
-    #     irt_func: Callable,
-    #     reference: Reference,
-    #     method: str
-    # ) -> Tensor:
-    #     """Returns the negative log-ratio function associated with a 
-    #     set of samples from the reference density.
-        
-    #     Parameters
-    #     ----------
-    #     func:
-    #         User-defined function that returns the negative 
-    #         log-likelihood and negative log-prior density of a sample 
-    #         in the approximation domain.
-    #     rs:
-    #         An n * d matrix containing samples from the reference 
-    #         density.
-    #     irt_func:
-    #         Function that computes the inverse Rosenblatt transform.
-    #     reference:
-    #         The reference density.
-    #     method:
-    #         The method to use when computing the ratio function; can be
-    #         'aratio' (approximate ratio) or 'eratio' (exact ratio).
-        
-    #     Returns
-    #     -------
-    #     neglogratio: 
-    #         An n-dimensional vector containing the negative log-ratio 
-    #         function evaluated for each sample.
-
-    #     """
-    #     return
-    
-    @abc.abstractmethod 
-    def set_init(self, neglogliks: Tensor) -> None:
-        """Computes the properties of the initial bridging density.
-        
-        Parameters
-        ----------
-        neglogliks:
-            An n-dimensional vector containing the negative 
-            log-likelihood function evaluated at a set of 
-            initialisation samples (drawn from the prior).
-
-        Returns
-        -------
-        None
-        
-        """
-        return 
     
     @abc.abstractmethod
-    def adapt_density(
-        self,
-        method: str, 
-        neglogliks: Tensor, 
-        neglogpris: Tensor, 
-        neglogfxs: Tensor
-    ) -> None:
-        """Determines the beta value associated with the next bridging 
-        density.
-        
-        Parameters
-        ----------
-        method: 
-            The method used to select the next bridging parameter. Can
-            be 'aratio' (approximate ratio) or 'eratio' (exact ratio).
-        neglogliks: 
-            An n-dimensional vector containing the negative 
-            log-likelihood of each of the current samples.
-        neglogpris:
-            An n-dimensional vector containing the negative log-prior 
-            density of each of the current samples.
-        neglogfxs:
-            An n-dimensional vector containing the negative log-density 
-            of the current approximation to the target density for each 
-            of the current samples.
-
-        Returns
-        -------
-        None
-        
-        """
-        return
-    
-    @abc.abstractmethod
-    def compute_log_weights(
+    def _compute_log_weights(
         self,
         neglogliks: Tensor,
         neglogpris: Tensor, 
@@ -191,8 +101,63 @@ class Bridge(abc.ABC):
         """
         return
     
-    def resample(self, log_weights: Tensor) -> Tensor:
-        """Returns a resampled set of indices based on the importance
+    def _set_init(self, neglogliks: Tensor) -> None:
+        """Computes the properties of the initial bridging density.
+        
+        Parameters
+        ----------
+        neglogliks:
+            An n-dimensional vector containing the negative 
+            log-likelihood function evaluated at a set of 
+            initialisation samples (drawn from the prior).
+
+        Returns
+        -------
+        None
+        
+        """
+        return 
+    
+    def _adapt_density(
+        self,
+        method: str, 
+        neglogliks: Tensor, 
+        neglogpris: Tensor, 
+        neglogfxs: Tensor
+    ) -> None:
+        """Determines the beta value associated with the next bridging 
+        density.
+        
+        Parameters
+        ----------
+        method: 
+            The method used to select the next bridging parameter. Can
+            be 'aratio' (approximate ratio) or 'eratio' (exact ratio).
+        neglogliks: 
+            An n-dimensional vector containing the negative 
+            log-likelihood of each of the current samples.
+        neglogpris:
+            An n-dimensional vector containing the negative log-prior 
+            density of each of the current samples.
+        neglogfxs:
+            An n-dimensional vector containing the negative log-density 
+            of the current approximation to the target density for each 
+            of the current samples.
+
+        Returns
+        -------
+        None
+        
+        """
+        return
+    
+    def _reorder(
+        self, 
+        xs: Tensor, 
+        neglogratios: Tensor,
+        log_weights: Tensor
+    ) -> Tensor:
+        """Returns a reordered set of indices based on the importance
         weights between the current bridging density and the density 
         of the approximation to the previous target density evaluated
         at a set of samples from the approximation to the previous 
@@ -200,32 +165,40 @@ class Bridge(abc.ABC):
 
         Parameters
         ----------
+        xs:
+            An n * d matrix containing a set of samples distributed 
+            according to the approximation to the previous target 
+            density.
+        neglogratios:
+            An n-dimensional vector containing the negative logarithm 
+            of the ratio function evaluated at each sample in xs.
         log_weights:
             An n-dimensional vector containing the logarithm of the 
             ratio between the current bridging density and the density 
             of the approximation to the previous target density 
-            evaluated at each sample.
+            evaluated at each sample in xs.
 
         Returns
         -------
-        resampled_inds:
-            An n-dimensional vector containing the indices of the 
-            (now equally-weighted) samples that were selected during 
-            the resampling process.
+        xs:
+            An n * d matrix containing the reordered samples.
+        neglogratios:
+            An n-dimensional vector containing the negative logarithm 
+            of the ratio function evaluated at each sample in xs.
 
         """
-        resampled_inds = torch.multinomial(
-            input=log_weights.exp(), 
-            num_samples=log_weights.numel(), 
-            replacement=True
-        )
-        return resampled_inds
+        reordered_inds = torch.argsort(log_weights).flip(dims=(0,))
+        xs = xs[reordered_inds]
+        neglogratios = neglogratios[reordered_inds]
+        return xs, neglogratios
 
-    @abc.abstractmethod
-    def print_progress(
+    def _print_progress(
         self, 
+        neglogweights: Tensor,
         neglogliks: Tensor, 
         neglogpris: Tensor, 
         neglogfxs: Tensor
     ) -> None:
+        """Prints some information about the current bridging density.
+        """
         return 

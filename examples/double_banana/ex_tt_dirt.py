@@ -67,19 +67,17 @@ ys_grid = torch.linspace(-3.0, 5.0, n)
 grid = torch.tensor([[x, y] for x in xs_grid for y in ys_grid])
 dx = 8.0 / n
 
-# betas = torch.tensor([1e-4, 1e-3, 1e-2, 1e-1, 1.0])
+betas = torch.tensor([1e-4, 1e-3, 1e-2, 1e-1, 1.0])
 
 for poly in polys:
-    # for ref in references:
 
     bases = dt.ApproxBases(polys[poly], domain, dim)
-    bridge = dt.Tempering1()
+    bridge = dt.Tempering(betas=betas)
     dirt = dt.TTDIRT(
         model.negloglik, 
         prior, 
         polys[poly], 
-        bridge=bridge,
-        # reference=references[ref]
+        bridge=bridge
     )
 
     for k in range(dirt.n_layers):
@@ -102,6 +100,7 @@ for poly in polys:
         neglogpris = model.neglogpri(grid)
         # neglogliks, neglogpris = model.potential_dirt(grid)
         fxs_true = torch.exp(-neglogliks*dirt.bridge.betas[k]-neglogpris)
+        # fxs_true = torch.exp(-neglogliks-neglogpris)
         fxs_true /= (fxs_true.sum() * dx**2)
         axes[0][1].contourf(xs_grid, ys_grid, fxs_true.reshape(n, n).T, levels=5)
         axes[0][1].set_xlabel("$x_{1}$")

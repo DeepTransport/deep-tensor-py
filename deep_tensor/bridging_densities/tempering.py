@@ -1,15 +1,13 @@
-from typing import Callable
-
 import torch
 from torch import Tensor
 
-from .single_beta import SingleBeta
+from .bridge import Bridge
 from ..references import Reference
 from ..tools import compute_ess_ratio, compute_f_divergence
 from ..tools.printing import dirt_info
 
 
-class Tempering1(SingleBeta):
+class Tempering(Bridge):
     r"""Likelihood tempering.
     
     The intermediate densities, $\{\pi_{k}(\theta)\}_{k=1}^{N}$, 
@@ -62,15 +60,12 @@ class Tempering1(SingleBeta):
         if betas == None:
             betas = torch.tensor([])
 
-        SingleBeta.__init__(
-            self, 
-            betas, 
-            ess_tol, 
-            ess_tol_init, 
-            beta_factor, 
-            min_beta
-        )
-
+        self.betas = betas.sort()[0]
+        self.ess_tol = torch.tensor(ess_tol)
+        self.ess_tol_init = torch.tensor(ess_tol_init)
+        self.beta_factor = torch.tensor(beta_factor)
+        self.min_beta = torch.tensor(min_beta)
+        self.init_beta = torch.tensor(min_beta)
         self.is_adaptive = self.betas.numel() == 0
         self.n_layers = 0
         return
@@ -97,7 +92,7 @@ class Tempering1(SingleBeta):
         self._n_layers = value
         return
     
-    def set_init(self, neglogliks: Tensor) -> None:
+    def _set_init(self, neglogliks: Tensor) -> None:
 
         if not self.is_adaptive:
             return 
@@ -112,7 +107,7 @@ class Tempering1(SingleBeta):
             beta *= self.beta_factor
     
     @staticmethod
-    def compute_weights(
+    def _compute_weights(
         method,
         beta_p, 
         beta, 
@@ -127,7 +122,7 @@ class Tempering1(SingleBeta):
             return -beta*neglogliks - neglogpris + neglogfxs
         raise Exception("Unknown ratio method.")
 
-    def adapt_density(
+    def _adapt_density(
         self, 
         method: str, 
         neglogliks: Tensor, 
@@ -147,7 +142,7 @@ class Tempering1(SingleBeta):
 
         while True:
 
-            log_weights = Tempering1.compute_weights(
+            log_weights = Tempering._compute_weights(
                 method, 
                 beta_p, 
                 beta * self.beta_factor, 
@@ -163,7 +158,7 @@ class Tempering1(SingleBeta):
             
             beta *= self.beta_factor
 
-    def get_ratio_func(
+    def _get_ratio_func(
         self, 
         reference: Reference, 
         method: str,
@@ -181,7 +176,7 @@ class Tempering1(SingleBeta):
 
         beta_p = self.betas[self.n_layers-1]
 
-        log_weights = Tempering1.compute_weights(
+        log_weights = Tempering._compute_weights(
             method, 
             beta_p, 
             beta, 
@@ -193,29 +188,7 @@ class Tempering1(SingleBeta):
         neglogratios = -log_weights + neglogrefs
         return neglogratios
     
-    # def ratio_func(
-    #     self, 
-    #     func: Callable, 
-    #     rs: Tensor,
-    #     irt_func: Callable,
-    #     reference: Reference,
-    #     method: str
-    # ) -> Tensor:
-        
-    #     # Push samples forward to the approximation of the current target
-    #     xs, neglogfxs = irt_func(rs)
-    #     neglogliks, neglogpris = func(xs)
-    #     neglogratios = self.get_ratio_func(
-    #         reference, 
-    #         method, 
-    #         rs, 
-    #         neglogliks, 
-    #         neglogpris, 
-    #         neglogfxs
-    #     )
-    #     return neglogratios
-    
-    def compute_log_weights(
+    def _compute_log_weights(
         self, 
         neglogliks: Tensor,
         neglogpris: Tensor,
@@ -251,7 +224,7 @@ class Tempering1(SingleBeta):
         log_weights = -beta*neglogliks - neglogpris + neglogfxs
         return log_weights
 
-    def print_progress(
+    def _print_progress(
         self, 
         log_weights: Tensor,
         neglogliks: Tensor,
