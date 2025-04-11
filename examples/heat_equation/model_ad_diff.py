@@ -286,7 +286,7 @@ class TimeDependentAD:
             uold = u
 
 
-        
+       
     def solveAdjIncremental(self, sol, rhs):
         sol.zero()
         pold = dl.Vector()
@@ -419,7 +419,8 @@ if __name__ == "__main__":
 
     nref = args.nref
 
-    mesh = dl.Mesh(args.mesh)
+    # mesh = dl.Mesh(args.mesh)
+    mesh = dl.UnitSquareMesh(64, 64)
     for i in range(nref):
         mesh = dl.refine(mesh)
 
@@ -458,7 +459,8 @@ if __name__ == "__main__":
     simulation_times = np.arange(t_init, t_final+.5*dt, dt)
     observation_times = np.arange(t_1, t_final+.5*dt, observation_dt)
     
-    targets = np.loadtxt('targets.txt')
+    # targets = np.loadtxt('targets.txt')
+    targets = np.array([[0.2, 0.2], [0.6, 0.6]])
     if rank == 0:
         print ("Number of observation points: {0}".format(targets.shape[0]) )
     misfit = SpaceTimePointwiseStateObservation(Vh, observation_times, targets)

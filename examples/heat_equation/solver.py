@@ -104,9 +104,9 @@ class HeatSolver(object):
     def __init__(
         self, 
         mesh, 
-        Vh, 
+        Vh: dl.FunctionSpace, 
         prior: hl.modeling._Prior, 
-        misfit, 
+        misfit: SpaceTimePointwiseStateObservation,
         ts: np.ndarray
     ):
         
@@ -118,8 +118,8 @@ class HeatSolver(object):
         self.dt = ts[1] - ts[0]  # NOTE: assumes equispaced times
         self.ts = ts
 
-        self.u = dl.TrialFunction(Vh[hl.STATE])
-        self.v = dl.TestFunction(Vh[hl.STATE])
+        self.u = dl.TrialFunction(self.Vh[hl.STATE])
+        self.v = dl.TestFunction(self.Vh[hl.STATE])
 
         self.u0 = dl.Constant(0.0)
         
@@ -145,8 +145,14 @@ class HeatSolver(object):
             self.dirichlet_boundary
         )
 
+        self.bc_p = dl.DirichletBC(
+            self.Vh[hl.STATE],
+            dl.Constant(0.0),
+            self.dirichlet_boundary
+        )
+
         # Part of model public API (??)
-        self.gauss_newton_approx = False
+        self.gauss_newton_approx = True
         return
 
     @staticmethod
@@ -159,7 +165,15 @@ class HeatSolver(object):
         """
         return on_boundary and ((np.abs(x[0]-0.0) < 1e-8) or (np.abs(x[0]-3.0) < 1e-8))
 
-    def sample_prior(self):
+    def vec2func(self, vec: dl.Vector, component: int) -> dl.Function:
+        """Converts a vector to a function.
+        """
+        k = dl.Function(self.Vh[component])
+        k.vector().set_local(vec.get_local()[:])
+        k.vector().apply("insert")
+        return k
+
+    def sample_prior(self) -> dl.Vector:
         """Returns a single function sampled from the prior.
         """
         # Generate vector of white noise
@@ -170,11 +184,7 @@ class HeatSolver(object):
         ks = dl.Vector()
         self.prior.init_vector(x=ks, dim=0)
         self.prior.sample(noise=noise, s=ks)
-        # Convert to function
-        k = dl.Function(self.Vh[hl.PARAMETER])
-        k.vector().set_local(ks.get_local()[:])
-        k.vector().apply("insert")
-        return k
+        return ks
 
     def generate_vector(self, component="ALL"):
         """Generates an empty vector (or set of vectors) of the 
@@ -199,7 +209,7 @@ class HeatSolver(object):
         
         elif component == hl.PARAMETER:
             m = dl.Vector()
-            self.prior.init_vector(M=m, dim=0)
+            self.prior.init_vector(x=m, dim=0)
             return m
         
         elif component == hl.ADJOINT:
@@ -242,16 +252,16 @@ class HeatSolver(object):
         
         """
 
+        # Convert parameter to function
+        k = self.vec2func(x[hl.PARAMETER], hl.PARAMETER)
+
         # Remove old data in state vector
         out.zero()
         
         u = dl.Function(self.Vh[hl.STATE])
-        # k = dl.Function(self.Vh[hl.PARAMETER])
-        # k.vector().set_local(x[hl.PARAMETER].get_local()[:])
-        # k.vector().apply("insert")
 
         # Assemble stiffness matrix
-        K = ufl.exp(x[hl.PARAMETER]) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx
+        K = ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx
         K = dl.assemble(K)
                 
         # Define LHS of variational form
@@ -274,22 +284,95 @@ class HeatSolver(object):
             u_prev.assign(u)
 
         # May need to do something similar to this to update 
-        # parameter in forcing term
+        # part of forcing term, if this changes
         # self.u0.t = t  # Update t parameter in initial condition
-
-        # May also need to apply boundary conditions in here
-        # (currently no need as they are no-flow)
         
         return
     
-    def solveAdj(self, out, x):
-        raise NotImplementedError()
+    def solveAdj(
+        self, 
+        out: hl.TimeDependentVector, 
+        x
+    ) -> None:
+
+        # Remove any previous data from output vector
+        out.zero()
+
+        k = self.vec2func(x[hl.PARAMETER], hl.PARAMETER)
+        p = dl.Function(self.Vh[hl.ADJOINT])
+
+        # Assemble stiffness matrix
+        K = ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx
+        K = dl.assemble(K)
+
+        # Compute gradient of misfit with respect to state
+        grad_state = hl.TimeDependentVector(self.ts)
+        grad_state.initialize(M=self.M, dim=0)
+        self.misfit.grad(hl.STATE, x, grad_state)
+
+        # Define LHS of variational form
+        A = self.M + self.dt * K
+
+        # Define previous (next?) adjoint variable
+        p_prev = dl.interpolate(dl.Constant(0.0), self.Vh[hl.STATE])
+
+        # Snapshot of gradient of state
+        grad_state_snap = dl.Vector()
+        self.M.init_vector(grad_state_snap, 0)
+
+        for t in self.ts[::-1]:
+
+            b = p_prev.vector()
+            grad_state.retrieve(grad_state_snap, t)
+            b.axpy(-1.0, grad_state_snap)
+
+            # Assemble RHS vector 
+            # b = grad_state_snap + p_prev.vector()
+            self.bc_p.apply(A, b)
+            dl.solve(A, p.vector(), b)
+
+            out.store(p.vector().copy(), t)
+            p_prev.assign(p)
+
+        return
             
     def evalGradientParameter(self,x, mg, misfit_only=False):
-        raise NotImplementedError()
+        
+        self.prior.init_vector(mg, 1)
+
+        if misfit_only == False:
+            dm = x[hl.PARAMETER] - self.prior.mean
+            self.prior.R.mult(dm, mg)
+        else:
+            mg.zero()
+        
+        p0 = dl.Vector()
+        self.M.init_vector(p0,0)
+        x[hl.ADJOINT].retrieve(p0, self.ts[1])
+        
+        # mg.axpy(-1., self.Mt_stab*p0)
+        
+        g = dl.Vector()
+        self.M.init_vector(g,1)
+        
+        self.prior.Msolver.solve(g,mg)
+        
+        grad_norm = g.inner(mg)
+        
+        return grad_norm
     
-    def setPointForHessianEvaluations(self, x, gauss_newton_approx=False):
-        raise NotImplementedError()
+    def setPointForHessianEvaluations(
+        self, 
+        x, 
+        gauss_newton_approx: bool = True
+    ) -> None:
+        """Specifies the point x = [u,a,p] at which the (Gauss-Newton) 
+        Hessian needs to be evaluated.
+        
+        Nothing to do since the problem is linear (TODO: why?).
+        """
+        self.gauss_newton_approx = gauss_newton_approx
+        return
 
     def solveFwdIncremental(self, sol, rhs):
         raise NotImplementedError()
@@ -304,19 +387,20 @@ class HeatSolver(object):
         raise NotImplementedError()
     
     def applyWuu(self, du, out):
-        raise NotImplementedError()
-    
+        out.zero()
+        self.misfit.apply_ij(hl.STATE, hl.STATE, du, out)
+
     def applyWum(self, dm, out):
-        raise NotImplementedError()
+        out.zero()
     
     def applyWmu(self, du, out):
-        raise NotImplementedError()
+        out.zero()
     
     def applyR(self, dm, out):
-        raise NotImplementedError()
+        self.prior.R.mult(dm,out)
     
     def applyWmm(self, dm, out):
-        raise NotImplementedError()
+        out.zero()
         
     def exportState(self, x, filename, varname):
         raise NotImplementedError()
