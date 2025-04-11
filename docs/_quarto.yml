@@ -21,8 +21,8 @@ execute:
 format:
   html:
     theme:
-      light: [flatly, styles.css]
-      # dark: [darkly, styles.css]
+      dark: [darkly, styles.css, styles-dark.css]
+      light: [flatly, styles.css, styles-light.css]
 
 metadata-files:
   - _sidebar.yml

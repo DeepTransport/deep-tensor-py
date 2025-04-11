@@ -1,15 +1,6 @@
 /*-- scss:rules --*/
 
-/* styles for parameter tables, etc.. ----
-*/
-
-/* .doc-section dt code {
-    background: none;
-} */
-
 .doc-section dt {
-    /*background-color: #f8e4d8;*/
-    color: green;
     display: block;
 }
 
