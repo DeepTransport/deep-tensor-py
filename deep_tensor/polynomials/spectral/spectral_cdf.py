@@ -1,6 +1,7 @@
 import abc
 from typing import Tuple
 
+import torch
 from torch import Tensor
 
 from ..cdf_1d import CDF1D
@@ -86,6 +87,21 @@ class SpectralCDF(CDF1D, abc.ABC):
         
         """
         return
+    
+    def get_left_inds(
+        self, 
+        cdf_poly_nodes: Tensor, 
+        zs_unnorm: Tensor
+    ) -> Tensor:
+        
+        n_zs = zs_unnorm.numel()
+        
+        left_inds = cdf_poly_nodes >= zs_unnorm 
+        left_inds[-1, :] = True
+        left_inds = torch.tensor([left_inds[:, i].nonzero().min() - 1 
+                                  for i in range(n_zs)])
+        left_inds = left_inds.clamp(0, self.sampling_nodes.numel() - 2)
+        return left_inds
     
     def eval_int(self, coefs: Tensor, ls: Tensor) -> Tensor:
         """Returns the value of the integral of the polynomial basis 
@@ -215,10 +231,10 @@ class SpectralCDF(CDF1D, abc.ABC):
         cdf_poly_base = cdf_poly_nodes[0]
         cdf_poly_nodes = cdf_poly_nodes - cdf_poly_base
         cdf_poly_norm = cdf_poly_nodes[-1]
-
+        
         zs_unnorm = zs * cdf_poly_norm
-        left_inds = (cdf_poly_nodes < zs_unnorm).sum(dim=0) - 1
-        left_inds = left_inds.clamp(0, self.sampling_nodes.numel()-2)
+
+        left_inds = self.get_left_inds(cdf_poly_nodes, zs_unnorm)
         l0s = self.sampling_nodes[left_inds]
         l1s = self.sampling_nodes[left_inds+1]
         
