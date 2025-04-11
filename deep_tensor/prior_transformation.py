@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Callable
 
 from torch import Tensor
@@ -5,13 +6,11 @@ from torch import Tensor
 from .references import Reference
 
 
+@dataclass
 class PriorTransformation():
-    """A mapping between the prior and a reference random variable.
-    
-    TODO: eventually, this will need to be able to evaluate the 
-    action of the Jacobian of the Q^{-1}.
+    r"""A mapping between the prior and a reference random variable.
 
-    TODO: perhaps this could be a dataclass.
+    
     
     Parameters
     ----------
@@ -22,22 +21,15 @@ class PriorTransformation():
         distribution.
     Q_inv: 
         The inverse of `Q`.
+    neglogabsdet_Q_inv:
+        A function which takes as input an $n \times d$ matrix
     dim: 
         The dimension of the parameter.
 
     """
 
-    def __init__(
-        self, 
-        reference: Reference,
-        Q: Callable[[Tensor], Tensor],
-        Q_inv: Callable[[Tensor], Tensor],
-        neglogabsdet_Q_inv: Callable[[Tensor], Tensor],
-        dim: int
-    ):
-        self.reference = reference
-        self.Q = Q
-        self.Q_inv = Q_inv
-        self.neglogabsdet_Q_inv = neglogabsdet_Q_inv
-        self.dim = dim
-        return
+    reference: Reference
+    Q: Callable[[Tensor], Tensor]
+    Q_inv: Callable[[Tensor], Tensor]
+    neglogabsdet_Q_inv: Callable[[Tensor], Tensor]
+    dim: int

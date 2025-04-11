@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Callable, Tuple
+from typing import Callable, Dict, List, Tuple
 import warnings
 
 import torch
@@ -18,29 +18,22 @@ from ..tools.printing import dirt_info
 class TTDIRT():
     r"""Deep (squared) inverse Rosenblatt transport.
 
-    TODO: polynomials can be different but the domain will be the same 
-    in all dimensions, and it will be the one used with the reference 
-    measure
-
     Parameters
     ----------
-    func:
+    negloglik:
         A function that receives an $n \times d$ matrix of samples and 
-        returns an $n$-dimensional vector containing the (possibly 
-        unnormalised) log-prior density evaluated at each sample, and 
-        an $n$-dimensional vector containing the negative the (possibly
-        unnormalised) negative log-likelihood evaluated at each sample. 
-        function of the target density evaluated at each sample.
+        returns an $n$-dimensional vector containing the negative 
+        log-likelihood function evaluated at each sample.
+    prior:
+        An object which provides a coupling between the prior and a 
+        product-form reference density.
     bases:
-        An object containing information on the basis functions in each 
-        dimension used during the FTT construction, and the mapping 
-        between the approximation domain and the domain of the basis 
-        functions.
+        A list of polynomial bases (one for each dimension), or a 
+        single polynomial basis (to be used in all dimensions), used to 
+        construct the functional tensor trains at each iteration.
     bridge: 
         An object used to generate the intermediate densities to 
         approximate at each stage of the DIRT construction.
-    reference:
-        The reference density.
     sirt_options:
         Options for constructing the SIRT approximation to the 
         ratio function (*i.e.*, the pullback of the current bridging 
@@ -49,11 +42,6 @@ class TTDIRT():
     dirt_options:
         Options for constructing the DIRT approximation to the 
         target density.
-    init_samples:
-        A set of samples, drawn from the prior, to initialise the 
-        FTT with. If these are not passed in, a set of samples will 
-        instead be drawn from the reference measure and transformed 
-        into the approximation domain.
     prev_approx:
         A dictionary containing a set of SIRTs generated as part of 
         the construction of a previous DIRT object.
@@ -67,16 +55,13 @@ class TTDIRT():
     """
 
     def __init__(self, 
-        # func: DIRTFunc, 
         negloglik: Callable[[Tensor], Tensor],
         prior: PriorTransformation,
-        bases: Basis1D | list[Basis1D], 
+        bases: Basis1D | List[Basis1D], 
         bridge: Bridge|None = None,
-        # reference: Reference|None = None,
         sirt_options: TTOptions|None = None,
         dirt_options: DIRTOptions|None = None,
-        # init_samples: Tensor|None = None,
-        prev_approx: dict[int, TTSIRT]|None = None
+        prev_approx: Dict[int, TTSIRT]|None = None
     ):
         
         def negloglik_Q(rs: Tensor) -> Tensor:
@@ -94,38 +79,21 @@ class TTDIRT():
         if dirt_options is None:
             dirt_options = DIRTOptions()
 
-        # self.func = func
         self.negloglik = negloglik_Q
         self.prior = prior
         self.reference = self.prior.reference
-        self.bases = ApproxBases(bases, self.prior.reference.domain, self.prior.dim)
+        self.domain = self.prior.reference.domain
         self.dim = prior.dim
+        self.bases = ApproxBases(bases, self.domain, self.dim)
         self.bridge = bridge
-        # self.reference = reference 
         self.sirt_options = sirt_options
         self.dirt_options = dirt_options
-        # self.init_samples = init_samples
         self.prev_approx = prev_approx
         self.pre_sample_size = (self.dirt_options.num_samples 
                                 + self.dirt_options.num_debugs)
-        
-        # if self.init_samples is not None:
-        #     if self.init_samples.shape[0] < self.pre_sample_size:
-        #         msg = ("More initialisation samples are required. "
-        #                + f"Need {self.pre_sample_size}, "
-        #                + f"got {self.init_samples.shape[0]}.")
-        #         raise Exception(msg)
-        
         self.irts: dict[int, TTSIRT] = {}
         self.num_eval = 0
         self.log_z = 0.0
-
-        # bases_list = [
-        #     ApproxBases(self.bases.polys, self.bases.domains, self.bases.dim),
-        #     ApproxBases(self.bases.polys, self.reference.domain, self.bases.dim)
-        # ]
-        # I don't think this is necessary any more--the reference 
-        # domain should be the same as the approximation bases domain
 
         self._build()
         return
@@ -138,50 +106,6 @@ class TTDIRT():
     def n_layers(self, value):
         self.bridge.n_layers = value 
         return
-
-    # def _initialise(
-    #     self, 
-    #     bases: ApproxBases
-    # ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-    #     """Generates a set of samples to initialise the FTT with.
-        
-    #     Parameters
-    #     ----------
-    #     bases: 
-    #         A set of bases for the approximation domain.
-
-    #     Returns
-    #     -------
-    #     xs:
-    #         An n * d matrix containing samples from the approximation 
-    #         domain. If init_samples (samples drawn from the prior) are 
-    #         available, these are used; otherwise, a set of samples are 
-    #         drawn from the weighting function associated with the bases 
-    #         for the reference density.     
-    #     neglogliks:
-    #         An n-dimensional vector containing the negative of the
-    #         log-likelihood function evaluated at each sample.
-    #     neglogpris: 
-    #         An n-dimensional vector containing the negative logarithm
-    #         of the prior density evaluated at each sample.
-    #     neglogfxs:
-    #         An n-dimensional vector containing the negative logarithm 
-    #         of the density the samples are drawn from.
-        
-    #     """
-
-    #     if self.init_samples is None:
-    #         if self.dirt_options.verbose:
-    #             dirt_info("Drawing initialisation samples...")
-    #         xs, neglogfxs = bases.sample_measure(self.pre_sample_size)
-    #         neglogliks, neglogpris = self.func(xs)
-    #     else:
-    #         xs = self.init_samples
-    #         neglogliks, neglogpris = self.func(xs)
-    #         neglogfxs = neglogpris  # Samples are drawn from the prior
-    #         self.bridge.set_init(neglogliks)
-
-    #     return xs, neglogliks, neglogpris, neglogfxs
 
     def _get_potential_to_density(
         self, 
@@ -262,24 +186,12 @@ class TTDIRT():
 
         return InputData(xs[indices], xs[indices_debug], fxs_debug)
 
-    def _get_new_layer(
-        self, 
-        # func: Callable[[Tensor], Tensor], 
-        # bases_list: list[ApproxBases], 
-        xs: Tensor, 
-        neglogratios: Tensor
-    ) -> TTSIRT:
+    def _get_new_layer(self, xs: Tensor, neglogratios: Tensor) -> TTSIRT:
         """Constructs a new SIRT to add to the current composition of 
         SIRTs.
 
         Parameters
         ----------
-        func:
-            Function that returns the negative log-likelihood and 
-            negative log-prior density of a sample.
-        bases_list:
-            A list of the bases used when constructing the first two 
-            levels of DIRT.
         xs:
             An n * d matrix containing samples distributed according to
             the current bridging density.
@@ -309,14 +221,6 @@ class TTDIRT():
                 neglogpris, 
                 neglogfxs
             )
-
-            # return self.bridge.ratio_func(
-            #     func, 
-            #     rs, 
-            #     self.eval_irt, 
-            #     self.reference, 
-            #     self.dirt_options.method
-            # )
 
             return neglogratios
 
@@ -374,16 +278,8 @@ class TTDIRT():
         rs = self.reference.random(self.dim, self.pre_sample_size)
         neglogliks = self.negloglik(rs)
         neglogpris = self.reference.eval_potential(rs)[0]
-        # neglogliks, neglogpris = self.func(xs)
         
         while self.n_layers < self.dirt_options.max_layers:
-
-            # if self.n_layers == 0:
-            #     (xs, neglogliks, 
-            #      neglogpris, neglogfxs) = self._initialise(bases_list[0])  
-            #     rs = xs.clone()  # DIRT mapping is the identity
-            # else:
-            #     rs = self.reference.random(self.dim, self.pre_sample_size)
             
             # Transform samples such that they are distributed 
             # according to current approximation
@@ -426,8 +322,6 @@ class TTDIRT():
             resampled_inds = self.bridge.resample(log_weights)
 
             self.irts[self.n_layers] = self._get_new_layer(
-                # func, 
-                # bases_list, 
                 xs[resampled_inds], 
                 neglogratios[resampled_inds]
             )
@@ -698,9 +592,9 @@ class TTDIRT():
 
         Parameters
         ----------
-        rs:
+        ms:
             An $n \times k$ matrix containing samples distributed 
-            according to the reference density.
+            according to the prior.
         n_layers: 
             The number of layers of the deep inverse Rosenblatt 
             transport to pull the samples back under. If not specified,
@@ -725,7 +619,6 @@ class TTDIRT():
         """
 
         rs = self.prior.Q_inv(ms)
-
         xs, neglogfxs = self._eval_irt(rs, n_layers, subset)
 
         # Map samples back into actual domain
