@@ -79,14 +79,14 @@ noise_std_dev = 1.65e-2
 hl.parRandom.normal_perturb(sigma=noise_std_dev, out=misfit.d)
 misfit.noise_variance = noise_std_dev ** 2
 
-# hl.nb.show_solution(
-#     Vh, 
-#     dl.interpolate(prob.u0, prob.Vh[hl.STATE]).vector(), 
-#     u_true, 
-#     "Solution",
-#     times=[0, 0.25, 0.5, 1.0, 4.0, 8.0]
-# )
-# plt.show()
+hl.nb.show_solution(
+    Vh, 
+    dl.interpolate(prob.u0, prob.Vh[hl.STATE]).vector(), 
+    u_true, 
+    "Solution",
+    times=[0, 0.25, 0.5, 1.0, 4.0, 8.0]
+)
+plt.show()
 
 _ = hl.modelVerify(prob, k_true, is_quadratic=True)
 

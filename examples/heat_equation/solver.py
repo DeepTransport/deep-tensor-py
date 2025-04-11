@@ -121,7 +121,7 @@ class HeatSolver(object):
         self.u = dl.TrialFunction(self.Vh[hl.STATE])
         self.v = dl.TestFunction(self.Vh[hl.STATE])
 
-        self.u0 = dl.Constant(0.0)
+        self.u0 = dl.interpolate(dl.Constant(0.0), self.Vh[hl.STATE]).vector()
         
         # Define forcing function
         sd = "-1/(2*std::pow(r, 2))"
@@ -135,6 +135,7 @@ class HeatSolver(object):
             b0=2.5, b1=0.5,
             element=Vh[hl.STATE].ufl_element()
         )
+        self.f = dl.interpolate(self.f, self.Vh[hl.STATE]).vector()
 
         # Assemble mass matrix
         self.M = dl.assemble(self.u * self.v * ufl.dx)
@@ -252,13 +253,20 @@ class HeatSolver(object):
         
         """
 
-        # Convert parameter to function
-        k = self.vec2func(x[hl.PARAMETER], hl.PARAMETER)
-
         # Remove old data in state vector
         out.zero()
-        
-        u = dl.Function(self.Vh[hl.STATE])
+
+        # Initialise state vector and right-hand side
+        u = dl.Vector()
+        self.M.init_vector(u, 0)
+        rhs = dl.Vector()
+        self.M.init_vector(rhs, 0)
+
+        # Initialise previous state
+        u_prev = self.u0.copy()
+
+        # Convert parameter to function
+        k = self.vec2func(x[hl.PARAMETER], hl.PARAMETER)
 
         # Assemble stiffness matrix
         K = ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx
@@ -266,26 +274,17 @@ class HeatSolver(object):
                 
         # Define LHS of variational form
         A = self.M + self.dt * K
-        # A = dl.assemble(a)
-
-        # Define previous state
-        u_prev = dl.interpolate(self.u0, self.Vh[hl.STATE])
+        self.bc.apply(A)
+        solver = dl.LUSolver(A)
         
         for t in self.ts[1:]:
-            
-            # Assemble RHS vector
-            L = (u_prev + self.dt * self.f) * self.v * ufl.dx
-            b = dl.assemble(L)
 
-            self.bc.apply(A, b)
-            dl.solve(A, u.vector(), b)
-            
-            out.store(u.vector().copy(), t)
-            u_prev.assign(u)
+            self.M.mult(self.dt * self.f + u_prev, rhs)
+            self.bc.apply(rhs)
 
-        # May need to do something similar to this to update 
-        # part of forcing term, if this changes
-        # self.u0.t = t  # Update t parameter in initial condition
+            solver.solve(u, rhs)
+            out.store(u.copy(), t)
+            u_prev = u.copy()
         
         return
     
