@@ -81,7 +81,7 @@ misfit.noise_variance = noise_std_dev ** 2
 
 hl.nb.show_solution(
     Vh, 
-    dl.interpolate(prob.u0, prob.Vh[hl.STATE]).vector(), 
+    prob.u0, 
     u_true, 
     "Solution",
     times=[0, 0.25, 0.5, 1.0, 4.0, 8.0]
