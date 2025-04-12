@@ -14,7 +14,7 @@ class DIRTOptions():
     ----------
     method:
         The method used for the ratio function at each iteration. Can 
-        be `aratio` (approximate ratio) or `eratio` (exact ratio).
+        be `'aratio'` (approximate ratio) or `'eratio'` (exact ratio).
     max_layers:
         The maximum number of layers created during DIRT construction.
     num_samples:

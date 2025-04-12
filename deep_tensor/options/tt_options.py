@@ -26,19 +26,31 @@ class TTOptions():
     max_rank:
         The maximum allowable rank of each tensor core.
     local_tol:
-        TODO
+        The threshold to use when applying truncated SVD to the tensor 
+        cores when building the FTT.
     cdf_tol:
         The tolerance used when solving the root-finding problem to 
         invert the CDF. 
     tt_method:
-        The method used to construct the TT cores. Can be `fixed`, 
-        `random`, or `amen`.
+        The method used to construct the TT cores. Can be `'fixed'`, 
+        `'random'`, or `'amen'`.
     int_method:
         The interpolation method used when constructing the tensor 
-        cores. Can be `maxvol`, `qdeim`, or `deim`.
+        cores. Can be `'maxvol'` (Goreinov *et al.*, 2010) or `'deim'` 
+        (Chaturantabut and Sorensen, 2010).
     verbose:
         Whether to print the results of FTT construction to the screen 
         at each iteration.
+
+    References
+    ----------
+    Chaturantabut, S and Sorensen, DC (2010). *[Nonlinear model reduction 
+    via discrete empirical interpolation](https://doi.org/10.1137/090766498)*. 
+    SIAM Journal on Scientific Computing **32**, 2737--2764.
+
+    Goreinov, SA, Oseledets, IV, Savostyanov, DV, Tyrtyshnikov, EE and 
+    Zamarashkin, NL. *[How to find a good submatrix](https://doi.org/10.1142/9789812836021_0015)*.
+    In: Matrix Methods: Theory, Algorithms and Applications, 247--256.
     
     """
         
