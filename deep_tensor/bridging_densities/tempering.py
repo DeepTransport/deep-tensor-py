@@ -194,32 +194,6 @@ class Tempering(Bridge):
         neglogpris: Tensor,
         neglogfxs: Tensor
     ) -> Tensor:
-        """Returns the logarithm of the ratio between the current 
-        bridging density and the density of the approximation to the 
-        previous bridging density evaluated at each of a set of samples
-        distributed according to the previous bridging density.
-
-        Parameters
-        ----------
-        neglogliks:
-            An n-dimensional vector containing the negative 
-            log-likelihood function evaluated at each sample.
-        neglogpris:
-            An n-dimensional vector containing the negative log-prior 
-            density evaluated at each sample.
-        neglogfxs:
-            An n-dimensional vector containing the negative logarithm 
-            of the approximation to the previous bridging density 
-            evaluated at each sample.
-
-        Returns
-        -------
-        log_weights:
-            The logarithm of the ratio between the current bridging 
-            density and the density of the approximation to the 
-            previous bridging density evaluated at each sample.
-        
-        """
         beta = self.betas[self.n_layers]
         log_weights = -beta*neglogliks - neglogpris + neglogfxs
         return log_weights
@@ -231,8 +205,6 @@ class Tempering(Bridge):
         neglogpris: Tensor,
         neglogfxs: Tensor
     ) -> None:
-        """Prints some information about the current bridging density.
-        """
 
         ess = compute_ess_ratio(log_weights)
 

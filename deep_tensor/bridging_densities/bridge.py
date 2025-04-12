@@ -72,31 +72,30 @@ class Bridge(abc.ABC):
         neglogpris: Tensor, 
         neglogfxs: Tensor
     ) -> Tensor:
-        """Returns the ratio of the next (k+1th) (possibly unnormalised) 
-        target density to the current (kth) approximation for all 
-        particles.
+        """Returns the logarithm of the ratio between the current 
+        bridging density and the density of the approximation to the 
+        previous bridging density evaluated at each of a set of samples
+        distributed according to the previous bridging density.
 
         Parameters
         ----------
-        method: 
-            The method used to select the next bridging parameter. Can
-            be `aratio` (approximate ratio) or `eratio` (exact ratio).
-        neglogliks: 
+        neglogliks:
             An n-dimensional vector containing the negative 
-            log-likelihood of each of the current samples.
+            log-likelihood function evaluated at each sample.
         neglogpris:
             An n-dimensional vector containing the negative log-prior 
-            density of each of the current samples.
+            density evaluated at each sample.
         neglogfxs:
-            An n-dimensional vector containing the negative log-density 
-            of the current approximation to the target density for each 
-            of the current samples.
+            An n-dimensional vector containing the negative logarithm 
+            of the approximation to the previous bridging density 
+            evaluated at each sample.
 
         Returns
         -------
         log_weights:
-            An n-dimensional vector containing the computed 
-            log-weights.
+            The logarithm of the ratio between the current bridging 
+            density and the density of the approximation to the 
+            previous bridging density evaluated at each sample.
         
         """
         return
