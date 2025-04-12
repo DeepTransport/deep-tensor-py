@@ -116,5 +116,7 @@ quartodoc:
       desc: Objects used to generate the intermediate densities approximated during DIRT construction.
       package: deep_tensor
       contents:
-        - name: Tempering1
+        - name: SingleLayer
+          members: []
+        - name: Tempering
           members: []
