@@ -456,12 +456,12 @@ class TTDIRT():
 
         """
         n_layers = min(n_layers, self.n_layers)
-        neglogfxs = self.eval_rt(ms, n_layers, subset)[1]
-        return neglogfxs
+        neglogfms = self.eval_rt(ms, n_layers, subset)[1]
+        return neglogfms
     
     def eval_pdf(
         self, 
-        xs: Tensor,
+        ms: Tensor,
         n_layers: Tensor = torch.inf,
         subset: str|None = None
     ) -> Tensor: 
@@ -474,7 +474,7 @@ class TTDIRT():
         
         Parameters
         ----------
-        xs:
+        ms:
             An $n \times k$ matrix containing a set of samples drawn 
             from the DIRT approximation to the target density.
         n_layers:
@@ -488,15 +488,15 @@ class TTDIRT():
 
         Returns
         -------
-        fxs:
+        fms:
             An $n$-dimensional vector containing the value of the 
             approximation to the target density evaluated at each 
-            element in `xs`.
+            element in `ms`.
         
         """
-        neglogfxs = self.eval_potential(xs, n_layers, subset)
-        fxs = torch.exp(-neglogfxs)
-        return fxs
+        neglogfms = self.eval_potential(ms, n_layers, subset)
+        fms = torch.exp(-neglogfms)
+        return fms
 
     def eval_rt(
         self,
@@ -533,19 +533,16 @@ class TTDIRT():
             composition of mappings, evaluated at each sample in `xs`.
 
         """
-
         n_layers = min(n_layers, self.n_layers)
-
         neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
         xs = self.prior.Q_inv(ms)
-
         rs, neglogfxs = self._eval_rt_reference(xs, n_layers, subset)
-        neglogfxs += neglogabsdet_ms
-        return rs, neglogfxs
+        neglogfms = neglogfxs + neglogabsdet_ms
+        return rs, neglogfms
 
     def eval_irt(
         self, 
-        ms: Tensor, 
+        rs: Tensor, 
         n_layers: int = torch.inf,
         subset: str|None = None
     ) -> Tuple[Tensor, Tensor]:
@@ -553,9 +550,9 @@ class TTDIRT():
 
         Parameters
         ----------
-        ms:
+        rs:
             An $n \times k$ matrix containing samples distributed 
-            according to the prior.
+            according to the reference density.
         n_layers: 
             The number of layers of the deep inverse Rosenblatt 
             transport to pull the samples back under. If not specified,
@@ -578,15 +575,10 @@ class TTDIRT():
             composition of mappings, evaluated at each sample in `xs`.
 
         """
-
-        rs = self.prior.Q_inv(ms)
         xs, neglogfxs = self._eval_irt_reference(rs, n_layers, subset)
-
-        # Map samples back into actual domain
         ms = self.prior.Q(xs)
         neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
         neglogfms = neglogfxs + neglogabsdet_ms
-
         return ms, neglogfms
     
     def random(self, n: int) -> Tensor: 
@@ -604,8 +596,7 @@ class TTDIRT():
         
         """
         rs = self.reference.random(self.dim, n)
-        xs = self._eval_irt_reference(rs)[0]
-        ms = self.prior.Q(xs)
+        ms = self.eval_irt(rs)[0]
         return ms
     
     def sobol(self, n: int) -> Tensor:
@@ -623,6 +614,5 @@ class TTDIRT():
 
         """
         rs = self.reference.sobol(self.dim, n)
-        xs = self._eval_irt_reference(rs)[0]
-        ms = self.prior.Q(xs)
+        ms = self.eval_irt(rs)[0]
         return ms
