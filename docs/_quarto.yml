@@ -33,9 +33,6 @@ interlinks:
       url: https://pytorch.org/docs/stable/
     python:
       url: https://docs.python.org/3/
-    # quartodoc-test:
-    #   url: https://machow.github.io/quartodoc
-    #   inv: objects-test.txt
 
 quartodoc:
 

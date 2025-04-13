@@ -7,3 +7,7 @@
 .doc-section dl dd {
     margin-left: 2rem;
 }
+
+.navbar-brand {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
