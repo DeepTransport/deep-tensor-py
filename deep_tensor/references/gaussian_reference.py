@@ -6,7 +6,7 @@ from ..constants import EPS
 
 
 class GaussianReference(SymmetricReference):
-    r"""The Gaussian reference density, $\mathcal{N}(0, I)$.
+    r"""The standard $d$-dimensional Gaussian density, $\mathcal{N}(\boldsymbol{0}_{d}, \boldsymbol{I}_{d})$.
     
     Parameters
     ----------

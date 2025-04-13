@@ -45,6 +45,11 @@ class Tempering(Bridge):
     min_beta:
         If selecting the $\beta$ values adaptively, the minimum 
         allowable $\beta$ value.
+    max_layers:
+        If selecting the $\beta$ values adaptively, the maximum number 
+        of layers to construct. Note that, if the maximum number of
+        layers is reached, the final bridging density may not be equal 
+        to the posterior.
         
     """
 
@@ -54,25 +59,27 @@ class Tempering(Bridge):
         ess_tol: Tensor|float = 0.5, 
         ess_tol_init: Tensor|float = 0.5,
         beta_factor: Tensor|float = 1.05,
-        min_beta: Tensor|float = 1e-4
+        min_beta: Tensor|float = 1e-4,
+        max_layers: int = 20
     ):
-        
         if betas == None:
             betas = torch.tensor([])
-
         self.betas = betas.sort()[0]
         self.ess_tol = torch.tensor(ess_tol)
         self.ess_tol_init = torch.tensor(ess_tol_init)
         self.beta_factor = torch.tensor(beta_factor)
         self.min_beta = torch.tensor(min_beta)
         self.init_beta = torch.tensor(min_beta)
+        self.max_layers = max_layers
         self.is_adaptive = self.betas.numel() == 0
         self.n_layers = 0
         return
 
     @property 
     def is_last(self) -> bool:
-        return (self.betas[self.n_layers-1] - 1.0).abs() < 1e-6
+        max_layers_reached = self.n_layers == self.max_layers
+        final_beta_reached = (self.betas[self.n_layers-1] - 1.0).abs() < 1e-6
+        return max_layers_reached or final_beta_reached
     
     @property
     def is_adaptive(self) -> bool:

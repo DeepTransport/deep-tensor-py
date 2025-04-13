@@ -1,6 +1,5 @@
 from copy import deepcopy
 from typing import Callable, Dict, List, Tuple
-import warnings
 
 import torch
 from torch import Tensor
@@ -11,7 +10,6 @@ from ..ftt import ApproxBases, InputData
 from ..options import DIRTOptions, TTOptions
 from ..polynomials import Basis1D
 from ..prior_transformation import PriorTransformation
-from ..tools import compute_f_divergence
 from ..tools.printing import dirt_info
 
 
@@ -49,8 +47,8 @@ class TTDIRT():
     References
     ----------
     Cui, T and Dolgov, S (2022). *[Deep composition of tensor-trains 
-    using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).* 
-    Foundations of Computational Mathematics, **22**, 1863--1922.
+    using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).*
+    Foundations of Computational Mathematics **22**, 1863--1922.
     
     """
 
@@ -69,8 +67,8 @@ class TTDIRT():
             from the reference domain, by first transforming them using 
             the mapping Q.
             """
-            xs = self.prior.Q(rs)
-            return negloglik(xs)
+            ms = self.prior.Q(rs)
+            return negloglik(ms)
 
         if bridge is None:
             bridge = Tempering(min_beta=1e-3, ess_tol=0.4)
@@ -109,18 +107,15 @@ class TTDIRT():
 
     def _get_potential_to_density(
         self, 
-        bases: ApproxBases, 
         neglogratios: Tensor, 
         xs: Tensor
     ) -> Tensor:
         """Returns the function we aim to approximate (i.e., the 
-        square-root of the ratio function divided by the weighting 
+        square root of the ratio function divided by the weighting 
         function associated with the reference measure).
 
         Parameters
         ----------
-        bases: 
-            The bases for the reference measure.
         neglogratios:
             An n-dimensional vector containing the negative logarithm 
             of the ratio function associated with each sample.
@@ -135,13 +130,12 @@ class TTDIRT():
             target function at each sample in xs.
         
         """
-        neglogwrs = bases.eval_measure_potential(xs)[0]
+        neglogwrs = self.bases.eval_measure_potential(xs)[0]
         log_ys = -0.5 * (neglogratios - neglogwrs)
         return torch.exp(log_ys)
 
     def _get_inputdata(
-        self, 
-        bases: ApproxBases, 
+        self,
         xs: Tensor, 
         neglogratios: Tensor 
     ) -> InputData:
@@ -150,9 +144,6 @@ class TTDIRT():
         
         Parameters
         ----------
-        bases:
-            A set of bases for each direction of the reference / 
-            approximation domain.
         xs:
             An n * d matrix containing samples distributed according to
             the current bridging density.
@@ -179,7 +170,6 @@ class TTDIRT():
                          + self.dirt_options.num_samples)
 
         fxs_debug = self._get_potential_to_density(
-            bases, 
             neglogratios[indices_debug], 
             xs[indices_debug]
         )
@@ -209,7 +199,7 @@ class TTDIRT():
 
         def updated_func(rs: Tensor) -> Tensor:
 
-            xs, neglogfxs = self._eval_irt(rs)
+            xs, neglogfxs = self._eval_irt_reference(rs)
             neglogliks = self.negloglik(xs)
             neglogpris = self.reference.eval_potential(xs)[0]
 
@@ -227,8 +217,7 @@ class TTDIRT():
         if self.prev_approx is None:
             
             # Generate debugging and initialisation samples
-            # bases_i = bases_list[min(self.n_layers, 1)] 
-            input_data = self._get_inputdata(self.bases, xs, neglogratios)
+            input_data = self._get_inputdata(xs, neglogratios)
 
             if self.n_layers == 0:
                 approx = None 
@@ -279,14 +268,13 @@ class TTDIRT():
         neglogliks = self.negloglik(rs)
         neglogpris = self.reference.eval_potential(rs)[0]
         
-        while self.n_layers < self.dirt_options.max_layers:
+        while True:
             
             # Transform samples such that they are distributed 
             # according to current approximation
-            xs, neglogfxs = self._eval_irt(rs)
+            xs, neglogfxs = self._eval_irt_reference(rs)
             neglogliks = self.negloglik(xs)
             neglogpris = self.reference.eval_potential(xs)[0]
-            # neglogliks, neglogpris = func(xs)
         
             self.bridge._adapt_density(
                 self.dirt_options.method, 
@@ -330,103 +318,7 @@ class TTDIRT():
                     dirt_info("DIRT construction complete.")
                 return
 
-        msg = "Maximum number of DIRT layers reached. Building final layer..."
-        warnings.warn(msg)
-
-        raise NotImplementedError()
-
-        xs, neglogfxs = self.eval_irt(rs)
-        neglogliks, neglogpris = func(xs)
-        
-        log_proposal = -neglogfxs
-        log_target = -neglogliks - neglogpris
-        div_h2 = compute_f_divergence(log_proposal, log_target)
-        div_h = div_h2.sqrt()
-
-        msg = [f"Iter: {self.n_layers}", f"DHell: {div_h:.4f}"]
-        if self.dirt_options.verbose:
-            dirt_info(" | ".join(msg))
-            dirt_info("DIRT construction complete.")
-        return
-
-    def eval_potential(
-        self, 
-        xs: Tensor,
-        n_layers: Tensor = torch.inf,
-        subset: str|None = None
-    ) -> Tensor:
-        r"""Evaluates the potential function.
-        
-        Returns the joint potential function, or the marginal potential 
-        function for the first $k$ variables or the last $k$ variables,
-        corresponding to the pullback of the reference measure under a 
-        given number of layers of the DIRT.
-        
-        Parameters
-        ----------
-        xs:
-            An $n \times k$ matrix containing a set of samples drawn 
-            from the current DIRT approximation to the target density.
-        n_layers:
-            The number of layers of the current DIRT construction to
-            use.
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-
-        Returns
-        -------
-        neglogfxs:
-            An $n$-dimensional vector containing the potential function
-            of the target density evaluated at each element in `xs`.
-
-        """
-        n_layers = min(n_layers, self.n_layers)
-        neglogfxs = self.eval_rt(xs, n_layers, subset)[1]
-        return neglogfxs
-    
-    def eval_pdf(
-        self, 
-        xs: Tensor,
-        n_layers: Tensor = torch.inf,
-        subset: str|None = None
-    ) -> Tensor: 
-        r"""Evaluates the density function.
-        
-        Returns the joint density function, or the marginal density 
-        function for the first $k$ variables or the last $k$ variables,
-        corresponding to the pullback of the reference measure under 
-        a given number of layers of the DIRT.
-        
-        Parameters
-        ----------
-        xs:
-            An $n \times k$ matrix containing a set of samples drawn 
-            from the DIRT approximation to the target density.
-        n_layers:
-            The number of layers of the current DIRT construction to 
-            use.
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-
-        Returns
-        -------
-        fxs:
-            An $n$-dimensional vector containing the value of the 
-            approximation to the target density evaluated at each 
-            element in `xs`.
-        
-        """
-        neglogfxs = self.eval_potential(xs, n_layers, subset)
-        fxs = torch.exp(-neglogfxs)
-        return fxs
-
-    def _eval_rt(
+    def _eval_rt_reference(
         self,
         xs: Tensor,
         n_layers: Tensor = torch.inf,
@@ -481,55 +373,7 @@ class TTDIRT():
 
         return rs, neglogfxs
     
-    def eval_rt(
-        self,
-        ms: Tensor,
-        n_layers: Tensor = torch.inf,
-        subset: str|None = None
-    ) -> Tuple[Tensor, Tensor]:
-        r"""Evaluates the deep Rosenblatt transport.
-        
-        Parameters
-        ----------
-        ms:
-            An $n \times k$ matrix of random variables drawn from the 
-            density defined by the current DIRT.
-        n_layers:
-            The number of layers of the deep inverse Rosenblatt 
-            transport to push the samples forward under. If not 
-            specified, the samples will be pushed forward through all 
-            the layers.
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-
-        Returns
-        -------
-        rs:
-            An $n \times k$ matrix containing the composition of 
-            mappings evaluated at each value of `xs`.
-        neglogfxs:
-            An $n$-dimensional vector containing the potential function 
-            of the pullback of the reference density under the current 
-            composition of mappings, evaluated at each sample in `xs`.
-
-        """
-
-        n_layers = min(n_layers, self.n_layers)
-
-        xs = self.prior.Q_inv(ms)
-
-        rs, neglogfxs = self._eval_rt(xs, n_layers, subset)
-
-        # TODO: could eventually move this to the start
-        neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
-        neglogfxs += neglogabsdet_ms
-
-        return rs, neglogfxs
-
-    def _eval_irt(
+    def _eval_irt_reference(
         self, 
         rs: Tensor, 
         n_layers: int = torch.inf,
@@ -577,6 +421,128 @@ class TTDIRT():
 
         return xs, neglogfxs
 
+    def eval_potential(
+        self, 
+        ms: Tensor,
+        n_layers: Tensor = torch.inf,
+        subset: str|None = None
+    ) -> Tensor:
+        r"""Evaluates the potential function.
+        
+        Returns the joint potential function, or the marginal potential 
+        function for the first $k$ variables or the last $k$ variables,
+        corresponding to the pullback of the reference measure under a 
+        given number of layers of the DIRT.
+        
+        Parameters
+        ----------
+        ms:
+            An $n \times k$ matrix containing a set of samples drawn 
+            from the current DIRT approximation to the target density.
+        n_layers:
+            The number of layers of the current DIRT construction to
+            use.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+
+        Returns
+        -------
+        neglogfxs:
+            An $n$-dimensional vector containing the potential function
+            of the target density evaluated at each element in `xs`.
+
+        """
+        n_layers = min(n_layers, self.n_layers)
+        neglogfxs = self.eval_rt(ms, n_layers, subset)[1]
+        return neglogfxs
+    
+    def eval_pdf(
+        self, 
+        xs: Tensor,
+        n_layers: Tensor = torch.inf,
+        subset: str|None = None
+    ) -> Tensor: 
+        r"""Evaluates the density function.
+        
+        Returns the joint density function, or the marginal density 
+        function for the first $k$ variables or the last $k$ variables,
+        corresponding to the pullback of the reference measure under 
+        a given number of layers of the DIRT.
+        
+        Parameters
+        ----------
+        xs:
+            An $n \times k$ matrix containing a set of samples drawn 
+            from the DIRT approximation to the target density.
+        n_layers:
+            The number of layers of the current DIRT construction to 
+            use.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+
+        Returns
+        -------
+        fxs:
+            An $n$-dimensional vector containing the value of the 
+            approximation to the target density evaluated at each 
+            element in `xs`.
+        
+        """
+        neglogfxs = self.eval_potential(xs, n_layers, subset)
+        fxs = torch.exp(-neglogfxs)
+        return fxs
+
+    def eval_rt(
+        self,
+        ms: Tensor,
+        n_layers: Tensor = torch.inf,
+        subset: str|None = None
+    ) -> Tuple[Tensor, Tensor]:
+        r"""Evaluates the deep Rosenblatt transport.
+        
+        Parameters
+        ----------
+        ms:
+            An $n \times k$ matrix of random variables drawn from the 
+            density defined by the current DIRT.
+        n_layers:
+            The number of layers of the deep inverse Rosenblatt 
+            transport to push the samples forward under. If not 
+            specified, the samples will be pushed forward through all 
+            the layers.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+
+        Returns
+        -------
+        rs:
+            An $n \times k$ matrix containing the composition of 
+            mappings evaluated at each value of `xs`.
+        neglogfxs:
+            An $n$-dimensional vector containing the potential function 
+            of the pullback of the reference density under the current 
+            composition of mappings, evaluated at each sample in `xs`.
+
+        """
+
+        n_layers = min(n_layers, self.n_layers)
+
+        neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
+        xs = self.prior.Q_inv(ms)
+
+        rs, neglogfxs = self._eval_rt_reference(xs, n_layers, subset)
+        neglogfxs += neglogabsdet_ms
+        return rs, neglogfxs
+
     def eval_irt(
         self, 
         ms: Tensor, 
@@ -614,7 +580,7 @@ class TTDIRT():
         """
 
         rs = self.prior.Q_inv(ms)
-        xs, neglogfxs = self._eval_irt(rs, n_layers, subset)
+        xs, neglogfxs = self._eval_irt_reference(rs, n_layers, subset)
 
         # Map samples back into actual domain
         ms = self.prior.Q(xs)
@@ -633,13 +599,14 @@ class TTDIRT():
 
         Returns
         -------
-        xs:
-            The generated samples.
+        ms:
+            An $n \times d$ matrix containing the generated samples.
         
         """
         rs = self.reference.random(self.dim, n)
-        xs = self.eval_irt(rs)[0]
-        return xs 
+        xs = self._eval_irt_reference(rs)[0]
+        ms = self.prior.Q(xs)
+        return ms
     
     def sobol(self, n: int) -> Tensor:
         """Generates a set of QMC samples.
@@ -651,10 +618,11 @@ class TTDIRT():
         
         Returns
         -------
-        xs:
-            The generated samples.
+        ms:
+            An $n \times d$ matrix containing the generated samples.
 
         """
         rs = self.reference.sobol(self.dim, n)
-        xs = self.eval_irt(rs)[0]
-        return xs
+        xs = self._eval_irt_reference(rs)[0]
+        ms = self.prior.Q(xs)
+        return ms

@@ -10,7 +10,9 @@ from .references import Reference
 class PriorTransformation():
     r"""A mapping between the prior and a reference random variable.
 
-    
+    TODO: there are some properties that the transformation Q needs to
+    verify (it needs to be invertible for the pushforward density 
+    formula to make sense). 
     
     Parameters
     ----------

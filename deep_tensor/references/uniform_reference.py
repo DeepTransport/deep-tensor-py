@@ -9,7 +9,7 @@ from ..domains import BoundedDomain
 
 
 class UniformReference(Reference):
-    r"""The uniform reference density, defined on $[0, 1]^{d}$.
+    r"""The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$.
     """
 
     def __init__(self):
