@@ -565,7 +565,7 @@ class TTDIRT():
 
         Returns
         -------
-        ms: 
+        ms:
             An $n \times k$ matrix containing the corresponding samples 
             from the approximation domain, after applying the deep 
             inverse Rosenblatt transport.
@@ -582,7 +582,10 @@ class TTDIRT():
         return ms, neglogfms
     
     def random(self, n: int) -> Tensor: 
-        """Generates a set of random samples. 
+        r"""Generates a set of random samples. 
+
+        The samples are distributed according to the DIRT approximation 
+        to the target posterior.
         
         Parameters
         ----------
@@ -600,7 +603,10 @@ class TTDIRT():
         return ms
     
     def sobol(self, n: int) -> Tensor:
-        """Generates a set of QMC samples.
+        r"""Generates a set of QMC samples.
+
+        The samples are distributed according to the DIRT approximation 
+        to the target posterior.
         
         Parameters
         ----------
