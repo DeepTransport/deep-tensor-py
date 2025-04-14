@@ -52,7 +52,8 @@ class TTDIRT():
     
     """
 
-    def __init__(self, 
+    def __init__(
+        self, 
         negloglik: Callable[[Tensor], Tensor],
         prior: PriorTransformation,
         bases: Basis1D | List[Basis1D], 
