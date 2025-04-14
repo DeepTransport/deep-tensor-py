@@ -114,7 +114,7 @@ class Tempering(Bridge):
             beta *= self.beta_factor
     
     @staticmethod
-    def _compute_weights(
+    def _compute_ratio_weights(
         method,
         beta_p, 
         beta, 
@@ -124,10 +124,20 @@ class Tempering(Bridge):
     ) -> Tensor:
         
         if method == "aratio":
-            return -(beta-beta_p) * neglogliks
+            log_weights = -(beta-beta_p) * neglogliks
         elif method == "eratio":
-            return -beta*neglogliks - neglogpris + neglogfxs
-        raise Exception("Unknown ratio method.")
+            log_weights = -beta*neglogliks - neglogpris + neglogfxs
+        return log_weights
+    
+    def _compute_log_weights(
+        self, 
+        neglogliks: Tensor,
+        neglogpris: Tensor,
+        neglogfxs: Tensor
+    ) -> Tensor:
+        beta = self.betas[self.n_layers]
+        log_weights = -beta*neglogliks - neglogpris + neglogfxs
+        return log_weights
 
     def _adapt_density(
         self, 
@@ -149,7 +159,7 @@ class Tempering(Bridge):
 
         while True:
 
-            log_weights = Tempering._compute_weights(
+            log_weights = Tempering._compute_ratio_weights(
                 method, 
                 beta_p, 
                 beta * self.beta_factor, 
@@ -183,7 +193,7 @@ class Tempering(Bridge):
 
         beta_p = self.betas[self.n_layers-1]
 
-        log_weights = Tempering._compute_weights(
+        log_weights = Tempering._compute_ratio_weights(
             method, 
             beta_p, 
             beta, 
@@ -194,16 +204,6 @@ class Tempering(Bridge):
         neglogrefs = reference.eval_potential(rs)[0]
         neglogratios = -log_weights + neglogrefs
         return neglogratios
-    
-    def _compute_log_weights(
-        self, 
-        neglogliks: Tensor,
-        neglogpris: Tensor,
-        neglogfxs: Tensor
-    ) -> Tensor:
-        beta = self.betas[self.n_layers]
-        log_weights = -beta*neglogliks - neglogpris + neglogfxs
-        return log_weights
 
     def _print_progress(
         self, 
