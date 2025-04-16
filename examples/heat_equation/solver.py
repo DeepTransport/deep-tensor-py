@@ -140,20 +140,25 @@ class HeatSolver(object):
         # Assemble mass matrix
         self.M = dl.assemble(self.u * self.v * ufl.dx)
         
-        self.bc = dl.DirichletBC(
-            self.Vh[hl.STATE], 
-            dl.Constant(0.0), 
-            self.dirichlet_boundary
-        )
+        # self.bc = dl.DirichletBC(
+        #     self.Vh[hl.STATE], 
+        #     dl.Constant(0.0), 
+        #     self.dirichlet_boundary
+        # )
 
-        self.bc_p = dl.DirichletBC(
-            self.Vh[hl.STATE],
-            dl.Constant(0.0),
-            self.dirichlet_boundary
-        )
+        # self.bc_p = dl.DirichletBC(
+        #     self.Vh[hl.STATE],
+        #     dl.Constant(0.0),
+        #     self.dirichlet_boundary
+        # )
 
         # Part of model public API (??)
         self.gauss_newton_approx = True
+
+        # k_true = self.sample_prior()
+        # u_true = self.generate_vector(hl.STATE)
+        # self.x = [u_true, k_true, None]
+
         return
 
     @staticmethod
@@ -274,13 +279,13 @@ class HeatSolver(object):
                 
         # Define LHS of variational form
         A = self.M + self.dt * K
-        self.bc.apply(A)
+        # self.bc.apply(A)
         solver = dl.LUSolver(A)
         
         for t in self.ts[1:]:
 
             self.M.mult(self.dt * self.f + u_prev, rhs)
-            self.bc.apply(rhs)
+            # self.bc.apply(rhs)
 
             solver.solve(u, rhs)
             out.store(u.copy(), t)
@@ -297,8 +302,18 @@ class HeatSolver(object):
         # Remove any previous data from output vector
         out.zero()
 
+        # Initialise adjoint vector and right-hand side
+        p = dl.Vector()
+        self.M.init_vector(p, 0)
+        rhs = dl.Vector()
+        self.M.init_vector(rhs, 0)
+
+        # Initialise previous (next?) adjoint vector (initial condition: p=0)
+        p_prev = dl.Vector()
+        self.M.init_vector(p_prev, 0)
+
+        # Convert parameter to function
         k = self.vec2func(x[hl.PARAMETER], hl.PARAMETER)
-        p = dl.Function(self.Vh[hl.ADJOINT])
 
         # Assemble stiffness matrix
         K = ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx
@@ -311,9 +326,8 @@ class HeatSolver(object):
 
         # Define LHS of variational form
         A = self.M + self.dt * K
-
-        # Define previous (next?) adjoint variable
-        p_prev = dl.interpolate(dl.Constant(0.0), self.Vh[hl.STATE])
+        # self.bc_p.apply(A)
+        solver = dl.LUSolver(A)
 
         # Snapshot of gradient of state
         grad_state_snap = dl.Vector()
@@ -321,17 +335,13 @@ class HeatSolver(object):
 
         for t in self.ts[::-1]:
 
-            b = p_prev.vector()
             grad_state.retrieve(grad_state_snap, t)
-            b.axpy(-1.0, grad_state_snap)
+            self.M.mult(p_prev - grad_state_snap, rhs)
+            # self.bc_p.apply(rhs)
 
-            # Assemble RHS vector 
-            # b = grad_state_snap + p_prev.vector()
-            self.bc_p.apply(A, b)
-            dl.solve(A, p.vector(), b)
-
-            out.store(p.vector().copy(), t)
-            p_prev.assign(p)
+            solver.solve(p, rhs)
+            out.store(p.copy(), t)
+            p_prev = p.copy()
 
         return
             
@@ -371,35 +381,200 @@ class HeatSolver(object):
         Nothing to do since the problem is linear (TODO: why?).
         """
         self.gauss_newton_approx = gauss_newton_approx
+        self.x = x
         return
 
-    def solveFwdIncremental(self, sol, rhs):
-        raise NotImplementedError()
+    def solveFwdIncremental(
+        self, 
+        sol: hl.TimeDependentVector, 
+        rhs: hl.TimeDependentVector
+    ) -> None:
+        """Solves the incremental forward problem (with RHS) and saves 
+        the result into sol."""
+
+        # Remove previous data in solution vector
+        sol.zero()
+
+        # Initialise state vector and right-hand side
+        u_inc = dl.Vector()
+        self.M.init_vector(u_inc, 0)
+        rhs_k = dl.Vector()
+        self.M.init_vector(rhs_k, 0)
+        rhs_snap = dl.Vector()
+        self.M.init_vector(rhs_snap, 0)
+
+        # Initialise previous state
+        u_prev = self.u0.copy()
+
+        # Convert parameter to function
+        k = self.vec2func(self.x[hl.PARAMETER], hl.PARAMETER)
+
+        # Assemble stiffness matrix
+        K = ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx
+        K = dl.assemble(K)
+                
+        # Define LHS of variational form
+        A = self.M + self.dt * K
+        # self.bc.apply(A)
+        solver = dl.LUSolver(A)
         
-    def solveAdjIncremental(self, sol, rhs):
-        raise NotImplementedError()
+        for t in self.ts[1:]:
+            
+            # Form right-hand side
+            rhs.retrieve(rhs_snap, t)
+            self.M.mult(u_prev, rhs_k)
+            rhs_k = rhs_k + rhs_snap
+            
+            solver.solve(u_inc, rhs_k)
+            sol.store(u_inc.copy(), t)
+            u_prev = u_inc.copy()
+
+        return
+        
+    def solveAdjIncremental(
+        self, 
+        sol: hl.TimeDependentVector, 
+        rhs: hl.TimeDependentVector
+    ) -> None:
+        """Solves the incremental adjoint problem.
+        """
+
+        # Remove any previous data from output vector
+        sol.zero()
+
+        # Initialise adjoint vector
+        p_inc = dl.Vector()
+        self.M.init_vector(p_inc, 0)
+
+        # Initialise RHS for each step
+        rhs_k = dl.Vector()
+        self.M.init_vector(rhs_k, 0)
+
+        rhs_snap = dl.Vector()
+        self.M.init_vector(rhs_snap, 0)
+
+        # Initialise previous (next?) adjoint vector (initial condition: p=0)
+        p_prev = dl.Vector()
+        self.M.init_vector(p_prev, 0)
+
+        # Convert parameter to function
+        k = self.vec2func(self.x[hl.PARAMETER], hl.PARAMETER)
+
+        # Assemble stiffness matrix
+        K = ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx
+        K = dl.assemble(K)
+
+        # Define LHS of variational form
+        A = self.M + self.dt * K
+        # self.bc_p.apply(A)
+        solver = dl.LUSolver(A)
+
+        for t in self.ts[::-1]:
+
+            # Form right-hand side
+            rhs.retrieve(rhs_snap, t)
+            self.M.mult(p_prev, rhs_k)
+            rhs_k = rhs_k + rhs_snap
+
+            solver.solve(p_inc, rhs_k)
+            sol.store(p_inc.copy(), t)
+            p_prev = p_inc.copy()
+
+        return
     
-    def applyC(self, dm, out):
-        raise NotImplementedError()
+    def applyC(
+        self, 
+        dm: dl.Vector, 
+        out: hl.TimeDependentVector
+    ) -> None:
+        """
+        vector to multiply c with.
+        out=where result of matrix-vector multiplication will be stored.
+        """
+
+        u = self.x[hl.STATE]
+        k = self.x[hl.PARAMETER]
+
+        k = self.vec2func(self.x[hl.PARAMETER], hl.PARAMETER)
+        
+        u_snap = dl.Vector()
+        self.M.init_vector(u_snap, 0)
+
+        out_k = dl.Vector()
+        self.M.init_vector(out_k, 0)
+
+        for t in self.ts[1:]:  # TODO: check whether the 1: is needed
+
+            u.retrieve(u_snap, t)
+            u_k = self.vec2func(u_snap.copy(), hl.STATE)
+
+            # Build A matrix
+            N = self.dt * self.u * ufl.exp(k) * ufl.inner(ufl.grad(self.v), ufl.grad(u_k)) * ufl.dx
+            N = dl.assemble(N)
+            # .apply(N)  # TODO: check this.
+
+            # N' @ dm
+            N.transpmult(dm, out_k)
+            out.store(out_k.copy(), t)
+
+        return
     
-    def applyCt(self, dp, out):
-        raise NotImplementedError()
+    def applyCt(
+        self, 
+        dp: hl.TimeDependentVector, 
+        out: dl.Vector
+    ):
+        
+        out.zero()
+
+        u = self.x[hl.STATE]
+        k = self.x[hl.PARAMETER]
+        k = self.vec2func(self.x[hl.PARAMETER], hl.PARAMETER)
+        
+        u_snap = dl.Vector()
+        self.M.init_vector(u_snap, 0)
+
+        dp_k = dl.Vector()
+        self.M.init_vector(dp_k, 0)
+
+        out_k = dl.Vector()
+        self.M.init_vector(out_k, 0)
+
+        for t in self.ts[1:]:  # TODO: check whether the 1: is needed
+
+            # Build A matrix
+            u.retrieve(u_snap, t)
+            u_k = self.vec2func(u_snap.copy(), hl.STATE)
+            N = self.dt * self.u * ufl.exp(k) * ufl.inner(ufl.grad(self.v), ufl.grad(u_k)) * ufl.dx
+            N = dl.assemble(N)
+            # self.bc.apply(N)  # TODO: check this.
+
+            dp.retrieve(dp_k, t)
+            N.mult(dp_k, out_k)
+            out = out + out_k
+
+        return
     
     def applyWuu(self, du, out):
         out.zero()
         self.misfit.apply_ij(hl.STATE, hl.STATE, du, out)
+        return
 
     def applyWum(self, dm, out):
         out.zero()
+        return
     
     def applyWmu(self, du, out):
         out.zero()
+        return
     
     def applyR(self, dm, out):
-        self.prior.R.mult(dm,out)
+        self.prior.R.mult(dm, out)
+        return
     
     def applyWmm(self, dm, out):
         out.zero()
+        return
         
     def exportState(self, x, filename, varname):
         raise NotImplementedError()
