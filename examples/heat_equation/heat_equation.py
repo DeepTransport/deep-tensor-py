@@ -92,10 +92,38 @@ misfit.noise_variance = noise_std_dev ** 2
 # )
 # plt.show()
 
-_ = hl.modelVerify(prob, k_true, is_quadratic=True)
+_ = hl.modelVerify(prob, k_true, is_quadratic=True, verbose=True)# , misfit_only=True)
+plt.show()
 
 # [u, m, p] = prob.generate_vector()
 # prob.solveFwd(u, [u, m, p])
 # prob.solveAdj(p, [u, m, p])
 # mg = prob.generate_vector(hl.PARAMETER)
 # grad_norm = prob.evalGradientParameter([u, m, p], mg)
+
+# H = hl.ReducedHessian(prob, misfit_only=True) 
+
+# k = 80
+# p = 20
+# print( "Single Pass Algorithm. Requested eigenvectors: {0}; Oversampling {1}.".format(k,p) )
+# Omega = hl.MultiVector(x[hl.PARAMETER], k+p)
+# hl.parRandom.normal(1., Omega)
+# lmbda, V = hl.singlePassG(H, prior.R, prior.Rsolver, Omega, k)
+
+
+# posterior = hl.GaussianLRPosterior( prior, lmbda, V )
+
+# plt.plot(range(0,k), lmbda, 'b*', range(0,k+1), np.ones(k+1), '-r')
+# plt.yscale('log')
+# plt.xlabel('number')
+# plt.ylabel('eigenvalue')
+
+# hl.nb.plot_eigenvectors(Vh, V, mytitle="Eigenvector", which=[0,1,2,5,10,20,30,45,60])
+
+# solver = hl.CGSolverSteihaug()
+# solver.set_operator(H)
+# # solver.set_preconditioner(posterior.Hlr)
+# solver.parameters["print_level"] = 1
+# solver.parameters["rel_tolerance"] = 1e-6
+# solver.solve(m, -mg)
+# problem.solveFwd(u, [u,m,p])

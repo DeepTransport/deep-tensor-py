@@ -96,7 +96,8 @@ class SpaceTimePointwiseStateObservation(hl.Misfit):
                 self.B.transpmult(self.Bu_snapshot, self.u_snapshot) 
                 out.store(self.u_snapshot, t)
         else:
-            pass    
+            raise NotImplementedError()
+        return
 
 
 class HeatSolver(object):
@@ -390,7 +391,8 @@ class HeatSolver(object):
         rhs: hl.TimeDependentVector
     ) -> None:
         """Solves the incremental forward problem (with RHS) and saves 
-        the result into sol."""
+        the result into sol.
+        """
 
         # Remove previous data in solution vector
         sol.zero()
@@ -404,14 +406,18 @@ class HeatSolver(object):
         self.M.init_vector(rhs_snap, 0)
 
         # Initialise previous state
-        u_prev = self.u0.copy()
+        u_prev = dl.Vector()
+        self.M.init_vector(u_prev, 0)
 
         # Convert parameter to function
         k = self.vec2func(self.x[hl.PARAMETER], hl.PARAMETER)
 
         # Assemble stiffness matrix
-        K = ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx
-        K = dl.assemble(K)
+        K = dl.assemble(
+            ufl.exp(k) 
+                * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) 
+                * ufl.dx
+        )
                 
         # Define LHS of variational form
         A = self.M + self.dt * K
@@ -423,7 +429,7 @@ class HeatSolver(object):
             # Form right-hand side
             rhs.retrieve(rhs_snap, t)
             self.M.mult(u_prev, rhs_k)
-            rhs_k = rhs_k + rhs_snap
+            rhs_k.axpy(1.0, rhs_snap)
             
             solver.solve(u_inc, rhs_k)
             sol.store(u_inc.copy(), t)
@@ -461,8 +467,11 @@ class HeatSolver(object):
         k = self.vec2func(self.x[hl.PARAMETER], hl.PARAMETER)
 
         # Assemble stiffness matrix
-        K = ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx
-        K = dl.assemble(K)
+        K = dl.assemble(
+            ufl.exp(k) 
+                * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) 
+                * ufl.dx
+        )
 
         # Define LHS of variational form
         A = self.M + self.dt * K
@@ -474,7 +483,7 @@ class HeatSolver(object):
             # Form right-hand side
             rhs.retrieve(rhs_snap, t)
             self.M.mult(p_prev, rhs_k)
-            rhs_k = rhs_k + rhs_snap
+            rhs_k.axpy(1.0, rhs_snap)
 
             solver.solve(p_inc, rhs_k)
             sol.store(p_inc.copy(), t)
@@ -492,30 +501,32 @@ class HeatSolver(object):
         out=where result of matrix-vector multiplication will be stored.
         """
 
-        u = self.x[hl.STATE]
-        k = self.x[hl.PARAMETER]
+        out.zero()
 
+        u = self.x[hl.STATE]
         k = self.vec2func(self.x[hl.PARAMETER], hl.PARAMETER)
         
-        u_snap = dl.Vector()
-        self.M.init_vector(u_snap, 0)
+        u_k = dl.Vector()
+        self.M.init_vector(u_k, 0)
 
         out_k = dl.Vector()
         self.M.init_vector(out_k, 0)
 
-        for t in self.ts[1:]:  # TODO: check whether the 1: is needed
+        for t in self.ts[1:]:
 
-            u.retrieve(u_snap, t)
-            u_k = self.vec2func(u_snap.copy(), hl.STATE)
+            u.retrieve(u_k, t)
+            u_k_func = self.vec2func(u_k.copy(), hl.STATE)
 
             # Build A matrix
-            N = self.dt * self.u * ufl.exp(k) * ufl.inner(ufl.grad(self.v), ufl.grad(u_k)) * ufl.dx
-            N = dl.assemble(N)
-            # .apply(N)  # TODO: check this.
+            N = dl.assemble(
+                self.dt * self.v * ufl.exp(k) 
+                    * ufl.inner(ufl.grad(self.u), ufl.grad(u_k_func)) 
+                    * ufl.dx
+            )
+            # self.bc.apply(N)  # TODO: check this.
 
-            # N' @ dm
-            N.transpmult(dm, out_k)
-            out.store(out_k.copy(), t)
+            N.mult(dm, out_k)
+            out.store(out_k, t)
 
         return
     
@@ -528,7 +539,6 @@ class HeatSolver(object):
         out.zero()
 
         u = self.x[hl.STATE]
-        k = self.x[hl.PARAMETER]
         k = self.vec2func(self.x[hl.PARAMETER], hl.PARAMETER)
         
         u_snap = dl.Vector()
@@ -545,13 +555,17 @@ class HeatSolver(object):
             # Build A matrix
             u.retrieve(u_snap, t)
             u_k = self.vec2func(u_snap.copy(), hl.STATE)
-            N = self.dt * self.u * ufl.exp(k) * ufl.inner(ufl.grad(self.v), ufl.grad(u_k)) * ufl.dx
-            N = dl.assemble(N)
+            
+            N = self.dt * dl.assemble(
+                self.u * ufl.exp(k) 
+                    * ufl.inner(ufl.grad(self.v), ufl.grad(u_k)) 
+                    * ufl.dx
+            )
             # self.bc.apply(N)  # TODO: check this.
 
             dp.retrieve(dp_k, t)
             N.mult(dp_k, out_k)
-            out = out + out_k
+            out.axpy(1.0, out_k)
 
         return
     
