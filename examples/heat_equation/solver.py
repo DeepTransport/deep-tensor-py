@@ -99,7 +99,6 @@ class SpaceTimePointwiseStateObservation(hl.Misfit):
             raise NotImplementedError()
         return
 
-
 class HeatSolver(object):
     
     def __init__(
@@ -117,6 +116,7 @@ class HeatSolver(object):
         self.misfit = misfit
 
         self.dt = ts[1] - ts[0]  # NOTE: assumes equispaced times
+        self.nt = len(ts)
         self.ts = ts
 
         self.u = dl.TrialFunction(self.Vh[hl.STATE])
@@ -589,6 +589,152 @@ class HeatSolver(object):
     def applyWmm(self, dm, out):
         out.zero()
         return
+    
+    def check_dAuda_fd_alt(self, k: dl.Vector, u: hl.TimeDependentVector):
+
+        def _build_MK(k: dl.Vector):
+            """Builds big A-matrix."""
+
+            k = self.vec2func(k, hl.PARAMETER)
         
+            M = dl.assemble(self.u * self.v * ufl.dx)
+            K = dl.assemble(ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx)
+            
+            return M.get_local(), K.get_local()
+
+            # A = 
+            # A = M + self.dt * K
+
+            # AA = dl.BlockMatrix(self.nt-1, self.nt-1)
+
+            # for i in range(self.nt-1):
+            #     AA[i, i] = A
+            #     if i < self.nt-1:
+            #         AA[i+1, i] = -1 * M
+
+            # return AA
+
+        n_k = len(k)
+
+        uu = dl.BlockVector(self.nt-1)
+        n_u = 0
+        for i in range(self.nt-1):
+            uu[i] = u.data[i]
+            n_u += len(u.data[i])
+
+        y_i = dl.Vector()
+        self.M.init_vector(y_i, 0)
+        yy_0 = dl.BlockVector(self.nt-1)
+        yy_1 = dl.BlockVector(self.nt-1)
+        for i in range(self.nt-1):
+            yy_0[i] = y_i.copy()
+            yy_1[i] = y_i.copy()
+
+        dx = 1e-6
+        res = np.zeros((n_u, n_k))
+
+        for i in range(n_k):
+            k_0 = k.copy()
+            k_1 = k.copy()
+            k_0[i] += dx
+            k_1[i] -= dx
+
+            AA_0 = _build_A(k_0)
+            AA_1 = _build_A(k_1)
+
+            AA_0.mult(uu, yy_0)
+            AA_1.mult(uu, yy_1)
+            
+            # Now multiply by u
+            # Then divide by 2 * dx
+            # Then save result to res[i]
+
+        print("here.")
+
+        pass
+
+    def check_dAuda_fd(self, k: dl.Vector, u: hl.TimeDependentVector):
+
+        def _build_MK(k: dl.Vector):
+            """Builds mass matrices and stiffness vectors."""
+
+            k = self.vec2func(k, hl.PARAMETER)
+        
+            M = dl.assemble(self.u * self.v * ufl.dx)
+            K = dl.assemble(ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx)
+            
+            return M.array(), K.array()
+        
+        def _build_A(M: np.ndarray, K: np.ndarray):
+            """Builds big A matrix."""
+
+            A = np.zeros((n_u*(self.nt-1), n_u*(self.nt-1)))
+            
+            for i in range(self.nt-1):
+                i0 = n_u*i 
+                i1 = n_u*(i+1)
+                A[i0:i1, :][:, i0:i1] = M + self.dt * K
+            
+            for i in range(self.nt-2):
+                i0 = n_u*(i+1)
+                i1 = n_u*(i+2)
+                j0 = n_u*i
+                j1 = n_u*(i+1)
+                A[i0:i1, :][:, j0:j1] = -M
+
+            return A
+        
+        def _build_dAuda_true(k: dl.Vector, u: hl.TimeDependentVector):
+            """Builds true dAdu."""
+
+            dAuda_true = np.zeros((n_u*(self.nt-1), n_k))
+            k_func = self.vec2func(k.copy(), hl.PARAMETER)
+
+            u_k = dl.Vector()
+            self.M.init_vector(u_k, 0)
+            
+            for i, t in enumerate(self.ts[1:]):
+
+                u.retrieve(u_k, t)
+                u_i_func = self.vec2func(u_k.copy(), hl.STATE)
+
+                # Build A matrix
+                N = dl.assemble(
+                    self.dt * self.u * ufl.exp(k_func) 
+                        * ufl.inner(ufl.grad(self.v), ufl.grad(u_i_func)) 
+                        * ufl.dx
+                )
+
+                i0 = n_u*i 
+                i1 = n_u*(i+1)
+                dAuda_true[i0:i1, :] = N.array()
+            
+            return dAuda_true
+
+        n_u = len(u.data[0])
+        n_k = len(k)
+
+        uu = np.hstack([u.data[i+1][:] for i in range(self.nt-1)])
+
+        dAuda = np.zeros((n_u*(self.nt-1), n_k))
+        dx = 1e-8
+
+        for i in range(n_k):
+            k_0 = k.copy()
+            k_1 = k.copy()
+            k_0[i] -= dx
+            k_1[i] += dx
+
+            M_0, K_0 = _build_MK(k_0)
+            M_1, K_1 = _build_MK(k_1)
+            A_0 = _build_A(M_0, K_0)
+            A_1 = _build_A(M_1, K_1)
+
+            dAuda[:, i] = ((A_1 - A_0) @ uu) / (2.0*dx)
+
+        dAuda_true = _build_dAuda_true(k, u)
+
+        pass
+
     def exportState(self, x, filename, varname):
         raise NotImplementedError()

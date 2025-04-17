@@ -8,7 +8,7 @@ import numpy as np
 from solver import SpaceTimePointwiseStateObservation, HeatSolver
 
 
-mesh = dl.RectangleMesh(dl.Point(0.0, 0.0), dl.Point(3.0, 1.0), 64, 64)
+mesh = dl.RectangleMesh(dl.Point(0.0, 0.0), dl.Point(3.0, 1.0), 10, 10)
 
 
 Vh = dl.FunctionSpace(mesh, "Lagrange", 1)
@@ -91,6 +91,8 @@ misfit.noise_variance = noise_std_dev ** 2
 #     times=[0, 0.25, 0.5, 1.0, 4.0, 8.0]
 # )
 # plt.show()
+
+prob.check_dAuda_fd(x[hl.PARAMETER], x[hl.STATE])
 
 _ = hl.modelVerify(prob, k_true, is_quadratic=True, verbose=True)# , misfit_only=True)
 plt.show()
