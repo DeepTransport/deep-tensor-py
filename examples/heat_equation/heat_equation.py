@@ -8,14 +8,14 @@ import numpy as np
 from solver import SpaceTimePointwiseStateObservation, HeatSolver
 
 
-mesh = dl.RectangleMesh(dl.Point(0.0, 0.0), dl.Point(3.0, 1.0), 10, 10)
+mesh = dl.RectangleMesh(dl.Point(0.0, 0.0), dl.Point(3.0, 1.0), 64, 64)
 
 
 Vh = dl.FunctionSpace(mesh, "Lagrange", 1)
 
 # Generate prior
-gamma = 0.1
-delta = 8.0
+gamma = 0.5
+delta = 0.5
 
 prior_mean = dl.interpolate(dl.Constant(-5.0), Vh).vector()
 prior = hl.BiLaplacianPrior(
@@ -51,7 +51,14 @@ targets = np.array([
     [2.6, 0.6]
 ])
 
-misfit = SpaceTimePointwiseStateObservation(Vh, ts_obs, targets)
+noise_std = 1.65e-2
+noise_var = noise_std ** 2
+misfit = SpaceTimePointwiseStateObservation(
+    Vh, 
+    ts_obs, 
+    targets, 
+    noise_variance=noise_var
+)
 
 prob = HeatSolver(
     mesh=mesh,
@@ -61,71 +68,114 @@ prob = HeatSolver(
     ts=ts
 )
 
-k_true = prob.sample_prior()
 
-# hl.nb.plot(k_true)
-# plt.show()
+# for i in range(10):
+#     m_true = prob.sample_prior()
+#     hl.nb.plot(prob.vec2func(m_true, hl.PARAMETER))
+#     plt.show()
 
+m_true = prob.sample_prior()
 u_true = prob.generate_vector(hl.STATE)
+x = [u_true, m_true, None]
 
-k_true = prob.sample_prior()
-u_true = prob.generate_vector(hl.STATE)
-x = [u_true, k_true, None]
-# x = prob.x
-
-t0 = time.time()
 prob.solveFwd(x[hl.STATE], x)
-t1 = time.time()
-print(t1 - t0)
-    
+
 misfit.observe(x, misfit.d)
-noise_std_dev = 1.65e-2
-hl.parRandom.normal_perturb(sigma=noise_std_dev, out=misfit.d)
-misfit.noise_variance = noise_std_dev ** 2
+hl.parRandom.normal_perturb(sigma=noise_std, out=misfit.d)
 
-# hl.nb.show_solution(
-#     Vh, 
-#     prob.u0, 
-#     u_true, 
-#     "Solution",
-#     times=[0, 0.25, 0.5, 1.0, 4.0, 8.0]
-# )
-# plt.show()
-
-prob.check_dAuda_fd(x[hl.PARAMETER], x[hl.STATE])
-
-_ = hl.modelVerify(prob, k_true, is_quadratic=True, verbose=True)# , misfit_only=True)
+hl.nb.plot(prob.vec2func(m_true, hl.PARAMETER))
 plt.show()
 
-# [u, m, p] = prob.generate_vector()
-# prob.solveFwd(u, [u, m, p])
-# prob.solveAdj(p, [u, m, p])
-# mg = prob.generate_vector(hl.PARAMETER)
-# grad_norm = prob.evalGradientParameter([u, m, p], mg)
+hl.nb.show_solution(
+    Vh, 
+    prob.u0, 
+    u_true, 
+    "Solution",
+    times=[0, 0.25, 0.5, 1.0, 4.0, 8.0]
+)
+plt.show()
 
-# H = hl.ReducedHessian(prob, misfit_only=True) 
+# prob.x = x
+# prob.check_dAuda_fd(x[hl.PARAMETER], x[hl.STATE])
+
+_ = hl.modelVerify(prob, m_true, is_quadratic=False, verbose=True)# , misfit_only=True)
+plt.show()
+
+[u, m, p] = prob.generate_vector()
+prob.solveFwd(u, [u, m, p])
+prob.solveAdj(p, [u, m, p])
+mg = prob.generate_vector(hl.PARAMETER)
+grad_norm = prob.evalGradientParameter([u, m, p], mg)
+
+# H = hl.ReducedHessian(prob, misfit_only=False) 
 
 # k = 80
 # p = 20
-# print( "Single Pass Algorithm. Requested eigenvectors: {0}; Oversampling {1}.".format(k,p) )
+# print( "Single Pass Algorithm. Requested eigenvectors: {0}; Oversampling {1}.".format(k, p))
 # Omega = hl.MultiVector(x[hl.PARAMETER], k+p)
 # hl.parRandom.normal(1., Omega)
 # lmbda, V = hl.singlePassG(H, prior.R, prior.Rsolver, Omega, k)
 
-
-# posterior = hl.GaussianLRPosterior( prior, lmbda, V )
+# posterior = hl.GaussianLRPosterior(prior, lmbda, V)
 
 # plt.plot(range(0,k), lmbda, 'b*', range(0,k+1), np.ones(k+1), '-r')
 # plt.yscale('log')
 # plt.xlabel('number')
 # plt.ylabel('eigenvalue')
+# plt.show()
 
 # hl.nb.plot_eigenvectors(Vh, V, mytitle="Eigenvector", which=[0,1,2,5,10,20,30,45,60])
+# plt.show()
 
 # solver = hl.CGSolverSteihaug()
 # solver.set_operator(H)
-# # solver.set_preconditioner(posterior.Hlr)
+# solver.set_preconditioner(posterior.Hlr)
 # solver.parameters["print_level"] = 1
 # solver.parameters["rel_tolerance"] = 1e-6
 # solver.solve(m, -mg)
-# problem.solveFwd(u, [u,m,p])
+# prob.solveFwd(u, [u, m, p])
+
+m = prior.mean.copy()
+solver = hl.ReducedSpaceNewtonCG(prob)
+solver.parameters["rel_tolerance"] = 1e-6
+solver.parameters["abs_tolerance"] = 1e-12
+solver.parameters["max_iter"]      = 25
+solver.parameters["GN_iter"] = 5
+solver.parameters["globalization"] = "LS"
+solver.parameters["LS"]["c_armijo"] = 1e-4
+
+
+x = solver.solve([None, m, None])
+
+
+total_cost, reg_cost, misfit_cost = prob.cost([u, m, p])
+print( "Total cost {0:5g}; Reg Cost {1:5g}; Misfit {2:5g}".format(total_cost, reg_cost, misfit_cost) )
+
+total_cost, reg_cost, misfit_cost = prob.cost([u_true, m_true, p])
+print( "Total cost {0:5g}; Reg Cost {1:5g}; Misfit {2:5g}".format(total_cost, reg_cost, misfit_cost) )
+
+hl.nb.show_solution(
+    Vh, 
+    prob.u0, 
+    u, 
+    "Solution",
+    times=[0, 0.25, 0.5, 1.0, 4.0, 8.0]
+)
+plt.show()
+
+hl.nb.show_solution(
+    Vh, 
+    prob.u0, 
+    u_true, 
+    "Solution",
+    times=[0, 0.25, 0.5, 1.0, 4.0, 8.0]
+)
+plt.show()
+
+hl.nb.plot(prob.vec2func(m_true, hl.PARAMETER))
+plt.show()
+
+hl.nb.plot(prob.vec2func(m, hl.PARAMETER))
+plt.show()
+
+pass

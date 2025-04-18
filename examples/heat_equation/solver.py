@@ -67,7 +67,7 @@ class SpaceTimePointwiseStateObservation(hl.Misfit):
             self.Bu_snapshot.axpy(-1., self.d_snapshot)
             c += self.Bu_snapshot.inner(self.Bu_snapshot)
             
-        return c/(2.*self.noise_variance)
+        return 0.5 * c / self.noise_variance
     
     def grad(self, i, x, out):
         out.zero()
@@ -130,7 +130,7 @@ class HeatSolver(object):
         f1 = "(std::pow(x[0]-b0, 2) + std::pow(x[1]-b1, 2))"
         self.f = dl.Expression(
             f"c * (std::exp({sd} * {f0}) - std::exp({sd} * {f1}))",
-            c=5.0*np.pi*1e-5,
+            c=5.0*np.pi*1e-2,
             r=0.05,
             a0=0.5, a1=0.5,
             b0=2.5, b1=0.5,
@@ -233,12 +233,15 @@ class HeatSolver(object):
     def cost(self, x):
         """TODO: figure out what this is doing."""
         Rdx = dl.Vector()
-        self.prior.init_vector(Rdx,0)
+        self.prior.init_vector(Rdx, 0)
         dx = x[hl.PARAMETER] - self.prior.mean
         self.prior.R.mult(dx, Rdx)
         reg = 0.5 * Rdx.inner(dx)
         misfit = self.misfit.cost(x)
-        return [reg+misfit, reg, misfit]
+        return [reg + misfit, reg, misfit]
+    
+    def Rsolver(self):        
+        return self.prior.Rsolver
     
     def solveFwd(
         self, 
@@ -346,28 +349,43 @@ class HeatSolver(object):
 
         return
             
-    def evalGradientParameter(self,x, mg, misfit_only=False):
+    def evalGradientParameter(
+        self, 
+        x, 
+        mg, 
+        misfit_only: bool = False
+    ):
         
-        self.prior.init_vector(mg, 1)
+        self.x = x
 
-        if misfit_only == False:
-            dm = x[hl.PARAMETER] - self.prior.mean
-            self.prior.R.mult(dm, mg)
-        else:
-            mg.zero()
+        if misfit_only:
+            print("misfit only")
+
+        self.prior.init_vector(mg, dim=1)
+
+        d_param = x[hl.PARAMETER] - self.prior.mean
+        self.prior.R.mult(d_param, mg)
         
-        p0 = dl.Vector()
-        self.M.init_vector(p0,0)
-        x[hl.ADJOINT].retrieve(p0, self.ts[1])
+        p0 = self.generate_vector(hl.PARAMETER)
+        p0.zero()
+        self.applyCt(x[hl.ADJOINT], p0)
+
+        mg.axpy(1.0, p0)
+
+        grad_norm = mg.inner(mg)
+
+        # p0 = dl.Vector()
+        # self.M.init_vector(p0,0)
+        # x[hl.ADJOINT].retrieve(p0, self.ts[1])
         
-        # mg.axpy(-1., self.Mt_stab*p0)
+        # # mg.axpy(-1., self.Mt_stab*p0)
         
-        g = dl.Vector()
-        self.M.init_vector(g,1)
+        # g = dl.Vector()
+        # self.M.init_vector(g,1)
         
-        self.prior.Msolver.solve(g,mg)
+        # self.prior.Msolver.solve(g, mg)
         
-        grad_norm = g.inner(mg)
+        # grad_norm = g.inner(mg)
         
         return grad_norm
     
@@ -376,10 +394,8 @@ class HeatSolver(object):
         x, 
         gauss_newton_approx: bool = True
     ) -> None:
-        """Specifies the point x = [u,a,p] at which the (Gauss-Newton) 
+        """Specifies the point x = [u,a,p] at which the Gauss-Newton)
         Hessian needs to be evaluated.
-        
-        Nothing to do since the problem is linear (TODO: why?).
         """
         self.gauss_newton_approx = gauss_newton_approx
         self.x = x
@@ -519,8 +535,8 @@ class HeatSolver(object):
 
             # Build A matrix
             N = dl.assemble(
-                self.dt * self.v * ufl.exp(k) 
-                    * ufl.inner(ufl.grad(self.u), ufl.grad(u_k_func)) 
+                self.dt * self.u * ufl.exp(k) 
+                    * ufl.inner(ufl.grad(self.v), ufl.grad(u_k_func)) 
                     * ufl.dx
             )
             # self.bc.apply(N)  # TODO: check this.
@@ -550,18 +566,17 @@ class HeatSolver(object):
         out_k = dl.Vector()
         self.M.init_vector(out_k, 0)
 
-        for t in self.ts[1:]:  # TODO: check whether the 1: is needed
+        for t in self.ts[1:]:
 
             # Build A matrix
             u.retrieve(u_snap, t)
             u_k = self.vec2func(u_snap.copy(), hl.STATE)
             
             N = self.dt * dl.assemble(
-                self.u * ufl.exp(k) 
-                    * ufl.inner(ufl.grad(self.v), ufl.grad(u_k)) 
+                self.v * ufl.exp(k) 
+                    * ufl.inner(ufl.grad(self.u), ufl.grad(u_k)) 
                     * ufl.dx
             )
-            # self.bc.apply(N)  # TODO: check this.
 
             dp.retrieve(dp_k, t)
             N.mult(dp_k, out_k)
@@ -590,69 +605,6 @@ class HeatSolver(object):
         out.zero()
         return
     
-    def check_dAuda_fd_alt(self, k: dl.Vector, u: hl.TimeDependentVector):
-
-        def _build_MK(k: dl.Vector):
-            """Builds big A-matrix."""
-
-            k = self.vec2func(k, hl.PARAMETER)
-        
-            M = dl.assemble(self.u * self.v * ufl.dx)
-            K = dl.assemble(ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx)
-            
-            return M.get_local(), K.get_local()
-
-            # A = 
-            # A = M + self.dt * K
-
-            # AA = dl.BlockMatrix(self.nt-1, self.nt-1)
-
-            # for i in range(self.nt-1):
-            #     AA[i, i] = A
-            #     if i < self.nt-1:
-            #         AA[i+1, i] = -1 * M
-
-            # return AA
-
-        n_k = len(k)
-
-        uu = dl.BlockVector(self.nt-1)
-        n_u = 0
-        for i in range(self.nt-1):
-            uu[i] = u.data[i]
-            n_u += len(u.data[i])
-
-        y_i = dl.Vector()
-        self.M.init_vector(y_i, 0)
-        yy_0 = dl.BlockVector(self.nt-1)
-        yy_1 = dl.BlockVector(self.nt-1)
-        for i in range(self.nt-1):
-            yy_0[i] = y_i.copy()
-            yy_1[i] = y_i.copy()
-
-        dx = 1e-6
-        res = np.zeros((n_u, n_k))
-
-        for i in range(n_k):
-            k_0 = k.copy()
-            k_1 = k.copy()
-            k_0[i] += dx
-            k_1[i] -= dx
-
-            AA_0 = _build_A(k_0)
-            AA_1 = _build_A(k_1)
-
-            AA_0.mult(uu, yy_0)
-            AA_1.mult(uu, yy_1)
-            
-            # Now multiply by u
-            # Then divide by 2 * dx
-            # Then save result to res[i]
-
-        print("here.")
-
-        pass
-
     def check_dAuda_fd(self, k: dl.Vector, u: hl.TimeDependentVector):
 
         def _build_MK(k: dl.Vector):
@@ -734,7 +686,39 @@ class HeatSolver(object):
 
         dAuda_true = _build_dAuda_true(k, u)
 
-        pass
+        # Check
+
+        # x_rand = dl.Vector()
+        # self.M.init_vector(x_rand, 0)
+        # xis = np.random.rand(n_k)
+        # x_rand.set_local(xis)
+
+        # u_test = self.generate_vector(hl.STATE)
+        # self.x = [u, k, None]
+        # self.applyC(x_rand, u_test)
+        # uu_test = np.hstack([u_test.data[i+1][:] for i in range(self.nt-1)])
+
+        # # Application of C, manual derivative, manual FD derivative
+        # print(uu_test)
+        # print(dAuda @ x_rand[:])
+        # print(dAuda_true @ x_rand[:])
+
+        # Check transpose
+
+        # u_rand = self.generate_vector(hl.STATE)
+        # for i in range(self.nt-1):
+        #     xis = np.random.rand(n_u)
+        #     u_rand.data[i+1].set_local(xis)
+
+        # uu_rand = np.hstack([u_rand.data[i+1][:] for i in range(self.nt-1)])
+        # k_test = self.generate_vector(hl.PARAMETER)
+        # self.applyCt(u_rand, k_test)
+
+        # print(k_test[:][:10])
+        # print((dAuda.T @ uu_rand)[:10])
+        # print((dAuda_true.T @ uu_rand)[:10])
+
+        return
 
     def exportState(self, x, filename, varname):
         raise NotImplementedError()
