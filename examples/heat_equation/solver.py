@@ -59,17 +59,21 @@ class SpaceTimePointwiseStateObservation(hl.Misfit):
             obs.store(self.Bu_snapshot, t)
             
     def cost(self, x):
-        c = 0
+        
+        c = 0.0
+
         for t in self.observation_times:
             x[hl.STATE].retrieve(self.u_snapshot, t)
             self.B.mult(self.u_snapshot, self.Bu_snapshot)
             self.d.retrieve(self.d_snapshot, t)
             self.Bu_snapshot.axpy(-1., self.d_snapshot)
+            # print(self.Bu_snapshot[:])
             c += self.Bu_snapshot.inner(self.Bu_snapshot)
             
         return 0.5 * c / self.noise_variance
     
     def grad(self, i, x, out):
+        """TODO: check this."""
         out.zero()
         if i == hl.STATE:
             for t in self.observation_times:
@@ -181,7 +185,7 @@ class HeatSolver(object):
         return k
 
     def sample_prior(self) -> dl.Vector:
-        """Returns a single function sampled from the prior.
+        """Returns a single vector sampled from the prior.
         """
         # Generate vector of white noise
         noise = dl.Vector()
@@ -286,7 +290,7 @@ class HeatSolver(object):
         # self.bc.apply(A)
         solver = dl.LUSolver(A)
         
-        for t in self.ts[1:]:
+        for t in self.ts:
 
             self.M.mult(self.dt * self.f + u_prev, rhs)
             # self.bc.apply(rhs)
@@ -340,7 +344,8 @@ class HeatSolver(object):
         for t in self.ts[::-1]:
 
             grad_state.retrieve(grad_state_snap, t)
-            self.M.mult(p_prev - grad_state_snap, rhs)
+            self.M.mult(p_prev, rhs)
+            rhs.axpy(-1.0, grad_state_snap)
             # self.bc_p.apply(rhs)
 
             solver.solve(p, rhs)
@@ -368,25 +373,35 @@ class HeatSolver(object):
         
         p0 = self.generate_vector(hl.PARAMETER)
         p0.zero()
-        self.applyCt(x[hl.ADJOINT], p0)
+
+        u = self.x[hl.STATE]
+        k = self.vec2func(self.x[hl.PARAMETER], hl.PARAMETER)
+        p = self.x[hl.ADJOINT]
+        
+        u_snap = dl.Vector()
+        self.M.init_vector(u_snap, 0)
+
+        p_snap = dl.Vector()
+        self.M.init_vector(p_snap, 0)
+
+        for t in self.ts:
+
+            # Build A matrix
+            u.retrieve(u_snap, t)
+            p.retrieve(p_snap, t)
+            u_k = self.vec2func(u_snap.copy(), hl.STATE)
+            p_k = self.vec2func(p_snap.copy(), hl.ADJOINT)
+            
+            grad_k = self.dt * dl.assemble(
+                self.v * ufl.exp(k) 
+                    * ufl.inner(ufl.grad(p_k), ufl.grad(u_k)) 
+                    * ufl.dx
+            )
+
+            p0.axpy(1.0, grad_k)
 
         mg.axpy(1.0, p0)
-
         grad_norm = mg.inner(mg)
-
-        # p0 = dl.Vector()
-        # self.M.init_vector(p0,0)
-        # x[hl.ADJOINT].retrieve(p0, self.ts[1])
-        
-        # # mg.axpy(-1., self.Mt_stab*p0)
-        
-        # g = dl.Vector()
-        # self.M.init_vector(g,1)
-        
-        # self.prior.Msolver.solve(g, mg)
-        
-        # grad_norm = g.inner(mg)
-        
         return grad_norm
     
     def setPointForHessianEvaluations(
@@ -440,7 +455,7 @@ class HeatSolver(object):
         # self.bc.apply(A)
         solver = dl.LUSolver(A)
         
-        for t in self.ts[1:]:
+        for t in self.ts:
             
             # Form right-hand side
             rhs.retrieve(rhs_snap, t)
@@ -497,8 +512,8 @@ class HeatSolver(object):
         for t in self.ts[::-1]:
 
             # Form right-hand side
-            rhs.retrieve(rhs_snap, t)
             self.M.mult(p_prev, rhs_k)
+            rhs.retrieve(rhs_snap, t)
             rhs_k.axpy(1.0, rhs_snap)
 
             solver.solve(p_inc, rhs_k)
@@ -524,11 +539,10 @@ class HeatSolver(object):
         
         u_k = dl.Vector()
         self.M.init_vector(u_k, 0)
-
         out_k = dl.Vector()
         self.M.init_vector(out_k, 0)
 
-        for t in self.ts[1:]:
+        for t in self.ts:
 
             u.retrieve(u_k, t)
             u_k_func = self.vec2func(u_k.copy(), hl.STATE)
@@ -539,7 +553,6 @@ class HeatSolver(object):
                     * ufl.inner(ufl.grad(self.v), ufl.grad(u_k_func)) 
                     * ufl.dx
             )
-            # self.bc.apply(N)  # TODO: check this.
 
             N.mult(dm, out_k)
             out.store(out_k, t)
@@ -559,14 +572,12 @@ class HeatSolver(object):
         
         u_snap = dl.Vector()
         self.M.init_vector(u_snap, 0)
-
         dp_k = dl.Vector()
         self.M.init_vector(dp_k, 0)
-
         out_k = dl.Vector()
         self.M.init_vector(out_k, 0)
 
-        for t in self.ts[1:]:
+        for t in self.ts:  # TODO: check (should this be ts[:-1]?)
 
             # Build A matrix
             u.retrieve(u_snap, t)
@@ -605,36 +616,95 @@ class HeatSolver(object):
         out.zero()
         return
     
+    def _build_MK(self, k: dl.Vector):
+        """Builds mass matrices and stiffness vectors."""
+
+        k = self.vec2func(k, hl.PARAMETER)
+    
+        M = dl.assemble(self.u * self.v * ufl.dx)
+        K = dl.assemble(ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx)
+        
+        return M.array(), K.array()
+        
+    def _build_A(self, M: np.ndarray, K: np.ndarray, n_u: int):
+        """Builds big A matrix."""
+
+        A = np.zeros((n_u*self.nt, n_u*self.nt))
+        
+        for i in range(self.nt):
+            i0 = n_u*i 
+            i1 = n_u*(i+1)
+            A[i0:i1, :][:, i0:i1] = M + self.dt * K
+        
+        for i in range(self.nt-1):
+            i0 = n_u*(i+1)
+            i1 = n_u*(i+2)
+            j0 = n_u*i
+            j1 = n_u*(i+1)
+            A[i0:i1, :][:, j0:j1] = -M
+
+        return A
+
+    def check_forward(self, x, ):
+
+        u, k, _ = x
+        n_u = len(u.data[0][:])
+
+        M, K = self._build_MK(k)
+        A = self._build_A(M, K, n_u)
+
+        M = self.M.array()
+        f = self.f[:]
+        u0 = self.u0[:]
+        b = np.hstack([self.dt * M @ f + M @ u0, *[self.dt * M @ f for _ in range(self.nt-1)]])
+
+        uu = np.linalg.solve(A, b)
+
+        self.solveFwd(u, x)
+        uu_true = np.hstack([u.data[i] for i in range(self.nt)])
+
+        print(np.max(np.abs(uu-uu_true)))
+
+        return
+    
+    def check_adjoint(self, x):
+
+        u, k, p = x
+        p = self.generate_vector(hl.ADJOINT)
+        n_u = len(u.data[0][:])
+
+        M, K = self._build_MK(k)
+        A = self._build_A(M, K, n_u)
+
+        M = self.M.array()
+        f = self.f[:]
+        u0 = self.u0[:]
+        b = np.hstack([self.dt * M @ f + M @ u0, *[self.dt * M @ f for _ in range(self.nt-1)]])
+
+        B = self.misfit.B.array()
+        noise_var = self.misfit.noise_variance
+
+        rhs = np.zeros((self.nt, n_u))
+        for i, t in enumerate(self.ts):
+            if np.min(np.abs(t - self.misfit.observation_times)) < 1e-8:
+                u_i = u.data[i][:]
+                d_i = dl.Vector()
+                self.misfit.B.init_vector(d_i, 0)
+                self.misfit.d.retrieve(d_i, t)
+                rhs[i] = (1 / noise_var) * B.T @ (B @ u_i - d_i)
+
+        #rhs = np.hstack([(1 / noise_var) * B.T @ (B @ ...) for i in range(self.nt)])
+        rhs = rhs.flatten()
+
+        pp = np.linalg.solve(A.T, -rhs)
+        self.solveAdj(p, x)
+        pp_true = np.hstack([p.data[i] for i in range(self.nt)])
+
+        print(np.max(np.abs(pp-pp_true)))
+
+        return
+
     def check_dAuda_fd(self, k: dl.Vector, u: hl.TimeDependentVector):
-
-        def _build_MK(k: dl.Vector):
-            """Builds mass matrices and stiffness vectors."""
-
-            k = self.vec2func(k, hl.PARAMETER)
-        
-            M = dl.assemble(self.u * self.v * ufl.dx)
-            K = dl.assemble(ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx)
-            
-            return M.array(), K.array()
-        
-        def _build_A(M: np.ndarray, K: np.ndarray):
-            """Builds big A matrix."""
-
-            A = np.zeros((n_u*(self.nt-1), n_u*(self.nt-1)))
-            
-            for i in range(self.nt-1):
-                i0 = n_u*i 
-                i1 = n_u*(i+1)
-                A[i0:i1, :][:, i0:i1] = M + self.dt * K
-            
-            for i in range(self.nt-2):
-                i0 = n_u*(i+1)
-                i1 = n_u*(i+2)
-                j0 = n_u*i
-                j1 = n_u*(i+1)
-                A[i0:i1, :][:, j0:j1] = -M
-
-            return A
         
         def _build_dAuda_true(k: dl.Vector, u: hl.TimeDependentVector):
             """Builds true dAdu."""
@@ -677,10 +747,10 @@ class HeatSolver(object):
             k_0[i] -= dx
             k_1[i] += dx
 
-            M_0, K_0 = _build_MK(k_0)
-            M_1, K_1 = _build_MK(k_1)
-            A_0 = _build_A(M_0, K_0)
-            A_1 = _build_A(M_1, K_1)
+            M_0, K_0 = self._build_MK(k_0)
+            M_1, K_1 = self._build_MK(k_1)
+            A_0 = self._build_A(M_0, K_0, n_u)
+            A_1 = self._build_A(M_1, K_1, n_u)
 
             dAuda[:, i] = ((A_1 - A_0) @ uu) / (2.0*dx)
 
@@ -718,6 +788,65 @@ class HeatSolver(object):
         # print((dAuda.T @ uu_rand)[:10])
         # print((dAuda_true.T @ uu_rand)[:10])
 
+        return
+
+    def lagrangian(self, x):
+
+        u, k, p = x
+
+        uu = np.hstack([u.data[i+1] for i in range(self.nt-1)])
+        kk = k[:]
+        pp = np.hstack([p.data[i] for i in range(self.nt-1)])
+
+        n_k = len(k[:])
+        M, K = self._build_MK(k)
+        A = self._build_A(M, K, n_k)
+
+        ## Form b
+        M = self.M.array()
+        f = self.f[:]
+        u0 = self.u0[:]
+
+        b = np.hstack([self.dt * M @ f + M @ u0, *[self.dt * M @ f for _ in range(self.nt-2)]])
+
+        L = pp.T @ (A @ uu - b) + self.cost(x)[0]
+        return L
+
+    def check_gradient_fd(self, k: dl.Vector):
+        """Conducts a finite difference check of the gradient of the 
+        Lagrangian with respect to the parameter at a given parameter 
+        vector.
+        """
+
+        u = self.generate_vector(hl.STATE)
+        p = self.generate_vector(hl.ADJOINT)
+        x = [u, k, p]
+        self.solveFwd(u, x)
+        self.solveAdj(p, x)
+
+        n_k = len(k[:])
+
+        dx = 1e-6
+        
+        dldk_fd = np.zeros((n_k, ))
+
+        for i in range(n_k):
+
+            k_0 = k.copy()
+            k_1 = k.copy()
+
+            k_0[i] -= dx
+            k_1[i] += dx
+
+            l_0 = self.lagrangian([u, k_0, p])
+            l_1 = self.lagrangian([u, k_1, p])
+
+            dldk_fd[i] = (l_1-l_0) / (2*dx)
+
+        dldk = dl.Vector()
+        self.M.init_vector(dldk, 0)
+        self.evalGradientParameter(x, dldk)
+        
         return
 
     def exportState(self, x, filename, varname):
