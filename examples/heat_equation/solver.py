@@ -1,106 +1,103 @@
-# Copyright (c) 2016-2018, The University of Texas at Austin 
-# & University of California--Merced.
-# Copyright (c) 2019-2020, The University of Texas at Austin 
-# University of California--Merced, Washington University in St. Louis.
-#
-# All Rights reserved.
-# See file COPYRIGHT for details.
-#
-# This file is part of the hIPPYlib library. For more information and source code
-# availability see https://hippylib.github.io.
-#
-# hIPPYlib is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License (as published by the Free
-# Software Foundation) version 2.0 dated June 1991.
+from typing import List
 
 import dolfin as dl
+import hippylib as hl
 import numpy as np
 import ufl
 
-import hippylib as hl
+
+VariableContainer = list[
+    hl.TimeDependentVector, 
+    dl.Vector, 
+    hl.TimeDependentVector
+]
 
 
 class SpaceTimePointwiseStateObservation(hl.Misfit):
     
-    def __init__(self, Vh,
-                 observation_times,
-                 targets,
-                 d = None,
-                 noise_variance=None):
+    def __init__(
+        self, 
+        Vh: dl.FunctionSpace,
+        ts_obs: np.ndarray,
+        xs_obs: np.ndarray,
+        var_error: float
+    ):
         
         self.Vh = Vh
-        self.observation_times = observation_times
+        self.ts_obs = ts_obs
+        self.B = hl.assemblePointwiseObservation(self.Vh, xs_obs)
+        self.var_error = var_error
+
+        # Initialise empty data vector
+        self.d = hl.TimeDependentVector(ts_obs)
+        self.d.initialize(self.B, 0)
         
-        self.B = hl.assemblePointwiseObservation(self.Vh, targets)
-        self.ntargets = targets
-        
-        if d is None:
-            self.d = hl.TimeDependentVector(observation_times)
-            self.d.initialize(self.B, 0)
-        else:
-            self.d = d
-            
-        self.noise_variance = noise_variance
-        
-        ## TEMP Vars
+        # Initialise empty vectors to store intermediate variables
         self.u_snapshot = dl.Vector()
         self.Bu_snapshot = dl.Vector()
         self.d_snapshot  = dl.Vector()
         self.B.init_vector(self.u_snapshot, 1)
         self.B.init_vector(self.Bu_snapshot, 0)
         self.B.init_vector(self.d_snapshot, 0)
+
+        self.observed = False
+        return
         
-    def observe(self, x, obs):        
-        obs.zero()
-        
-        for t in self.observation_times:
+    def observe(self, x: VariableContainer) -> None:
+        """Saves a set of state observations to the `d` attribute."""
+        self.d.zero()
+        for t in self.ts_obs:
             x[hl.STATE].retrieve(self.u_snapshot, t)
             self.B.mult(self.u_snapshot, self.Bu_snapshot)
-            obs.store(self.Bu_snapshot, t)
+            self.d.store(self.Bu_snapshot, t)
+        self.observed = True
+        return
             
-    def cost(self, x):
-        
+    def cost(self, x: VariableContainer) -> None:
+        """Evaluates and returns the data misfit functional."""
         c = 0.0
-
-        for t in self.observation_times:
+        for t in self.ts_obs:
             x[hl.STATE].retrieve(self.u_snapshot, t)
             self.B.mult(self.u_snapshot, self.Bu_snapshot)
             self.d.retrieve(self.d_snapshot, t)
             self.Bu_snapshot.axpy(-1., self.d_snapshot)
-            # print(self.Bu_snapshot[:])
             c += self.Bu_snapshot.inner(self.Bu_snapshot)
-            
-        return 0.5 * c / self.noise_variance
+        return 0.5 * c / self.var_error
     
-    def grad(self, i, x, out):
-        """TODO: check this."""
+    def grad(self, x: VariableContainer, out: hl.TimeDependentVector) -> None:
+        """Computes the gradient of the misfit function with respect to 
+        the state, and saves it in the `out` vector.
+        """
         out.zero()
-        if i == hl.STATE:
-            for t in self.observation_times:
-                x[hl.STATE].retrieve(self.u_snapshot, t)
-                self.B.mult(self.u_snapshot, self.Bu_snapshot)
-                self.d.retrieve(self.d_snapshot, t)
-                self.Bu_snapshot.axpy(-1., self.d_snapshot)
-                self.Bu_snapshot *= 1./self.noise_variance
-                self.B.transpmult(self.Bu_snapshot, self.u_snapshot) 
-                out.store(self.u_snapshot, t)           
-        else:
-            raise NotImplementedError()
+        for t in self.ts_obs:
+            x[hl.STATE].retrieve(self.u_snapshot, t)
+            self.B.mult(self.u_snapshot, self.Bu_snapshot)
+            self.d.retrieve(self.d_snapshot, t)
+            self.Bu_snapshot.axpy(-1., self.d_snapshot)
+            self.Bu_snapshot *= 1./self.var_error
+            self.B.transpmult(self.Bu_snapshot, self.u_snapshot) 
+            out.store(self.u_snapshot, t)
+        return
             
-    def setLinearizationPoint(self, x, gauss_newton_approx=False):
-        pass
+    def setLinearizationPoint(self, x, gauss_newton_approx: bool = True):
+        raise NotImplementedError()
     
-    def apply_ij(self, i,j, direction, out):
+    def hessian_action(
+        self, 
+        du: hl.TimeDependentVector, 
+        out: hl.TimeDependentVector
+    ) -> None:
+        """Computes the action of the Hessian of the data misfit 
+        function and `du` vector, and stores the result in the `out` 
+        vector.
+        """
         out.zero()
-        if i == hl.STATE and j == hl.STATE:
-            for t in self.observation_times:
-                direction.retrieve(self.u_snapshot, t)
-                self.B.mult(self.u_snapshot, self.Bu_snapshot)
-                self.Bu_snapshot *= 1./self.noise_variance
-                self.B.transpmult(self.Bu_snapshot, self.u_snapshot) 
-                out.store(self.u_snapshot, t)
-        else:
-            raise NotImplementedError()
+        for t in self.ts_obs:
+            du.retrieve(self.u_snapshot, t)
+            self.B.mult(self.u_snapshot, self.Bu_snapshot)
+            self.Bu_snapshot *= 1.0 / self.var_error
+            self.B.transpmult(self.Bu_snapshot, self.u_snapshot) 
+            out.store(self.u_snapshot, t)
         return
 
 class HeatSolver(object):
@@ -159,11 +156,6 @@ class HeatSolver(object):
 
         # Part of model public API (??)
         self.gauss_newton_approx = True
-
-        # k_true = self.sample_prior()
-        # u_true = self.generate_vector(hl.STATE)
-        # self.x = [u_true, k_true, None]
-
         return
 
     @staticmethod
@@ -197,7 +189,10 @@ class HeatSolver(object):
         self.prior.sample(noise=noise, s=ks)
         return ks
 
-    def generate_vector(self, component="ALL"):
+    def generate_vector(
+        self, 
+        component: str|int = "ALL"
+    ) -> VariableContainer|hl.TimeDependentVector|dl.Vector:
         """Generates an empty vector (or set of vectors) of the 
         appropriate dimension.
         """
@@ -212,8 +207,6 @@ class HeatSolver(object):
             return [u, m, p]
         
         elif component == hl.STATE:
-            # Make size of all state vectors = number of rows of mass matrix
-            # (and set all entries equal to 0s)
             u = hl.TimeDependentVector(self.ts)
             u.initialize(M=self.M, dim=0)
             return u
@@ -228,21 +221,38 @@ class HeatSolver(object):
             p.initialize(M=self.M, dim=0)
             return p
         
-        else:
-            raise Exception("Unknown component.")
+        raise Exception("Unknown component.")
     
-    def init_parameter(self, m):
+    def init_parameter(self, m: dl.Vector) -> None:
+        """Initialises a parameter vector such that it has the 
+        appropriate dimension.
+        """
         self.prior.init_vector(m, 0)
+        return
           
-    def cost(self, x):
-        """TODO: figure out what this is doing."""
+    def cost(self, x: VariableContainer) -> List[float]:
+        """Evaluates the cost function.
+        
+        Parameters
+        ----------
+        x:
+            A list of the state, parameter and adjoint variables.
+        
+        Returns
+        -------
+        c:
+            A list containing the cost function (i.e., the sum of the 
+            regularisation (prior cost) and misfit), the regularisation 
+            cost, and the misfit cost.
+        
+        """
         Rdx = dl.Vector()
         self.prior.init_vector(Rdx, 0)
         dx = x[hl.PARAMETER] - self.prior.mean
         self.prior.R.mult(dx, Rdx)
-        reg = 0.5 * Rdx.inner(dx)
+        pri = 0.5 * Rdx.inner(dx)
         misfit = self.misfit.cost(x)
-        return [reg + misfit, reg, misfit]
+        return [pri + misfit, pri, misfit]
     
     def Rsolver(self):        
         return self.prior.Rsolver
@@ -250,7 +260,7 @@ class HeatSolver(object):
     def solveFwd(
         self, 
         out: hl.TimeDependentVector, 
-        x
+        x: VariableContainer
     ) -> None:
         """Solves the forward problem.
 
@@ -304,8 +314,9 @@ class HeatSolver(object):
     def solveAdj(
         self, 
         out: hl.TimeDependentVector, 
-        x
+        x: VariableContainer
     ) -> None:
+        """Solves the adjoint problem."""
 
         # Remove any previous data from output vector
         out.zero()
@@ -330,7 +341,7 @@ class HeatSolver(object):
         # Compute gradient of misfit with respect to state
         grad_state = hl.TimeDependentVector(self.ts)
         grad_state.initialize(M=self.M, dim=0)
-        self.misfit.grad(hl.STATE, x, grad_state)
+        self.misfit.grad(x, grad_state)
 
         # Define LHS of variational form
         A = self.M + self.dt * K
@@ -356,15 +367,32 @@ class HeatSolver(object):
             
     def evalGradientParameter(
         self, 
-        x, 
-        mg, 
+        x: VariableContainer, 
+        mg: dl.Vector, 
         misfit_only: bool = False
-    ):
+    ) -> float:
+        """Evaluates the gradient of the Lagrangian with respect to the 
+        parameter.
+        
+        Parameters
+        ----------
+        x:
+            A list of the state, parameter and adjoint vectors.
+        mg:
+            A vector in which to store the gradient of the Lagrangian 
+            with respect to the parameters.
+
+        Returns
+        -------
+        grad_norm:
+            The norm of the gradient.
+        
+        """
         
         self.x = x
 
         if misfit_only:
-            print("misfit only")
+            raise NotImplementedError()
 
         self.prior.init_vector(mg, dim=1)
 
@@ -379,14 +407,12 @@ class HeatSolver(object):
         p = self.x[hl.ADJOINT]
         
         u_snap = dl.Vector()
-        self.M.init_vector(u_snap, 0)
-
         p_snap = dl.Vector()
+        self.M.init_vector(u_snap, 0)
         self.M.init_vector(p_snap, 0)
 
         for t in self.ts:
 
-            # Build A matrix
             u.retrieve(u_snap, t)
             p.retrieve(p_snap, t)
             u_k = self.vec2func(u_snap.copy(), hl.STATE)
@@ -406,11 +432,20 @@ class HeatSolver(object):
     
     def setPointForHessianEvaluations(
         self, 
-        x, 
+        x: VariableContainer, 
         gauss_newton_approx: bool = True
     ) -> None:
-        """Specifies the point x = [u,a,p] at which the Gauss-Newton)
+        """Specifies the point x = [u, a, p] at which the (Gauss-Newton)
         Hessian needs to be evaluated.
+
+        Parameters
+        ----------
+        x:
+            A list of the state, parameter and adjoint vectors.
+        gauss_newton_approx:
+            Whether the Gauss-Newton approximation to the Hessian is 
+            being made.
+        
         """
         self.gauss_newton_approx = gauss_newton_approx
         self.x = x
@@ -527,9 +562,18 @@ class HeatSolver(object):
         dm: dl.Vector, 
         out: hl.TimeDependentVector
     ) -> None:
-        """
-        vector to multiply c with.
-        out=where result of matrix-vector multiplication will be stored.
+        """Applies the second partial derivative of the Lagrangian 
+        (with respect to the adjoint variable, then the parameter) to a 
+        vector.
+
+        Parameters
+        ----------
+        dm:
+            The vector to apply the second derivative of the Lagrangian 
+            to.
+        out:
+            The vector in which to store the result.
+        
         """
 
         out.zero()
@@ -563,7 +607,20 @@ class HeatSolver(object):
         self, 
         dp: hl.TimeDependentVector, 
         out: dl.Vector
-    ):
+    ) -> None:
+        """Applies the second partial derivative of the Lagrangian 
+        (with respect to the parameter, then the adjoint variable) to a 
+        vector.
+
+        Parameters
+        ----------
+        dp:
+            The vector to apply the second derivative of the Lagrangian 
+            to.
+        out:
+            The vector in which to store the result.
+        
+        """
         
         out.zero()
 
@@ -577,9 +634,8 @@ class HeatSolver(object):
         out_k = dl.Vector()
         self.M.init_vector(out_k, 0)
 
-        for t in self.ts:  # TODO: check (should this be ts[:-1]?)
+        for t in self.ts:
 
-            # Build A matrix
             u.retrieve(u_snap, t)
             u_k = self.vec2func(u_snap.copy(), hl.STATE)
             
@@ -597,7 +653,7 @@ class HeatSolver(object):
     
     def applyWuu(self, du, out):
         out.zero()
-        self.misfit.apply_ij(hl.STATE, hl.STATE, du, out)
+        self.misfit.hessian_action(du, out)
         return
 
     def applyWum(self, dm, out):
@@ -609,6 +665,9 @@ class HeatSolver(object):
         return
     
     def applyR(self, dm, out):
+        """Applies the prior precision matrix to the vector `dm`, and 
+        stores the result in `out`.
+        """
         self.prior.R.mult(dm, out)
         return
     
@@ -682,11 +741,11 @@ class HeatSolver(object):
         b = np.hstack([self.dt * M @ f + M @ u0, *[self.dt * M @ f for _ in range(self.nt-1)]])
 
         B = self.misfit.B.array()
-        noise_var = self.misfit.noise_variance
+        noise_var = self.misfit.var_error
 
         rhs = np.zeros((self.nt, n_u))
         for i, t in enumerate(self.ts):
-            if np.min(np.abs(t - self.misfit.observation_times)) < 1e-8:
+            if np.min(np.abs(t - self.misfit.ts_obs)) < 1e-8:
                 u_i = u.data[i][:]
                 d_i = dl.Vector()
                 self.misfit.B.init_vector(d_i, 0)

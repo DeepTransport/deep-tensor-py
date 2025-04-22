@@ -57,14 +57,9 @@ targets = np.array([
     for y in np.linspace(0.0, 1.0, 20)
 ])
 
-noise_std = 1.65e-3
-noise_var = noise_std ** 2
-misfit = SpaceTimePointwiseStateObservation(
-    Vh, 
-    ts_obs, 
-    targets, 
-    noise_variance=noise_var
-)
+std_error = 1.65e-3
+var_error = std_error ** 2
+misfit = SpaceTimePointwiseStateObservation(Vh, ts_obs, targets, var_error)
 
 prob = HeatSolver(
     mesh=mesh,
@@ -89,8 +84,8 @@ for i in range(2):
 
 # prob.solveFwd(x[hl.STATE], x)
 
-misfit.observe(x, misfit.d)
-hl.parRandom.normal_perturb(sigma=noise_std, out=misfit.d)
+misfit.observe(x)
+hl.parRandom.normal_perturb(sigma=std_error, out=misfit.d)
 
 # hl.nb.plot(prob.vec2func(m_true, hl.PARAMETER))
 # plt.show()
@@ -134,14 +129,15 @@ grad_norm = prob.evalGradientParameter([u, m, p], mg)
 # prob.solveFwd(u, [u, m, p])
 
 # m = prior.mean.copy()
-# parameters = hl.ReducedSpaceNewtonCG_ParameterList()
+parameters = hl.ReducedSpaceNewtonCG_ParameterList()
 # parameters["rel_tolerance"] = 1e-9
 # parameters["abs_tolerance"] = 1e-12
 # parameters["max_iter"]      = 25
 # parameters["globalization"] = "LS"
-# parameters["GN_iter"] = 5
+parameters["GN_iter"] = 25
 
-solver = hl.ReducedSpaceNewtonCG(prob)
+# params = hl.ReducedSpaceNewtonCG_ParameterList(GN_iter=20)
+solver = hl.ReducedSpaceNewtonCG(prob, parameters)
 
 # solver = hl.SteepestDescent(prob)
 
