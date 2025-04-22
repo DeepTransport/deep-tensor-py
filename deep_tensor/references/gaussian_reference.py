@@ -7,11 +7,14 @@ from ..constants import EPS
 
 class GaussianReference(SymmetricReference):
     r"""The standard $d$-dimensional Gaussian density, $\mathcal{N}(\boldsymbol{0}_{d}, \boldsymbol{I}_{d})$.
+
+    The density can be truncated to a subinterval of the real numbers 
+    in each dimension.
     
     Parameters
     ----------
     domain:
-        The domain on which the density is defined.
+        The domain on which the density is defined in each dimension.
     
     """
     

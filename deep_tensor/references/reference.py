@@ -11,6 +11,7 @@ class Reference(abc.ABC):
 
     def __init__(self, domain: Domain):
         self.domain = domain
+        return
 
     @abc.abstractmethod
     def eval_cdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
