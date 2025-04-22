@@ -26,13 +26,16 @@ R_pri = linalg.inv(L_pri)
 det_R = torch.logdet(R_pri)
 
 def Q(xs: Tensor) -> Tensor:
-    return mu_pri + xs @ L_pri.T
+    d_xs = xs.shape[1]
+    return mu_pri[:d_xs] + xs @ L_pri[:d_xs, :d_xs].T
 
 def Q_inv(ms: Tensor) -> Tensor:
-    return (ms - mu_pri) @ R_pri.T
+    d_ms = ms.shape[1]
+    return (ms - mu_pri[:d_ms]) @ R_pri[:d_ms, :d_ms].T
 
 def neglogabsdet_Q_inv(ms: Tensor):
-    return torch.full((ms.shape[0],), -det_R)
+    n_ms, d_ms = ms.shape
+    return torch.full((n_ms, ), -R_pri[:d_ms, :d_ms].diag().log().sum())
 
 bounds = torch.tensor([-4.0, 4.0])
 domain = dt.BoundedDomain(bounds=bounds)
@@ -62,7 +65,12 @@ y_obs = G @ m_true + error
 def negloglik(ms: Tensor) -> Tensor:
     return 0.5 * ((ms @ G.T - y_obs) @ R_e).square().sum(dim=1)
 
-poly = dt.Fourier(order=40)
+# Define true posterior
+mu_post = mu_pri + cov_pri @ G.T @ linalg.inv(G @ cov_pri @ G.T + cov_e) @ (y_obs - G @ mu_pri)
+cov_post = cov_pri - cov_pri @ G.T @ linalg.inv(G @ cov_pri @ G.T + cov_e) @ G @ cov_pri
+L_post = linalg.cholesky(torch.linalg.inv(cov_post))
+
+poly = dt.Fourier(order=20)
 # tt_options = dt.TTOptions(max_cross=4)
 # bridge = dt.SingleLayer()
 bridge = dt.Tempering()
@@ -75,25 +83,3 @@ dirt = dt.TTDIRT(
     # sirt_options=tt_options
     # bridge
 )
-
-samples = dirt.random(n=1000)
-potentials = dirt.eval_potential(samples)
-
-mu_post = mu_pri + cov_pri @ G.T @ linalg.inv(G @ cov_pri @ G.T + cov_e) @ (y_obs - G @ mu_pri)
-cov_post = cov_pri - cov_pri @ G.T @ linalg.inv(G @ cov_pri @ G.T + cov_e) @ G @ cov_pri
-L_post = linalg.cholesky(torch.linalg.inv(cov_post))
-
-potentials_true = torch.log(torch.tensor(2.0*torch.pi)) + 0.5 * torch.logdet(cov_post) + 0.5 * ((samples - mu_post) @ L_post.T).square().sum(dim=1)
-
-print(mu_post)
-print(samples.mean(dim=0))
-print(cov_post)
-print(torch.cov(samples.T))
-
-# plt.scatter(*samples.T)
-# plt.show()
-
-plt.scatter(potentials_true, potentials)
-plt.xlabel("True")
-plt.ylabel("DIRT")
-plt.show()
