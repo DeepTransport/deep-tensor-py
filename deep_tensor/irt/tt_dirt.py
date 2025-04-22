@@ -4,9 +4,9 @@ from typing import Callable, Dict, List, Tuple
 import torch
 from torch import Tensor
 
-from .tt_sirt import TTSIRT
+from .tt_sirt import AbstractIRT, TTSIRT
 from ..bridging_densities import Bridge, Tempering
-from ..ftt import ApproxBases, InputData
+from ..ftt import ApproxBases, Direction, InputData
 from ..options import DIRTOptions, TTOptions
 from ..polynomials import Basis1D
 from ..prior_transformation import PriorTransformation
@@ -527,11 +527,11 @@ class TTDIRT():
         -------
         rs:
             An $n \times k$ matrix containing the composition of 
-            mappings evaluated at each value of `xs`.
-        neglogfxs:
+            mappings evaluated at each value of `ms`.
+        neglogfms:
             An $n$-dimensional vector containing the potential function 
             of the pullback of the reference density under the current 
-            composition of mappings, evaluated at each sample in `xs`.
+            composition of mappings, evaluated at each sample in `ms`.
 
         """
         n_layers = min(n_layers, self.n_layers)
@@ -582,6 +582,97 @@ class TTDIRT():
         neglogfms = neglogfxs + neglogabsdet_ms
         return ms, neglogfms
     
+    def eval_cirt(
+        self, 
+        ms: Tensor, 
+        rs: Tensor, 
+        n_layers: int = torch.inf,
+        subset: str|None = None
+    ) -> Tuple[Tensor, Tensor]:
+        r"""Evaluates the conditional inverse Rosenblatt transport.
+
+        Returns the conditional inverse Rosenblatt transport evaluated
+        at a set of samples in the approximation domain. 
+        
+        The conditional inverse Rosenblatt transport takes the form
+        $$Y|M = \mathcal{R}^{-1}(\mathcal{R}_{k}(M), R),$$
+        where $M$ is a $k$-dimensional random variable, $Z$ is a 
+        $n-k$-dimensional reference random variable, 
+        $\mathcal{R}(\,\cdot\,)$ denotes the (full) Rosenblatt 
+        transport, and $\mathcal{R}_{k}(\,\cdot\,)$ denotes the 
+        Rosenblatt transport for the first (or last) $k$ variables.
+        
+        Parameters
+        ----------
+        ms:
+            An $n \times k$ matrix containing samples from the 
+            approximation domain.
+        rs:
+            An $n \times (d-k)$ matrix containing samples distributed 
+            according to the reference density.
+        n_layers:
+            The number of layers of the deep inverse Rosenblatt 
+            transport to push the samples forward under. If not 
+            specified, the samples will be pushed forward through all 
+            the layers.
+        subset: 
+            Whether `ms` corresponds to the first $k$ variables 
+            (`subset='first'`) of the approximation, or the last $k$ 
+            variables (`subset='last'`).
+        
+        Returns
+        -------
+        ys:
+            An $n \times (d-k)$ matrix containing the realisations of 
+            $Y$ corresponding to the values of `rs` after applying the 
+            conditional inverse Rosenblatt transport.
+        neglogfys:
+            An $n$-dimensional vector containing the potential function 
+            of the approximation to the conditional density of 
+            $Y \textbar M$ evaluated at each sample in `rs`.
+    
+        """
+        
+        n_rs, d_rs = rs.shape
+        n_ms, d_ms = ms.shape
+
+        if d_rs == 0 or d_ms == 0:
+            msg = "The dimensions of both `ms` and `zs` must be at least 1."
+            raise Exception(msg)
+        
+        if d_rs + d_ms != self.dim:
+            msg = ("The dimensions of X and Z must sum " 
+                   + "to the dimension of the approximation.")
+            raise Exception(msg)
+        
+        if n_rs != n_ms: 
+            if n_ms != 1:
+                msg = "The number of samples of X and Z must be equal."
+                raise Exception(msg)
+            ms = ms.repeat(n_rs, 1)
+        
+        direction = AbstractIRT._get_direction(subset)
+        if direction == Direction.FORWARD:
+            inds_m = torch.arange(d_ms)
+            inds_y = torch.arange(d_ms, self.dim)
+        elif direction == Direction.BACKWARD:
+            inds_m = torch.arange(d_rs, self.dim)
+            inds_y = torch.arange(d_rs)
+        
+        # Evaluate marginal RT
+        rs_m, neglogfms = self.eval_rt(ms, n_layers, subset)
+
+        # Evaluate joint RT
+        rs_my = torch.empty((n_rs, self.dim))
+        rs_my[:, inds_m] = rs_m 
+        rs_my[:, inds_y] = rs
+        mys, neglogfmys = self.eval_irt(rs_my, n_layers, subset)
+        
+        ys = mys[:, inds_y]
+        neglogfys = neglogfmys - neglogfms
+
+        return ys, neglogfys
+
     def random(self, n: int) -> Tensor: 
         r"""Generates a set of random samples. 
 
