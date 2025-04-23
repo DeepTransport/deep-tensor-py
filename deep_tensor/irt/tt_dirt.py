@@ -3,6 +3,7 @@ from typing import Callable, Dict, List, Tuple
 
 import torch
 from torch import Tensor
+from torch.autograd.functional import jacobian
 
 from .tt_sirt import AbstractIRT, TTSIRT
 from ..bridging_densities import Bridge, Tempering
@@ -676,6 +677,49 @@ class TTDIRT():
         neglogfys = neglogfmys - neglogfms
 
         return ys, neglogfys
+    
+    def eval_rt_jac(
+        self, 
+        xs: Tensor, 
+        subset: str | None = None
+    ) -> Tensor:
+        r"""Evaluates the Jacobian of the deep Rosenblatt transport.
+
+        Evaluates the Jacobian of the mapping $R = \mathcal{R}(X)$, 
+        where $R$ denotes the reference random variable and $X$ denotes 
+        the approximation to the target random variable. 
+
+        Note that element $J_{ij}$ of the Jacobian is given by
+        $$J_{ij} = \frac{\partial z_{i}}{\partial x_{j}}.$$
+
+        Parameters
+        ----------
+        xs:
+            An $n \times d$ matrix containing a set of samples from the 
+            approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+
+        Returns
+        -------
+        Js:
+            A $k \times n \times k$ tensor, where element $ijk$ 
+            contains element $ik$ of the Jacobian for the $j$th sample 
+            in `xs`.
+
+        """
+
+        n_xs, d_xs = xs.shape
+
+        def _eval_rt(xs: Tensor) -> Tensor:
+            xs = xs.reshape(n_xs, d_xs)
+            return self.eval_rt(xs, subset=subset)[0].sum(dim=0)
+        
+        Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
+        return Js.reshape(d_xs, n_xs, d_xs)
 
     def random(self, n: int) -> Tensor: 
         r"""Generates a set of random samples. 
