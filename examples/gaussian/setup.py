@@ -15,7 +15,7 @@ torch.manual_seed(0)
 
 dim = 2
 
-G = torch.tensor([[2.0, 0.0],
+G = torch.tensor([[2.0, 2.0],
                   [0.0, 2.0]])
 
 mu_pri = torch.tensor([1.0, 0.0])

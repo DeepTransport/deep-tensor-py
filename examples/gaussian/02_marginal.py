@@ -1,8 +1,8 @@
 from setup import *
 
 
-zs = reference.random(1, 1000)
-samples, potentials = dirt.eval_irt(zs, subset="first")
+rs = reference.random(1, 1000)
+samples, potentials = dirt.eval_irt(rs, subset="first")
 
 print(mu_post[0])
 print(samples.mean())
