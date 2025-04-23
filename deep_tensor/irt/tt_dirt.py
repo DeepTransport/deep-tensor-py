@@ -595,8 +595,12 @@ class TTDIRT():
         at a set of samples in the approximation domain. 
         
         The conditional inverse Rosenblatt transport takes the form
-        $$Y|M = \mathcal{R}^{-1}(\mathcal{R}_{k}(M), R),$$
-        where $M$ is a $k$-dimensional random variable, $Z$ is a 
+        
+        $$
+            Y|M = \mathcal{R}^{-1}(\mathcal{R}_{k}(M), R),
+        $$
+
+        where $M$ is a $k$-dimensional random variable, $R$ is a 
         $n-k$-dimensional reference random variable, 
         $\mathcal{R}(\,\cdot\,)$ denotes the (full) Rosenblatt 
         transport, and $\mathcal{R}_{k}(\,\cdot\,)$ denotes the 
