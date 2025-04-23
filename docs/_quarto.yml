@@ -57,7 +57,7 @@ quartodoc:
       package: deep_tensor
       contents:
         - name: TTDIRT
-          members: [eval_potential, eval_pdf, eval_rt, eval_irt, random, sobol]
+          members: [eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, random, sobol]
 
     - title: Prior Transformation
       desc: An object which defines a mapping between the prior and a reference density.
