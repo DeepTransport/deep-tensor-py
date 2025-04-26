@@ -16,6 +16,7 @@ from .polynomials import (
     Chebyshev1st, 
     Chebyshev1stTrigoCDF,
     Chebyshev2nd,
+    Chebyshev2ndTrigoCDF,
     Fourier,
     Hermite,
     Lagrange1, 

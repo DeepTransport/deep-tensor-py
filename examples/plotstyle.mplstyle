@@ -24,7 +24,7 @@ ytick.minor.width: 1.2
 ytick.labelsize: 10
 
 legend.frameon: False
-legend.fontsize: 14
+legend.fontsize: 12
 
 figure.figsize: 10.0, 6.8
 figure.constrained_layout.use: True

@@ -148,7 +148,8 @@ class CDF1D(abc.ABC):
         positive.
         """
         if (n_violations := (ps < -EPS).sum()) > 0:
-            msg = f"{n_violations} negative PDF values found."
+            msg = (f"{n_violations} negative PDF values found. "
+                   + f"Minimum value: {ps.min()}")
             warnings.warn(msg)
         return
 
