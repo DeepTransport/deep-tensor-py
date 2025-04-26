@@ -191,8 +191,8 @@ class HeatSolver(object):
 
     def generate_vector(
         self, 
-        component: str|int = "ALL"
-    ) -> VariableContainer|hl.TimeDependentVector|dl.Vector:
+        component: str | int = "ALL"
+    ) -> VariableContainer | hl.TimeDependentVector | dl.Vector:
         """Generates an empty vector (or set of vectors) of the 
         appropriate dimension.
         """
@@ -221,7 +221,7 @@ class HeatSolver(object):
             p.initialize(M=self.M, dim=0)
             return p
         
-        raise Exception("Unknown component.")
+        raise Exception(f"Unknown component: '{component}'.")
     
     def init_parameter(self, m: dl.Vector) -> None:
         """Initialises a parameter vector such that it has the 
