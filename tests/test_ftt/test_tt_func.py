@@ -12,7 +12,7 @@ from tests.ou import build_ou_sirt
 torch.manual_seed(0)
 
 
-class TestSIRT(unittest.TestCase):
+class TestTTFunc(unittest.TestCase):
 
     def test_eval_core(self):
         """Verifies that the eval_core_213 and eval_core_231 
