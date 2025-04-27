@@ -2,7 +2,6 @@ import torch
 from torch import Tensor
 
 from .spectral import Spectral
-from ..basis_1d import Basis1D
 
 
 class Fourier(Spectral):
@@ -90,24 +89,22 @@ class Fourier(Spectral):
     def sample_measure_skip(self, n: int) -> Tensor:
         return self.sample_measure(n)
     
-    @Basis1D._check_samples
     def eval_measure(self, ls: Tensor):
         return torch.full(ls.shape, 0.5)
     
-    @Basis1D._check_samples
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         return torch.full(ls.shape, torch.tensor(0.5).log())
     
-    @Basis1D._check_samples
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)
     
-    @Basis1D._check_samples
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)
     
-    @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
+
+        self._check_in_domain(ls)
+        
         ls = ls[:, None]
         ps = torch.hstack((
             torch.ones_like(ls),
@@ -117,8 +114,10 @@ class Fourier(Spectral):
         ))
         return ps
     
-    @Basis1D._check_samples
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
+        
+        self._check_in_domain(ls)
+
         ls = ls[:, None]
         dpdls = torch.hstack((
             torch.zeros_like(ls),

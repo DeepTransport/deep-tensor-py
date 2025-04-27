@@ -5,7 +5,6 @@ import torch
 from torch import Tensor
 
 from .spectral import Spectral
-from ..basis_1d import Basis1D
 
 
 class Recurr(Spectral, abc.ABC):
@@ -44,7 +43,6 @@ class Recurr(Spectral, abc.ABC):
         polynomials of degree 2).
 
         """
-        
         self.order = order
         self.a = a
         self.b = b
@@ -52,7 +50,6 @@ class Recurr(Spectral, abc.ABC):
         self.norm = norm
         self._nodes, self._weights = self.compute_nodes_weights(a, b, c)
         self.__post_init__()
-        
         return
 
     @staticmethod
@@ -96,8 +93,9 @@ class Recurr(Spectral, abc.ABC):
         weights = eigvecs[0] ** 2
         return eigvals, weights
 
-    @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
+
+        self._check_in_domain(ls)
         
         ps = torch.zeros((ls.numel(), self.order+1))
         ps[:, 0] = 1.0
@@ -106,13 +104,15 @@ class Recurr(Spectral, abc.ABC):
         
         ps[:, 1] = self.a[0] * ls + self.b[0]
         for j in range(1, self.order):
-            ps[:, j+1] = ((self.a[j] * ls + self.b[j]) * ps[:, j].clone() 
-                          - self.c[j] * ps[:, j-1].clone())
+            ps_jm = ps[:, j-1].clone()
+            ps_j = ps[:, j].clone()
+            ps[:, j+1] = (self.a[j] * ls + self.b[j]) * ps_j - self.c[j] * ps_jm
         
         return ps * self.norm
     
-    @Basis1D._check_samples
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
+
+        self._check_in_domain(ls)
         
         dpdls = torch.zeros((ls.numel(), self.order+1))
         if self.order == 0:
@@ -122,8 +122,10 @@ class Recurr(Spectral, abc.ABC):
         
         dpdls[:, 1] = self.a[0] * ps[:, 0]
         for j in range(1, self.order):
+            dpdls_jm = dpdls[:, j-1].clone()
+            dpdls_j = dpdls[:, j].clone()
             dpdls[:, j+1] = (self.a[j] * ps[:, j] 
-                             + (self.a[j] * ls + self.b[j]) * dpdls[:, j].clone()
-                             - self.c[j] * dpdls[:, j-1].clone())
+                             + (self.a[j] * ls + self.b[j]) * dpdls_j
+                             - self.c[j] * dpdls_jm)
 
         return dpdls * self.norm

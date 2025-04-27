@@ -88,36 +88,37 @@ class Chebyshev2nd(Spectral):
         ls = left + torch.rand(n) * (right - left)
         return ls
     
-    @Basis1D._check_samples
     def eval_measure(self, ls: Tensor) -> Tensor:
+        self._check_in_domain(ls)
         ts = 1.0 - ls.square()
         ws = 2.0 * ts.sqrt() / torch.pi 
         return ws
     
-    @Basis1D._check_samples
     def eval_log_measure(self, ls: Tensor) -> Tensor:
+        self._check_in_domain(ls)
         ts = 1.0 - ls.square()
         logws = 0.5 * ts.log() + torch.tensor(2.0/torch.pi).log()
         return logws
     
-    @Basis1D._check_samples
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
+        self._check_in_domain(ls)
         ls[ls < EPS] = EPS
         ts = 1.0 / (1.0 - ls.square())
         check_finite(ts)
         dwdls = -2.0 * ls * ts.sqrt() / torch.pi
         return dwdls
     
-    @Basis1D._check_samples
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
+        self._check_in_domain(ls)
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
         ws = -ls / ts
         check_finite(ws)
         return ws
     
-    @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
+
+        self._check_in_domain(ls)
         
         thetas = self.l2theta(ls)[:, None]
         sin_thetas = thetas.sin()
@@ -133,8 +134,9 @@ class Chebyshev2nd(Spectral):
         check_finite(ps)
         return ps
     
-    @Basis1D._check_samples
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
+
+        self._check_in_domain(ls)
 
         thetas = self.l2theta(ls)[:, None]
         sin_thetas = thetas.sin()

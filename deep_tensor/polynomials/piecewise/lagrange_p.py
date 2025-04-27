@@ -255,8 +255,9 @@ class LagrangeP(Piecewise):
             self.int_W[inds_elem] += weights_elem
         return
 
-    @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
+        
+        self._check_in_domain(ls)
         
         n_ls = ls.numel()
         ps = torch.zeros((n_ls, self.cardinality))
@@ -274,7 +275,6 @@ class LagrangeP(Piecewise):
         ps[ii, jj] = ps_loc.flatten()
         return ps
     
-    @Basis1D._check_samples
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
         
         self._check_in_domain(ls)

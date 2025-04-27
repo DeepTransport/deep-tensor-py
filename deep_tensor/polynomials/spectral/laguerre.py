@@ -3,7 +3,6 @@ from torch import Tensor
 from torch.distributions.exponential import Exponential
 
 from .recurr import Recurr
-from ..basis_1d import Basis1D
 from ...constants import EPS 
 
 
@@ -45,18 +44,14 @@ class Laguerre(Recurr):
     def sample_measure(self, n: int) -> Tensor:
         return Exponential(rate=1.0).sample(n)
     
-    @Basis1D._check_samples
     def eval_measure(self, ls: Tensor) -> Tensor:
         return torch.exp(-ls)
 
-    @Basis1D._check_samples
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         return -ls
     
-    @Basis1D._check_samples
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return -torch.exp(-ls)
     
-    @Basis1D._check_samples
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         return -torch.ones_like(ls)

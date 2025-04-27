@@ -79,8 +79,9 @@ class Lagrange1(Piecewise):
         self._int_W = value 
         return
 
-    @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
+        
+        self._check_in_domain(ls)
         
         inds = torch.arange(ls.numel())
         left_inds = self.get_left_hand_inds(ls)
@@ -94,9 +95,10 @@ class Lagrange1(Piecewise):
         ps = torch.zeros((ls.numel(), self.cardinality))
         ps[ii, jj] = vals
         return ps
-        
-    @Basis1D._check_samples
+    
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
+
+        self._check_in_domain(ls)
         
         inds = torch.arange(ls.numel())
         left_inds = self.get_left_hand_inds(ls)
