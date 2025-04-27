@@ -68,7 +68,7 @@ def negloglik(ms: Tensor) -> Tensor:
 # Define true posterior
 mu_post = mu_pri + cov_pri @ G.T @ linalg.inv(G @ cov_pri @ G.T + cov_e) @ (y_obs - G @ mu_pri)
 cov_post = cov_pri - cov_pri @ G.T @ linalg.inv(G @ cov_pri @ G.T + cov_e) @ G @ cov_pri
-L_post = linalg.cholesky(torch.linalg.inv(cov_post))
+R_post = linalg.cholesky(torch.linalg.inv(cov_post))
 
 poly = dt.Fourier(order=20)
 # tt_options = dt.TTOptions(max_cross=4)
