@@ -38,10 +38,12 @@ class Recurr(Spectral, abc.ABC):
             polynomial (with respect to the weight function) is equal 
             to 1.
 
-        """
+        Notes
+        -----
+        This class needs to support 'order=0' (when forming LagrangeP 
+        polynomials of degree 2).
 
-        if order < 1:
-            raise Exception("Order must be at least 1.")
+        """
         
         self.order = order
         self.a = a
@@ -99,6 +101,9 @@ class Recurr(Spectral, abc.ABC):
         
         ps = torch.zeros((ls.numel(), self.order+1))
         ps[:, 0] = 1.0
+        if self.order == 0:
+            return ps
+        
         ps[:, 1] = self.a[0] * ls + self.b[0]
         for j in range(1, self.order):
             ps[:, j+1] = ((self.a[j] * ls + self.b[j]) * ps[:, j].clone() 
@@ -110,6 +115,9 @@ class Recurr(Spectral, abc.ABC):
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
         
         dpdls = torch.zeros((ls.numel(), self.order+1))
+        if self.order == 0:
+            return ps
+        
         ps = self.eval_basis(ls) / self.norm
         
         dpdls[:, 1] = self.a[0] * ps[:, 0]

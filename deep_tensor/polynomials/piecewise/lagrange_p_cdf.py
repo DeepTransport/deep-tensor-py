@@ -17,12 +17,12 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
         LagrangeP.__init__(self, poly.order, poly.num_elems)
         PiecewiseCDF.__init__(self, **kwargs)
 
-        # Define local CDF polynomial
-        self.cheby, self.cdf_basis2node = self._lag2cheby(poly)
-
         self.mass = None 
         self.mass_R = None 
         self.int_W = None
+
+        # Define local CDF polynomial
+        self._lag2cheby(poly)
         self._compute_cdf_nodes()
 
         n_cheby = self.cheby.cardinality
@@ -31,7 +31,34 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
             for n in range(self.num_elems)])
 
         return
-    
+
+    def _lag2cheby(self, poly: LagrangeP) -> None:
+        """Defines a data structure which maps Lagrange polynomials to 
+        Chebyshev polynomials with preserved boundary values. 
+
+        Parameters
+        ----------
+        poly:
+            A LagrangeP polynomial basis.
+        
+        """
+
+        self.cheby = Chebyshev2ndCDF(poly)
+        assert self.cheby.cardinality > 3, "Must use more than three nodes."
+
+        cheby_nodes = Chebyshev2nd(self.cheby.cardinality-3).nodes
+        ref_nodes = [self.cheby.domain[0], *cheby_nodes, self.cheby.domain[1]]
+        ref_nodes = torch.tensor(ref_nodes)
+
+        self.cheby.basis2node = self.cheby.eval_basis(ref_nodes)
+        self.cheby.node2basis = torch.linalg.inv(self.cheby.basis2node)
+        self.cheby.nodes = 0.5 * (ref_nodes + 1.0)  # map nodes into [0, 1]
+        self.cheby.mass_R = None 
+        self.cheby.int_W = None
+
+        self.cdf_basis2node = 0.5 * self.cheby.eval_int_basis(ref_nodes)
+        return
+
     def _compute_cdf_nodes(self) -> None:
         """Computes the collocation points in each element."""
         n_cheby = self.cheby.cardinality
@@ -42,45 +69,8 @@ class LagrangePCDF(LagrangeP, PiecewiseCDF):
             nodes[inds] = self.grid[i] + self.cheby.nodes * self.elem_size
         self.nodes = nodes
         return
-
-    def _lag2cheby(self, poly: LagrangeP) -> Tuple[Chebyshev2ndCDF, Tensor]:
-        """Defines a data structure which maps Lagrange polynomials to 
-        Chebyshev polynomials with preserved boundary values. 
-
-        Parameters
-        ----------
-        poly:
-            A LagrangeP polynomial basis.
-        
-        Returns
-        -------
-        TODO
-        
-        """
-
-        cheby = Chebyshev2ndCDF(poly)
-        n_nodes = cheby.cardinality
-
-        assert n_nodes > 3, "Must use more than three nodes."
-
-        cheby_2nd = Chebyshev2nd(n_nodes-3)
-        ref_nodes = [cheby.domain[0], *cheby_2nd.nodes, cheby.domain[1]]
-        ref_nodes = torch.tensor(ref_nodes)
-
-        cheby.basis2node = cheby.eval_basis(ref_nodes)
-        cheby.node2basis = torch.linalg.inv(cheby.basis2node)
-        cheby.nodes = 0.5 * (ref_nodes + 1.0)  # map nodes into [0, 1]
-        cheby.mass_R = None 
-        cheby.int_W = None
-
-        cdf_basis2node = 0.5 * cheby.eval_int_basis(ref_nodes)
-        return cheby, cdf_basis2node
     
     def pdf2cdf(self, ps: Tensor) -> CDFDataLagrangeP:
-
-        # Handle case where a single PDF is passed in
-        if ps.ndim == 1:
-            ps = ps[:, None]
 
         n_cdfs = ps.shape[1]
 
