@@ -44,7 +44,7 @@ class Piecewise(Basis1D, abc.ABC):
 
     def get_left_hand_inds(self, ls: Tensor) -> Tensor:
         """Returns the indices of the nodes that are directly to the 
-        left of each of a give set of points.
+        left of each of a given set of points.
         
         Parameters
         ----------

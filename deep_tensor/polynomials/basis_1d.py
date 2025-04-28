@@ -1,5 +1,4 @@
 import abc
-from typing import Callable
 import warnings
 
 from torch import Tensor 
@@ -233,16 +232,6 @@ class Basis1D(abc.ABC, object):
                    + "as the basis.")
             raise Exception(msg)
         return
-    
-    # @staticmethod
-    # def _check_samples(func) -> Callable:
-    #     """Checks that a set of samples have the appropriate dimension 
-    #     and are contained within the domain of the basis.
-    #     """
-    #     def _func(self, ls: Tensor) -> Tensor:
-    #         self._check_in_domain(ls)
-    #         return func(self, ls)
-    #     return _func
     
     def eval_radon(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the approximated function at a given vector of 

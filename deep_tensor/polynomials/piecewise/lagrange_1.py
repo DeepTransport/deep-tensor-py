@@ -2,7 +2,6 @@ import torch
 from torch import Tensor
 
 from .piecewise import Piecewise
-from ..basis_1d import Basis1D
 
 
 # Integrals and weights of adjacent basis functions mapped to [0, 1]

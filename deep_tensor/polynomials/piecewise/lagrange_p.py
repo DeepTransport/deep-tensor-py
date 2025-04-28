@@ -2,7 +2,6 @@ import torch
 from torch import Tensor
 
 from .piecewise import Piecewise
-from ..basis_1d import Basis1D
 from ..spectral.jacobi_11 import Jacobi11
 from ...constants import EPS
 from ...tools import integrate
@@ -170,7 +169,7 @@ class LagrangeP(Piecewise):
         self._compute_mass()
         self._compute_int_W()
 
-        # elem_nodes[i] return the nodes corresponding to element i
+        # elem_nodes[i] returns the nodes corresponding to element i
         self.elem_nodes = torch.tensor([
             range(n*self.order, (n+1)*self.order+1) 
             for n in range(self.num_elems)])
