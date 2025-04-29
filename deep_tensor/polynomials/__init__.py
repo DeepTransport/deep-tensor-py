@@ -4,6 +4,8 @@ from .cdf_constructor import construct_cdf
 
 from .piecewise.piecewise import Piecewise
 from .piecewise.piecewise_cdf import PiecewiseCDF
+from .piecewise.cubic_hermite import CubicHermite
+from .piecewise.cubic_hermite_cdf import CubicHermiteCDF
 from .piecewise.lagrange_1 import Lagrange1
 from .piecewise.lagrange_1_cdf import Lagrange1CDF
 from .piecewise.lagrange_p import LagrangeP

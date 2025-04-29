@@ -7,7 +7,6 @@ from ...constants import EPS
 from ...tools import integrate
 
 
-
 class _LagrangeRef():
     
     def __init__(self, n: int):
@@ -37,45 +36,45 @@ class _LagrangeRef():
         self.nodes = torch.zeros(self.cardinality)
         self.nodes[1:-1] = 0.5 * (jacobi.nodes + 1.0)
         self.nodes[-1] = 1.0
-        self.omega = self._compute_omegas()
-        self.weights = self._compute_weights()
-        self.mass = self._compute_mass()
+        self._compute_omegas()
+        self._compute_weights()
+        self._compute_mass()
         return
     
-    def _compute_omegas(self) -> Tensor:
+    def _compute_omegas(self) -> None:
         """Computes the local Barycentric weights (see Berrut and 
         Trefethen, Eq. (3.2)).
         """
-        omega = torch.zeros(self.cardinality)
+        self.omega = torch.zeros(self.cardinality)
         for i in range(self.cardinality):
             mask = torch.full((self.cardinality,), True)
             mask[i] = False
-            omega[i] = torch.prod(self.nodes[i]-self.nodes[mask]) ** -1
-        return omega
+            self.omega[i] = torch.prod(self.nodes[i]-self.nodes[mask]) ** -1
+        return
     
-    def _compute_weights(self) -> Tensor:
+    def _compute_weights(self) -> None:
         """Uses numerical integration to approximate the integral of 
         each basis function over the domain.
         """
-        weights = torch.zeros(self.cardinality)
+        self.weights = torch.zeros(self.cardinality)
         for i in range(self.cardinality):
             f_i = lambda x: self._eval(self.es[i], x)
-            weights[i] = integrate(f_i, *self.domain)
-        return weights
+            self.weights[i] = integrate(f_i, *self.domain)
+        return
     
-    def _compute_mass(self) -> Tensor:
+    def _compute_mass(self) -> None:
         """Uses numerical integration to approximate the mass matrix 
         (the integrals of the product of each pair of basis functions 
         over the domain).
         """
-        mass = torch.zeros((self.cardinality, self.cardinality))
+        self.mass = torch.zeros((self.cardinality, self.cardinality))
         for i in range(self.cardinality):
             for j in range(i, self.cardinality):
                 e_i, e_j = self.es[i], self.es[j]
                 f_ij = lambda ls: self._eval(e_i, ls) * self._eval(e_j, ls)
                 integral = integrate(f_ij, *self.domain)
-                mass[i, j] = mass[j, i] = integral
-        return mass
+                self.mass[i, j] = self.mass[j, i] = integral
+        return
 
     def _eval(self, coefs: Tensor, ls: Tensor) -> Tensor:
         """Returns the value of the polynomial basis at each of a set 

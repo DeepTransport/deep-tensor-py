@@ -40,9 +40,9 @@ class CDFDataLagrange1(CDFData):
 
 
 @dataclasses.dataclass
-class CDFDataLagrangeP(CDFData):
+class CDFDataPiecewiseCheby(CDFData):
     """Class containing information on a single CDF, or set of CDFs, 
-    for a LagrangeP (piecewise) polynomial.
+    for a LagrangeP or CubicHermite polynomial.
     
     Parameters
     ----------
