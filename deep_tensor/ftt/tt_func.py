@@ -10,6 +10,7 @@ from .approx_bases import ApproxBases
 from .directions import Direction
 from .input_data import InputData
 from .tt_data import TTData
+from ..constants import EPS
 from ..options import TTOptions
 from ..polynomials import Basis1D, Piecewise, Spectral
 from ..tools import check_finite, deim, maxvol
@@ -631,8 +632,8 @@ class TTFunc():
     def _build_basis_svd(
         self, 
         H: Tensor, 
-        k: Tensor|int, 
-        tol: float|Tensor|None = None
+        k: Tensor | int, 
+        tol: float | Tensor | None = None
     ) -> None:
         """Computes the coefficients of the kth tensor core.
         
@@ -692,9 +693,9 @@ class TTFunc():
         H: Tensor,
         H_res: Tensor,
         H_up: Tensor,
-        k: Tensor|int
+        k: Tensor | int
     ) -> None:
-        """TODO: finish"""
+        """Computes the coefficients of the kth tensor core."""
         
         k = int(k)
         k_prev = int(k - self.tt_data.direction.value)
@@ -710,7 +711,6 @@ class TTFunc():
         A_next = self.tt_data.cores[k_next]
 
         n_left, n_k, n_right = H.shape
-        n_r_left, _, n_r_right = H_res.shape
         r_0_next, _, r_1_next = A_next.shape
 
         H = TTFunc.unfold(H, self.tt_data.direction)
@@ -731,34 +731,27 @@ class TTFunc():
         else: 
             temp_r = TTFunc.fold_right(U, (rank, n_k, n_right))
             temp_r = torch.einsum("ijl, lk", temp_r, res_w_next)
-            temp_r = TTFunc.unfold_right(temp_r)
-            tmp_lt = sVh @ res_w_prev.T
-            H_up -= U @ tmp_lt
-            H_res -= TTFunc.fold_right(temp_r @ tmp_lt, (n_r_left, n_k, n_r_right))
+            temp_lt = sVh @ res_w_prev.T
+            H_up -= U @ temp_lt
+            H_res -= torch.einsum("li, ljk", temp_lt, temp_r)
             H_res = TTFunc.unfold_right(H_res)
         
         # Enrich basis
         T = torch.cat((U, H_up), dim=1)
 
-        if isinstance(poly, Piecewise):
-            T = T.T.reshape(-1, poly.cardinality) @ poly.mass_R.T
-            T = T.reshape(-1, U.shape[0]).T
-            Q, R = linalg.qr(T)
-            U = linalg.solve(poly.mass_R, Q.T.reshape(-1, poly.cardinality).T)
-            U = U.T.reshape(-1, Q.shape[0]).T
+        T = self._apply_mass_R(poly, T)
+        U, R = linalg.qr(T)
+        U = self._apply_mass_R_inv(poly, U)
 
-        else:
-            U, R = linalg.qr(T)
-
-        r_new = U.shape[-1]
+        r_new = U.shape[1]
 
         indices, B, U_interp = self._select_points(U, k)
         couple = U_interp @ R[:r_new, :rank] @ sVh
 
         interp_ls = self._get_local_index(poly, interp_ls_prev, indices)
-        
-        # TODO: it might be a good idea to add the error tolerance as an argument to this function.
-        U_res = self._truncate_local(H_res)[0]
+
+        error_tol = self.options.local_tol * EPS
+        U_res = self._truncate_local(H_res, error_tol)[0]
         inds_res = self._select_points(U_res, k)[0]
         res_x = self._get_local_index(poly, res_x_prev, inds_res)
 
