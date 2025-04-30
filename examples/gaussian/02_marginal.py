@@ -1,17 +1,16 @@
 from setup import *
 
 
-rs = reference.random(1, 1000)
-samples, potentials = dirt.eval_irt(rs, subset="first")
+dim_r = 3
 
-print(mu_post[0])
-print(samples.mean())
-print(torch.sqrt(cov_post[0, 0]))
-print(torch.std(samples[:, 0].flatten()))
+rs = reference.random(dim_r, 1000)
+ms, potentials_dirt = dirt.eval_irt(rs, subset="first")
 
-potentials_true = 0.5 * torch.log(torch.tensor(2.0*torch.pi)) + 0.5 * cov_post[0, 0].log() + 0.5 * ((samples - mu_post[0]).square() / cov_post[0, 0])
+print(g.mu_post[:dim_r])
+print(ms.mean(dim=0))
+print(g.cov_post[:dim_r, :dim_r])
+print(torch.cov(ms.T))
 
-plt.scatter(potentials_true, potentials)
-plt.xlabel("True")
-plt.ylabel("DIRT")
-plt.show()
+potentials_true = g.potential_marg(ms)
+
+plot_potentials(potentials_true, potentials_dirt)
