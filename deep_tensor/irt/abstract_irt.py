@@ -20,7 +20,6 @@ class AbstractIRT(abc.ABC):
     def __init__(
         self, 
         potential: Callable[[Tensor], Tensor], 
-        # negloglik: Callable[[Tensor], Tensor],
         prior: PriorTransformation,
         bases: Basis1D|list[Basis1D]|None = None,
         prev_approx: TTFunc|None = None,
@@ -30,14 +29,6 @@ class AbstractIRT(abc.ABC):
         defensive: float = 1e-8
     ):
         
-        # def negloglik_Q(xs: Tensor) -> Tensor:
-        #     """Computes the negative log-likelihood of a set of samples 
-        #     from the reference domain, by first transforming them using 
-        #     the mapping Q.
-        #     """
-        #     ms = self.prior.Q(xs)
-        #     return negloglik(ms)
-        
         def target_func(ls: Tensor) -> Tensor:
             """Returns the square root of the ratio between the target 
             density and the weighting function evaluated at a set of 
@@ -45,19 +36,17 @@ class AbstractIRT(abc.ABC):
             """
 
             xs = self.bases.local2approx(ls)[0]
-
-            # neglogliks = self.negloglik(xs)
-            # neglogpris = self.reference.eval_potential(xs)[0]
-            # neglogfxs = neglogliks + neglogpris
+            # TODO: eventually, this will also return the derivative 
+            # of the square root of the ratio of the target function 
+            # and the weighting function. This should then be returned 
+            # along with gs.
             neglogfxs = self.potential(xs)
             neglogwxs = self.bases.eval_measure_potential(xs)[0]
             
             # The ratio of f and w is invariant to changes of coordinate
-            # return self._potential2density(potential, ls)
             gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
             return gs
         
-        # TODO: move this back into AbstractIRT.__init__
         if bases is None and prev_approx is None:
             msg = ("Must pass in a previous approximation or a set of "
                    + "approximation bases.")
@@ -75,13 +64,10 @@ class AbstractIRT(abc.ABC):
             input_data = InputData()
 
         self.potential = potential
-        # self.negloglik = negloglik_Q
         self.prior = prior
         self.reference = self.prior.reference
-        # self.bases = bases
         self.bases = ApproxBases(bases, self.prior.reference.domain, self.prior.dim)
         self.dim = prior.dim
-        # self.approx = prev_approx
         self.options = options 
         self.input_data = input_data
         self.tt_data = tt_data
@@ -152,35 +138,6 @@ class AbstractIRT(abc.ABC):
         approximation to the target distribution.
         """
         return
-
-    # @abc.abstractmethod
-    # def _potential2density(
-    #     self, 
-    #     potential_func: Callable[[Tensor], Tensor], 
-    #     ls: Tensor
-    # ) -> Tensor:
-    #     """Computes the value of the target function being approximated 
-    #     by the FTT for a sample, or set of samples, from the local 
-    #     domain. 
-
-    #     Parameters
-    #     ----------
-    #     potential_func:
-    #         A function that returns the potential of the target density 
-    #         function at a given point in the approximation domain.
-    #     ls:
-    #         An n * d matrix containing a set of n samples from the 
-    #         local domain.
-
-    #     Returns
-    #     ------
-    #     gs:
-    #         An n-dimensional vector containing the value of the 
-    #         function being approximated by the FTT for each sample in 
-    #         ls.
-        
-    #     """
-    #     return
     
     @abc.abstractmethod 
     def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:

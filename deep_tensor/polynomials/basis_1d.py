@@ -200,8 +200,13 @@ class Basis1D(abc.ABC, object):
         return self.domain.isinf().any()
 
     @property
-    def cardinality(self) -> int:
+    def n_nodes(self) -> int:
         """The number of nodes associated with the basis."""
+        return self.nodes.numel()
+
+    @property
+    def cardinality(self) -> int:
+        """The number of basis functions associated with the basis."""
         return self.nodes.numel()
     
     def _out_domain(self, ls: Tensor) -> Tensor:

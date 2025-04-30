@@ -158,6 +158,14 @@ class TTFunc():
         """
         H = H.reshape(*reversed(newshape)).swapdims(0, 2)
         return H
+    
+    @staticmethod
+    def fold(H: Tensor, newshape: Tuple, direction: Direction) -> Tensor:
+        if direction == Direction.FORWARD:
+            H = TTFunc.fold_left(H, newshape)
+        else: 
+            H = TTFunc.fold_right(H, newshape)
+        return H
 
     @staticmethod
     def eval_core_213(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
@@ -521,7 +529,7 @@ class TTFunc():
 
         r_p = 1 if ls_left.numel() == 0 else ls_left.shape[0]
         r_k = 1 if ls_right.numel() == 0 else ls_right.shape[0]
-        n_k = poly.cardinality
+        n_k = poly.n_nodes
 
         # Form the Cartesian product of the index sets and the nodes
         # corresponding to the basis of the current dimension
@@ -539,6 +547,9 @@ class TTFunc():
             ls_2 = ls_right.repeat(r_p * n_k, 1)
             ls = torch.hstack((ls_0, ls_1, ls_2))
         
+        # TODO: the target func will have two returns in the case of 
+        # a cubic spline. In this case, need to form the corresponding 
+        # tensors, then stitch them together
         H = self.target_func(ls).reshape(r_p, n_k, r_k)
         check_finite(H)
 
@@ -924,8 +935,7 @@ class TTFunc():
         return 
 
     def _cross(self) -> None:
-        """Builds the FTT using cross iterations.
-        """
+        """Builds the FTT using cross iterations."""
 
         cross_iter = 0
 
@@ -948,7 +958,6 @@ class TTFunc():
                 indices = torch.arange(self.dim-1)
             else:
                 indices = torch.arange(self.dim-1, 0, -1)
-            
             if self.options.tt_method == "fixed_rank":
                 self._compute_cross_iter_fixed_rank(indices)
             elif self.options.tt_method == "random":

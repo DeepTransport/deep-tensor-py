@@ -95,6 +95,9 @@ class TTDIRT():
         self.num_eval = 0
         self.log_z = 0.0
 
+        # TODO: also add the gradient of log-likelihood function (will 
+        # be passed into the priortransformation object) if it is not None.
+
         self._build()
         return
 
@@ -199,6 +202,9 @@ class TTDIRT():
         
         """
 
+        # TODO: if derivative information is supplied, have a function 
+        # that also returns the derivative at each element (or just 
+        # adapt this one)
         def updated_func(rs: Tensor) -> Tensor:
 
             xs, neglogfxs = self._eval_irt_reference(rs)

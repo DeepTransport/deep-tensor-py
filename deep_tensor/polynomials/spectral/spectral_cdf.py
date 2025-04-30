@@ -94,12 +94,11 @@ class SpectralCDF(CDF1D, abc.ABC):
         zs_unnorm: Tensor
     ) -> Tensor:
         
-        n_zs = zs_unnorm.numel()
+        # print(zs_unnorm.shape)
         
         left_inds = cdf_poly_nodes >= zs_unnorm 
         left_inds[-1, :] = True
-        left_inds = torch.tensor([left_inds[:, i].nonzero().min() - 1 
-                                  for i in range(n_zs)])
+        left_inds = left_inds.int().argmax(axis=0) - 1
         left_inds = left_inds.clamp(0, self.sampling_nodes.numel() - 2)
         return left_inds
     

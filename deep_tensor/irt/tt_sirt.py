@@ -133,20 +133,6 @@ class TTSIRT(AbstractIRT):
         self.z = self.z_func + self.defensive
         return
 
-    # def _potential2density(
-    #     self, 
-    #     potential_func: Callable[[Tensor], Tensor], 
-    #     ls: Tensor
-    # ) -> Tensor:
-        
-    #     xs = self.bases.local2approx(ls)[0]
-    #     neglogfxs = potential_func(xs)
-    #     neglogwxs = self.bases.eval_measure_potential(xs)[0]
-        
-    #     # The ratio of f and w is invariant to changes of coordinate
-    #     gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
-    #     return gs
-
     def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
 
         dim_l = ls.shape[1]
