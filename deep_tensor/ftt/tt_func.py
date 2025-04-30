@@ -910,20 +910,20 @@ class TTFunc():
             r_right = self.tt_data.res_x[int(k+1)]
 
             # Evaluate the interpolant function at x_k nodes
-            F = self._build_block_local(ls_left, ls_right, k)
-            self.errors[k] = self._get_error_local(F, k)
+            H = self._build_block_local(ls_left, ls_right, k)
+            self.errors[k] = self._get_error_local(H, k)
 
             # Evaluate residual function at x_k nodes
-            F_res = self._build_block_local(r_left, r_right, k)
+            H_res = self._build_block_local(r_left, r_right, k)
 
             if self.tt_data.direction == Direction.FORWARD and k > 0:
-                F_up = self._build_block_local(ls_left, r_right, k)
+                H_up = self._build_block_local(ls_left, r_right, k)
             elif self.tt_data.direction == Direction.BACKWARD and k < self.dim-1: 
-                F_up = self._build_block_local(r_left, ls_right, k)
+                H_up = self._build_block_local(r_left, ls_right, k)
             else:
-                F_up = F_res.clone()
+                H_up = H_res.clone()
 
-            self._build_basis_amen(F, F_res, F_up, k)
+            self._build_basis_amen(H, H_res, H_up, k)
 
         return 
 
