@@ -26,7 +26,10 @@ class SpaceTimePointwiseStateObservation(hl.Misfit):
         self.Vh = Vh
         self.ts_obs = ts_obs
         self.B = hl.assemblePointwiseObservation(self.Vh, xs_obs)
+        self.B_mat = self.B.array()
         self.var_error = var_error
+
+        self.n_obs = len(ts_obs) * xs_obs.shape[0]
 
         # Initialise empty data vector
         self.d = hl.TimeDependentVector(ts_obs)
@@ -675,6 +678,121 @@ class HeatSolver(object):
         out.zero()
         return
     
+    def get_B_row_i(self, i: int, out: hl.TimeDependentVector) -> None:
+        """Retrieves the ith row of the observation operator."""
+
+        out.zero()
+
+        ny_k = self.misfit.B_mat.shape[0]
+        t_k = self.misfit.ts_obs[i//ny_k]
+        
+        B_i_k = dl.Vector()
+        self.M.init_vector(B_i_k, 0)
+
+        B_i_k.set_local(self.misfit.B_mat[i%ny_k])
+        out.store(B_i_k, t_k)
+
+        return
+
+    def eval_jacobian(self, x: VariableContainer) -> dl.Matrix:
+        """Evaluates the Jacobian, dy/dk, at a given value of k."""
+
+        self.x = x
+        self.solveFwd(self.x[hl.STATE], self.x)
+        
+        # Unpack state and parameter
+        u, k, _ = self.x
+        n_k = len(k[:])
+        k = self.vec2func(k, hl.PARAMETER)
+
+        # Form all of the elements of the derivative
+        Ns_T = {}
+        u_k = dl.Vector()
+        self.M.init_vector(u_k, 0)
+        for t in self.ts:
+            u.retrieve(u_k, t)
+            u_k_func = self.vec2func(u_k.copy(), hl.STATE)
+            N = dl.assemble(
+                self.dt * self.u * ufl.exp(k) 
+                    * ufl.inner(ufl.grad(self.v), ufl.grad(u_k_func)) 
+                    * ufl.dx
+            )
+            Ns_T[t] = N
+
+        # Initialise a matrix for the Jacobian
+        jac = np.zeros((self.misfit.n_obs, n_k))
+
+        for i in range(self.misfit.n_obs):
+
+            if i % 10 == 0:
+                print(i)
+
+            # Retrieve the ith row of the observation operator
+            B_i = self.generate_vector(hl.STATE)
+            self.get_B_row_i(i, B_i)
+
+            # Solve incremental adjoint problem
+            p_inc = self.generate_vector(hl.ADJOINT)
+            self.solveAdjIncremental(p_inc, B_i)
+
+            # Take product of (transpose of) solution and derivative
+            p_inc_k = dl.Vector()
+            self.M.init_vector(p_inc_k, 0)
+
+            jac_i = dl.Vector()
+            self.M.init_vector(jac_i, 0)
+
+            out_k = dl.Vector()
+            self.M.init_vector(out_k, 0)
+
+            for t in self.ts:
+                p_inc.retrieve(p_inc_k, t)
+                Ns_T[t].transpmult(p_inc_k, out_k)
+                jac_i.axpy(-1.0, out_k)
+
+            jac[i] = jac_i[:]
+            
+        return jac
+    
+    def check_jacobian_fd(
+        self, 
+        x: VariableContainer, 
+        dx: float = 1e-8
+    ) -> None:
+        """Conducts a finite difference check of the Jacobian."""
+
+        J_true = self.eval_jacobian(x)
+        
+        k = x[hl.PARAMETER]
+
+        for i in range(len(k[:])):
+            
+            k_0 = k.copy()
+            k_1 = k.copy()
+            k_0[i] -= dx 
+            k_1[i] += dx
+
+            x_0 = self.generate_vector()
+            x_1 = self.generate_vector()
+            x_0[1] = k_0
+            x_1[1] = k_1
+
+            self.solveFwd(x_0[hl.STATE], x_0)
+            self.solveFwd(x_1[hl.STATE], x_1)
+
+            self.misfit.observe(x_0)
+            d_0 = np.hstack([self.misfit.d.data[i] for i in range(len(self.misfit.ts_obs))])
+            self.misfit.observe(x_1)
+            d_1 = np.hstack([self.misfit.d.data[i] for i in range(len(self.misfit.ts_obs))])
+
+            J_i = (d_1-d_0)/(2*dx)
+
+            print(np.max(np.abs(J_true[:, i])))
+            print(np.max(np.abs(J_i-J_true[:, i])))
+            print("")
+        
+        return
+
     def _build_MK(self, k: dl.Vector):
         """Builds mass matrices and stiffness vectors."""
 

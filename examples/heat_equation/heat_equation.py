@@ -78,6 +78,9 @@ for i in range(2):
 
     prob.solveFwd(x[hl.STATE], x)
 
+# prob.check_jacobian_fd(x)
+jac = prob.eval_jacobian(x)
+
 # m_true = prob.sample_prior()
 # u_true = prob.generate_vector(hl.STATE)
 # x = [u_true, m_true, None]
@@ -150,23 +153,23 @@ print( "Total cost {0:5g}; Reg Cost {1:5g}; Misfit {2:5g}".format(total_cost, re
 total_cost, reg_cost, misfit_cost = prob.cost([u_true, m_true, p])
 print( "Total cost {0:5g}; Reg Cost {1:5g}; Misfit {2:5g}".format(total_cost, reg_cost, misfit_cost) )
 
-hl.nb.show_solution(
-    Vh, 
-    prob.u0, 
-    u, 
-    "Solution",
-    times=[0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
-)
-plt.show()
+# hl.nb.show_solution(
+#     Vh, 
+#     prob.u0, 
+#     u, 
+#     "Solution",
+#     times=[0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
+# )
+# plt.show()
 
-hl.nb.show_solution(
-    Vh, 
-    prob.u0, 
-    u_true, 
-    "Solution",
-    times=[0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
-)
-plt.show()
+# hl.nb.show_solution(
+#     Vh, 
+#     prob.u0, 
+#     u_true, 
+#     "Solution",
+#     times=[0.25, 0.5, 1.0, 2.0, 4.0, 8.0]
+# )
+# plt.show()
 
 # hl.nb.plot(prob.vec2func(m_true, hl.PARAMETER))
 # plt.show()
@@ -208,5 +211,3 @@ plt.yscale('log')
 plt.xlabel('number')
 plt.ylabel('eigenvalue')
 plt.show()
-
-pass
