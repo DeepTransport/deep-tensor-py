@@ -17,23 +17,14 @@
 '''
 
 import matplotlib.pyplot as plt
-from matplotlib import cm
 import dolfin as dl
-import itertools
-from mshr import * 
+# from mshr import * 
 import scipy.sparse as spsp
-from scipy.ndimage import gaussian_filter
 import scipy.sparse.linalg as spla
-from sksparse.cholmod import cholesky
-import ufl
 import numpy as np
 import sys
-import os
-import argparse
 from hippylib import *
-import math
-import time
-import random 
+
 
 class AcousticMisfit(Misfit):
 	def __init__(self, Vh, obsOp, d = None, noise_variance=None):
