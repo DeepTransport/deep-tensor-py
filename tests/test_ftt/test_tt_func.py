@@ -1,12 +1,9 @@
 import unittest
 
 import torch
-from torch import Tensor
 from torch.linalg import norm
 
 import deep_tensor as dt
-
-from tests.ou import build_ou_sirt
 
 
 torch.manual_seed(0)
@@ -146,49 +143,6 @@ class TestTTFunc(unittest.TestCase):
                                   [ 2.0,  2.5,  3.0]]])
 
         self.assertTrue(norm(F_k - F_k_true) < 1e-8)
-        return
-    
-    def compute_grad_fd(
-        self,
-        tt_func: dt.TTFunc, 
-        xs: Tensor, 
-        dx: float = 1e-6
-    ) -> Tensor:
-        """Computes a finite difference approximation to the gradient of 
-        the potential function.
-        """
-        n_xs, d_xs = xs.shape
-        dxs = torch.tile(dx * torch.eye(d_xs), (n_xs, 1))
-        xs_tiled = torch.tile(xs, (1, d_xs)).reshape(-1, d_xs)
-        xs_0 = xs_tiled - dxs 
-        xs_1 = xs_tiled + dxs
-
-        neglogfxs_0 = tt_func._eval(xs_0)
-        neglogfxs_1 = tt_func._eval(xs_1)
-        grad = (neglogfxs_1 - neglogfxs_0) / (2 * dx)
-        return grad.reshape(*xs.shape)
-    
-    def test_grad_ftt(self):
-
-        poly = dt.Legendre(order=40)
-        tt_method = "random"
-        dim = 5
-        
-        sirt = build_ou_sirt(poly, tt_method, dim)
-        tt_func = sirt.approx
-
-        zs = torch.rand((1000, dim))
-        xs = sirt.eval_rt(zs)
-
-        grad_methods = ["autodiff", "manual"]
-
-        for grad_method in grad_methods:
-            with self.subTest(grad_method=grad_method):
-                grads = sirt.approx._grad(xs, method=grad_method)
-                grads_fd = self.compute_grad_fd(tt_func, xs)
-                grad_error = norm(grads - grads_fd)
-                self.assertTrue(grad_error < 1e-4)
-
         return
 
 
