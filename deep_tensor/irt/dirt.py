@@ -5,7 +5,7 @@ import torch
 from torch import Tensor
 from torch.autograd.functional import jacobian
 
-from .tt_sirt import TTSIRT
+from .sirt import SIRT
 from ..bridging_densities import Bridge, Tempering
 from ..ftt import ApproxBases, Direction, InputData
 from ..options import DIRTOptions, TTOptions
@@ -14,7 +14,7 @@ from ..prior_transformation import PriorTransformation
 from ..tools.printing import dirt_info
 
 
-class TTDIRT():
+class DIRT():
     r"""Deep (squared) inverse Rosenblatt transport.
 
     Parameters
@@ -61,7 +61,7 @@ class TTDIRT():
         bridge: Bridge|None = None,
         tt_options: TTOptions|None = None,
         dirt_options: DIRTOptions|None = None,
-        prev_approx: Dict[int, TTSIRT]|None = None
+        prev_approx: Dict[int, SIRT]|None = None
     ):
         
         def negloglik_Q(rs: Tensor) -> Tensor:
@@ -91,12 +91,9 @@ class TTDIRT():
         self.prev_approx = prev_approx
         self.pre_sample_size = (self.dirt_options.num_samples 
                                 + self.dirt_options.num_debugs)
-        self.irts: dict[int, TTSIRT] = {}
+        self.irts: dict[int, SIRT] = {}
         self.num_eval = 0
         self.log_z = 0.0
-
-        # TODO: also add the gradient of log-likelihood function (will 
-        # be passed into the priortransformation object) if it is not None.
 
         self._build()
         return
@@ -181,7 +178,7 @@ class TTDIRT():
 
         return InputData(xs[indices], xs[indices_debug], fxs_debug)
 
-    def _get_new_layer(self, xs: Tensor, neglogratios: Tensor) -> TTSIRT:
+    def _get_new_layer(self, xs: Tensor, neglogratios: Tensor) -> SIRT:
         """Constructs a new SIRT to add to the current composition of 
         SIRTs.
 
@@ -202,9 +199,6 @@ class TTDIRT():
         
         """
 
-        # TODO: if derivative information is supplied, have a function 
-        # that also returns the derivative at each element (or just 
-        # adapt this one)
         def updated_func(rs: Tensor) -> Tensor:
 
             xs, neglogfxs = self._eval_irt_reference(rs)
@@ -235,7 +229,7 @@ class TTDIRT():
                 approx = deepcopy(self.irts[self.n_layers-1].approx)
                 tt_data = deepcopy(self.irts[self.n_layers-1].approx.tt_data)
 
-            sirt = TTSIRT(
+            sirt = SIRT(
                 updated_func,
                 prior=self.prior,
                 bases=self.bases.polys,
@@ -257,7 +251,7 @@ class TTDIRT():
                 neglogratios
             )
 
-            sirt = TTSIRT(
+            sirt = SIRT(
                 updated_func,
                 approx=sirt_prev.approx,
                 options=self.tt_options,
@@ -330,7 +324,7 @@ class TTDIRT():
         self,
         xs: Tensor,
         n_layers: Tensor = torch.inf,
-        subset: str|None = None
+        subset: str | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the deep Rosenblatt transport.
         
@@ -385,7 +379,7 @@ class TTDIRT():
         self, 
         rs: Tensor, 
         n_layers: int = torch.inf,
-        subset: str|None = None
+        subset: str | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the deep inverse Rosenblatt transport.
 
@@ -433,7 +427,7 @@ class TTDIRT():
         self, 
         ms: Tensor,
         n_layers: Tensor = torch.inf,
-        subset: str|None = None
+        subset: str | None = None
     ) -> Tensor:
         r"""Evaluates the potential function.
         
@@ -471,7 +465,7 @@ class TTDIRT():
         self, 
         ms: Tensor,
         n_layers: Tensor = torch.inf,
-        subset: str|None = None
+        subset: str | None = None
     ) -> Tensor: 
         r"""Evaluates the density function.
         
@@ -510,7 +504,7 @@ class TTDIRT():
         self,
         ms: Tensor,
         n_layers: Tensor = torch.inf,
-        subset: str|None = None
+        subset: str | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the deep Rosenblatt transport.
         
@@ -552,7 +546,7 @@ class TTDIRT():
         self, 
         rs: Tensor, 
         n_layers: int = torch.inf,
-        subset: str|None = None
+        subset: str | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the deep inverse Rosenblatt transport.
 
@@ -594,7 +588,7 @@ class TTDIRT():
         ms: Tensor, 
         rs: Tensor, 
         n_layers: int = torch.inf,
-        subset: str|None = None
+        subset: str | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the conditional inverse Rosenblatt transport.
 
@@ -662,7 +656,7 @@ class TTDIRT():
                 raise Exception(msg)
             ms = ms.repeat(n_rs, 1)
         
-        direction = TTSIRT._get_direction(subset)
+        direction = SIRT._get_direction(subset)
         if direction == Direction.FORWARD:
             inds_m = torch.arange(d_ms)
             inds_y = torch.arange(d_ms, self.dim)
@@ -684,11 +678,7 @@ class TTDIRT():
 
         return ys, neglogfys
     
-    def eval_rt_jac(
-        self, 
-        xs: Tensor, 
-        subset: str | None = None
-    ) -> Tensor:
+    def eval_rt_jac(self, xs: Tensor, subset: str | None = None) -> Tensor:
         r"""Evaluates the Jacobian of the deep Rosenblatt transport.
 
         Evaluates the Jacobian of the mapping $R = \mathcal{R}(X)$, 

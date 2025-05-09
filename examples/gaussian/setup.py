@@ -34,7 +34,7 @@ tt_options = dt.TTOptions(tt_method="amen", max_rank=20, max_cross=3, cdf_tol=1e
 # bridge = dt.SingleLayer()
 bridge = dt.Tempering()
 
-dirt = dt.TTDIRT(
+dirt = dt.DIRT(
     g.negloglik, 
     prior,
     poly, 

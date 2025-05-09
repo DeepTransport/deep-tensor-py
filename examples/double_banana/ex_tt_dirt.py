@@ -73,7 +73,7 @@ for poly in polys:
 
     bases = dt.ApproxBases(polys[poly], domain, dim)
     bridge = dt.Tempering(betas=betas)
-    dirt = dt.TTDIRT(
+    dirt = dt.DIRT(
         model.negloglik, 
         prior, 
         polys[poly], 
