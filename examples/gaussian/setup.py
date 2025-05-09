@@ -39,7 +39,7 @@ dirt = dt.TTDIRT(
     prior,
     poly, 
     bridge=bridge,
-    sirt_options=tt_options,
+    tt_options=tt_options,
     dirt_options=dirt_options
 )
 

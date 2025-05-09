@@ -33,7 +33,7 @@ class TTDIRT():
     bridge: 
         An object used to generate the intermediate densities to 
         approximate at each stage of the DIRT construction.
-    sirt_options:
+    tt_options:
         Options for constructing the SIRT approximation to the 
         ratio function (*i.e.*, the pullback of the current bridging 
         density under the existing composition of mappings) at each 
@@ -59,7 +59,7 @@ class TTDIRT():
         prior: PriorTransformation,
         bases: Basis1D | List[Basis1D], 
         bridge: Bridge|None = None,
-        sirt_options: TTOptions|None = None,
+        tt_options: TTOptions|None = None,
         dirt_options: DIRTOptions|None = None,
         prev_approx: Dict[int, TTSIRT]|None = None
     ):
@@ -74,8 +74,8 @@ class TTDIRT():
 
         if bridge is None:
             bridge = Tempering(min_beta=1e-3, ess_tol=0.4)
-        if sirt_options is None:
-            sirt_options = TTOptions(max_cross=1, tt_method="amen")
+        if tt_options is None:
+            tt_options = TTOptions(max_cross=1, tt_method="amen")
         if dirt_options is None:
             dirt_options = DIRTOptions()
 
@@ -86,7 +86,7 @@ class TTDIRT():
         self.dim = prior.dim
         self.bases = ApproxBases(bases, self.domain, self.dim)
         self.bridge = bridge
-        self.sirt_options = sirt_options
+        self.tt_options = tt_options
         self.dirt_options = dirt_options
         self.prev_approx = prev_approx
         self.pre_sample_size = (self.dirt_options.num_samples 
@@ -240,7 +240,7 @@ class TTDIRT():
                 prior=self.prior,
                 bases=self.bases.polys,
                 prev_approx=approx,
-                options=self.sirt_options,
+                options=self.tt_options,
                 input_data=input_data,
                 tt_data=tt_data,
                 defensive=self.dirt_options.defensive
@@ -260,7 +260,7 @@ class TTDIRT():
             sirt = TTSIRT(
                 updated_func,
                 approx=sirt_prev.approx,
-                options=self.sirt_options,
+                options=self.tt_options,
                 input_data=input_data, 
                 defensive=self.dirt_options.defensive
             )
