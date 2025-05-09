@@ -32,7 +32,7 @@ class UniformReference(Reference):
         dpdrs = torch.zeros_like(rs)
         return ps, dpdrs
     
-    def eval_unit_potential(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+    def eval_potential(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         self._check_samples_in_domain(rs)
         n_rs = rs.shape[0]
         log_ps = torch.zeros(n_rs)
