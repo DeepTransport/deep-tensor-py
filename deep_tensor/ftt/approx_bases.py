@@ -58,30 +58,6 @@ class ApproxBases():
             raise Exception(msg)
         return
 
-    # def get_cardinalities(self, indices: Tensor|None = None) -> Tensor:
-    #     """Returns the cardinalities of (a subset of) the polynomials 
-    #     that form the current basis.
-
-    #     Parameters
-    #     ----------
-    #     indices:
-    #         The indices of the polynomials whose cardinalities should 
-    #         be returned. If this is not passed in, the cardinalities 
-    #         of all polynomials of the basis are returned.
-
-    #     Returns
-    #     -------
-    #     cardinalities:
-    #         A d-dimensional vector containing the cardinalities of each 
-    #         polynomial.
-        
-    #     """
-
-    #     if indices is None:
-    #         indices = torch.arange(self.dim)
-        
-    #     return torch.tensor([self.polys[i].cardinality for i in indices])
-
     def local2approx(
         self, 
         ls: Tensor, 
