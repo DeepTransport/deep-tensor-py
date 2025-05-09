@@ -36,10 +36,6 @@ class AbstractIRT(abc.ABC):
             """
 
             xs = self.bases.local2approx(ls)[0]
-            # TODO: eventually, this will also return the derivative 
-            # of the square root of the ratio of the target function 
-            # and the weighting function. This should then be returned 
-            # along with gs.
             neglogfxs = self.potential(xs)
             neglogwxs = self.bases.eval_measure_potential(xs)[0]
             
@@ -95,7 +91,6 @@ class AbstractIRT(abc.ABC):
         for k in range(self.dim):
             self.oned_cdfs[k] = construct_cdf(self.bases.polys[k], error_tol=tol)
 
-        # TODO: could add these as abstract methods
         self._marginalise_forward()
         self._marginalise_backward()
         return

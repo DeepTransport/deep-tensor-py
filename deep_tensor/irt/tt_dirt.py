@@ -5,7 +5,7 @@ import torch
 from torch import Tensor
 from torch.autograd.functional import jacobian
 
-from .tt_sirt import AbstractIRT, TTSIRT
+from .tt_sirt import TTSIRT
 from ..bridging_densities import Bridge, Tempering
 from ..ftt import ApproxBases, Direction, InputData
 from ..options import DIRTOptions, TTOptions
@@ -662,7 +662,7 @@ class TTDIRT():
                 raise Exception(msg)
             ms = ms.repeat(n_rs, 1)
         
-        direction = AbstractIRT._get_direction(subset)
+        direction = TTSIRT._get_direction(subset)
         if direction == Direction.FORWARD:
             inds_m = torch.arange(d_ms)
             inds_y = torch.arange(d_ms, self.dim)

@@ -1,14 +1,20 @@
-from typing import Tuple
+from typing import Callable, Tuple
 
 import torch
 from torch import Tensor
+from torch.autograd.functional import jacobian
+from torch.quasirandom import SobolEngine
 
-from .abstract_irt import AbstractIRT
-from ..ftt import Direction, TTFunc
-from ..polynomials import CDF1D
+from ..ftt import ApproxBases, Direction, InputData, TTData, TTFunc
+from ..options import TTOptions
+from ..polynomials import Basis1D, CDF1D, construct_cdf
+from ..prior_transformation import PriorTransformation
 
 
-class TTSIRT(AbstractIRT):
+PotentialFunc = Callable[[Tensor], Tensor]
+
+
+class TTSIRT():
     r"""Squared inverse Rosenblatt transport.
     
     Parameters
@@ -48,50 +54,128 @@ class TTSIRT(AbstractIRT):
 
     """
 
-    @property 
-    def oned_cdfs(self) -> dict[int, CDF1D]:
-        return self._oned_cdfs
+    def __init__(
+        self, 
+        potential: Callable[[Tensor], Tensor], 
+        prior: PriorTransformation,
+        bases: Basis1D | list[Basis1D] | None = None,
+        prev_approx: TTFunc | None = None,
+        options: TTOptions | None = None, 
+        input_data: InputData | None = None, 
+        tt_data: TTData | None = None,
+        defensive: float = 1e-8
+    ):
+        
+        def target_func(ls: Tensor) -> Tensor:
+            """Returns the square root of the ratio between the target 
+            density and the weighting function evaluated at a set of 
+            points in the local domain.
+            """
+
+            xs = self.bases.local2approx(ls)[0]
+            neglogfxs = self.potential(xs)
+            neglogwxs = self.bases.eval_measure_potential(xs)[0]
+            
+            # The ratio of f and w is invariant to changes of coordinate
+            gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
+            return gs
+        
+        if bases is None and prev_approx is None:
+            msg = ("Must pass in a previous approximation or a set of "
+                   + "approximation bases.")
+            raise Exception(msg)
+
+        if prev_approx is not None:
+            bases = prev_approx.bases.polys
+            options = prev_approx.options
+            tt_data = prev_approx.tt_data
+
+        if options is None:
+            options = TTOptions()
+        
+        if input_data is None:
+            input_data = InputData()
+
+        self.potential = potential
+        self.prior = prior
+        self.reference = self.prior.reference
+        self.bases = ApproxBases(bases, self.prior.reference.domain, self.prior.dim)
+        self.dim = prior.dim
+        self.options = options 
+        self.input_data = input_data
+        self.tt_data = tt_data
+        self.defensive = defensive
+
+        # Define coefficient tensors and marginalisation coefficents
+        self.Bs_f: dict[int, Tensor] = {}
+        self.Rs_f: dict[int, Tensor] = {}
+        self.Bs_b: dict[int, Tensor] = {}
+        self.Rs_b: dict[int, Tensor] = {}
+
+        self.approx = TTFunc(
+            target_func, 
+            self.bases,
+            options=self.options, 
+            input_data=self.input_data,
+            tt_data=self.tt_data
+        )
+        self.approx._cross()
+        if self.approx.use_amen:
+            self.approx._round()  # why?
+
+        self.oned_cdfs = {}
+        tol = self.approx.options.cdf_tol
+        for k in range(self.dim):
+            self.oned_cdfs[k] = construct_cdf(self.bases.polys[k], error_tol=tol)
+
+        self._marginalise_forward()
+        self._marginalise_backward()
+        return
+
+    # @property 
+    # def oned_cdfs(self) -> dict[int, CDF1D]:
+    #     return self._oned_cdfs
     
-    @oned_cdfs.setter 
-    def oned_cdfs(self, value: dict) -> None:
-        self._oned_cdfs = value
-        return
+    # @oned_cdfs.setter 
+    # def oned_cdfs(self, value: dict) -> None:
+    #     self._oned_cdfs = value
+    #     return
 
-    @property
-    def approx(self) -> TTFunc:
-        return self._approx
+    # @property
+    # def approx(self) -> TTFunc:
+    #     return self._approx
 
-    @approx.setter 
-    def approx(self, value: TTFunc) -> None:
-        self._approx = value
-        return
+    # @approx.setter 
+    # def approx(self, value: TTFunc) -> None:
+    #     self._approx = value
+    #     return
 
-    @property 
-    def defensive(self) -> Tensor:
-        return self._defensive
+    # @property 
+    # def defensive(self) -> Tensor:
+    #     return self._defensive
     
-    @defensive.setter
-    def defensive(self, value: Tensor) -> None:
-        self._defensive = value 
-        return
+    # @defensive.setter
+    # def defensive(self, value: Tensor) -> None:
+    #     self._defensive = value 
+    #     return
     
-    @property 
-    def z(self) -> Tensor:
-        return self._z 
+    # @property 
+    # def z(self) -> Tensor:
+    #     return self._z 
     
-    @z.setter
-    def z(self, value: Tensor) -> None:
-        self._z = value
-        return
+    # @z.setter
+    # def z(self, value: Tensor) -> None:
+    #     self._z = value
+    #     return
 
-    @property 
-    def z_func(self) -> Tensor:
-        return self._z_func
+    # @property 
+    # def z_func(self) -> Tensor:
+    #     return self._z_func
 
-    @z_func.setter
-    def z_func(self, value: Tensor) -> None:
-        self._z_func = value
-        return
+    # @z_func.setter
+    # def z_func(self, value: Tensor) -> None:
+    #     self._z_func = value
+    #     return
 
     def _marginalise_forward(self) -> None:
         """Computes each coefficient tensor required to evaluate the 
@@ -134,6 +218,25 @@ class TTSIRT(AbstractIRT):
         return
 
     def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
+        """Evaluates the normalised (marginal) PDF represented by the 
+        squared FTT.
+        
+        Parameters
+        ----------
+        ls:
+            An n * d matrix containing a set of samples from the local 
+            domain.
+        direction:
+            The direction in which to iterate over the tensor cores.
+
+        Returns
+        -------
+        neglogfls:
+            An n-dimensional vector containing the approximation to the 
+            target density function (transformed into the local domain) 
+            at each element in ls.
+        
+        """
 
         dim_l = ls.shape[1]
 
@@ -210,6 +313,24 @@ class TTSIRT(AbstractIRT):
         return zs
 
     def _eval_rt_local(self, ls: Tensor, direction: Direction) -> Tensor:
+        """Evaluates the Rosenblatt transport Z = R(L), where L is the 
+        target random variable mapped into the local domain, and Z is 
+        uniform.
+
+        Parameters
+        ----------
+        ls:
+            An n * d matrix containing samples from the local domain.
+        direction:
+            The direction in which to iterate over the tensor cores.
+        
+        Returns
+        -------
+        zs:
+            An n * d matrix containing the result of applying the 
+            inverse Rosenblatt transport to each sample in ls.
+        
+        """
         if direction == Direction.FORWARD:
             zs = self._eval_rt_local_forward(ls)
         else:
@@ -308,6 +429,29 @@ class TTSIRT(AbstractIRT):
         zs: Tensor,
         direction: Direction
     ) -> Tuple[Tensor, Tensor]:
+        """Converts a set of realisations of a standard uniform 
+        random variable, Z, to the corresponding realisations of the 
+        local target random variable, by applying the inverse 
+        Rosenblatt transport.
+        
+        Parameters
+        ----------
+        zs: 
+            An n * d matrix containing values on [0, 1]^d.
+        direction:
+            The direction in which to iterate over the tensor cores.
+
+        Returns
+        -------
+        ls:
+            An n * d matrix containing the corresponding samples of the 
+            target random variable mapped into the local domain.
+        neglogfls:
+            The local potential function associated with the 
+            approximation to the target density, evaluated at each 
+            sample.
+
+        """
 
         if direction == Direction.FORWARD:
             ls, gs_sq = self._eval_irt_local_forward(zs)
@@ -423,6 +567,32 @@ class TTSIRT(AbstractIRT):
         zs: Tensor,
         direction: Direction
     ) -> Tuple[Tensor, Tensor]:
+        """Evaluates the inverse of the conditional squared Rosenblatt 
+        transport.
+        
+        Parameters
+        ----------
+        ls_x:
+            An n * m matrix containing samples from the local domain.
+        zs:
+            An n * (d-m) matrix containing samples from [0, 1]^{d-m},
+            where m is the the dimension of the joint distribution of 
+            X and Y.
+        direction:
+            The direction in which to iterate over the tensor cores.
+        
+        Returns
+        -------
+        ys:
+            An n * (d-m) matrix containing the realisations of Y 
+            corresponding to the values of zs after applying the 
+            conditional inverse Rosenblatt transport.
+        neglogfys:
+            An n-dimensional vector containing the potential function 
+            of the approximation to the conditional density of Y|X 
+            evaluated at each sample in ys.
+    
+        """
 
         if direction == Direction.FORWARD:
             ls_y, neglogfls_y = self._eval_cirt_local_forward(ls_x, zs)
@@ -432,6 +602,20 @@ class TTSIRT(AbstractIRT):
         return ls_y, neglogfls_y
     
     def _eval_potential_grad_local(self, ls: Tensor) -> Tensor:
+        """Evaluates the gradient of the potential function.
+        
+        Parameters
+        ----------
+        ls:
+            An n * d set of samples from the local domain.
+        
+        Returns 
+        -------
+        grads:
+            An n * d matrix containing the gradient of the potential 
+            function at each element in ls.
+        
+        """
 
         polys = self.bases.polys
         cores = self.approx.tt_data.cores
@@ -672,9 +856,617 @@ class TTSIRT(AbstractIRT):
         return Jacs
 
     def _eval_rt_jac_local(self, ls: Tensor, direction: Direction) -> Tensor:
+        """Evaluates the Jacobian of the Rosenblatt transport.
+        
+        Parameters
+        ----------
+        zs: 
+            An n * d matrix corresponding to evaluations of the 
+            Rosenblatt transport at each sample in ls.
+        direction:
+            The direction in which to iterate over the tensor cores.
+        
+        Returns
+        -------
+        Js:
+            A d * (d*n) matrix, where each d * d block contains the 
+            Jacobian of the Rosenblatt transport evaluated at a given 
+            sample: that is, J_ij = dz_i / dl_i.
 
+        """
         if direction == Direction.FORWARD:
             J = self._eval_rt_jac_local_forward(ls)
         else:
             J = self._eval_rt_jac_local_backward(ls)
         return J
+    
+    @staticmethod
+    def _get_direction(subset: str|None) -> Direction:
+        """Converts the subset parameter into the direction 
+        corresponding to the marginalisation tensors that should be 
+        used.
+        """
+
+        if subset is None:
+            return Direction.FORWARD
+        
+        subset = subset.lower()
+        if subset == "first":
+            return Direction.FORWARD
+        elif subset == "last":
+            return Direction.BACKWARD
+        
+        msg = ("Unknown value of 'subset' found. Acceptable values "
+               + "are 'first', 'last', or None.")
+        raise Exception(msg)
+
+    def _get_transform_indices(self, dim_z: int, direction: Direction) -> Tensor:
+        """TODO: write docstring."""
+
+        if direction == Direction.FORWARD:
+            return torch.arange(dim_z)
+        elif direction == Direction.BACKWARD:
+            return torch.arange(self.dim-dim_z, self.dim)
+
+    def _eval_potential_grad_autodiff(self, xs: Tensor, subset: str) -> Tensor:
+        """Evaluates the gradient of the potential using autodiff."""
+
+        xs_shape = xs.shape
+
+        def _eval_potential(xs: Tensor) -> Tensor:
+            xs = xs.reshape(*xs_shape)
+            return self.eval_potential(xs, subset).sum(dim=0)
+        
+        derivs = jacobian(_eval_potential, xs.flatten(), vectorize=True)
+        return derivs.reshape(*xs_shape)
+
+    def _eval_rt_jac_autodiff(self, xs: Tensor, subset: str) -> Tensor:
+        """Evaluates the gradient of the Rosenblatt transport using 
+        autodiff.
+        """
+
+        n_xs, d_xs = xs.shape
+
+        def _eval_rt(xs: Tensor) -> Tensor:
+            xs = xs.reshape(n_xs, d_xs)
+            return self.eval_rt(xs, subset).sum(dim=0)
+        
+        Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
+        return Js.reshape(d_xs, n_xs, d_xs)
+    
+    def round(self, tol: float|Tensor|None = None) -> None:
+        """Rounds the TT cores. 
+        
+        Applies double rounding to get back to the starting direction.
+
+        Parameters
+        ----------
+        tol:
+            The tolerance to use when applying truncated SVD to round 
+            each core. If `None`, will use `self.options.local_tol`.
+        
+        """
+        self.approx._round(tol)
+        return
+
+    def set_defensive(self, defensive: float|Tensor) -> None:
+        r"""Updates the defensive parameter, $\tau$.
+        
+        Parameters
+        ----------
+        defensive: 
+            The updated value for $\tau$, the defensive parameter of 
+            the IRT.
+        
+        """
+        self._defensive = defensive
+        self._z = self.z_func + defensive
+        return
+    
+    def _eval_potential(
+        self, 
+        xs: Tensor, 
+        subset: str|None = None
+    ) -> Tensor:
+        r"""Evaluates the potential function.
+
+        Returns the joint potential function, or the marginal potential 
+        function for the first $k$ variables or the last $k$ variables,
+        evaluated at a set of samples.
+
+        Parameters
+        ----------
+        xs:
+            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
+            samples from the approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+        
+        Returns
+        -------
+        neglogfxs:
+            The potential function of the approximation to the target 
+            density evaluated at each sample in `xs`.
+
+        """
+        direction = self._get_direction(subset)
+        indices = self._get_transform_indices(xs.shape[1], direction)
+        ls, dldxs = self.bases.approx2local(xs, indices)
+        neglogfls = self._eval_potential_local(ls, direction)
+        neglogfxs = neglogfls - dldxs.log().sum(dim=1)
+        return neglogfxs
+    
+    def eval_potential(
+        self, 
+        ms: Tensor, 
+        subset: str|None = None
+    ) -> Tensor:
+        r"""Evaluates the potential function.
+
+        Returns the joint potential function, or the marginal potential 
+        function for the first $k$ variables or the last $k$ variables,
+        evaluated at a set of samples.
+
+        Parameters
+        ----------
+        ms:
+            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
+            samples from the approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+        
+        Returns
+        -------
+        neglogfxs:
+            The potential function of the approximation to the target 
+            density evaluated at each sample in `xs`.
+
+        """
+        xs = self.prior.Q_inv(ms)
+        neglogfxs = self._eval_potential(xs, subset)
+        neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
+        neglogfms = neglogfxs + neglogabsdet_ms
+        return neglogfms
+
+    def _eval_pdf(
+        self, 
+        xs: Tensor,
+        subset: str|None = None
+    ) -> Tensor: 
+        r"""Evaluates the density function.
+
+        Returns the joint density function, or the marginal density 
+        function for the first $k$ variables or the last $k$ variables, 
+        evaluated at a set of samples.
+        
+        Parameters
+        ----------
+        ms:
+            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
+            samples from the approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+
+        Returns
+        -------
+        fms:
+            An $n$-dimensional vector containing the value of the 
+            approximation to the target density evaluated at each 
+            element in `xs`.
+        
+        """
+        neglogfxs = self._eval_potential(xs, subset)
+        fxs = torch.exp(-neglogfxs)
+        return fxs
+
+    def eval_pdf(
+        self, 
+        ms: Tensor,
+        subset: str|None = None
+    ) -> Tensor: 
+        r"""Evaluates the density function.
+
+        Returns the joint density function, or the marginal density 
+        function for the first $k$ variables or the last $k$ variables, 
+        evaluated at a set of samples.
+        
+        Parameters
+        ----------
+        ms:
+            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
+            samples from the approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+
+        Returns
+        -------
+        fms:
+            An $n$-dimensional vector containing the value of the 
+            approximation to the target density evaluated at each 
+            element in `xs`.
+        
+        """
+        neglogfms = self.eval_potential(ms, subset)
+        fms = torch.exp(-neglogfms)
+        return fms
+    
+    def _eval_rt(
+        self, 
+        xs: Tensor,
+        subset: str|None = None
+    ) -> Tensor:
+        r"""Evaluates the Rosenblatt transport.
+
+        Returns the joint Rosenblatt transport, or the marginal 
+        Rosenblatt transport for the first $k$ variables or the last 
+        $k$ variables, evaluated at a set of samples.
+
+        Parameters
+        ----------
+        xs: 
+            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
+            samples from the approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+        
+        Returns
+        -------
+        zs:
+            An $n \times k$ matrix containing the corresponding 
+            samples, from the unit hypercube, after applying the 
+            Rosenblatt transport.
+
+        """
+        direction = self._get_direction(subset)
+        indices = self._get_transform_indices(xs.shape[1], direction)
+        ls = self.approx.bases.approx2local(xs, indices)[0]
+        zs = self._eval_rt_local(ls, direction)
+        return zs
+
+    def eval_rt(
+        self, 
+        ms: Tensor,
+        subset: str|None = None
+    ) -> Tensor:
+        r"""Evaluates the Rosenblatt transport.
+
+        Returns the joint Rosenblatt transport, or the marginal 
+        Rosenblatt transport for the first $k$ variables or the last 
+        $k$ variables, evaluated at a set of samples.
+
+        Parameters
+        ----------
+        xs: 
+            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
+            samples from the approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+        
+        Returns
+        -------
+        zs:
+            An $n \times k$ matrix containing the corresponding 
+            samples, from the unit hypercube, after applying the 
+            Rosenblatt transport.
+
+        """
+        xs = self.prior.Q_inv(ms)
+        zs = self._eval_rt(xs, subset)
+        return zs
+    
+    def _eval_irt(
+        self, 
+        zs: Tensor,
+        subset: str|None = None
+    ) -> Tuple[Tensor, Tensor]:
+        r"""Evaluates the inverse Rosenblatt transport.
+        
+        Returns the joint inverse Rosenblatt transport, or the marginal 
+        inverse Rosenblatt transport for the first $k$ variables or the 
+        last $k$ variables, evaluated at a set of samples.
+        
+        Parameters
+        ----------
+        zs: 
+            An $n \times k$ matrix containing samples from the unit 
+            hypercube.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+        
+        Returns
+        -------
+        xs: 
+            An $n \times k$ matrix containing the corresponding samples 
+            from the approximation to the target density function.
+        neglogfxs: 
+            An $n$-dimensional vector containing the approximation to 
+            the potential function evaluated at each sample in `xs`.
+        
+        """
+        direction = self._get_direction(subset)
+        indices = self._get_transform_indices(zs.shape[1], direction)
+        ls, neglogfls = self._eval_irt_local(zs, direction)
+        xs, dxdls = self.bases.local2approx(ls, indices)
+        neglogfxs = neglogfls + dxdls.log().sum(dim=1)
+        return xs, neglogfxs
+
+    def eval_irt(
+        self, 
+        zs: Tensor,
+        subset: str|None = None
+    ) -> Tuple[Tensor, Tensor]:
+        r"""Evaluates the inverse Rosenblatt transport.
+        
+        Returns the joint inverse Rosenblatt transport, or the marginal 
+        inverse Rosenblatt transport for the first $k$ variables or the 
+        last $k$ variables, evaluated at a set of samples.
+        
+        Parameters
+        ----------
+        zs: 
+            An $n \times k$ matrix containing samples from the unit 
+            hypercube.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+        
+        Returns
+        -------
+        xs: 
+            An $n \times k$ matrix containing the corresponding samples 
+            from the approximation to the target density function.
+        neglogfxs: 
+            An $n$-dimensional vector containing the approximation to 
+            the potential function evaluated at each sample in `xs`.
+        
+        """
+        xs, neglogfxs = self._eval_irt(zs, subset)
+
+        # Map samples back into actual domain
+        ms = self.prior.Q(xs)
+        neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
+        neglogfms = neglogfxs + neglogabsdet_ms
+
+        return ms, neglogfms
+    
+    def eval_cirt(
+        self, 
+        xs: Tensor, 
+        zs: Tensor, 
+        subset: str|None = None
+    ) -> Tuple[Tensor, Tensor]:
+        r"""Evaluates the conditional inverse Rosenblatt transport.
+
+        Returns the conditional inverse Rosenblatt transport evaluated
+        at a set of samples in the approximation domain. 
+        
+        The conditional inverse Rosenblatt transport takes the form
+        $$Y|X = R^{-1}(R_{k}(X), Z),$$
+        where $X$ is a $k$-dimensional random variable, $Z$ is an 
+        $n-k$-dimensional uniform random variable, $R(\,\cdot\,)$ 
+        denotes the (full) Rosenblatt transport, and $R_{k}(\,\cdot\,)$ 
+        denotes the Rosenblatt transport for the first (or last) $k$ 
+        variables.
+        
+        Parameters
+        ----------
+        xs:
+            An $n \times k$ matrix containing samples from the 
+            approximation domain.
+        zs:
+            An $n \times (d-k)$ matrix containing samples from the unit 
+            hypercube of dimension $d-k$.
+        subset: 
+            Whether `xs` corresponds to the first $k$ variables 
+            (`subset='first'`) of the approximation, or the last $k$ 
+            variables (`subset='last'`).
+        
+        Returns
+        -------
+        ys:
+            An $n \times (d-k)$ matrix containing the realisations of 
+            $Y$ corresponding to the values of `zs` after applying the 
+            conditional inverse Rosenblatt transport.
+        neglogfys:
+            An $n$-dimensional vector containing the potential function 
+            of the approximation to the conditional density of 
+            $Y \textbar X$ evaluated at each sample in `ys`.
+    
+        """
+        
+        n_zs, d_zs = zs.shape
+        n_xs, d_xs = xs.shape
+
+        if d_zs == 0 or d_xs == 0:
+            msg = "The dimensions of both X and Z must be at least 1."
+            raise Exception(msg)
+        
+        if d_zs + d_xs != self.dim:
+            msg = ("The dimensions of X and Z must sum " 
+                   + "to the dimension of the approximation.")
+            raise Exception(msg)
+        
+        if n_zs != n_xs: 
+            if n_xs != 1:
+                msg = "The number of samples of X and Z must be equal."
+                raise Exception(msg)
+            xs = xs.repeat(n_zs, 1)
+        
+        direction = self._get_direction(subset)
+        if direction == Direction.FORWARD:
+            inds_x = torch.arange(d_xs)
+            inds_z = torch.arange(d_xs, self.dim)
+        elif direction == Direction.BACKWARD:
+            inds_x = torch.arange(d_zs, self.dim)
+            inds_z = torch.arange(d_zs)
+        
+        ls_x = self.bases.approx2local(xs, inds_x)[0]
+        ls_y, neglogfys = self._eval_cirt_local(ls_x, zs, direction)
+        ys, dydlys = self.bases.local2approx(ls_y, inds_z)
+        neglogfys += dydlys.log().sum(dim=1)
+
+        return ys, neglogfys
+    
+    def eval_potential_grad(
+        self, 
+        xs: Tensor, 
+        method: str = "autodiff",
+        subset: str|None = None
+    ) -> Tensor:
+        r"""Evaluates the gradient of the potential function.
+        
+        Parameters
+        ----------
+        xs:
+            An $n \times k$ matrix containing samples from the 
+            approximation domain.
+        method: 
+            The method by which to compute the gradient. This can be 
+            `autodiff`, or `manual`. Generally, `manual` is faster than 
+            `autodiff`, but can only be used to evaluate the gradient 
+            of the full potential function (*i.e.*, when $k=d$).
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+
+        Returns
+        -------
+        grads:
+            An $n \times k$ matrix containing the gradient of the 
+            potential function evaluated at each sample in `xs`.
+
+        """
+
+        method = method.lower()
+        if method not in ("manual", "autodiff"):
+            raise Exception("Unknown method.")
+
+        if method == "autodiff":
+            TTFunc._check_sample_dim(xs, self.dim)
+            grad = self._eval_potential_grad_autodiff(xs, subset)
+            return grad
+        
+        TTFunc._check_sample_dim(xs, self.dim, strict=True)
+        ls, dldxs = self.bases.approx2local(xs)
+        grad = self._eval_potential_grad_local(ls)
+        grad *= dldxs
+        return grad
+
+    def eval_rt_jac(
+        self, 
+        xs: Tensor, 
+        method: str = "autodiff",
+        subset: str|None = None
+    ) -> Tensor:
+        r"""Evaluates the Jacobian of the Rosenblatt transport.
+
+        Evaluates the Jacobian of the mapping $Z = R(X)$, where $Z$ is 
+        a standard $k$-dimensional uniform random variable and $X$ is 
+        the approximation to the target random variable. 
+
+        Note that element $J_{ij}$ of the Jacobian is given by
+        $$J_{ij} = \frac{\partial z_{i}}{\partial x_{j}}.$$
+
+        Parameters
+        ----------
+        xs:
+            An $n \times d$ matrix containing a set of samples from the 
+            approximation domain.
+        method:
+            The method by which to compute the Jacobian. This can be 
+            `autodiff`, or `manual`. Generally, `manual` is faster than 
+            `autodiff`, but can only be used to evaluate the Jacobian 
+            of the full Rosenblatt transport (*i.e.*, when $k=d$).
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+
+        Returns
+        -------
+        Jacs:
+            A $k \times n \times k$ tensor, where element $ijk$ 
+            contains element $ik$ of the Jacobian for the $j$th sample 
+            in `xs`.
+
+        """
+
+        direction = self._get_direction(subset)
+        method = method.lower()
+        if method not in ("manual", "autodiff"):
+            raise Exception("Unknown method.")
+
+        if method == "autodiff":
+            TTFunc._check_sample_dim(xs, self.dim)
+            Jacs = self._eval_rt_jac_autodiff(xs, subset)
+            return Jacs
+        
+        TTFunc._check_sample_dim(xs, self.dim, strict=True)
+        ls, dldxs = self.bases.approx2local(xs)
+        Jacs = self._eval_rt_jac_local(ls, direction)
+        for k in range(self.dim):
+            Jacs[:, :, k] *= dldxs[:, k]
+        return Jacs
+
+    def random(self, n: int) -> Tensor: 
+        """Generates a set of random samples. 
+        
+        Parameters
+        ----------
+        n:  
+            The number of samples to generate.
+
+        Returns
+        -------
+        xs:
+            The generated samples.
+        
+        """
+        zs = torch.rand(n, self.dim)
+        xs = self.eval_irt(zs)[0]
+        return xs 
+    
+    def sobol(self, n: int) -> Tensor:
+        """Generates a set of QMC samples.
+        
+        Parameters
+        ----------
+        n:
+            The number of samples to generate.
+        
+        Returns
+        -------
+        xs:
+            The generated samples.
+
+        """
+        S = SobolEngine(dimension=self.dim)
+        zs = S.draw(n)
+        xs = self.eval_irt(zs)[0]
+        return xs
