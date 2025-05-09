@@ -1,3 +1,2 @@
-from .abstract_irt import AbstractIRT
-from .tt_dirt import TTDIRT
-from .tt_sirt import TTSIRT
+from .dirt import DIRT
+from .sirt import SIRT

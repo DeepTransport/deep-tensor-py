@@ -3,7 +3,6 @@ from typing import Tuple
 
 from torch import Tensor
 
-from ..constants import EPS
 from ..domains import Domain
 
 
@@ -12,6 +11,7 @@ class Reference(abc.ABC):
 
     def __init__(self, domain: Domain):
         self.domain = domain
+        return
 
     @abc.abstractmethod
     def eval_cdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
@@ -85,7 +85,7 @@ class Reference(abc.ABC):
         return
     
     @abc.abstractmethod
-    def log_joint_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+    def eval_potential(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         """Returns the joint log-PDF and gradient of the log-PDF of 
         each of a set of points distributed according to the joint 
         reference density. 
@@ -153,7 +153,7 @@ class Reference(abc.ABC):
         """Raises an error if any of a set of samples are outside the
         domain of the reference.
         """
-        outside = (rs < self.domain.left-EPS) & (self.domain.right+EPS < rs)
+        outside = (rs < self.domain.left) | (self.domain.right < rs)
         if (n_outside := outside.sum()) > 0:
             msg = f"{n_outside} points lie outside domain of reference."
             raise Exception(msg)

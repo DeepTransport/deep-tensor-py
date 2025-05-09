@@ -1,10 +1,7 @@
-import warnings
-
 import torch
 from torch import Tensor
 
 from .piecewise import Piecewise
-from ..basis_1d import Basis1D
 
 
 # Integrals and weights of adjacent basis functions mapped to [0, 1]
@@ -30,9 +27,6 @@ class Lagrange1(Piecewise):
             + \frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),
     $$
     where $x_{0}$ and $x_{1}$ denote the endpoints of the element.
-
-    The corresponding (conditional) CDFs are represented using a 
-    piecewise cubic basis which uses the same elements.
 
     We use piecewise cubic polynomials to represent the (conditional) 
     CDFs corresponding to the piecewise linear representation of the 
@@ -84,8 +78,9 @@ class Lagrange1(Piecewise):
         self._int_W = value 
         return
 
-    @Basis1D._check_samples
     def eval_basis(self, ls: Tensor) -> Tensor:
+        
+        self._check_in_domain(ls)
         
         inds = torch.arange(ls.numel())
         left_inds = self.get_left_hand_inds(ls)
@@ -99,9 +94,10 @@ class Lagrange1(Piecewise):
         ps = torch.zeros((ls.numel(), self.cardinality))
         ps[ii, jj] = vals
         return ps
-        
-    @Basis1D._check_samples
+    
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
+
+        self._check_in_domain(ls)
         
         inds = torch.arange(ls.numel())
         left_inds = self.get_left_hand_inds(ls)

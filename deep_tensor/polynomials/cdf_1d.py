@@ -148,7 +148,8 @@ class CDF1D(abc.ABC):
         positive.
         """
         if (n_violations := (ps < -EPS).sum()) > 0:
-            msg = f"{n_violations} negative PDF values found."
+            msg = (f"{n_violations} negative PDF values found. "
+                   + f"Minimum value: {ps.min()}")
             warnings.warn(msg)
         return
 
@@ -253,9 +254,9 @@ class CDF1D(abc.ABC):
             error tolerance.
         
         """
-        error_fs = fs.abs().max()
-        error_dls = dls.abs().max()
-        return torch.min(error_fs, error_dls) < self.error_tol
+        error_fs = fs.abs()
+        error_dls = dls.abs()
+        return torch.min(error_fs, error_dls).max() < self.error_tol
     
     def print_unconverged(self, fs: Tensor, dls: Tensor, method: str) -> None:
         

@@ -1,5 +1,3 @@
 from .bridge import Bridge 
-
-from .single_beta import SingleBeta
-
-from .tempering1 import Tempering1
+from .single_layer import SingleLayer
+from .tempering import Tempering

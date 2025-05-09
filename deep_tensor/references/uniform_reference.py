@@ -6,52 +6,38 @@ from torch.quasirandom import SobolEngine
 
 from .reference import Reference
 from ..domains import BoundedDomain
-from ..tools import check_finite
 
 
 class UniformReference(Reference):
-    """The uniform reference density.
-    
-    Parameters
-    ----------
-    domain:
-        The domain on which the density is defined.
-    
+    r"""The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$.
     """
 
-    def __init__(self, domain: BoundedDomain|None = None):
-        
-        if domain is None:
-            bounds = torch.tensor([-4.0, 4.0])
-            domain = BoundedDomain(bounds=bounds)
-        
-        self.domain = domain 
-        self.pdf = 1.0 / (self.domain.right - self.domain.left)
+    def __init__(self):
+        self.domain = BoundedDomain(bounds=torch.tensor([0.0, 1.0]))
+        self.pdf = 1.0
         return
     
     def invert_cdf(self, zs: Tensor) -> Tensor:
-        check_finite(zs)
-        rs = self.domain.left + zs / self.pdf
-        return rs
+        return zs
     
     def eval_cdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         self._check_samples_in_domain(rs)
-        zs = self.pdf * (rs - self.domain.left)
-        dzdrs = self.pdf * torch.ones_like(rs)
+        zs = rs.clone()
+        dzdrs = torch.ones_like(rs)
         return zs, dzdrs 
     
     def eval_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         self._check_samples_in_domain(rs)
-        pdfs = self.pdf * torch.ones_like(rs)
-        grad_pdfs = torch.zeros_like(rs)
-        return pdfs, grad_pdfs
+        ps = torch.ones_like(rs)
+        dpdrs = torch.zeros_like(rs)
+        return ps, dpdrs
     
-    def log_joint_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+    def eval_potential(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         self._check_samples_in_domain(rs)
-        n_rs, d_rs = rs.shape
-        log_pdfs = torch.full((n_rs,), self.pdf.log() * d_rs)
-        log_grad_pdfs = torch.zeros(n_rs)
-        return log_pdfs, log_grad_pdfs
+        n_rs = rs.shape[0]
+        log_ps = torch.zeros(n_rs)
+        log_dpdrs = torch.zeros(n_rs)  # TODO: look at this more closely.
+        return log_ps, log_dpdrs
     
     def random(self, d: int, n: int) -> Tensor:
         r"""Generates a set of random samples.
@@ -69,9 +55,8 @@ class UniformReference(Reference):
             An $n \times d$ matrix containing the generated samples.
 
         """
-        zs = torch.rand(n, d)
-        rs = self.invert_cdf(zs)
-        return rs 
+        rs = torch.rand(n, d)
+        return rs
     
     def sobol(self, d: int, n: int) -> Tensor:
         r"""Generates a set of QMC samples.
@@ -90,6 +75,5 @@ class UniformReference(Reference):
         
         """
         S = SobolEngine(dimension=d)
-        zs = S.draw(n)
-        rs = self.invert_cdf(zs)
+        rs = S.draw(n)
         return rs

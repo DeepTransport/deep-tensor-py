@@ -35,7 +35,7 @@ class Jacobi11(Recurr):
     def sample_measure(self, n: int) -> Tensor:
         beta = Beta(2.0, 2.0)
         ls = beta.sample(n)
-        ls = (2.0 * ls) - 1
+        ls = (2.0 * ls) - 1.0
         return ls
     
     def sample_measure_skip(self, n: int) -> Tensor:
@@ -53,7 +53,7 @@ class Jacobi11(Recurr):
         return ws
     
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
-        ws = -1.5 * ls  # TODO: check MATLAB code
+        ws = -1.5 * ls
         return ws
     
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:

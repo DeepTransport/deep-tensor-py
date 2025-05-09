@@ -21,8 +21,8 @@ execute:
 format:
   html:
     theme:
-      light: [flatly, styles.css]
-      # dark: [darkly, styles.css]
+      dark: [darkly, styles.css, styles-dark.css]
+      light: [flatly, styles.css, styles-light.css]
 
 metadata-files:
   - _sidebar.yml
@@ -33,9 +33,6 @@ interlinks:
       url: https://pytorch.org/docs/stable/
     python:
       url: https://docs.python.org/3/
-    # quartodoc-test:
-    #   url: https://machow.github.io/quartodoc
-    #   inv: objects-test.txt
 
 quartodoc:
 
@@ -55,29 +52,20 @@ quartodoc:
 
   sections:
 
-    - title: Inverse Rosenblatt Transport
-      desc: Objects used for generating approximate couplings between random variables using functional tensor trains.
+    - title: Deep Inverse Rosenblatt Transport
+      desc: An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.
       package: deep_tensor
       contents:
-        - name: TTSIRT
-          members: [set_defensive, round, eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, eval_potential_grad, eval_rt_jac, random, sobol]
-        - name: TTDIRT
-          members: [eval_potential, eval_pdf, eval_rt, eval_irt, random, sobol]
+        - name: DIRT
+          members: [eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, random, sobol]
 
-    - title: Functional Tensor Trains
-      desc: Objects used for building functional tensor train approximations to multivariate functions.
-      package: deep_tensor
+    - title: Prior Transformation
+      desc: An object which defines a mapping between the prior and a reference density.
       contents:
-        - name: TTFunc
-          members: []
-        - name: TTData
-          members: []
-        - name: InputData
-          members: []
-        - name: ApproxBases
+        - name: PriorTransformation
           members: []
 
-    - title: Polynomials
+    - title: Polynomial Bases
       desc: Polynomial bases used to construct a functional tensor train.
       package: deep_tensor
       contents:
@@ -125,5 +113,7 @@ quartodoc:
       desc: Objects used to generate the intermediate densities approximated during DIRT construction.
       package: deep_tensor
       contents:
-        - name: Tempering1
+        - name: SingleLayer
+          members: []
+        - name: Tempering
           members: []

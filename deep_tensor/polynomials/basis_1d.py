@@ -1,5 +1,4 @@
 import abc
-from typing import Callable
 import warnings
 
 from torch import Tensor 
@@ -201,8 +200,13 @@ class Basis1D(abc.ABC, object):
         return self.domain.isinf().any()
 
     @property
-    def cardinality(self) -> int:
+    def n_nodes(self) -> int:
         """The number of nodes associated with the basis."""
+        return self.nodes.numel()
+
+    @property
+    def cardinality(self) -> int:
+        """The number of basis functions associated with the basis."""
         return self.nodes.numel()
     
     def _out_domain(self, ls: Tensor) -> Tensor:
@@ -220,7 +224,7 @@ class Basis1D(abc.ABC, object):
             warnings.warn(msg)
         return
     
-    def _check_eval_dims(self, coefs: Tensor, ls: Tensor) -> None:
+    def _check_eval_dims(self, coeffs: Tensor, ls: Tensor) -> None:
         """Checks that the arguments of 'eval_radon', 'eval', 
         'eval_radon_deriv' and 'eval_deriv' have the correct 
         dimensions.
@@ -228,35 +232,12 @@ class Basis1D(abc.ABC, object):
         if ls.ndim != 1:
             msg = "'ls' must be a vector."
             raise Exception(msg)
-        if coefs.shape[0] != self.cardinality:
+        if coeffs.shape[0] != self.cardinality:
             msg = ("Coefficient vector must have the same cardinality "
                    + "as the basis.")
             raise Exception(msg)
         return
     
-    @staticmethod
-    def _check_eval_args(func) -> Callable:
-        """Checks that the samples used as part of a call to 
-        'eval_radon', 'eval', 'eval_radon_deriv' and 'eval_deriv' have 
-        the appropriate dimensions and are contained within the domain.
-        """
-        def _func(self, coefs: Tensor, ls: Tensor) -> Tensor:
-            self._check_eval_dims(coefs, ls)
-            self._check_in_domain(ls)
-            return func(self, coefs, ls)
-        return _func
-    
-    @staticmethod
-    def _check_samples(func) -> Callable:
-        """Checks that a set of samples have the appropriate dimension 
-        and are contained within the domain of the basis.
-        """
-        def _func(self, ls: Tensor) -> Tensor:
-            self._check_in_domain(ls)
-            return func(self, ls)
-        return _func
-    
-    @_check_eval_args
     def eval_radon(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the approximated function at a given vector of 
         points.
@@ -283,11 +264,13 @@ class Basis1D(abc.ABC, object):
             coeffs).
         
         """
+        self._check_eval_dims(coeffs, ls)
+        self._check_in_domain(ls)
+
         basis_vals = self.eval_basis(ls)
         fls = basis_vals @ coeffs
         return fls
         
-    @_check_eval_args
     def eval_radon_deriv(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the derivative of the approximated function at
         a set of points.
@@ -310,11 +293,13 @@ class Basis1D(abc.ABC, object):
             The values of the derivative of the function at each point.
         
         """
+        self._check_eval_dims(coeffs, ls)
+        self._check_in_domain(ls)
+
         deriv_vals = self.eval_basis_deriv(ls)
         gradfls = deriv_vals @ coeffs
         return gradfls
 
-    @_check_eval_args
     def eval(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the product of approximated function and the 
         weighting function at a given vector of points.
@@ -342,6 +327,9 @@ class Basis1D(abc.ABC, object):
             element of ls.
         
         """
+        self._check_eval_dims(coeffs, ls)
+        self._check_in_domain(ls)
+
         fls = self.eval_radon(coeffs, ls)
         wls = self.eval_measure(ls)
         return fls * wls[:, None]
@@ -374,6 +362,8 @@ class Basis1D(abc.ABC, object):
             evaluated at the ith element of ls.
         
         """
+        self._check_eval_dims(coeffs, ls)
+        self._check_in_domain(ls)
         
         # Compute first term of product rule
         dpdls = self.eval_basis_deriv(ls)

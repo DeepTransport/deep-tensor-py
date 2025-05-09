@@ -1,7 +1,7 @@
 import torch
 torch.set_default_dtype(torch.float64)
 
-from .bridging_densities import Tempering1
+from .bridging_densities import SingleLayer, Tempering
 from .domains import (
     AlgebraicMapping, 
     BoundedDomain, 
@@ -9,13 +9,15 @@ from .domains import (
     LogarithmicMapping
 )
 from .ftt import ApproxBases, Direction, InputData, TTData, TTFunc
-from .irt import AbstractIRT, TTDIRT, TTSIRT
+from .irt import DIRT, SIRT
 from .options import TTOptions, DIRTOptions
 from .polynomials import (
     Basis1D,
     Chebyshev1st, 
     Chebyshev1stTrigoCDF,
     Chebyshev2nd,
+    Chebyshev2ndTrigoCDF,
+    CubicHermite,
     Fourier,
     Hermite,
     Lagrange1, 
@@ -28,5 +30,6 @@ from .polynomials import (
     Spectral,
     construct_cdf
 )
+from .prior_transformation import PriorTransformation
 from .references import GaussianReference, UniformReference
 from .tools import run_mcmc

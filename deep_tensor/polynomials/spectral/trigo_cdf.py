@@ -3,7 +3,6 @@ from torch import Tensor
 
 from .spectral import Spectral
 from .spectral_cdf import SpectralCDF
-from ...constants import EPS
 
 
 class TrigoCDF(SpectralCDF):

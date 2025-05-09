@@ -1,0 +1,10 @@
+/*-- scss:rules --*/
+
+.doc-section dt code {
+    background-color: rgba(67, 67, 67, .65);
+}
+
+p code:not(.sourceCode) {
+    background-color: rgba(67, 67, 67, .65);
+    color: #dea3ff;
+}

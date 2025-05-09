@@ -10,10 +10,11 @@ from .approx_bases import ApproxBases
 from .directions import Direction
 from .input_data import InputData
 from .tt_data import TTData
+from ..constants import EPS
 from ..options import TTOptions
 from ..polynomials import Basis1D, Piecewise, Spectral
 from ..tools import check_finite, deim, maxvol
-from ..tools.printing import cross_info
+from ..tools.printing import als_info
 
 
 MAX_COND = 1.0e+5
@@ -157,6 +158,14 @@ class TTFunc():
         """Computes the inverse of the unfold_right operation.
         """
         H = H.reshape(*reversed(newshape)).swapdims(0, 2)
+        return H
+    
+    @staticmethod
+    def fold(H: Tensor, newshape: Tuple, direction: Direction) -> Tensor:
+        if direction == Direction.FORWARD:
+            H = TTFunc.fold_left(H, newshape)
+        else: 
+            H = TTFunc.fold_right(H, newshape)
         return H
 
     @staticmethod
@@ -356,7 +365,7 @@ class TTFunc():
         if self.input_data.is_debug:
             info_headers += ["Max Debug Error", "Mean Debug Error"]
 
-        cross_info(" | ".join(info_headers))
+        als_info(" | ".join(info_headers))
         return
 
     def _print_info(self, cross_iter: int, indices: Tensor) -> None:
@@ -379,7 +388,7 @@ class TTFunc():
             ]
 
         if self.options.verbose:
-            cross_info(" | ".join(diagnostics))
+            als_info(" | ".join(diagnostics))
         return
 
     def _select_points_piecewise(
@@ -521,7 +530,7 @@ class TTFunc():
 
         r_p = 1 if ls_left.numel() == 0 else ls_left.shape[0]
         r_k = 1 if ls_right.numel() == 0 else ls_right.shape[0]
-        n_k = poly.cardinality
+        n_k = poly.n_nodes
 
         # Form the Cartesian product of the index sets and the nodes
         # corresponding to the basis of the current dimension
@@ -539,6 +548,9 @@ class TTFunc():
             ls_2 = ls_right.repeat(r_p * n_k, 1)
             ls = torch.hstack((ls_0, ls_1, ls_2))
         
+        # TODO: the target func will have two returns in the case of 
+        # a cubic spline. In this case, need to form the corresponding 
+        # tensors, then stitch them together
         H = self.target_func(ls).reshape(r_p, n_k, r_k)
         check_finite(H)
 
@@ -620,8 +632,8 @@ class TTFunc():
     def _build_basis_svd(
         self, 
         H: Tensor, 
-        k: Tensor|int, 
-        tol: float|Tensor|None = None
+        k: Tensor | int, 
+        tol: float | Tensor | None = None
     ) -> None:
         """Computes the coefficients of the kth tensor core.
         
@@ -681,9 +693,9 @@ class TTFunc():
         H: Tensor,
         H_res: Tensor,
         H_up: Tensor,
-        k: Tensor|int
+        k: Tensor | int
     ) -> None:
-        """TODO: finish"""
+        """Computes the coefficients of the kth tensor core."""
         
         k = int(k)
         k_prev = int(k - self.tt_data.direction.value)
@@ -699,7 +711,6 @@ class TTFunc():
         A_next = self.tt_data.cores[k_next]
 
         n_left, n_k, n_right = H.shape
-        n_r_left, _, n_r_right = H_res.shape
         r_0_next, _, r_1_next = A_next.shape
 
         H = TTFunc.unfold(H, self.tt_data.direction)
@@ -720,34 +731,27 @@ class TTFunc():
         else: 
             temp_r = TTFunc.fold_right(U, (rank, n_k, n_right))
             temp_r = torch.einsum("ijl, lk", temp_r, res_w_next)
-            temp_r = TTFunc.unfold_right(temp_r)
-            tmp_lt = sVh @ res_w_prev.T
-            H_up -= U @ tmp_lt
-            H_res -= TTFunc.fold_right(temp_r @ tmp_lt, (n_r_left, n_k, n_r_right))
+            temp_lt = sVh @ res_w_prev.T
+            H_up -= U @ temp_lt
+            H_res -= torch.einsum("li, ljk", temp_lt, temp_r)
             H_res = TTFunc.unfold_right(H_res)
         
         # Enrich basis
         T = torch.cat((U, H_up), dim=1)
 
-        if isinstance(poly, Piecewise):
-            T = T.T.reshape(-1, poly.cardinality) @ poly.mass_R.T
-            T = T.reshape(-1, U.shape[0]).T
-            Q, R = linalg.qr(T)
-            U = linalg.solve(poly.mass_R, Q.T.reshape(-1, poly.cardinality).T)
-            U = U.T.reshape(-1, Q.shape[0]).T
+        T = self._apply_mass_R(poly, T)
+        U, R = linalg.qr(T)
+        U = self._apply_mass_R_inv(poly, U)
 
-        else:
-            U, R = linalg.qr(T)
-
-        r_new = U.shape[-1]
+        r_new = U.shape[1]
 
         indices, B, U_interp = self._select_points(U, k)
         couple = U_interp @ R[:r_new, :rank] @ sVh
 
         interp_ls = self._get_local_index(poly, interp_ls_prev, indices)
-        
-        # TODO: it might be a good idea to add the error tolerance as an argument to this function.
-        U_res = self._truncate_local(H_res)[0]
+
+        error_tol = self.options.local_tol * EPS
+        U_res = self._truncate_local(H_res, error_tol)[0]
         inds_res = self._select_points(U_res, k)[0]
         res_x = self._get_local_index(poly, res_x_prev, inds_res)
 
@@ -906,26 +910,25 @@ class TTFunc():
             r_right = self.tt_data.res_x[int(k+1)]
 
             # Evaluate the interpolant function at x_k nodes
-            F = self._build_block_local(ls_left, ls_right, k)
-            self.errors[k] = self._get_error_local(F, k)
+            H = self._build_block_local(ls_left, ls_right, k)
+            self.errors[k] = self._get_error_local(H, k)
 
             # Evaluate residual function at x_k nodes
-            F_res = self._build_block_local(r_left, r_right, k)
+            H_res = self._build_block_local(r_left, r_right, k)
 
             if self.tt_data.direction == Direction.FORWARD and k > 0:
-                F_up = self._build_block_local(ls_left, r_right, k)
+                H_up = self._build_block_local(ls_left, r_right, k)
             elif self.tt_data.direction == Direction.BACKWARD and k < self.dim-1: 
-                F_up = self._build_block_local(r_left, ls_right, k)
+                H_up = self._build_block_local(r_left, ls_right, k)
             else:
-                F_up = F_res.clone()
+                H_up = H_res.clone()
 
-            self._build_basis_amen(F, F_res, F_up, k)
+            self._build_basis_amen(H, H_res, H_up, k)
 
         return 
 
     def _cross(self) -> None:
-        """Builds the FTT using cross iterations.
-        """
+        """Builds the FTT using cross iterations."""
 
         cross_iter = 0
 
@@ -948,7 +951,6 @@ class TTFunc():
                 indices = torch.arange(self.dim-1)
             else:
                 indices = torch.arange(self.dim-1, 0, -1)
-            
             if self.options.tt_method == "fixed_rank":
                 self._compute_cross_iter_fixed_rank(indices)
             elif self.options.tt_method == "random":
@@ -968,8 +970,9 @@ class TTFunc():
 
             if finished:
                 if self.options.verbose:
-                    cross_info(f"TT-cross complete.")
-                    cross_info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
+                    msg = (f"TT-cross complete. "
+                           + f"Final TT ranks: {[int(r) for r in self.rank]}.")
+                    als_info(msg)
                 return
             else:
                 self.tt_data._reverse_direction()

@@ -3,6 +3,7 @@ import warnings
 
 import torch
 from torch import Tensor
+from torch import linalg
 
 
 def deim(U: Tensor) -> Tuple[Tensor, Tensor]:
@@ -38,24 +39,24 @@ def deim(U: Tensor) -> Tuple[Tensor, Tensor]:
                + f"number of columns ({n} vs {r}).")
         raise Exception(msg)
 
-    indices = torch.zeros(r, dtype=torch.int32)
+    inds = torch.zeros(r, dtype=torch.int32)
     P = torch.zeros((n, r))
 
-    indices[0] = U[:, 0].abs().argmax()
-    P[indices[0], 0] = 1.0
+    inds[0] = U[:, 0].abs().argmax()
+    P[inds[0], 0] = 1.0
 
     for i in range(1, r):
 
         P_i = P[:, :i]
         U_i = U[:, :i]
 
-        c: Tensor = torch.linalg.solve(P_i.T @ U_i, P_i.T @ U[:, i])
+        c: Tensor = linalg.solve(P_i.T @ U_i, P_i.T @ U[:, i])
         r = U[:, i] - U[:, :i] @ c
-        indices[i] = r.abs().argmax()
-        P[indices[i], i] = 1.0
+        inds[i] = r.abs().argmax()
+        P[inds[i], i] = 1.0
 
-    B = torch.linalg.solve(U[indices].T, U.T).T
-    return indices, B
+    B = linalg.solve(U[inds].T, U.T).T
+    return inds, B
 
 
 def lu_deim(A: Tensor):
@@ -70,13 +71,13 @@ def lu_deim(A: Tensor):
                + f"number of columns ({n} vs {r}).")
         raise Exception(msg)
 
-    indices = torch.arange(n)
+    inds = torch.arange(n)
 
-    pivots: Tensor = torch.linalg.lu_factor_ex(A)[1] - 1
+    pivots: Tensor = linalg.lu_factor_ex(A)[1] - 1
     for i, p in enumerate(pivots):
-        indices[[i, p.item()]] = indices[[p.item(), i]]
+        inds[[i, p.item()]] = inds[[p.item(), i]]
 
-    return indices
+    return inds
 
 
 def maxvol(
@@ -92,18 +93,17 @@ def maxvol(
         n*r matrix, where n > r.
     tol:
         Convergence tolerance. The algorithm is considered converged if
-        the absolute value of the largest element in A^{-1} @ B (where 
+        the absolute value of the largest element in H^{-1} @ B (where 
         B is the submatrix identified) is no greater than 1 + tol.
     max_iter:
         The maximum number of iterations to carry out.
 
     Returns
     -------
-    indices:
+    inds:
         The row indices of the dominant submatrix. 
-    A:
-        The product of the original matrix and the inverse of the 
-        submatrix.
+    B:
+        The product of H and the inverse of the submatrix.
 
     References
     ----------
@@ -112,27 +112,27 @@ def maxvol(
     """
 
     _, r = H.shape
-    indices = lu_deim(H)[:r]
+    inds = lu_deim(H)[:r]
 
-    if (rank := torch.linalg.matrix_rank(H[indices])) < r:
+    if (rank := linalg.matrix_rank(H[inds])) < r:
         msg = f"Initial submatrix is singular (rank {rank} < {r})."
         raise Exception(msg)
 
-    A: Tensor = torch.linalg.solve(H[indices].T, H.T).T
+    B: Tensor = linalg.solve(H[inds].T, H.T).T
 
     for _ in range(max_iter):
 
-        ij_max = A.abs().argmax(axis=None)
-        i, j = torch.unravel_index(ij_max, A.shape)
-        i_old = indices[j]
+        ij_max = B.abs().argmax(axis=None)
+        i, j = torch.unravel_index(ij_max, B.shape)
+        i_old = inds[j]
 
-        if A[i, j].abs() < 1.0 + tol:
-            # print(torch.max(A @ torch.linalg.inv(A[indices[:r]])))
-            return indices, A
+        if B[i, j].abs() < 1.0 + tol:
+            # print(torch.max(B @ linalg.inv(B[inds[:r]])))
+            return inds, B
 
-        A -= torch.outer(A[:, j], (A[i, :] - A[i_old, :]) / A[i, j])
-        indices[j] = i
+        B -= torch.outer(B[:, j], (B[i, :] - B[i_old, :]) / B[i, j])
+        inds[j] = i
 
     msg = f"maxvol failed to converge in {max_iter} iterations."
     warnings.warn(msg)
-    return indices, A
+    return inds, B

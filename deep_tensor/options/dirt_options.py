@@ -14,11 +14,9 @@ class DIRTOptions():
     ----------
     method:
         The method used for the ratio function at each iteration. Can 
-        be `aratio` (approximate ratio) or `eratio` (exact ratio).
-    max_layers:
-        The maximum number of layers created during DIRT construction.
+        be `'aratio'` (approximate ratio) or `'eratio'` (exact ratio).
     num_samples:
-        TODO
+        TODO: remove this eventually.
     num_debugs:
         The number of samples used to evaluate the quality of each SIRT 
         constructed during the construction of the DIRT.
@@ -26,11 +24,13 @@ class DIRTOptions():
         The parameter (often referred to as $\gamma$ or $\tau$) used to 
         make the tails of the FTT approximation to each ratio function 
         heavier.
+    verbose:
+        Whether to print information on the construction of the DIRT 
+        object.
     
     """
 
     method: str = "aratio"
-    max_layers: int = 20
     num_samples: int = 1000
     num_debugs: int = 1000
     defensive: float = 1e-08
