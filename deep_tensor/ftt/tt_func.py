@@ -14,7 +14,7 @@ from ..constants import EPS
 from ..options import TTOptions
 from ..polynomials import Basis1D, Piecewise, Spectral
 from ..tools import check_finite, deim, maxvol
-from ..tools.printing import cross_info
+from ..tools.printing import als_info
 
 
 MAX_COND = 1.0e+5
@@ -365,7 +365,7 @@ class TTFunc():
         if self.input_data.is_debug:
             info_headers += ["Max Debug Error", "Mean Debug Error"]
 
-        cross_info(" | ".join(info_headers))
+        als_info(" | ".join(info_headers))
         return
 
     def _print_info(self, cross_iter: int, indices: Tensor) -> None:
@@ -388,7 +388,7 @@ class TTFunc():
             ]
 
         if self.options.verbose:
-            cross_info(" | ".join(diagnostics))
+            als_info(" | ".join(diagnostics))
         return
 
     def _select_points_piecewise(
@@ -970,8 +970,9 @@ class TTFunc():
 
             if finished:
                 if self.options.verbose:
-                    cross_info(f"TT-cross complete.")
-                    cross_info(f"Final TT ranks: {[int(r) for r in self.rank]}.")
+                    msg = (f"TT-cross complete. "
+                           + f"Final TT ranks: {[int(r) for r in self.rank]}.")
+                    als_info(msg)
                 return
             else:
                 self.tt_data._reverse_direction()
