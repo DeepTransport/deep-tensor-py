@@ -56,7 +56,7 @@ quartodoc:
       desc: An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.
       package: deep_tensor
       contents:
-        - name: TTDIRT
+        - name: DIRT
           members: [eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, random, sobol]
 
     - title: Prior Transformation
