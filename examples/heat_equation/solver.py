@@ -3,6 +3,7 @@ from typing import List
 import dolfin as dl
 import hippylib as hl
 import numpy as np
+import torch
 import ufl
 
 
@@ -12,6 +13,51 @@ VariableContainer = list[
     hl.TimeDependentVector
 ]
 
+
+class ProcessConvolutionPrior(object):
+
+    def __init__(
+        self, 
+        mesh: dl.Mesh, 
+        Vh: dl.FunctionSpace, 
+        ss: np.ndarray,
+        mu: float,
+        r: float
+    ):
+        
+        self.mesh = mesh 
+        self.Vh = Vh
+
+        self.xs = mesh.coordinates()
+        self.ss = ss
+        self.mu = mu
+        self.r = r
+
+        self.n_coefs = ss.shape[0]
+
+        self.coef2node = self._build_coef2node()
+        return
+    
+    def _build_coef2node(self):
+        """Builds a matrix which, given the coefficients of the white 
+        noise, returns the values of the field at each of the nodes of 
+        the mesh.
+        """
+        xxs = self.xs[:, np.newaxis, :]
+        sss = self.xs[np.newaxis, :, :]
+        d_sq = np.sum((xxs-sss) ** 2, axis=2)
+        coef2node = np.exp(-self.r * d_sq)
+        return coef2node
+    
+    def transform(self, coefs: torch.Tensor) -> dl.Vector:
+        """Transforms a set of coefficient values to generate a 
+        vector from the prior.
+        """
+        field = self.mu + self.coef2node @ coefs.numpy()
+        func = dl.Function(self.Vh)
+        func.vector().set_local(field)
+        func.vector().apply("insert")
+        return func.vector()
 
 class SpaceTimePointwiseStateObservation(hl.Misfit):
     
@@ -109,7 +155,7 @@ class HeatSolver(object):
         self, 
         mesh, 
         Vh: dl.FunctionSpace, 
-        prior: hl.modeling._Prior, 
+        prior: ProcessConvolutionPrior, 
         misfit: SpaceTimePointwiseStateObservation,
         ts: np.ndarray
     ):
@@ -144,18 +190,6 @@ class HeatSolver(object):
 
         # Assemble mass matrix
         self.M = dl.assemble(self.u * self.v * ufl.dx)
-        
-        # self.bc = dl.DirichletBC(
-        #     self.Vh[hl.STATE], 
-        #     dl.Constant(0.0), 
-        #     self.dirichlet_boundary
-        # )
-
-        # self.bc_p = dl.DirichletBC(
-        #     self.Vh[hl.STATE],
-        #     dl.Constant(0.0),
-        #     self.dirichlet_boundary
-        # )
 
         # Part of model public API (??)
         self.gauss_newton_approx = True
