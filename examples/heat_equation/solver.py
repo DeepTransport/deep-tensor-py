@@ -4,6 +4,7 @@ import dolfin as dl
 import hippylib as hl
 import numpy as np
 import torch
+from torch import Tensor
 import ufl
 
 
@@ -18,18 +19,15 @@ class ProcessConvolutionPrior(object):
 
     def __init__(
         self, 
-        mesh: dl.Mesh, 
         Vh: dl.FunctionSpace, 
         ss: np.ndarray,
         mu: float,
         r: float
     ):
-        
-        self.mesh = mesh 
+         
         self.Vh = Vh
-
-        self.xs = mesh.coordinates()
-        self.ss = ss
+        self.xs = Vh.tabulate_dof_coordinates()
+        self.ss = np.array(ss)
         self.mu = mu
         self.r = r
 
@@ -44,20 +42,24 @@ class ProcessConvolutionPrior(object):
         the mesh.
         """
         xxs = self.xs[:, np.newaxis, :]
-        sss = self.xs[np.newaxis, :, :]
-        d_sq = np.sum((xxs-sss) ** 2, axis=2)
+        sss = self.ss[np.newaxis, :, :]
+        d_sq = np.sum((xxs-sss)**2, axis=2)
         coef2node = np.exp(-self.r * d_sq)
         return coef2node
     
-    def transform(self, coefs: torch.Tensor) -> dl.Vector:
+    def transform(self, coefs: np.ndarray) -> dl.Vector:
         """Transforms a set of coefficient values to generate a 
         vector from the prior.
         """
-        field = self.mu + self.coef2node @ coefs.numpy()
+
+        if not isinstance(coefs, np.ndarray):
+            coefs = np.array(coefs)
+
+        field = self.mu + self.coef2node @ coefs
         func = dl.Function(self.Vh)
         func.vector().set_local(field)
         func.vector().apply("insert")
-        return func.vector()
+        return func
 
 class SpaceTimePointwiseStateObservation(hl.Misfit):
     
@@ -91,7 +93,18 @@ class SpaceTimePointwiseStateObservation(hl.Misfit):
 
         self.observed = False
         return
-        
+
+    def get_data(self, x: VariableContainer) -> Tensor:
+        """Extracts a set of data from a complete set of simulation 
+        outputs.
+        """
+        Bu_snapshots = []
+        for t in self.ts_obs:
+            x[hl.STATE].retrieve(self.u_snapshot, t)
+            self.B.mult(self.u_snapshot, self.Bu_snapshot)
+            Bu_snapshots.append(self.Bu_snapshot[:])
+        return torch.concatenate(Bu_snapshots)
+
     def observe(self, x: VariableContainer) -> None:
         """Saves a set of state observations to the `d` attribute."""
         self.d.zero()
@@ -325,8 +338,8 @@ class HeatSolver(object):
         # Initialise previous state
         u_prev = self.u0.copy()
 
-        # Convert parameter to function
-        k = self.vec2func(x[hl.PARAMETER], hl.PARAMETER)
+        # Convert prior coefficients to corresponding function
+        k = self.prior.transform(x[hl.PARAMETER])
 
         # Assemble stiffness matrix
         K = ufl.exp(k) * ufl.inner(ufl.grad(self.u), ufl.grad(self.v)) * ufl.dx
