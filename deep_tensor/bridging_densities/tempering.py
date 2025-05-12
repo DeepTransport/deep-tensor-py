@@ -2,7 +2,6 @@ import torch
 from torch import Tensor
 
 from .bridge import Bridge
-from ..references import Reference
 from ..tools import compute_ess_ratio, compute_f_divergence
 from ..tools.printing import dirt_info
 
@@ -118,33 +117,33 @@ class Tempering(Bridge):
         method,
         beta_p, 
         beta, 
-        neglogliks, 
-        neglogpris, 
-        neglogfxs
+        neglogrefs, 
+        neglogfxs, 
+        neglogfxs_dirt
     ) -> Tensor:
         
         if method == "aratio":
-            log_weights = -(beta-beta_p) * neglogliks
+            log_weights = -(beta_p-beta)*neglogrefs - (beta-beta_p)*neglogfxs
         elif method == "eratio":
-            log_weights = -beta*neglogliks - neglogpris + neglogfxs
+            log_weights = -(1-beta)*neglogrefs - beta*neglogfxs + neglogfxs_dirt
         return log_weights
     
     def _compute_log_weights(
         self, 
-        neglogliks: Tensor,
-        neglogpris: Tensor,
-        neglogfxs: Tensor
+        neglogrefs: Tensor,
+        neglogfxs: Tensor,
+        neglogfxs_dirt: Tensor
     ) -> Tensor:
         beta = self.betas[self.n_layers]
-        log_weights = -beta*neglogliks - neglogpris + neglogfxs
+        log_weights = -beta*neglogfxs - (1-beta)*neglogrefs + neglogfxs_dirt
         return log_weights
 
     def _adapt_density(
         self, 
         method: str, 
-        neglogliks: Tensor, 
-        neglogpris: Tensor, 
-        neglogfxs: Tensor
+        neglogrefs: Tensor, 
+        neglogfxs: Tensor, 
+        neglogfxs_dirt: Tensor
     ) -> None:
         
         if not self.is_adaptive:
@@ -163,9 +162,9 @@ class Tempering(Bridge):
                 method, 
                 beta_p, 
                 beta * self.beta_factor, 
-                neglogliks, 
-                neglogpris, 
-                neglogfxs
+                neglogrefs, 
+                neglogfxs, 
+                neglogfxs_dirt
             )
             
             if compute_ess_ratio(log_weights) < self.ess_tol:
@@ -177,18 +176,17 @@ class Tempering(Bridge):
 
     def _get_ratio_func(
         self, 
-        reference: Reference, 
         method: str,
-        rs: Tensor,
-        neglogliks: Tensor, 
-        neglogpris: Tensor, 
-        neglogfxs: Tensor
+        neglogrefs_rs: Tensor,
+        neglogrefs: Tensor, 
+        neglogfxs: Tensor, 
+        neglogfxs_dirt: Tensor
     ) -> Tensor:
         
         beta = self.betas[self.n_layers]
 
         if self.n_layers == 0:
-            neglogratios = beta*neglogliks + neglogpris
+            neglogratios = beta*neglogfxs + (1-beta)*neglogrefs
             return neglogratios
 
         beta_p = self.betas[self.n_layers-1]
@@ -197,20 +195,19 @@ class Tempering(Bridge):
             method, 
             beta_p, 
             beta, 
-            neglogliks, 
-            neglogpris, 
-            neglogfxs
+            neglogrefs, 
+            neglogfxs, 
+            neglogfxs_dirt
         )
-        neglogrefs = reference.eval_potential(rs)[0]
-        neglogratios = -log_weights + neglogrefs
+        neglogratios = -log_weights + neglogrefs_rs
         return neglogratios
 
     def _print_progress(
         self, 
         log_weights: Tensor,
-        neglogliks: Tensor,
-        neglogpris: Tensor,
-        neglogfxs: Tensor
+        neglogrefs: Tensor,
+        neglogfxs: Tensor,
+        neglogfxs_dirt: Tensor
     ) -> None:
 
         ess = compute_ess_ratio(log_weights)
@@ -223,8 +220,8 @@ class Tempering(Bridge):
 
         if self.n_layers > 0:
             beta_p = self.betas[self.n_layers-1]
-            log_approx = -neglogfxs
-            log_target = -beta_p*neglogliks - neglogpris
+            log_approx = -neglogfxs_dirt
+            log_target = -beta_p*neglogfxs - (1-beta_p)*neglogrefs
             div_h2 = compute_f_divergence(log_approx, log_target)
             msg.append(f"DHell: {div_h2.sqrt():.4f}")
 

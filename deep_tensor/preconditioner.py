@@ -7,7 +7,7 @@ from .references import Reference
 
 
 @dataclass
-class PriorTransformation():
+class Preconditioner():
     r"""A mapping between the prior and a reference random variable.
 
     TODO: there are some properties that the transformation Q needs to
@@ -23,7 +23,7 @@ class PriorTransformation():
         distribution.
     Q_inv: 
         The inverse of `Q`.
-    neglogabsdet_Q_inv:
+    neglogdet_Q_inv:
         A function which takes as input an $n \times d$ matrix
     dim: 
         The dimension of the parameter.
@@ -33,5 +33,6 @@ class PriorTransformation():
     reference: Reference
     Q: Callable[[Tensor], Tensor]
     Q_inv: Callable[[Tensor], Tensor]
-    neglogabsdet_Q_inv: Callable[[Tensor], Tensor]
+    neglogdet_Q: Callable[[Tensor], Tensor]
+    neglogdet_Q_inv: Callable[[Tensor], Tensor]
     dim: int

@@ -30,6 +30,6 @@ from .polynomials import (
     Spectral,
     construct_cdf
 )
-from .prior_transformation import PriorTransformation
+from .preconditioner import Preconditioner
 from .references import GaussianReference, UniformReference
 from .tools import run_mcmc

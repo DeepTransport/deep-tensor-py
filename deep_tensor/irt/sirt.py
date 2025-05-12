@@ -8,7 +8,7 @@ from torch.quasirandom import SobolEngine
 from ..ftt import ApproxBases, Direction, InputData, TTData, TTFunc
 from ..options import TTOptions
 from ..polynomials import Basis1D, CDF1D, construct_cdf
-from ..prior_transformation import PriorTransformation
+from ..preconditioner import Preconditioner
 
 
 PotentialFunc = Callable[[Tensor], Tensor]
@@ -57,7 +57,7 @@ class SIRT():
     def __init__(
         self, 
         potential: Callable[[Tensor], Tensor], 
-        prior: PriorTransformation,
+        preconditioner: Preconditioner,
         bases: Basis1D | list[Basis1D] | None = None,
         prev_approx: TTFunc | None = None,
         options: TTOptions | None = None, 
@@ -97,10 +97,10 @@ class SIRT():
             input_data = InputData()
 
         self.potential = potential
-        self.prior = prior
-        self.reference = self.prior.reference
-        self.bases = ApproxBases(bases, self.prior.reference.domain, self.prior.dim)
-        self.dim = prior.dim
+        self.preconditioner = preconditioner
+        self.reference = preconditioner.reference
+        self.bases = ApproxBases(bases, preconditioner.reference.domain, preconditioner.dim)
+        self.dim = preconditioner.dim
         self.options = options 
         self.input_data = input_data
         self.tt_data = tt_data

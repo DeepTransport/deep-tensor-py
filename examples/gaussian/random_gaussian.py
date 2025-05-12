@@ -82,9 +82,16 @@ class RandomGaussian(object):
         d_ms = ms.shape[1]
         return (ms - self.mu_pri[:d_ms]) @ self.R_pri[:d_ms, :d_ms].T
 
-    def neglogabsdet_Q_inv(self, ms: Tensor) -> Tensor:
+    def neglogdet_Q(self, xs: Tensor) -> Tensor:
+        n_xs, d_xs = xs.shape 
+        return torch.full((n_xs,), -self.L_pri[:d_xs, :d_xs].diag().log().sum())
+
+    def neglogdet_Q_inv(self, ms: Tensor) -> Tensor:
         n_ms, d_ms = ms.shape
         return torch.full((n_ms,), -self.R_pri[:d_ms, :d_ms].diag().log().sum())
+    
+    def neglogpri(self, ms: Tensor) -> Tensor:
+        return 0.5 * ((ms - self.mu_pri) @ self.R_pri.T).square().sum(dim=1)
     
     def negloglik(self, ms: Tensor) -> Tensor:
         return 0.5 * ((ms @ self.G.T - self.d_obs) @ self.R_e).square().sum(dim=1)

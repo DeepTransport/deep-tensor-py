@@ -1,7 +1,6 @@
 from torch import Tensor
 
 from .bridge import Bridge
-from ..references import Reference
 
 
 class SingleLayer(Bridge):
@@ -41,21 +40,21 @@ class SingleLayer(Bridge):
     
     def _get_ratio_func(
         self, 
-        reference: Reference, 
         method: str,
-        rs: Tensor,
-        neglogliks: Tensor, 
-        neglogpris: Tensor, 
-        neglogfxs: Tensor
+        neglogrefs_rs: Tensor,
+        neglogrefs: Tensor, 
+        neglogfxs: Tensor, 
+        neglogfxs_dirt: Tensor
     ) -> Tensor:
-        neglogratios = neglogliks + neglogpris
+        neglogratios = neglogfxs.clone()
         return neglogratios
     
     def _compute_log_weights(
         self, 
-        neglogliks: Tensor,
-        neglogpris: Tensor,
-        neglogfxs: Tensor
+        neglogrefs: Tensor,
+        neglogfxs: Tensor,
+        neglogfxs_dirt: Tensor
     ) -> Tensor:
-        log_weights = -neglogliks - neglogpris + neglogfxs
+        
+        log_weights = -neglogfxs + neglogfxs_dirt
         return log_weights
