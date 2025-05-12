@@ -10,7 +10,7 @@ from ..bridging_densities import Bridge, Tempering
 from ..ftt import ApproxBases, Direction, InputData
 from ..options import DIRTOptions, TTOptions
 from ..polynomials import Basis1D
-from ..prior_transformation import PriorTransformation
+from ..preconditioner import Preconditioner
 from ..tools.printing import dirt_info
 
 
@@ -56,21 +56,21 @@ class DIRT():
     def __init__(
         self, 
         negloglik: Callable[[Tensor], Tensor],
-        prior: PriorTransformation,
+        neglogpri: Callable[[Tensor], Tensor],
+        preconditioner: Preconditioner,
         bases: Basis1D | List[Basis1D], 
-        bridge: Bridge|None = None,
-        tt_options: TTOptions|None = None,
-        dirt_options: DIRTOptions|None = None,
-        prev_approx: Dict[int, SIRT]|None = None
+        bridge: Bridge | None = None,
+        tt_options: TTOptions | None = None,
+        dirt_options: DIRTOptions | None = None,
+        prev_approx: Dict[int, SIRT] | None = None
     ):
         
-        def negloglik_Q(rs: Tensor) -> Tensor:
-            """Computes the negative log-likelihood of a set of samples 
-            from the reference domain, by first transforming them using 
-            the mapping Q.
-            """
-            ms = self.prior.Q(rs)
-            return negloglik(ms)
+        def neglogfx_Q(xs: Tensor) -> Tensor:
+            ms = self.preconditioner.Q(xs)
+            neglogdets = self.preconditioner.neglogdet_Q(xs)
+            neglogliks = negloglik(ms)
+            neglogpris = neglogpri(ms)
+            return neglogpris + neglogliks + neglogdets
 
         if bridge is None:
             bridge = Tempering(min_beta=1e-3, ess_tol=0.4)
@@ -79,11 +79,11 @@ class DIRT():
         if dirt_options is None:
             dirt_options = DIRTOptions()
 
-        self.negloglik = negloglik_Q
-        self.prior = prior
-        self.reference = self.prior.reference
-        self.domain = self.prior.reference.domain
-        self.dim = prior.dim
+        self.neglogfx = neglogfx_Q
+        self.preconditioner = preconditioner
+        self.reference = preconditioner.reference
+        self.domain = preconditioner.reference.domain
+        self.dim = preconditioner.dim
         self.bases = ApproxBases(bases, self.domain, self.dim)
         self.bridge = bridge
         self.tt_options = tt_options
@@ -201,17 +201,18 @@ class DIRT():
 
         def updated_func(rs: Tensor) -> Tensor:
 
-            xs, neglogfxs = self._eval_irt_reference(rs)
-            neglogliks = self.negloglik(xs)
-            neglogpris = self.reference.eval_potential(xs)[0]
+            neglogrefs_rs = self.reference.eval_potential(rs)[0]
+
+            xs, neglogfxs_dirt = self._eval_irt_reference(rs)
+            neglogrefs = self.reference.eval_potential(xs)[0]
+            neglogfxs = self.neglogfx(xs)
 
             neglogratios = self.bridge._get_ratio_func(
-                self.reference,
                 self.dirt_options.method,
-                rs, 
-                neglogliks, 
-                neglogpris, 
-                neglogfxs
+                neglogrefs_rs,
+                neglogrefs,
+                neglogfxs,
+                neglogfxs_dirt
             )
 
             return neglogratios
@@ -231,7 +232,7 @@ class DIRT():
 
             sirt = SIRT(
                 updated_func,
-                prior=self.prior,
+                preconditioner=self.preconditioner,
                 bases=self.bases.polys,
                 prev_approx=approx,
                 options=self.tt_options,
@@ -265,47 +266,46 @@ class DIRT():
         """Constructs a DIRT to approximate a given probability 
         density.
         """
-
-        rs = self.reference.random(self.dim, self.pre_sample_size)
-        neglogliks = self.negloglik(rs)
-        neglogpris = self.reference.eval_potential(rs)[0]
         
         while True:
-            
-            # Transform samples such that they are distributed 
-            # according to current approximation
-            xs, neglogfxs = self._eval_irt_reference(rs)
-            neglogliks = self.negloglik(xs)
-            neglogpris = self.reference.eval_potential(xs)[0]
+
+            # Draw a new set of samples from the reference, and 
+            # push then forward through the current composition of 
+            # (inverse) mappings
+            rs = self.reference.random(self.dim, self.pre_sample_size)
+            neglogrefs_rs = self.reference.eval_potential(rs)[0]
+
+            xs, neglogfxs_dirt = self._eval_irt_reference(rs)
+            neglogrefs = self.reference.eval_potential(xs)[0]
+            neglogfxs = self.neglogfx(xs)
         
             self.bridge._adapt_density(
                 self.dirt_options.method, 
-                neglogliks, 
-                neglogpris, 
-                neglogfxs
+                neglogrefs, 
+                neglogfxs, 
+                neglogfxs_dirt
             )
 
             neglogratios = self.bridge._get_ratio_func(
-                self.reference,
                 self.dirt_options.method, 
-                rs, 
-                neglogliks, 
-                neglogpris, 
-                neglogfxs
+                neglogrefs_rs,
+                neglogrefs, 
+                neglogfxs, 
+                neglogfxs_dirt
             )
             
             log_weights = self.bridge._compute_log_weights(
-                neglogliks,
-                neglogpris, 
-                neglogfxs
+                neglogrefs,
+                neglogfxs, 
+                neglogfxs_dirt
             )
 
             if self.dirt_options.verbose:
                 self.bridge._print_progress(
                     log_weights, 
-                    neglogliks, 
-                    neglogpris, 
-                    neglogfxs
+                    neglogrefs, 
+                    neglogfxs, 
+                    neglogfxs_dirt
                 )
 
             xs, neglogratios = self.bridge._reorder(xs, neglogratios, log_weights)
@@ -536,8 +536,8 @@ class DIRT():
 
         """
         n_layers = min(n_layers, self.n_layers)
-        neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
-        xs = self.prior.Q_inv(ms)
+        neglogabsdet_ms = self.preconditioner.neglogdet_Q_inv(ms)
+        xs = self.preconditioner.Q_inv(ms)
         rs, neglogfxs = self._eval_rt_reference(xs, n_layers, subset)
         neglogfms = neglogfxs + neglogabsdet_ms
         return rs, neglogfms
@@ -578,8 +578,8 @@ class DIRT():
 
         """
         xs, neglogfxs = self._eval_irt_reference(rs, n_layers, subset)
-        ms = self.prior.Q(xs)
-        neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
+        ms = self.preconditioner.Q(xs)
+        neglogabsdet_ms = self.preconditioner.neglogdet_Q_inv(ms)
         neglogfms = neglogfxs + neglogabsdet_ms
         return ms, neglogfms
     

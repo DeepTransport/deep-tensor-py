@@ -12,7 +12,7 @@ from random_gaussian import RandomGaussian
 
 
 plt.style.use("examples/plotstyle.mplstyle")
-torch.manual_seed(10)
+# torch.manual_seed(1)
 
 g = RandomGaussian(dim=3)
 
@@ -20,11 +20,12 @@ bounds = torch.tensor([-4.0, 4.0])
 domain = dt.BoundedDomain(bounds=bounds)
 reference = dt.GaussianReference(domain=domain)
 
-prior = dt.PriorTransformation(
+preconditioner = dt.Preconditioner(
     reference, 
     g.Q, 
     g.Q_inv, 
-    g.neglogabsdet_Q_inv, 
+    g.neglogdet_Q,
+    g.neglogdet_Q_inv, 
     g.dim
 )
 
@@ -36,7 +37,8 @@ bridge = dt.Tempering()
 
 dirt = dt.DIRT(
     g.negloglik, 
-    prior,
+    g.neglogpri,
+    preconditioner,
     poly, 
     bridge=bridge,
     tt_options=tt_options,
@@ -59,7 +61,6 @@ dirt = dt.DIRT(
 # from pstats import SortKey
 # p = pstats.Stats('test')
 # p.strip_dirs().sort_stats(SortKey.CUMULATIVE).print_stats(100)
-
 
 
 def plot_potentials(
