@@ -1,6 +1,7 @@
 from copy import deepcopy
 from typing import Callable, Dict, List, Tuple
 
+import dill
 import torch
 from torch import Tensor
 from torch.autograd.functional import jacobian
@@ -758,3 +759,17 @@ class DIRT():
         rs = self.reference.sobol(self.dim, n)
         ms = self.eval_irt(rs)[0]
         return ms
+    
+    def save(self, fname: str) -> None:
+        """Saves a DIRT object to a file.
+        
+        Parameters
+        ----------
+        fname:
+            The name of the file to save the DIRT object to.
+        
+        """
+        fname = fname.split(".")[0] + ".pkl"
+        with open(fname, "wb") as f:
+            dill.dump(self, f)
+        return
