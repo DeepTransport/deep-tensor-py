@@ -31,7 +31,7 @@ class ProcessConvolutionPrior(object):
         self.mu = mu
         self.r = r
 
-        self.n_coefs = ss.shape[0]
+        self.dim = ss.shape[0]
 
         self.coef2node = self._build_coef2node()
         return
@@ -103,7 +103,8 @@ class SpaceTimePointwiseStateObservation(hl.Misfit):
             x[hl.STATE].retrieve(self.u_snapshot, t)
             self.B.mult(self.u_snapshot, self.Bu_snapshot)
             Bu_snapshots.append(self.Bu_snapshot[:])
-        return torch.concatenate(Bu_snapshots)
+        Bu = np.concatenate(Bu_snapshots)
+        return torch.tensor(Bu)
 
     def observe(self, x: VariableContainer) -> None:
         """Saves a set of state observations to the `d` attribute."""

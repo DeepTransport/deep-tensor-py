@@ -12,9 +12,9 @@ from random_gaussian import RandomGaussian
 
 
 plt.style.use("examples/plotstyle.mplstyle")
-# torch.manual_seed(1)
+torch.manual_seed(1)
 
-g = RandomGaussian(dim=3)
+g = RandomGaussian(dim=2)
 
 bounds = torch.tensor([-4.0, 4.0])
 domain = dt.BoundedDomain(bounds=bounds)
@@ -35,7 +35,7 @@ tt_options = dt.TTOptions(tt_method="amen", max_rank=20, max_cross=3, cdf_tol=1e
 # bridge = dt.SingleLayer()
 bridge = dt.Tempering()
 
-dirt = dt.DIRT(
+dirt_old = dt.DIRT(
     g.negloglik, 
     g.neglogpri,
     preconditioner,
@@ -44,6 +44,14 @@ dirt = dt.DIRT(
     tt_options=tt_options,
     dirt_options=dirt_options
 )
+
+dirt_old.save("test")
+
+import dill
+
+with open("test.pkl", "rb") as f:
+    dirt = dill.load(f)
+
 
 # import cProfile
 # cProfile.run("""
