@@ -2,46 +2,61 @@
 and covariance matrix.
 """
 
-from matplotlib import pyplot as plt
+import os
+
 import torch
-from torch import Tensor
 
 import deep_tensor as dt
 
+from plotting import *
 from random_gaussian import RandomGaussian
 
 
-plt.style.use("examples/plotstyle.mplstyle")
-torch.manual_seed(10)
+torch.manual_seed(1)
 
-g = RandomGaussian(dim=3)
+FOLDER_NAME = f"examples{os.sep}gaussian"
+
+
+g = RandomGaussian(dim=4)
 
 bounds = torch.tensor([-4.0, 4.0])
 domain = dt.BoundedDomain(bounds=bounds)
 reference = dt.GaussianReference(domain=domain)
 
-prior = dt.PriorTransformation(
+preconditioner = dt.Preconditioner(
     reference, 
     g.Q, 
     g.Q_inv, 
-    g.neglogabsdet_Q_inv, 
+    g.neglogdet_Q,
+    g.neglogdet_Q_inv, 
     g.dim
 )
 
 poly = dt.Fourier(order=20)
 dirt_options = dt.DIRTOptions()
-tt_options = dt.TTOptions(tt_method="amen", max_rank=20, max_cross=3, cdf_tol=1e-3)
+tt_options = dt.TTOptions(tt_method="amen", max_rank=20, max_cross=2)
 # bridge = dt.SingleLayer()
 bridge = dt.Tempering()
 
 dirt = dt.DIRT(
     g.negloglik, 
-    prior,
+    g.neglogpri,
+    preconditioner,
     poly, 
     bridge=bridge,
     tt_options=tt_options,
     dirt_options=dirt_options
 )
+
+save_path = f"{FOLDER_NAME}{os.sep}dirt"
+dirt.save(save_path)
+
+dirt = dt.SavedDIRT(save_path, preconditioner)
+
+# saved_samples = saved_dirt.random(100)
+# samples = dirt.random(100)
+
+
 
 # import cProfile
 # cProfile.run("""
@@ -59,24 +74,3 @@ dirt = dt.DIRT(
 # from pstats import SortKey
 # p = pstats.Stats('test')
 # p.strip_dirs().sort_stats(SortKey.CUMULATIVE).print_stats(100)
-
-
-
-def plot_potentials(
-    potentials_true: Tensor,
-    potentials_dirt: Tensor
-):
-    
-    min_potential = torch.min(potentials_dirt.min(), potentials_true.min())
-    max_potential = torch.max(potentials_dirt.max(), potentials_true.max())
-    
-    fig, ax = plt.subplots(figsize=(6, 6))
-
-    ax.plot([min_potential, max_potential], [min_potential, max_potential], ls="--", c="k", zorder=1)
-    ax.scatter(potentials_true, potentials_dirt, s=5, zorder=2)
-    
-    ax.set_xlabel(r"$-\log(f(x))$ (True)")
-    ax.set_ylabel(r"$-\log(\hat{f}(x))$ (DIRT)")
-    ax.set_title("Potential Comparison")
-
-    plt.show()
