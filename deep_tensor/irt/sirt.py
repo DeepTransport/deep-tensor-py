@@ -1,216 +1,128 @@
-from typing import Callable, Dict, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import torch
 from torch import Tensor
 from torch.autograd.functional import jacobian
 from torch.quasirandom import SobolEngine
 
-from ..ftt import ApproxBases, Direction, InputData, TTData, TTFunc
+from ..ftt import (
+    ApproxBases, Direction, InputData, TTData, 
+    AbstractTTFunc, TTFunc, SavedTTFunc
+)
 from ..options import TTOptions
 from ..polynomials import Basis1D, CDF1D, construct_cdf
-from ..prior_transformation import PriorTransformation
+from ..preconditioners.preconditioner import Preconditioner
+from ..tools import check_finite
 
 
 PotentialFunc = Callable[[Tensor], Tensor]
 
 
-class SIRT():
-    r"""Squared inverse Rosenblatt transport.
+class AbstractSIRT():
+
+    @property
+    def input_data(self) -> InputData:
+        return self._input_data 
     
-    Parameters
-    ----------
-    potential:
-        A function that receives an $n \times d$ matrix of samples and 
-        returns an $n$-dimensional vector containing the potential 
-        function of the target density evaluated at each sample.
-    bases:
-        An object containing information on the basis functions in each 
-        dimension used during the FTT construction, and the mapping 
-        between the approximation domain and the domain of the basis 
-        functions.
-    prev_approx: 
-        A previously-constructed FTT object to use as a starting point 
-        when constructing the FTT part of the TTSIRT. If passed in, the 
-        bases and options associated with this approximation will be 
-        inherited by the new TTSIRT, and the cores and interpolation 
-        points will be used as a starting point for the new FTT.
-    options:
-        A set of options that control the construction of the FTT.
-    input_data:
-        An object that holds data used to construct and evaluate the 
-        quality of the FTT approximation to the target function.
-    tt_data:
-        An object that holds information about the FTT, including the 
-        cores and interpolation points.
-    defensive:
-        The defensive parameter, $\tau$, which ensures that the tails
-        of the approximation are sufficiently heavy.
-
-    References
-    ----------
-    Cui, T and Dolgov, S (2022). *[Deep composition of tensor-trains 
-    using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).* 
-    Foundations of Computational Mathematics, **22**, 1863--1922.
-
-    """
-
-    def __init__(
-        self, 
-        potential: Callable[[Tensor], Tensor], 
-        prior: PriorTransformation,
-        bases: Basis1D | list[Basis1D] | None = None,
-        prev_approx: TTFunc | None = None,
-        options: TTOptions | None = None, 
-        input_data: InputData | None = None, 
-        tt_data: TTData | None = None,
-        defensive: float = 1e-8
-    ):
-        
-        def target_func(ls: Tensor) -> Tensor:
-            """Returns the square root of the ratio between the target 
-            density and the weighting function evaluated at a set of 
-            points in the local domain.
-            """
-
-            xs = self.bases.local2approx(ls)[0]
-            neglogfxs = self.potential(xs)
-            neglogwxs = self.bases.eval_measure_potential(xs)[0]
-            
-            # The ratio of f and w is invariant to changes of coordinate
-            gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
-            return gs
-        
-        if bases is None and prev_approx is None:
-            msg = ("Must pass in a previous approximation or a set of "
-                   + "approximation bases.")
-            raise Exception(msg)
-
-        if prev_approx is not None:
-            bases = prev_approx.bases.polys
-            options = prev_approx.options
-            tt_data = prev_approx.tt_data
-
-        if options is None:
-            options = TTOptions()
-        
-        if input_data is None:
-            input_data = InputData()
-
-        self.potential = potential
-        self.prior = prior
-        self.reference = self.prior.reference
-        self.bases = ApproxBases(bases, self.prior.reference.domain, self.prior.dim)
-        self.dim = prior.dim
-        self.options = options 
-        self.input_data = input_data
-        self.tt_data = tt_data
-        self.defensive = defensive
-
-        # Define coefficient tensors and marginalisation coefficents
-        self.Bs_f: dict[int, Tensor] = {}
-        self.Rs_f: dict[int, Tensor] = {}
-        self.Bs_b: dict[int, Tensor] = {}
-        self.Rs_b: dict[int, Tensor] = {}
-
-        self.approx = TTFunc(
-            target_func, 
-            self.bases,
-            options=self.options, 
-            input_data=self.input_data,
-            tt_data=self.tt_data
-        )
-        self.approx._cross()
-        if self.approx.use_amen:
-            self.approx._round()  # why?
-
-        self.oned_cdfs: Dict[int, CDF1D] = {}
-        tol = self.approx.options.cdf_tol
-        for k in range(self.dim):
-            self.oned_cdfs[k] = construct_cdf(self.bases.polys[k], error_tol=tol)
-
-        self._marginalise_forward()
-        self._marginalise_backward()
+    @input_data.setter 
+    def input_data(self, value: InputData) -> None:
+        self._input_data = value 
         return
 
-    def _marginalise_forward(self) -> None:
-        """Computes each coefficient tensor required to evaluate the 
-        marginal functions in each dimension, by iterating over the 
-        dimensions of the approximation from last to first.
-        """
-
-        self.Rs_f[self.dim] = torch.tensor([[1.0]])
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
-
-        for k in range(self.dim-1, -1, -1):
-            self.Bs_f[k] = torch.einsum("ijl, lk", cores[k], self.Rs_f[k+1])
-            C_k = torch.einsum("ilk, lj", self.Bs_f[k], polys[k].mass_R)
-            C_k = TTFunc.unfold_right(C_k)
-            self.Rs_f[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
-
-        self.z_func = self.Rs_f[0].square().sum()
-        self.z = self.z_func + self.defensive
+    @property 
+    def bases(self) -> ApproxBases:
+        return self._bases 
+    
+    @bases.setter 
+    def bases(self, value: ApproxBases) -> None:
+        self._bases = value 
+        return
+    
+    @property 
+    def oned_cdfs(self) -> Dict[int, CDF1D]:
+        return self._oned_cdfs
+    
+    @oned_cdfs.setter 
+    def oned_cdfs(self, value: Dict[int, CDF1D]) -> None:
+        self._oned_cdfs = value 
+        return
+    
+    @property 
+    def approx(self) -> AbstractTTFunc:
+        return self._approx
+    
+    @approx.setter 
+    def approx(self, value: AbstractTTFunc) -> None:
+        self._approx = value 
+        return
+    
+    @property 
+    def defensive(self) -> Tensor | float:
+        return self._defensive
+    
+    @defensive.setter 
+    def defensive(self, value: Tensor | float) -> None:
+        self._defensive = value 
+        return
+    
+    @property 
+    def z_func(self) -> Tensor | float:
+        return self._z_func
+    
+    @z_func.setter 
+    def z_func(self, value: Tensor | float) -> None:
+        self._z_func = value 
         return 
     
-    def _marginalise_backward(self) -> None:
-        """Computes each coefficient tensor required to evaluate the 
-        marginal functions in each dimension, by iterating over the 
-        dimensions of the approximation from first to last.
-        """
-        
-        self.Rs_b[-1] = torch.tensor([[1.0]])
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
-
-        for k in range(self.dim):
-            self.Bs_b[k] = torch.einsum("il, ljk", self.Rs_b[k-1], cores[k])
-            C_k = torch.einsum("jl, ilk", polys[k].mass_R, self.Bs_b[k])
-            C_k = TTFunc.unfold_left(C_k)
-            self.Rs_b[k] = torch.linalg.qr(C_k, mode="reduced")[1]
-
-        self.z_func = self.Rs_b[self.dim-1].square().sum()
-        self.z = self.z_func + self.defensive
+    @property 
+    def dim(self) -> int:
+        return self.bases.dim 
+    
+    @property
+    def z(self) -> Tensor | float:
+        return self.defensive + self.z_func
+    
+    @property 
+    def Bs_f(self) -> Dict[int, Tensor]:
+        return self._Bs_f
+    
+    @Bs_f.setter 
+    def Bs_f(self, value: Dict[int, Tensor]) -> None:
+        self._Bs_f = value 
+        return
+    
+    @property 
+    def Bs_b(self) -> Dict[int, Tensor]:
+        return self._Bs_b
+    
+    @Bs_b.setter 
+    def Bs_b(self, value: Dict[int, Tensor]) -> None:
+        self._Bs_b = value 
+        return
+    
+    @property 
+    def Rs_f(self) -> Dict[int, Tensor]:
+        return self._Rs_f
+    
+    @Rs_f.setter 
+    def Rs_f(self, value: Dict[int, Tensor]) -> None:
+        self._Rs_f = value 
+        return
+    
+    @property 
+    def Rs_b(self) -> Dict[int, Tensor]:
+        return self._Rs_b
+    
+    @Rs_b.setter 
+    def Rs_b(self, value: Dict[int, Tensor]) -> None:
+        self._Rs_b = value 
         return
 
-    def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
-        """Evaluates the normalised (marginal) PDF represented by the 
-        squared FTT.
-        
-        Parameters
-        ----------
-        ls:
-            An n * d matrix containing a set of samples from the local 
-            domain.
-        direction:
-            The direction in which to iterate over the tensor cores.
-
-        Returns
-        -------
-        neglogfls:
-            An n-dimensional vector containing the approximation to the 
-            target density function (transformed into the local domain) 
-            at each element in ls.
-        
-        """
-
-        dim_l = ls.shape[1]
-
-        if direction == Direction.FORWARD:
-            indices = torch.arange(dim_l)
-            gs = self.approx._eval_local(ls, direction=direction)
-            gs_sq = (gs @ self.Rs_f[dim_l]).square().sum(dim=1)
-            
-        else:
-            i_min = self.dim - dim_l
-            indices = torch.arange(self.dim-1, self.dim-dim_l-1, -1)
-            gs = self.approx._eval_local(ls, direction=direction)
-            gs_sq = (self.Rs_b[i_min-1] @ gs.T).square().sum(dim=0)
-            
-        # TODO: check that indices go backwards. This could be an issue 
-        # if different bases are used in each dimension.
-        neglogwls = self.bases.eval_measure_potential_local(ls, indices)
-        neglogfls = self.z.log() - (gs_sq + self.defensive).log() + neglogwls
-        return neglogfls
+    def _construct_cdfs(self, tol: Tensor | float) -> None:
+        oned_cdfs = {}
+        for k in range(self.dim):
+            oned_cdfs[k] = construct_cdf(self.bases.polys[k], error_tol=tol)
+        return oned_cdfs
 
     def _eval_rt_local_forward(self, ls: Tensor) -> Tensor:
 
@@ -836,7 +748,7 @@ class SIRT():
         return J
     
     @staticmethod
-    def _get_direction(subset: str|None) -> Direction:
+    def _get_direction(subset: str | None) -> Direction:
         """Converts the subset parameter into the direction 
         corresponding to the marginalisation tensors that should be 
         used.
@@ -889,7 +801,7 @@ class SIRT():
         Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
         return Js.reshape(d_xs, n_xs, d_xs)
     
-    def round(self, tol: float|Tensor|None = None) -> None:
+    def round(self, tol: float | Tensor | None = None) -> None:
         """Rounds the TT cores. 
         
         Applies double rounding to get back to the starting direction.
@@ -903,26 +815,48 @@ class SIRT():
         """
         self.approx._round(tol)
         return
-
-    def set_defensive(self, defensive: float|Tensor) -> None:
-        r"""Updates the defensive parameter, $\tau$.
+    
+    def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
+        """Evaluates the normalised (marginal) PDF represented by the 
+        squared FTT.
         
         Parameters
         ----------
-        defensive: 
-            The updated value for $\tau$, the defensive parameter of 
-            the IRT.
+        ls:
+            An n * d matrix containing a set of samples from the local 
+            domain.
+        direction:
+            The direction in which to iterate over the tensor cores.
+
+        Returns
+        -------
+        neglogfls:
+            An n-dimensional vector containing the approximation to the 
+            target density function (transformed into the local domain) 
+            at each element in ls.
         
         """
-        self._defensive = defensive
-        self._z = self.z_func + defensive
-        return
+
+        dim_l = ls.shape[1]
+
+        if direction == Direction.FORWARD:
+            indices = torch.arange(dim_l)
+            gs = self.approx._eval_local(ls, direction=direction)
+            gs_sq = (gs @ self.Rs_f[dim_l]).square().sum(dim=1)
+            
+        else:
+            i_min = self.dim - dim_l
+            indices = torch.arange(self.dim-1, self.dim-dim_l-1, -1)
+            gs = self.approx._eval_local(ls, direction=direction)
+            gs_sq = (self.Rs_b[i_min-1] @ gs.T).square().sum(dim=0)
+            
+        # TODO: check that indices go backwards. This could be an issue 
+        # if different bases are used in each dimension.
+        neglogwls = self.bases.eval_measure_potential_local(ls, indices)
+        neglogfls = self.z.log() - (gs_sq + self.defensive).log() + neglogwls
+        return neglogfls
     
-    def _eval_potential(
-        self, 
-        xs: Tensor, 
-        subset: str|None = None
-    ) -> Tensor:
+    def _eval_potential(self, xs: Tensor, subset: str | None = None) -> Tensor:
         r"""Evaluates the potential function.
 
         Returns the joint potential function, or the marginal potential 
@@ -954,11 +888,7 @@ class SIRT():
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
     
-    def eval_potential(
-        self, 
-        ms: Tensor, 
-        subset: str|None = None
-    ) -> Tensor:
+    def eval_potential(self, ms: Tensor, subset: str|None = None) -> Tensor:
         r"""Evaluates the potential function.
 
         Returns the joint potential function, or the marginal potential 
@@ -983,17 +913,13 @@ class SIRT():
             density evaluated at each sample in `xs`.
 
         """
-        xs = self.prior.Q_inv(ms)
+        xs = self.preconditioner.Q_inv(ms)
         neglogfxs = self._eval_potential(xs, subset)
-        neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
+        neglogabsdet_ms = self.preconditioner.neglogdet_Q_inv(ms)
         neglogfms = neglogfxs + neglogabsdet_ms
         return neglogfms
 
-    def _eval_pdf(
-        self, 
-        xs: Tensor,
-        subset: str|None = None
-    ) -> Tensor: 
+    def _eval_pdf(self, xs: Tensor, subset: str | None = None) -> Tensor: 
         r"""Evaluates the density function.
 
         Returns the joint density function, or the marginal density 
@@ -1002,9 +928,9 @@ class SIRT():
         
         Parameters
         ----------
-        ms:
+        xs:
             An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
-            samples from the approximation domain.
+            samples from the reference domain.
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
@@ -1013,7 +939,7 @@ class SIRT():
 
         Returns
         -------
-        fms:
+        fxs:
             An $n$-dimensional vector containing the value of the 
             approximation to the target density evaluated at each 
             element in `xs`.
@@ -1023,11 +949,7 @@ class SIRT():
         fxs = torch.exp(-neglogfxs)
         return fxs
 
-    def eval_pdf(
-        self, 
-        ms: Tensor,
-        subset: str|None = None
-    ) -> Tensor: 
+    def eval_pdf(self, ms: Tensor, subset: str | None = None) -> Tensor: 
         r"""Evaluates the density function.
 
         Returns the joint density function, or the marginal density 
@@ -1057,11 +979,7 @@ class SIRT():
         fms = torch.exp(-neglogfms)
         return fms
     
-    def _eval_rt(
-        self, 
-        xs: Tensor,
-        subset: str|None = None
-    ) -> Tensor:
+    def _eval_rt(self, xs: Tensor, subset: str | None = None) -> Tensor:
         r"""Evaluates the Rosenblatt transport.
 
         Returns the joint Rosenblatt transport, or the marginal 
@@ -1093,11 +1011,7 @@ class SIRT():
         zs = self._eval_rt_local(ls, direction)
         return zs
 
-    def eval_rt(
-        self, 
-        ms: Tensor,
-        subset: str|None = None
-    ) -> Tensor:
+    def eval_rt(self, ms: Tensor, subset: str | None = None) -> Tensor:
         r"""Evaluates the Rosenblatt transport.
 
         Returns the joint Rosenblatt transport, or the marginal 
@@ -1123,14 +1037,14 @@ class SIRT():
             Rosenblatt transport.
 
         """
-        xs = self.prior.Q_inv(ms)
+        xs = self.preconditioner.Q_inv(ms)
         zs = self._eval_rt(xs, subset)
         return zs
     
     def _eval_irt(
         self, 
         zs: Tensor,
-        subset: str|None = None
+        subset: str | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the inverse Rosenblatt transport.
         
@@ -1169,7 +1083,7 @@ class SIRT():
     def eval_irt(
         self, 
         zs: Tensor,
-        subset: str|None = None
+        subset: str | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the inverse Rosenblatt transport.
         
@@ -1201,8 +1115,8 @@ class SIRT():
         xs, neglogfxs = self._eval_irt(zs, subset)
 
         # Map samples back into actual domain
-        ms = self.prior.Q(xs)
-        neglogabsdet_ms = self.prior.neglogabsdet_Q_inv(ms)
+        ms = self.preconditioner.Q(xs)
+        neglogabsdet_ms = self.preconditioner.neglogdet_Q_inv(ms)
         neglogfms = neglogfxs + neglogabsdet_ms
 
         return ms, neglogfms
@@ -1211,7 +1125,7 @@ class SIRT():
         self, 
         xs: Tensor, 
         zs: Tensor, 
-        subset: str|None = None
+        subset: str | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the conditional inverse Rosenblatt transport.
 
@@ -1289,7 +1203,7 @@ class SIRT():
         self, 
         xs: Tensor, 
         method: str = "autodiff",
-        subset: str|None = None
+        subset: str | None = None
     ) -> Tensor:
         r"""Evaluates the gradient of the potential function.
         
@@ -1336,7 +1250,7 @@ class SIRT():
         self, 
         xs: Tensor, 
         method: str = "autodiff",
-        subset: str|None = None
+        subset: str | None = None
     ) -> Tensor:
         r"""Evaluates the Jacobian of the Rosenblatt transport.
 
@@ -1425,3 +1339,198 @@ class SIRT():
         zs = S.draw(n)
         xs = self.eval_irt(zs)[0]
         return xs
+    
+
+class SIRT(AbstractSIRT):
+    r"""Squared inverse Rosenblatt transport.
+    
+    Parameters
+    ----------
+    potential:
+        A function that receives an $n \times d$ matrix of samples and 
+        returns an $n$-dimensional vector containing the potential 
+        function of the target density evaluated at each sample.
+    bases:
+        An object containing information on the basis functions in each 
+        dimension used during the FTT construction, and the mapping 
+        between the approximation domain and the domain of the basis 
+        functions.
+    prev_approx: 
+        A previously-constructed FTT object to use as a starting point 
+        when constructing the FTT part of the TTSIRT. If passed in, the 
+        bases and options associated with this approximation will be 
+        inherited by the new TTSIRT, and the cores and interpolation 
+        points will be used as a starting point for the new FTT.
+    options:
+        A set of options that control the construction of the FTT.
+    input_data:
+        An object that holds data used to construct and evaluate the 
+        quality of the FTT approximation to the target function.
+    tt_data:
+        An object that holds information about the FTT, including the 
+        cores and interpolation points.
+    defensive:
+        The defensive parameter, $\tau$, which ensures that the tails
+        of the approximation are sufficiently heavy.
+
+    References
+    ----------
+    Cui, T and Dolgov, S (2022). *[Deep composition of tensor-trains 
+    using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).* 
+    Foundations of Computational Mathematics, **22**, 1863--1922.
+
+    """
+
+    def __init__(
+        self, 
+        potential: Callable[[Tensor], Tensor], 
+        preconditioner: Preconditioner,
+        bases: Basis1D | List[Basis1D] | None = None,
+        prev_approx: TTFunc | None = None,
+        options: TTOptions | None = None, 
+        input_data: InputData | None = None, 
+        tt_data: TTData | None = None,
+        defensive: float = 1e-8
+    ):
+        
+        def target_func(ls: Tensor) -> Tensor:
+            """Returns the square root of the ratio between the target 
+            density and the weighting function evaluated at a set of 
+            points in the local domain.
+            """
+
+            xs = self.bases.local2approx(ls)[0]
+            neglogfxs = self.potential(xs)
+            neglogwxs = self.bases.eval_measure_potential(xs)[0]
+            
+            # The ratio of f and w is invariant to changes of coordinate
+            gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
+            check_finite(gs)
+            return gs
+        
+        if bases is None and prev_approx is None:
+            msg = ("Must pass in a previous approximation or a set of "
+                   + "approximation bases.")
+            raise Exception(msg)
+
+        if prev_approx is not None:
+            bases = prev_approx.bases.polys
+            options = prev_approx.options
+            tt_data = prev_approx.tt_data
+
+        if options is None:
+            options = TTOptions()
+        
+        if input_data is None:
+            input_data = InputData()
+
+        domain = preconditioner.reference.domain
+        dim = preconditioner.dim
+
+        self.potential = potential
+        self.preconditioner = preconditioner
+        self.reference = preconditioner.reference
+        self.bases = ApproxBases(bases, domain, dim)
+        self.options = options 
+        self.input_data = input_data
+        self.tt_data = tt_data
+        self.defensive = defensive
+        self.oned_cdfs = self._construct_cdfs(self.options.cdf_tol)
+
+        self.approx = TTFunc(
+            target_func, 
+            self.bases,
+            options=self.options, 
+            input_data=self.input_data,
+            tt_data=self.tt_data
+        )
+        self.approx._cross()
+        if self.approx.use_amen:
+            self.approx._round()  # why?
+
+        # Compute coefficient tensors and marginalisation coefficents
+        self.Bs_f: Dict[int, Tensor] = {}
+        self.Rs_f: Dict[int, Tensor] = {}
+        self.Bs_b: Dict[int, Tensor] = {}
+        self.Rs_b: Dict[int, Tensor] = {}
+        self._marginalise_forward()
+        self._marginalise_backward()
+        return
+
+    def _marginalise_forward(self) -> None:
+        """Computes each coefficient tensor required to evaluate the 
+        marginal functions in each dimension, by iterating over the 
+        dimensions of the approximation from last to first.
+        """
+
+        self.Rs_f[self.dim] = torch.tensor([[1.0]])
+        polys = self.bases.polys
+        cores = self.approx.tt_data.cores
+
+        for k in range(self.dim-1, -1, -1):
+            self.Bs_f[k] = torch.einsum("ijl, lk", cores[k], self.Rs_f[k+1])
+            C_k = torch.einsum("ilk, lj", self.Bs_f[k], polys[k].mass_R)
+            C_k = TTFunc.unfold_right(C_k)
+            self.Rs_f[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
+
+        self.z_func = self.Rs_f[0].square().sum()
+        return 
+    
+    def _marginalise_backward(self) -> None:
+        """Computes each coefficient tensor required to evaluate the 
+        marginal functions in each dimension, by iterating over the 
+        dimensions of the approximation from first to last.
+        """
+        
+        self.Rs_b[-1] = torch.tensor([[1.0]])
+        polys = self.bases.polys
+        cores = self.approx.tt_data.cores
+
+        for k in range(self.dim):
+            self.Bs_b[k] = torch.einsum("il, ljk", self.Rs_b[k-1], cores[k])
+            C_k = torch.einsum("jl, ilk", polys[k].mass_R, self.Bs_b[k])
+            C_k = TTFunc.unfold_left(C_k)
+            self.Rs_b[k] = torch.linalg.qr(C_k, mode="reduced")[1]
+
+        self.z_func = self.Rs_b[self.dim-1].square().sum()
+        return
+
+
+class SavedSIRT(AbstractSIRT):
+
+    def __init__(
+        self, 
+        data: Dict,
+        preconditioner: Preconditioner, 
+        bases: List[Basis1D],
+        options: TTOptions
+    ):
+        
+        domain = preconditioner.reference.domain
+        dim = preconditioner.dim
+
+        direction = data["direction"]  # TODO: actually get the enum
+        cores = {int(k): v for k, v in data["cores"].items()}
+
+        self.preconditioner = preconditioner
+        self.reference = preconditioner.reference
+        self.bases = ApproxBases(bases, domain, dim)
+        self.options = options
+        self.input_data = InputData(data["xs_samp"], data["xs_debug"], data["fxs_debug"])
+        self.tt_data = TTData(direction, cores)
+        self.Bs_f = {int(k): v for k, v in data["Bs_f"].items()}
+        self.Rs_f = {int(k): v for k, v in data["Rs_f"].items()}
+        self.Bs_b = {int(k): v for k, v in data["Bs_b"].items()}
+        self.Rs_b = {int(k): v for k, v in data["Rs_b"].items()}
+        self.defensive = data["defensive"]
+        self.z_func = self.Rs_f[0].square().sum()
+        self.oned_cdfs = self._construct_cdfs(self.options.cdf_tol)
+
+        self.approx = SavedTTFunc(
+            self.bases,
+            options=self.options,
+            input_data=self.input_data,
+            tt_data=self.tt_data
+        )
+
+        return

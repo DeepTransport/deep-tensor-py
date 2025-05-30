@@ -3,7 +3,6 @@ from torch import Tensor
 from torch.distributions.beta import Beta
 
 from .spectral import Spectral
-from ..basis_1d import Basis1D
 from ...constants import EPS
 from ...tools import check_finite
 

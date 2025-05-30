@@ -49,12 +49,12 @@ class TTOptions():
     SIAM Journal on Scientific Computing **32**, 2737--2764.
 
     Goreinov, SA, Oseledets, IV, Savostyanov, DV, Tyrtyshnikov, EE and 
-    Zamarashkin, NL. *[How to find a good submatrix](https://doi.org/10.1142/9789812836021_0015)*.
+    Zamarashkin, NL (2010). *[How to find a good submatrix](https://doi.org/10.1142/9789812836021_0015)*.
     In: Matrix Methods: Theory, Algorithms and Applications, 247--256.
     
     """
         
-    max_cross: int = 4
+    max_cross: int = 1
     cross_tol: float = 1e-04
     init_rank: int = 20
     kick_rank: int = 2

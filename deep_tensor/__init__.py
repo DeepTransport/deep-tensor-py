@@ -2,6 +2,11 @@ import torch
 torch.set_default_dtype(torch.float64)
 
 from .bridging_densities import SingleLayer, Tempering
+from .debiasing import (
+    run_dirt_pcn, 
+    run_importance_sampling, 
+    run_independence_sampler
+)
 from .domains import (
     AlgebraicMapping, 
     BoundedDomain, 
@@ -9,7 +14,7 @@ from .domains import (
     LogarithmicMapping
 )
 from .ftt import ApproxBases, Direction, InputData, TTData, TTFunc
-from .irt import DIRT, SIRT
+from .irt import DIRT, SIRT, SavedDIRT
 from .options import TTOptions, DIRTOptions
 from .polynomials import (
     Basis1D,
@@ -30,6 +35,11 @@ from .polynomials import (
     Spectral,
     construct_cdf
 )
-from .prior_transformation import PriorTransformation
+from .preconditioners import (
+    Preconditioner, 
+    DIRTPreconditioner, 
+    IdentityPreconditioner,
+    SampleBasedPreconditioner
+)
 from .references import GaussianReference, UniformReference
-from .tools import run_mcmc
+from .tools import compute_ess_ratio, compute_f_divergence

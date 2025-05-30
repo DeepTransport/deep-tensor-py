@@ -5,6 +5,19 @@ def compute_ess_ratio(log_weights: Tensor) -> Tensor:
     """Returns the ratio of the effective sample size to the number of
     particles.
 
+    Parameters
+    ----------
+    log_weights:
+        A vector containing the logarithm of the ratio between the 
+        target density and the proposal density evaluated for each 
+        sample. 
+
+    Returns
+    -------
+    ess_ratio:
+        The ratio of the effective sample size to the number of 
+        particless.
+
     References
     ----------
     Owen, AB (2013). Monte Carlo theory, methods and examples. Chapter 9.

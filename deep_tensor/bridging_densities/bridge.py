@@ -1,4 +1,5 @@
 import abc
+from typing import Dict, List
 
 import torch
 from torch import Tensor
@@ -17,10 +18,28 @@ class Bridge(abc.ABC):
     @abc.abstractmethod
     def is_last(self) -> bool:
         return
-
-    @property
+    
+    @property 
     @abc.abstractmethod
+    def params_dict(self) -> Dict:
+        return
+
+    @property 
     def n_layers(self) -> int:
+        return self._n_layers
+    
+    @n_layers.setter
+    def n_layers(self, value: int) -> None:
+        self._n_layers = value
+        return
+    
+    @property
+    def is_adaptive(self) -> bool:
+        return self._is_adaptive
+    
+    @is_adaptive.setter 
+    def is_adaptive(self, value: bool) -> None:
+        self._is_adaptive = value 
         return
 
     @abc.abstractmethod
@@ -191,13 +210,13 @@ class Bridge(abc.ABC):
         neglogratios = neglogratios[reordered_inds]
         return xs, neglogratios
 
-    def _print_progress(
+    def _get_diagnostics(
         self, 
         neglogweights: Tensor,
         neglogliks: Tensor, 
         neglogpris: Tensor, 
         neglogfxs: Tensor
-    ) -> None:
-        """Prints some information about the current bridging density.
+    ) -> List[str]:
+        """Returns some information about the current bridging density.
         """
-        return 
+        return []

@@ -227,7 +227,7 @@ class CDF1D(abc.ABC):
         """Carries out a single Newton iteration."""
         dls = -zs / dzs 
         dls[dls.isinf() | dls.isnan()] = 0.0
-        ls += dls 
+        ls = ls + dls 
         ls = torch.clamp(ls, l0s, l1s)
         return ls, dls
     

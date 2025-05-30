@@ -149,11 +149,15 @@ class Reference(abc.ABC):
         """
         return
     
-    def _check_samples_in_domain(self, rs: Tensor):
+    def _out_domain(self, rs: Tensor) -> Tensor:
+        outside = (rs < self.domain.left) | (self.domain.right < rs)
+        return outside.any(dim=1)
+    
+    def _check_samples_in_domain(self, rs: Tensor) -> None:
         """Raises an error if any of a set of samples are outside the
         domain of the reference.
         """
-        outside = (rs < self.domain.left) | (self.domain.right < rs)
+        outside = self._out_domain(rs)
         if (n_outside := outside.sum()) > 0:
             msg = f"{n_outside} points lie outside domain of reference."
             raise Exception(msg)

@@ -47,8 +47,7 @@ class Chebyshev1st(Spectral):
 
         self.order = order
         self.n = torch.arange(self.order+1)
-        self.nodes = torch.cos(torch.pi * (self.n+0.5) / (self.order+1)) 
-        self.nodes = self.nodes.sort()[0]
+        self.nodes = torch.cos(torch.pi * (self.n+0.5) / (self.order+1)).sort()[0]
         self.weights = torch.ones_like(self.nodes) / (self.order+1)
 
         self.norm = torch.hstack((
@@ -122,8 +121,7 @@ class Chebyshev1st(Spectral):
     
     def eval_basis(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
-        thetas = self.l2theta(ls)
-        thetas = thetas[:, None]
+        thetas = self.l2theta(ls)[:, None]
         ps = self.norm * torch.cos(thetas * self.n)
         return ps
     

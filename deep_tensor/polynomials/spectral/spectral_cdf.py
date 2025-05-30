@@ -1,7 +1,6 @@
 import abc
 from typing import Tuple
 
-import torch
 from torch import Tensor
 
 from ..cdf_1d import CDF1D
@@ -231,11 +230,10 @@ class SpectralCDF(CDF1D, abc.ABC):
         cdf_poly_nodes = cdf_poly_nodes - cdf_poly_base
         cdf_poly_norm = cdf_poly_nodes[-1]
         
-        zs_unnorm = zs * cdf_poly_norm
-
-        left_inds = self.get_left_inds(cdf_poly_nodes, zs_unnorm)
+        zs_cdf = zs * cdf_poly_norm
+        left_inds = self.get_left_inds(cdf_poly_nodes, zs_cdf)
         l0s = self.sampling_nodes[left_inds]
         l1s = self.sampling_nodes[left_inds+1]
         
-        ls = self.newton(coefs, cdf_poly_base, zs_unnorm, l0s, l1s)
+        ls = self.newton(coefs, cdf_poly_base, zs_cdf, l0s, l1s)
         return ls

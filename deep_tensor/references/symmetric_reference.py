@@ -12,7 +12,7 @@ from ..tools import check_finite
 
 class SymmetricReference(Reference, abc.ABC):
     
-    def __init__(self, domain: Domain = None):
+    def __init__(self, domain: Domain | None = None):
         
         if domain is None:
             bounds = torch.tensor([-4.0, 4.0])

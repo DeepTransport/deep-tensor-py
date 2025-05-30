@@ -2,7 +2,6 @@ import torch
 from torch import Tensor
 
 from .recurr import Recurr
-from ..basis_1d import Basis1D
 
 
 class Legendre(Recurr):

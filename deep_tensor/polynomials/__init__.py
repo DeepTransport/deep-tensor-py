@@ -23,3 +23,17 @@ from .spectral.hermite import Hermite
 from .spectral.laguerre import Laguerre
 from .spectral.recurr import Recurr
 from .spectral.legendre import Legendre
+
+POLY2NAME = {
+    Piecewise: "Piecewise",
+    Lagrange1: "Lagrange1",
+    LagrangeP: "LagrangeP",
+    Chebyshev1st: "Chebyshev1st",
+    Chebyshev2nd: "Chebyshev2nd",
+    Fourier: "Fourier",
+    Hermite: "Hermite",
+    Laguerre: "Laguerre",
+    Legendre: "Legendre"
+}
+
+NAME2POLY = {v: k for k, v in POLY2NAME.items()}

@@ -59,10 +59,14 @@ quartodoc:
         - name: DIRT
           members: [eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, random, sobol]
 
-    - title: Prior Transformation
-      desc: An object which defines a mapping between the prior and a reference density.
+    - title: Preconditioners
+      desc: Triangular mappings which are used as starting points for DIRT construction.
       contents:
-        - name: PriorTransformation
+        - name: Preconditioner
+          members: []
+        - name: SampleBasedPreconditioner
+          members: []
+        - name: DIRTPreconditioner
           members: []
 
     - title: Polynomial Bases
@@ -117,3 +121,11 @@ quartodoc:
           members: []
         - name: Tempering
           members: []
+
+    - title: Debiasing
+      desc: Functions used to remove the bias associated with the use of an approximation to the target density function.
+      package: deep_tensor
+      contents:
+        - name: run_dirt_pcn
+        - name: run_importance_sampling 
+        - name: run_independence_sampler

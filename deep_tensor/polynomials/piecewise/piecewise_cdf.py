@@ -308,7 +308,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
 
             ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
             zs = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, ls)
-            if self.converged(zs, dls):
+            if self.converged(zs / cdf_data.poly_norm, dls / cdf_data.poly_norm):
                 return ls 
 
             # Note that the CDF is monotone increasing
@@ -317,7 +317,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
             z0s[zs < 0] = zs[zs < 0]
             z1s[zs > 0] = zs[zs > 0]
             
-        self.print_unconverged(zs, dls, "Regula falsi")
+        self.print_unconverged(zs / cdf_data.poly_norm, dls / cdf_data.poly_norm, "Regula falsi")
         return ls
     
     def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:

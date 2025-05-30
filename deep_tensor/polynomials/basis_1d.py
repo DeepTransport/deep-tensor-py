@@ -265,8 +265,6 @@ class Basis1D(abc.ABC, object):
         
         """
         self._check_eval_dims(coeffs, ls)
-        self._check_in_domain(ls)
-
         basis_vals = self.eval_basis(ls)
         fls = basis_vals @ coeffs
         return fls
@@ -294,8 +292,6 @@ class Basis1D(abc.ABC, object):
         
         """
         self._check_eval_dims(coeffs, ls)
-        self._check_in_domain(ls)
-
         deriv_vals = self.eval_basis_deriv(ls)
         gradfls = deriv_vals @ coeffs
         return gradfls
@@ -328,8 +324,6 @@ class Basis1D(abc.ABC, object):
         
         """
         self._check_eval_dims(coeffs, ls)
-        self._check_in_domain(ls)
-
         fls = self.eval_radon(coeffs, ls)
         wls = self.eval_measure(ls)
         return fls * wls[:, None]
@@ -363,8 +357,6 @@ class Basis1D(abc.ABC, object):
         
         """
         self._check_eval_dims(coeffs, ls)
-        self._check_in_domain(ls)
-        
         # Compute first term of product rule
         dpdls = self.eval_basis_deriv(ls)
         wls = self.eval_measure(ls)[:, None]

@@ -1,21 +1,23 @@
 import torch
 from torch import Tensor
 
-from .directions import REVERSE_DIRECTIONS
+from .directions import Direction, REVERSE_DIRECTIONS
 
 
 class TTData():
-    """Data associated with a functional tensor train.
-    
-    """
+    """Data associated with a functional tensor train."""
 
-    def __init__(self):
+    def __init__(
+        self, 
+        direction: Direction | None = None,
+        cores: dict[int, Tensor] | None = None
+    ):
 
-        self.direction = None
-        self.cores: dict[int, Tensor] = {}
+        self.direction = direction
+        self.cores: dict[int, Tensor] = cores if cores is not None else {}
         self.interp_ls: dict[int, Tensor] = {}
-        self.res_x = {}  # Residual coordinates for AMEN
-        self.res_w = {}  # Residual blocks for AMEN
+        self.res_x: dict[int, Tensor] = {}  # Residual coordinates for AMEN
+        self.res_w: dict[int, Tensor] = {}  # Residual blocks for AMEN
         return
     
     @property
