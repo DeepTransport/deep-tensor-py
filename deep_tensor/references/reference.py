@@ -1,5 +1,6 @@
 import abc
 from typing import Tuple
+import warnings
 
 from torch import Tensor
 
@@ -151,7 +152,7 @@ class Reference(abc.ABC):
     
     def _out_domain(self, rs: Tensor) -> Tensor:
         outside = (rs < self.domain.left) | (self.domain.right < rs)
-        return outside.any(dim=1)
+        return outside
     
     def _check_samples_in_domain(self, rs: Tensor) -> None:
         """Raises an error if any of a set of samples are outside the
@@ -160,5 +161,5 @@ class Reference(abc.ABC):
         outside = self._out_domain(rs)
         if (n_outside := outside.sum()) > 0:
             msg = f"{n_outside} points lie outside domain of reference."
-            raise Exception(msg)
+            warnings.warn(msg)
         return

@@ -20,11 +20,11 @@ class GaussianReference(SymmetricReference):
     
     def eval_unit_cdf(self, us: Tensor) -> Tensor:
         zs = 0.5 * (1.0 + torch.erf(us / (2.0 ** 0.5)))
-        dzdus = -0.5 * us.square().exp() / ((2.0 * torch.pi) ** 0.5)
+        dzdus = torch.exp(-0.5 * us.square()) / ((2.0 * torch.pi) ** 0.5)
         return zs, dzdus
     
     def eval_unit_pdf(self, us: Tensor) -> Tensor:
-        ps = -0.5 * us.square().exp() / ((2.0 * torch.pi) ** 0.5)
+        ps = torch.exp(-0.5 * us.square()) / ((2.0 * torch.pi) ** 0.5)
         grad_ps = -us * ps
         return ps, grad_ps
     

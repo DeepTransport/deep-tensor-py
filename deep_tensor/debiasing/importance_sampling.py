@@ -7,6 +7,20 @@ from ..tools import compute_ess_ratio
 
 @dataclass
 class ImportanceSamplingResult(object):
+    r"""An object containing the results of importance sampling.
+    
+    Parameters
+    ----------
+    log_weights:
+        An $n$-dimensional vector containing the unnormalised 
+        importance weights associated with a set of samples.
+    log_norm:
+        An estimate of the logarithm of the normalising constant 
+        associated with the target density.
+    ess:
+        An estimate of the effective sample size of the samples. 
+
+    """
     log_weights: Tensor
     log_norm: Tensor 
     ess: Tensor
@@ -33,7 +47,7 @@ def run_importance_sampling(
 
     Returns
     -------
-    res: 
+    res:
         A structure containing the log-importance weights (normalised, 
         if `self_normalised=False`), the estimate of the 
         log-normalising constant of the target density (if 

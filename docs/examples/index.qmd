@@ -1,0 +1,6 @@
+---
+title: Examples
+format: html
+---
+
+This page contains examples demonstrating the use of $\texttt{deep\_tensor}$.

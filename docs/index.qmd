@@ -1,8 +1,9 @@
 ---
 format: html
+bibliography: "references.bib"
 ---
 
-Welcome to the $\texttt{deep\_tensor}$ documentation!
+The $\texttt{deep\_tensor}$ package contains a PyTorch implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by @Cui2022.
 
 # Installation
 
@@ -10,4 +11,4 @@ Coming soon...
 
 # Getting Started
 
-Check out the [API reference](/reference/index.qmd) for help getting started with $\texttt{deep\_tensor}$.
+Check out the [examples page](/examples/index.qmd) and [API reference](/reference/index.qmd) for help getting started with $\texttt{deep\_tensor}$.

@@ -23,6 +23,7 @@ from ..preconditioners import Preconditioner
 from ..references import Reference
 from ..tools.printing import dirt_info
 from ..tools.saving import dict_to_h5, h5_to_dict
+from ..tools import compute_f_divergence
 
 import h5py
 
@@ -718,9 +719,10 @@ class DIRT(AbstractDIRT):
         A function that receives an $n \times d$ matrix of samples and 
         returns an $n$-dimensional vector containing the negative 
         log-likelihood function evaluated at each sample.
-    prior:
-        An object which provides a coupling between the prior and a 
-        product-form reference density.
+    neglogpri:
+        A function that receives an $n \times d$ matrix of samples and 
+        returns an $n$-dimensional vector containing the negative 
+        log-prior density evaluated at each sample.
     bases:
         A list of polynomial bases (one for each dimension), or a 
         single polynomial basis (to be used in all dimensions), used to 
@@ -1029,12 +1031,21 @@ class DIRT(AbstractDIRT):
 
             self.n_layers += 1
             if self.bridge.is_last:
+
+                rs = self.reference.random(self.dim, self.pre_sample_size)
+                xs, neglogfxs_dirt = self._eval_irt_reference(rs)
+                neglogfxs = self.neglogfx(xs)
+                dhell2 = compute_f_divergence(-neglogfxs_dirt, -neglogfxs)
+                t1 = time.time()
+
                 if self.dirt_options.verbose:
-                    t1 = time.time()
+                    
                     dirt_info("DIRT construction complete.")
                     dirt_info(f" • Layers: {self.n_layers}.")
                     dirt_info(f" • Total function evaluations: {self.num_eval}.")
                     dirt_info(f" • Total time: {t1-t0:.2f} s.")
+                    dirt_info(f" • DHell: {dhell2.sqrt():.4f}")
+
                 return
 
 

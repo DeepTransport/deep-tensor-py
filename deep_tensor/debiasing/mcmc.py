@@ -56,12 +56,24 @@ class MarkovChain(object):
         return
     
     def print_progress(self) -> None:
-        print(self.acceptance_rate)
+        # TODO: finish this.
+        # print(self.acceptance_rate)
         return
 
 
 @dataclass
 class MCMCResult(object):
+    r"""An object containing a constructed Markov chain.
+    
+    Parameters
+    ----------
+    xs:
+        An $n \times d$ matrix containing the samples that form the 
+        Markov chain.
+    acceptance_rate:
+        The acceptance rate of the sampler.
+    
+    """
     xs: Tensor 
     acceptance_rate: Tensor
 
@@ -94,7 +106,7 @@ def _run_irt_pcn(
         # Propose a new state
         r_p = b * chain.current_state + a * ps[i]
 
-        if reference._out_domain(torch.atleast_2d(r_p)):
+        if reference._out_domain(torch.atleast_2d(r_p)).any():
             negloglik_p = torch.tensor(torch.inf)
             alpha = -torch.tensor(torch.inf)
         else:
@@ -204,10 +216,10 @@ def run_dirt_pcn(
         msg = "Stepsize must be positive."
         raise Exception(msg)
     
-    y_obs = torch.atleast_2d(y_obs)
-    dim = dirt.dim - y_obs.shape[1]
-    
     if y_obs is not None:
+
+        y_obs = torch.atleast_2d(y_obs)
+        dim = dirt.dim - y_obs.shape[1]
         
         def negloglik_pullback(rs: Tensor) -> Tensor:
             """Returns the difference between the negative logarithm of the 
@@ -225,6 +237,8 @@ def run_dirt_pcn(
             return ms
         
     else:
+
+        dim = dirt.dim
         
         def negloglik_pullback(rs: Tensor) -> Tensor:
             """Returns the difference between the negative logarithm of the 
@@ -233,7 +247,7 @@ def run_dirt_pcn(
             """
             rs = torch.atleast_2d(rs)
             neglogfr = dirt.eval_irt_pullback(potential, rs, subset=subset)
-            neglogref = dirt.reference.eval_potential(rs)
+            neglogref = dirt.reference.eval_potential(rs)[0]
             return neglogfr - neglogref
         
         def irt_func(rs: Tensor) -> Tensor:
@@ -268,20 +282,19 @@ def run_independence_sampler(
     ----------
     xs:
         An $n \times d$ matrix containing independent samples from the 
-        SIRT or DIRT object.
+        DIRT object.
     neglogfxs_irt:
         An $n$-dimensional vector containing the potential function 
-        associated with the SIRT or DIRT object evaluated at each 
-        sample.
+        associated with the DIRT object evaluated at each sample.
     neglogfxs_exact:
         An $n$-dimensional vector containing the potential function 
         associated with the target density evaluated at each sample.
 
     Returns
     -------
-    xs_chain: 
-        An $n \times d$ matrix containing the samples that are part of 
-        the constructed Markov chain.
+    res:
+        An object containing the constructed Markov chain and some 
+        diagnostic information.
     
     """
 

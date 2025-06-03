@@ -3,9 +3,16 @@ torch.set_default_dtype(torch.float64)
 
 from .bridging_densities import SingleLayer, Tempering
 from .debiasing import (
+    ImportanceSamplingResult,
+    MCMCResult,
     run_dirt_pcn, 
     run_importance_sampling, 
     run_independence_sampler
+)
+from .density_estimators import (
+    EmpiricalMarginals, 
+    GaussianKDE, 
+    HistogramEstimator
 )
 from .domains import (
     AlgebraicMapping, 
@@ -38,8 +45,10 @@ from .polynomials import (
 from .preconditioners import (
     Preconditioner, 
     DIRTPreconditioner, 
-    IdentityPreconditioner,
-    SampleBasedPreconditioner
+    EmpiricalCDFMapping,
+    IdentityMapping,
+    SampleBasedPreconditioner,
+    UniformMapping
 )
 from .references import GaussianReference, UniformReference
 from .tools import compute_ess_ratio, compute_f_divergence

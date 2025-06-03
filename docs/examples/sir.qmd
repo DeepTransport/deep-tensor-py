@@ -1,0 +1,253 @@
+---
+title: "SIR Model"
+format: 
+    html: 
+        toc: true
+bibliography: "../references.bib"
+jupyter: python3
+---
+
+Here, we characterise the posterior distribution associated with a susceptible-infected-recovered (SIR) model. We will consider a similar setup to that described in @Cui2023.
+
+# Introduction
+
+We consider the SIR model given by the system of ODEs
+
+$$
+\frac{\mathrm{d}S(t)}{\mathrm{d}t} = -\beta S I, \quad 
+\frac{\mathrm{d}I(t)}{\mathrm{d}t} = \beta S I - \gamma I, \quad 
+\frac{\mathrm{d}R(t)}{\mathrm{d}t} = \gamma I,
+$$
+
+where $S(t)$, $I(t)$ and $R(t)$ denote the number of susceptible, infected and recovered people at time $t$, and $\beta$ and $\gamma$ are unknown parameters. For the sake of simplicity, we assume that $S(t)$, $I(t)$ and $R(t)$ can take non-integer values.
+
+We will assume that the initial conditions for the problem are given by $S(0) = 99$, $I(0) = 1$, $R(0) = 0$, and that we receive four noisy observations of the number of infected people, at times $t \in \{1.25, 2.5, 3.75, 5\}$. We will assume that each of these observations is corrupted by additive, independent Gaussian noise with a mean of $0$ and a standard deviation of $1$. 
+
+Finally, we will choose a uniform prior for $\beta$ and $\gamma$; that is, $(\beta, \gamma) \sim \mathcal{U}([0, 2]^{2})$.
+
+# Implementation in $\mathtt{deep\_tensor}$
+
+To solve this inference problem using $\mathtt{deep\_tensor}$, we begin by importing the relevant libraries and defining the SIR model.
+
+```{python}
+
+import deep_tensor as dt
+from matplotlib import pyplot as plt
+import torch
+
+from models import SIRModel
+model = SIRModel()
+
+```
+
+```{python}
+#| echo: false
+#| output: false
+
+plt.style.use("plotstyle.mplstyle")
+torch.manual_seed(1)
+
+```
+
+Next, we generate some synthetic observations. We will assume that the true values of the parameters are $(\beta, \gamma) = (0.1, 1.0)$.
+
+```{python}
+
+xs_true = torch.tensor([[0.1, 1.0]])
+ys_true = model.solve_fwd(xs_true)
+noise = torch.randn_like(ys_true)
+ys_obs = ys_true + noise
+
+```
+
+## DIRT Construction
+
+There are several objects we must create prior to building a DIRT approximation to the posterior. Here, we describe the key ones. For a full list, see the [API reference](../reference/index.qmd).
+
+### Likelihood and Prior
+
+We first define functions that return the potential function (*i.e.*, the negative logarithm) of the likelihood and the prior density.
+
+::: {.callout-note}
+The `negloglik` and `neglogpri` functions must be able to handle multiple sets of parameters. Each function should accept as input a two-dimensional `torch.Tensor`, where each row contains a sample, and return a one-dimensional `torch.Tensor` object containing the negative log-likelihood, or negative log-prior density, evaluated at each sample.
+:::
+
+```{python}
+
+def negloglik(xs: torch.Tensor) -> torch.Tensor:
+    ys = model.solve_fwd(xs)
+    return 0.5 * (ys - ys_obs).square().sum(dim=1)
+
+def neglogpri(xs: torch.Tensor) -> torch.Tensor:
+    neglogpris = torch.full((xs.shape[0],), -torch.tensor(0.25).log())
+    neglogpris[xs[:, 0] < 0.0] = torch.inf 
+    neglogpris[xs[:, 1] > 2.0] = torch.inf
+    return neglogpris
+
+```
+
+### Reference Density and Preconditioner
+
+Next, we specify a product-form reference density. A good choice in most cases is the standard Gaussian density.
+
+We must also specify a *preconditioner*. Recall that the DIRT object provides a coupling between a product-form reference density and an approximation to the target density. A preconditioner can be considered an initial guess as to what this coupling is.
+
+Choosing an suitable preconditioner can reduce the computational expense required to construct the DIRT object significantly. In the context of a Bayesian inverse problem, a suitable choice is a mapping from the reference density to the prior.
+
+```{python}
+
+bounds = torch.tensor([[0.0, 2.0], [0.0, 2.0]])
+reference = dt.GaussianReference()
+preconditioner = dt.UniformMapping(bounds, reference)
+
+```
+
+### Approximation Bases
+
+Next, we specify the polynomial basis which will be used when approximating the marginal PDFs and CDFs required to define the (inverse) Rosenblatt transport. We can specify a list of bases in each dimension, or a single basis (which will be used in all dimensions).
+
+Here, we use a piecewise linear basis with 20 equisized elements in each dimension.
+
+```{python}
+
+bases = dt.Lagrange1(num_elems=20)
+
+```
+
+### DIRT Object
+
+Now we can construct the DIRT object.
+
+```{python}
+
+dirt = dt.DIRT(
+    negloglik, 
+    neglogpri, 
+    preconditioner, 
+    bases,
+    tt_options=dt.TTOptions(verbose=False),
+    dirt_options=dt.DIRTOptions(verbose=False)
+)
+
+```
+
+@fig-post shows a plot of the DIRT approximation to the posterior, as well as the true posterior for comparison. The posterior is very concentrated in comparison to the prior (particularly for parameter $\beta$).
+
+```{python}
+#| code-fold: true
+#| fig-align: center
+#| fig-cap: A comparison between the true posterior density (left) and the DIRT approximation (right).
+#| label: fig-post
+
+n_grid = 300
+b_grid = torch.linspace(0.05, 0.14, n_grid)
+g_grid = torch.linspace(0.80, 1.40, n_grid)
+grid = torch.tensor([[b, g] for g in g_grid for b in b_grid])
+
+fig, axes = plt.subplots(1, 2, figsize=(7, 3.5), sharex=True, sharey=True)
+
+pdf_true = torch.exp(-(negloglik(grid) + neglogpri(grid)))
+pdf_true = pdf_true.reshape(n_grid, n_grid)
+
+pdf_dirt = dirt.eval_pdf(grid)
+pdf_dirt = pdf_dirt.reshape(n_grid, n_grid)
+
+axes[0].pcolormesh(b_grid, g_grid, pdf_true)
+axes[1].pcolormesh(b_grid, g_grid, pdf_dirt)
+
+axes[0].set_ylabel(r"$\gamma$")
+
+for ax in axes:
+    ax.set_xlabel(r"$\beta$")
+    ax.set_box_aspect(1)
+
+plt.show()
+
+```
+
+We can sample from the approximation to the posterior by drawing a set of samples from the reference density and calling the `eval_irt` method of the DIRT object. Note that the `eval_irt` method also returns the potential function of the DIRT approximation to the target density evaluated at each sample.
+
+```{python}
+
+rs = dirt.reference.random(d=dirt.dim, n=20)
+samples, potentials = dirt.eval_irt(rs)
+
+```
+
+@fig-samples shows a plot of the samples.
+
+```{python}
+#| code-fold: true
+#| fig-align: center
+#| fig-cap: Samples from the DIRT approximation to the posterior.
+#| label: fig-samples
+
+fig, ax = plt.subplots(figsize=(7, 3.5), sharex=True, sharey=True)
+
+ax.pcolormesh(b_grid, g_grid, pdf_dirt)
+ax.scatter(*samples.T, c="white", s=4)
+
+ax.set_xlabel(r"$\beta$")
+ax.set_ylabel(r"$\gamma$")
+ax.set_box_aspect(1)
+
+plt.show()
+
+```
+
+## Debiasing
+
+While the DIRT approximation to the posterior density is quite accurate, we may still wish to correct for bias in the approximation results. We can do this by using the DIRT density as part of a Markov chain Monte Carlo (MCMC) sampler, or as a proposal density for importance sampling.
+
+### MCMC Sampling
+
+First, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density. 
+
+```{python}
+
+def potential(xs: torch.Tensor) -> torch.Tensor:
+    return negloglik(xs) + neglogpri(xs)
+
+rs = dirt.reference.random(d=dirt.dim, n=1000)
+samples, potentials_irt = dirt.eval_irt(rs)
+potentials_true = potential(samples)
+
+res = dt.run_independence_sampler(samples, potentials_irt, potentials_true)
+print(f"Acceptance rate: {res.acceptance_rate:.4f}")
+
+```
+
+@fig-chain shows the first 20 points of the simulated Markov chain.
+
+```{python}
+#| code-fold: true
+#| fig-align: center
+#| fig-cap: The first 20 points of the simulated Markov chain, plotted on top of the true posterior density.
+#| label: fig-chain
+
+fig, ax = plt.subplots(figsize=(7, 3.5), sharex=True, sharey=True)
+
+ax.pcolormesh(b_grid, g_grid, pdf_true)
+ax.scatter(*res.xs[:20].T, c="white", s=4)
+ax.plot(*res.xs[:20].T, c="white", lw=0.4)
+
+ax.set_xlabel(r"$\beta$")
+ax.set_ylabel(r"$\gamma$")
+ax.set_box_aspect(1)
+
+plt.show()
+
+```
+
+### Importance Sampling
+
+As an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation appropriately.
+
+```{python}
+
+res = dt.run_importance_sampling(potentials_irt, potentials_true)
+print(f"ESS: {res.ess:.2f}")
+
+```
+
+As expected, the effective sample size (ESS) is almost equal to the number of samples.

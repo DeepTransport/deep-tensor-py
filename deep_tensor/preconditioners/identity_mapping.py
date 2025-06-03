@@ -5,7 +5,7 @@ from .preconditioner import Preconditioner
 from ..references import Reference, GaussianReference
 
 
-class IdentityPreconditioner(Preconditioner):
+class IdentityMapping(Preconditioner):
     r"""An identity mapping.
 
     Parameters

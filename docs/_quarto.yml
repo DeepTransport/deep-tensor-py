@@ -9,11 +9,26 @@ website:
     left:
       - text: "Home"
         href: index.qmd  
+      - text: "Examples"
+        href: examples/index.qmd
       - text: "API Reference"
         href: reference/index.qmd
     right:
       - icon: github
         href: https://github.com/DeepTransport/deep-tensor-py
+    
+  sidebar: 
+    - id: examples
+      title: Examples
+      style: floating
+      align: left
+      collapse-level: 1
+      contents:
+        - title: Examples
+          href: examples/index.qmd
+        - title: SIR Model
+          href: examples/sir.qmd
+
 
 execute:
   freeze: auto
@@ -21,8 +36,8 @@ execute:
 format:
   html:
     theme:
-      dark: [darkly, styles.css, styles-dark.css]
       light: [flatly, styles.css, styles-light.css]
+      dark: [darkly, styles.css, styles-dark.css]
 
 metadata-files:
   - _sidebar.yml
@@ -64,9 +79,9 @@ quartodoc:
       contents:
         - name: Preconditioner
           members: []
-        - name: SampleBasedPreconditioner
+        - name: IdentityMapping
           members: []
-        - name: DIRTPreconditioner
+        - name: UniformMapping
           members: []
 
     - title: Polynomial Bases
@@ -126,6 +141,8 @@ quartodoc:
       desc: Functions used to remove the bias associated with the use of an approximation to the target density function.
       package: deep_tensor
       contents:
-        - name: run_dirt_pcn
         - name: run_importance_sampling 
         - name: run_independence_sampler
+        - name: run_dirt_pcn
+        - name: ImportanceSamplingResult
+        - name: MCMCResult
