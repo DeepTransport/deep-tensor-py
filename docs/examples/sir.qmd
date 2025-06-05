@@ -7,7 +7,7 @@ bibliography: "../references.bib"
 jupyter: python3
 ---
 
-Here, we characterise the posterior distribution associated with a susceptible-infected-recovered (SIR) model. We will consider a similar setup to that described in @Cui2023.
+Here, we characterise the posterior distribution associated with a susceptible-infectious-recovered (SIR) model. We will consider a similar setup to that described in @Cui2023.
 
 # Introduction
 
@@ -19,9 +19,9 @@ $$
 \frac{\mathrm{d}R(t)}{\mathrm{d}t} = \gamma I,
 $$
 
-where $S(t)$, $I(t)$ and $R(t)$ denote the number of susceptible, infected and recovered people at time $t$, and $\beta$ and $\gamma$ are unknown parameters. For the sake of simplicity, we assume that $S(t)$, $I(t)$ and $R(t)$ can take non-integer values.
+where $S(t)$, $I(t)$ and $R(t)$ denote the number of susceptible, infectious and recovered people at time $t$, and $\beta$ and $\gamma$ are unknown parameters. For the sake of simplicity, we assume that $S(t)$, $I(t)$ and $R(t)$ can take non-integer values.
 
-We will assume that the initial conditions for the problem are given by $S(0) = 99$, $I(0) = 1$, $R(0) = 0$, and that we receive four noisy observations of the number of infected people, at times $t \in \{1.25, 2.5, 3.75, 5\}$. We will assume that each of these observations is corrupted by additive, independent Gaussian noise with a mean of $0$ and a standard deviation of $1$. 
+We will assume that the initial conditions for the problem are given by $S(0) = 99$, $I(0) = 1$, $R(0) = 0$, and that we receive four noisy observations of the number of infectious people, at times $t \in \{1.25, 2.5, 3.75, 5\}$. We will assume that each of these observations is corrupted by additive, independent Gaussian noise with a mean of $0$ and a standard deviation of $1$. 
 
 Finally, we will choose a uniform prior for $\beta$ and $\gamma$; that is, $(\beta, \gamma) \sim \mathcal{U}([0, 2]^{2})$.
 
