@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>deep_tensor</title>
+<title>index – deep_tensor</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,49 +20,29 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-/* CSS for citations */
-div.csl-bib-body { }
-div.csl-entry {
-  clear: both;
-  margin-bottom: 0em;
-}
-.hanging-indent div.csl-entry {
-  margin-left:2em;
-  text-indent:-2em;
-}
-div.csl-left-margin {
-  min-width:2em;
-  float:left;
-}
-div.csl-right-inline {
-  margin-left:2em;
-  padding-left:1em;
-}
-div.csl-indent {
-  margin-left: 2em;
-}</style>
+</style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<script src="site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-e1a5c8363afafaef2c763b6775fbf3ca.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-8ef56b68f8fa1e9d2ba328e99e439f80.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-e1a5c8363afafaef2c763b6775fbf3ca.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-f07f85623a94a31f0bbc705ec46ce582.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-dad00e7b7808f29ad08718fdb1ea2384.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-f07f85623a94a31f0bbc705ec46ce582.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-e1a5c8363afafaef2c763b6775fbf3ca.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-8ef56b68f8fa1e9d2ba328e99e439f80.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-e1a5c8363afafaef2c763b6775fbf3ca.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-f07f85623a94a31f0bbc705ec46ce582.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-dad00e7b7808f29ad08718fdb1ea2384.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-f07f85623a94a31f0bbc705ec46ce582.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -292,7 +272,7 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a class="navbar-brand" href="./index.html">
+    <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">deep_tensor</span>
     </a>
   </div>
@@ -303,15 +283,15 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="./index.html" aria-current="page"> 
+    <a class="nav-link" href="../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./examples/index.html"> 
+    <a class="nav-link" href="../examples/index.html"> 
 <span class="menu-text">Examples</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./reference/index.html"> 
+    <a class="nav-link active" href="../reference/index.html" aria-current="page"> 
 <span class="menu-text">API Reference</span></a>
   </li>  
 </ul>
@@ -341,24 +321,173 @@ window.Quarto = {
 
 
 
-<p>The <span class="math inline">\(\texttt{deep\_tensor}\)</span> package contains a PyTorch implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by <span class="citation" data-cites="Cui2022">Cui and Dolgov (<a href="#ref-Cui2022" role="doc-biblioref">2022</a>)</span>.</p>
-<section id="installation" class="level1">
-<h1>Installation</h1>
-<p>Coming soon…</p>
+<section id="api-reference" class="level1 doc doc-index">
+<h1 class="doc doc-index">API Reference</h1>
+<section id="deep-inverse-rosenblatt-transport" class="level2">
+<h2 class="anchored" data-anchor-id="deep-inverse-rosenblatt-transport">Deep Inverse Rosenblatt Transport</h2>
+<p>An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.</p>
+<table class="caption-top table">
+<tbody>
+<tr class="odd">
+<td><a href="../reference/DIRT.html#deep_tensor.DIRT">DIRT</a></td>
+<td>Deep (squared) inverse Rosenblatt transport.</td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="getting-started" class="level1">
-<h1>Getting Started</h1>
-<p>Check out the <a href="./examples/index.html">examples page</a> and <a href="./reference/index.html">API reference</a> for help getting started with <span class="math inline">\(\texttt{deep\_tensor}\)</span>.</p>
-
+<section id="preconditioners" class="level2">
+<h2 class="anchored" data-anchor-id="preconditioners">Preconditioners</h2>
+<p>Triangular mappings which are used as starting points for DIRT construction.</p>
+<table class="caption-top table">
+<tbody>
+<tr class="odd">
+<td><a href="../reference/Preconditioner.html#deep_tensor.Preconditioner">Preconditioner</a></td>
+<td>A mapping between the prior and a reference random variable.</td>
+</tr>
+<tr class="even">
+<td><a href="../reference/IdentityMapping.html#deep_tensor.IdentityMapping">IdentityMapping</a></td>
+<td>An identity mapping.</td>
+</tr>
+<tr class="odd">
+<td><a href="../reference/UniformMapping.html#deep_tensor.UniformMapping">UniformMapping</a></td>
+<td>A mapping between an arbitrary (product form) reference density</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="polynomial-bases" class="level2">
+<h2 class="anchored" data-anchor-id="polynomial-bases">Polynomial Bases</h2>
+<p>Polynomial bases used to construct a functional tensor train.</p>
+<table class="caption-top table">
+<tbody>
+<tr class="odd">
+<td><a href="../reference/Lagrange1.html#deep_tensor.Lagrange1">Lagrange1</a></td>
+<td>Piecewise linear polynomials.</td>
+</tr>
+<tr class="even">
+<td><a href="../reference/LagrangeP.html#deep_tensor.LagrangeP">LagrangeP</a></td>
+<td>Higher-order piecewise Lagrange polynomials.</td>
+</tr>
+<tr class="odd">
+<td><a href="../reference/Chebyshev1st.html#deep_tensor.Chebyshev1st">Chebyshev1st</a></td>
+<td>Chebyshev polynomials of the first kind.</td>
+</tr>
+<tr class="even">
+<td><a href="../reference/Chebyshev2nd.html#deep_tensor.Chebyshev2nd">Chebyshev2nd</a></td>
+<td>Chebyshev polynomials of the second kind.</td>
+</tr>
+<tr class="odd">
+<td><a href="../reference/Fourier.html#deep_tensor.Fourier">Fourier</a></td>
+<td>Fourier polynomials.</td>
+</tr>
+<tr class="even">
+<td><a href="../reference/Legendre.html#deep_tensor.Legendre">Legendre</a></td>
+<td>Legendre polynomials.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="domain-mappings" class="level2">
+<h2 class="anchored" data-anchor-id="domain-mappings">Domain Mappings</h2>
+<p>Mappings between the approximation domain and the domain of the polynomial basis.</p>
+<table class="caption-top table">
+<tbody>
+<tr class="odd">
+<td><a href="../reference/BoundedDomain.html#deep_tensor.BoundedDomain">BoundedDomain</a></td>
+<td>Mapping from a bounded domain to <span class="math inline">\((-1, 1)\)</span>.</td>
+</tr>
+<tr class="even">
+<td><a href="../reference/AlgebraicMapping.html#deep_tensor.AlgebraicMapping">AlgebraicMapping</a></td>
+<td>Mapping from an unbounded domain to <span class="math inline">\((-1, 1)\)</span>.</td>
+</tr>
+<tr class="odd">
+<td><a href="../reference/LogarithmicMapping.html#deep_tensor.LogarithmicMapping">LogarithmicMapping</a></td>
+<td>Mapping from an unbounded domain to <span class="math inline">\((-1, 1)\)</span>.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="options" class="level2">
+<h2 class="anchored" data-anchor-id="options">Options</h2>
+<p>Options for configuring the FTT and DIRT construction.</p>
+<table class="caption-top table">
+<tbody>
+<tr class="odd">
+<td><a href="../reference/TTOptions.html#deep_tensor.TTOptions">TTOptions</a></td>
+<td>Options for configuring the construction of an FTT object.</td>
+</tr>
+<tr class="even">
+<td><a href="../reference/DIRTOptions.html#deep_tensor.DIRTOptions">DIRTOptions</a></td>
+<td>Options for configuring the construction of a DIRT object.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="reference-densities" class="level2">
+<h2 class="anchored" data-anchor-id="reference-densities">Reference Densities</h2>
+<p>Product-form reference densities used as part of DIRT construction.</p>
+<table class="caption-top table">
+<tbody>
+<tr class="odd">
+<td><a href="../reference/GaussianReference.html#deep_tensor.GaussianReference">GaussianReference</a></td>
+<td>The standard <span class="math inline">\(d\)</span>-dimensional Gaussian density, <span class="math inline">\(\mathcal{N}(\boldsymbol{0}_{d}, \boldsymbol{I}_{d})\)</span>.</td>
+</tr>
+<tr class="even">
+<td><a href="../reference/UniformReference.html#deep_tensor.UniformReference">UniformReference</a></td>
+<td>The standard <span class="math inline">\(d\)</span>-dimensional uniform density, <span class="math inline">\(\mathcal{U}([0, 1]^{d})\)</span>.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="bridges" class="level2">
+<h2 class="anchored" data-anchor-id="bridges">Bridges</h2>
+<p>Objects used to generate the intermediate densities approximated during DIRT construction.</p>
+<table class="caption-top table">
+<tbody>
+<tr class="odd">
+<td><a href="../reference/SingleLayer.html#deep_tensor.SingleLayer">SingleLayer</a></td>
+<td>Constructs the DIRT using a single layer.</td>
+</tr>
+<tr class="even">
+<td><a href="../reference/Tempering.html#deep_tensor.Tempering">Tempering</a></td>
+<td>Likelihood tempering.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="debiasing" class="level2">
+<h2 class="anchored" data-anchor-id="debiasing">Debiasing</h2>
+<p>Functions used to remove the bias associated with the use of an approximation to the target density function.</p>
+<table class="caption-top table">
+<tbody>
+<tr class="odd">
+<td><a href="../reference/run_importance_sampling.html#deep_tensor.run_importance_sampling">run_importance_sampling</a></td>
+<td>Computes the importance weights associated with a set of samples.</td>
+</tr>
+<tr class="even">
+<td><a href="../reference/run_independence_sampler.html#deep_tensor.run_independence_sampler">run_independence_sampler</a></td>
+<td>Runs an independence MCMC sampler.</td>
+</tr>
+<tr class="odd">
+<td><a href="../reference/run_dirt_pcn.html#deep_tensor.run_dirt_pcn">run_dirt_pcn</a></td>
+<td>Runs a preconditioned Crank-Nicholson (pCN) sampler.</td>
+</tr>
+<tr class="even">
+<td><a href="../reference/ImportanceSamplingResult.html#deep_tensor.ImportanceSamplingResult">ImportanceSamplingResult</a></td>
+<td>An object containing the results of importance sampling.</td>
+</tr>
+<tr class="odd">
+<td><a href="../reference/MCMCResult.html#deep_tensor.MCMCResult">MCMCResult</a></td>
+<td>An object containing a constructed Markov chain.</td>
+</tr>
+</tbody>
+</table>
 
 
 </section>
+</section>
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
-<div id="ref-Cui2022" class="csl-entry" role="listitem">
-Cui, Tiangang, and Sergey Dolgov. 2022. <span>“Deep Composition of Tensor-Trains Using Squared Inverse Rosenblatt Transports.”</span> <em>Foundations of Computational Mathematics</em> 22 (6): 1863–1922.
-</div>
-</div></section></div></main> <!-- /main -->
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     // Ensure there is a toggle, if there isn't float one in the top right
