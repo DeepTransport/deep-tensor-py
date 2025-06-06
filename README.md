@@ -1,7 +1,11 @@
-# deep-tensor-py
+<h1 align="center"> deep-tensor-py </h1>
+
+<div align="center">
 
 [![Unit tests](https://github.com/alexgdebeer/deep-tensor-py/actions/workflows/run_tests.yaml/badge.svg)](https://github.com/alexgdebeer/deep-tensor-py/actions/workflows/run_tests.yaml)
 [![Docs build](https://github.com/DeepTransport/deep-tensor-py/actions/workflows/publish.yaml/badge.svg)](https://github.com/DeepTransport/deep-tensor-py/actions/workflows/publish.yaml)
+
+</div>
 
 This package contains a [PyTorch](https://pytorch.org) implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by Cui and Dolgov [[1](#1)].
 
