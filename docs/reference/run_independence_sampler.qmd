@@ -1,0 +1,34 @@
+# run_independence_sampler { #deep_tensor.run_independence_sampler }
+
+```python
+run_independence_sampler(
+    xs: Tensor,
+    neglogfxs_irt: Tensor,
+    neglogfxs_exact: Tensor,
+)
+```
+
+Runs an independence MCMC sampler.
+
+Runs an independence MCMC sampler using a set of samples from a 
+SIRT or DIRT object as the proposal.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times d$ matrix containing independent samples from the  DIRT object.
+
+<code>[**neglogfxs_irt**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential function  associated with the DIRT object evaluated at each sample.
+
+<code>[**neglogfxs_exact**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential function  associated with the target density evaluated at each sample.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[**res**]{.parameter-name} [:]{.parameter-annotation-sep} [[MCMCResult](`deep_tensor.debiasing.mcmc.MCMCResult`)]{.parameter-annotation}</code>
+
+:   An object containing the constructed Markov chain and some  diagnostic information.

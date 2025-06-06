@@ -1,0 +1,71 @@
+# GaussianReference { #deep_tensor.GaussianReference }
+
+```python
+GaussianReference(self, domain: Domain | None = None)
+```
+
+The standard $d$-dimensional Gaussian density, $\mathcal{N}(\boldsymbol{0}_{d}, \boldsymbol{I}_{d})$.
+
+The density can be truncated to a subinterval of the real numbers 
+in each dimension.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**domain**]{.parameter-name} [:]{.parameter-annotation-sep} [[Domain](`deep_tensor.domains.Domain`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The domain on which the density is defined in each dimension.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [random](#deep_tensor.GaussianReference.random) | Generates a set of random samples. |
+| [sobol](#deep_tensor.GaussianReference.sobol) | Generates a set of QMC samples. |
+
+### random { #deep_tensor.GaussianReference.random }
+
+```python
+GaussianReference.random(d: int, n: int)
+```
+
+Generates a set of random samples.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**d**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The dimension of the samples.
+
+<code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The number of samples to draw.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times d$ matrix containing the generated samples.
+
+### sobol { #deep_tensor.GaussianReference.sobol }
+
+```python
+GaussianReference.sobol(d: int, n: int)
+```
+
+Generates a set of QMC samples.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**d**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The dimension of the samples.
+
+<code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The number of samples to generate.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times d$ matrix containing the generated samples.

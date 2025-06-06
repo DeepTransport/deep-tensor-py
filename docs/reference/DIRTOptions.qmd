@@ -1,0 +1,36 @@
+# DIRTOptions { #deep_tensor.DIRTOptions }
+
+```python
+DIRTOptions(
+    self,
+    method: str = 'aratio',
+    num_samples: int = 1000,
+    num_debugs: int = 1000,
+    defensive: float = 1e-08,
+    verbose: bool = True,
+)
+```
+
+Options for configuring the construction of a DIRT object.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**method**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'aratio\']{.parameter-default}</code>
+
+:   The method used for the ratio function at each iteration. Can  be `'aratio'` (approximate ratio) or `'eratio'` (exact ratio).
+
+<code>[**num_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
+
+:   TODO: remove this eventually.
+
+<code>[**num_debugs**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
+
+:   The number of samples used to evaluate the quality of each SIRT  constructed during the construction of the DIRT.
+
+<code>[**defensive**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-08]{.parameter-default}</code>
+
+:   The parameter (often referred to as $\gamma$ or $\tau$) used to  make the tails of the FTT approximation to each ratio function  heavier.
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Whether to print information on the construction of the DIRT  object.

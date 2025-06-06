@@ -1,0 +1,93 @@
+# run_dirt_pcn { #deep_tensor.run_dirt_pcn }
+
+```python
+run_dirt_pcn(
+    potential: Callable[[Tensor], Tensor],
+    dirt: AbstractDIRT,
+    n: float,
+    dt: float = 2.0,
+    y_obs: Tensor | None = None,
+    x0: Tensor | None = None,
+    subset: str = 'first',
+    verbose: bool = True,
+)
+```
+
+Runs a preconditioned Crank-Nicholson (pCN) sampler.
+
+Runs a pCN sampler (Cotter *et al.*, 2013) to characterise the 
+pullback of the target density under the DIRT mapping, then pushes 
+the resulting samples forward under the DIRT mapping to obtain 
+samples distributed according to the target. This idea was 
+initially outlined by Cui *et al.* (2023).
+
+Note that the pCN proposal is only applicable to problems with a 
+Gaussian reference density.
+
+TODO: record IACT somewhere. Might need to use an external library 
+for this one.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**potential**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+
+:   A function that returns the negative logarithm of the (possibly  unnormalised) target density at a given sample.
+
+<code>[**dirt**]{.parameter-name} [:]{.parameter-annotation-sep} [[AbstractDIRT](`deep_tensor.irt.AbstractDIRT`)]{.parameter-annotation}</code>
+
+:   A previously-constructed DIRT object.
+
+<code>[**y_obs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   A tensor containing the observations.
+
+<code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation}</code>
+
+:   The length of the Markov chain to construct.
+
+<code>[**dt**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [2.0]{.parameter-default}</code>
+
+:   pCN stepsize, $\Delta t$. If this is not specified, a value of  $\Delta t = 2$ (independence sampler) will be used.
+
+<code>[**x0**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The starting state. If this is passed in, the DIRT mapping will  be applied to it to generate the starting location for sampling  from the pullback of the target density. Otherwise, the mean of  the reference density will be used.
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Whether to print diagnostic information during the sampling  process.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[**res**]{.parameter-name} [:]{.parameter-annotation-sep} [[MCMCResult](`deep_tensor.debiasing.mcmc.MCMCResult`)]{.parameter-annotation}</code>
+
+:   An object containing the constructed Markov chain and some  diagnostic information.
+
+## Notes {.doc-section .doc-section-notes}
+
+When the reference density is the standard Gaussian density (that 
+is, $\rho(\theta) = \mathcal{N}(0_{d}, I_{d})$), the pCN proposal 
+(given current state $\theta^{(i)}$) takes the form
+$$
+    \theta' = \frac{2-\Delta t}{2+\Delta t} \theta^{(i)} 
+        + \frac{2\sqrt{2\Delta t}}{2 + \Delta t} \tilde{\theta},
+$$
+where $\tilde{\theta} \sim \rho(\,\cdot\,)$, and $\Delta t$ denotes 
+the step size. 
+
+When $\Delta t = 2$, the resulting sampler is an independence 
+sampler. When $\Delta t > 2$, the proposals are negatively 
+correlated, and when $\Delta t < 2$, the proposals are positively 
+correlated.
+
+## References {.doc-section .doc-section-references}
+
+Cotter, SL, Roberts, GO, Stuart, AM and White, D (2013). *[MCMC 
+methods for functions: Modifying old algorithms to make them 
+faster](https://doi.org/10.1214/13-STS421).* Statistical Science 
+**28**, 424--446.
+
+Cui, T, Dolgov, S and Zahm, O (2023). *[Scalable conditional deep 
+inverse Rosenblatt transports using tensor trains and gradient-based 
+dimension reduction](https://doi.org/10.1016/j.jcp.2023.112103).* 
+Journal of Computational Physics **485**, 112103.

@@ -1,0 +1,19 @@
+# AlgebraicMapping { #deep_tensor.AlgebraicMapping }
+
+```python
+AlgebraicMapping(self, scale: float | Tensor = 1.0)
+```
+
+Mapping from an unbounded domain to $(-1, 1)$.
+
+This class provides a mapping from an unbounded domain, 
+$(-\infty, \infty)$, to a bounded domain, $(-1, 1)$. This mapping 
+is of the form 
+$$x \mapsto \frac{x/s}{\sqrt{1 + (x/s)^{2}}},$$
+where $s$ is a scale parameter.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**scale**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`) \| [Tensor](`torch.Tensor`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1.0]{.parameter-default}</code>
+
+:   The scale parameter, $s$.

@@ -1,0 +1,81 @@
+# API Reference {.doc .doc-index}
+
+## Deep Inverse Rosenblatt Transport
+
+An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.
+
+| | |
+| --- | --- |
+| [DIRT](DIRT.qmd#deep_tensor.DIRT) | Deep (squared) inverse Rosenblatt transport. |
+
+## Preconditioners
+
+Triangular mappings which are used as starting points for DIRT construction.
+
+| | |
+| --- | --- |
+| [Preconditioner](Preconditioner.qmd#deep_tensor.Preconditioner) | A mapping between the prior and a reference random variable. |
+| [IdentityMapping](IdentityMapping.qmd#deep_tensor.IdentityMapping) | An identity mapping. |
+| [UniformMapping](UniformMapping.qmd#deep_tensor.UniformMapping) | A mapping between an arbitrary (product form) reference density  |
+
+## Polynomial Bases
+
+Polynomial bases used to construct a functional tensor train.
+
+| | |
+| --- | --- |
+| [Lagrange1](Lagrange1.qmd#deep_tensor.Lagrange1) | Piecewise linear polynomials. |
+| [LagrangeP](LagrangeP.qmd#deep_tensor.LagrangeP) | Higher-order piecewise Lagrange polynomials. |
+| [Chebyshev1st](Chebyshev1st.qmd#deep_tensor.Chebyshev1st) | Chebyshev polynomials of the first kind. |
+| [Chebyshev2nd](Chebyshev2nd.qmd#deep_tensor.Chebyshev2nd) | Chebyshev polynomials of the second kind. |
+| [Fourier](Fourier.qmd#deep_tensor.Fourier) | Fourier polynomials. |
+| [Legendre](Legendre.qmd#deep_tensor.Legendre) | Legendre polynomials. |
+
+## Domain Mappings
+
+Mappings between the approximation domain and the domain of the polynomial basis.
+
+| | |
+| --- | --- |
+| [BoundedDomain](BoundedDomain.qmd#deep_tensor.BoundedDomain) | Mapping from a bounded domain to $(-1, 1)$. |
+| [AlgebraicMapping](AlgebraicMapping.qmd#deep_tensor.AlgebraicMapping) | Mapping from an unbounded domain to $(-1, 1)$. |
+| [LogarithmicMapping](LogarithmicMapping.qmd#deep_tensor.LogarithmicMapping) | Mapping from an unbounded domain to $(-1, 1)$. |
+
+## Options
+
+Options for configuring the FTT and DIRT construction.
+
+| | |
+| --- | --- |
+| [TTOptions](TTOptions.qmd#deep_tensor.TTOptions) | Options for configuring the construction of an FTT object. |
+| [DIRTOptions](DIRTOptions.qmd#deep_tensor.DIRTOptions) | Options for configuring the construction of a DIRT object. |
+
+## Reference Densities
+
+Product-form reference densities used as part of DIRT construction.
+
+| | |
+| --- | --- |
+| [GaussianReference](GaussianReference.qmd#deep_tensor.GaussianReference) | The standard $d$-dimensional Gaussian density, $\mathcal{N}(\boldsymbol{0}_{d}, \boldsymbol{I}_{d})$. |
+| [UniformReference](UniformReference.qmd#deep_tensor.UniformReference) | The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$. |
+
+## Bridges
+
+Objects used to generate the intermediate densities approximated during DIRT construction.
+
+| | |
+| --- | --- |
+| [SingleLayer](SingleLayer.qmd#deep_tensor.SingleLayer) | Constructs the DIRT using a single layer. |
+| [Tempering](Tempering.qmd#deep_tensor.Tempering) | Likelihood tempering. |
+
+## Debiasing
+
+Functions used to remove the bias associated with the use of an approximation to the target density function.
+
+| | |
+| --- | --- |
+| [run_importance_sampling](run_importance_sampling.qmd#deep_tensor.run_importance_sampling) | Computes the importance weights associated with a set of samples. |
+| [run_independence_sampler](run_independence_sampler.qmd#deep_tensor.run_independence_sampler) | Runs an independence MCMC sampler. |
+| [run_dirt_pcn](run_dirt_pcn.qmd#deep_tensor.run_dirt_pcn) | Runs a preconditioned Crank-Nicholson (pCN) sampler. |
+| [ImportanceSamplingResult](ImportanceSamplingResult.qmd#deep_tensor.ImportanceSamplingResult) | An object containing the results of importance sampling. |
+| [MCMCResult](MCMCResult.qmd#deep_tensor.MCMCResult) | An object containing a constructed Markov chain. |

@@ -1,0 +1,54 @@
+# Tempering { #deep_tensor.Tempering }
+
+```python
+Tempering(
+    self,
+    betas: Tensor | None = None,
+    ess_tol: Tensor | float = 0.5,
+    ess_tol_init: Tensor | float = 0.5,
+    beta_factor: Tensor | float = 1.05,
+    min_beta: Tensor | float = 0.0001,
+    max_layers: int = 20,
+)
+```
+
+Likelihood tempering.
+
+The intermediate densities, $\{\pi_{k}(\theta)\}_{k=1}^{N}$, 
+generated using this approach take the form
+$$\pi_{k}(\theta) \propto \pi_{0}(\theta)\mathcal{L}(\theta; y)^{\beta_{k}},$$
+where $\pi_{0}(\,\cdot\,)$ denotes the prior, $\mathcal{L}(\,\cdot\,; y)$ 
+denotes the likelihood, and $0 \leq \beta_{1} < \cdots < \beta_{N} = 1$.
+
+It is possible to provide this class with a set of $\beta$ values to 
+use. If these are not provided, they will be determined 
+automatically by finding the largest possible $\beta$, at each 
+iteration, such that the ESS of a reweighted set of samples 
+distributed according to (a TT approximation to) the previous 
+bridging density does not fall below a given value. 
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**betas**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   A set of $\beta$ values to use for the intermediate  distributions. If not specified, these will be determined  automatically.
+
+<code>[**ess_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| [float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.5]{.parameter-default}</code>
+
+:   If selecting the $\beta$ values adaptively, the minimum  allowable ESS of the samples (distributed according to an  approximation of the previous bridging density) when selecting  the next bridging density.
+
+<code>[**ess_tol_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| [float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.5]{.parameter-default}</code>
+
+:   If selecting the $\beta$ values adaptively, the minimum  allowable ESS of the samples when selecting the initial  bridging density.
+
+<code>[**beta_factor**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| [float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1.05]{.parameter-default}</code>
+
+:   If selecting the $\beta$ values adaptively, the factor by which  to increase the current $\beta$ value by prior to checking  whether the ESS of the reweighted samples is sufficiently high.
+
+<code>[**min_beta**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| [float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0001]{.parameter-default}</code>
+
+:   If selecting the $\beta$ values adaptively, the minimum  allowable $\beta$ value.
+
+<code>[**max_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [20]{.parameter-default}</code>
+
+:   If selecting the $\beta$ values adaptively, the maximum number  of layers to construct. Note that, if the maximum number of layers is reached, the final bridging density may not be equal  to the posterior.

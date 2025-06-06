@@ -1,0 +1,31 @@
+# run_importance_sampling { #deep_tensor.run_importance_sampling }
+
+```python
+run_importance_sampling(
+    neglogfxs_irt: Tensor,
+    neglogfxs_exact: Tensor,
+    self_normalised: bool = False,
+)
+```
+
+Computes the importance weights associated with a set of samples.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**neglogfxs_irt**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential function  associated with the DIRT object evaluated at each sample.
+
+<code>[**neglogfxs_exact**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential function  associated with the target density evaluated at each sample.
+
+<code>[**self_normalised**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Whether the target density is normalised. If not, the log of  the normalising constant will be estimated using the weights.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[**res**]{.parameter-name} [:]{.parameter-annotation-sep} [[ImportanceSamplingResult](`deep_tensor.debiasing.importance_sampling.ImportanceSamplingResult`)]{.parameter-annotation}</code>
+
+:   A structure containing the log-importance weights (normalised,  if `self_normalised=False`), the estimate of the  log-normalising constant of the target density (if  `self_normalised=False`), and the effective sample size.

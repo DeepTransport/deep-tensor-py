@@ -1,0 +1,18 @@
+# UniformMapping { #deep_tensor.UniformMapping }
+
+```python
+UniformMapping(self, bounds: Tensor, reference: Reference | None = None)
+```
+
+A mapping between an arbitrary (product form) reference density 
+and a uniform density with a specified set of bounds.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**bounds**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   A $d \times 2$ matrix, where each row contains the lower and  upper bounds of the uniform density in each dimension.
+
+<code>[**reference**]{.parameter-name} [:]{.parameter-annotation-sep} [[Reference](`deep_tensor.references.Reference`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The reference density. If this is not specified, it will  default to the unit Gaussian in $d$ dimensions with support  truncated to $[-4, 4]^{d}$.

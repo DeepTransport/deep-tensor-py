@@ -1,0 +1,51 @@
+# Preconditioner { #deep_tensor.Preconditioner }
+
+```python
+Preconditioner(
+    self,
+    reference: Reference,
+    Q: Callable[[Tensor], Tensor],
+    Q_inv: Callable[[Tensor], Tensor],
+    neglogdet_Q: Callable[[Tensor], Tensor],
+    neglogdet_Q_inv: Callable[[Tensor], Tensor],
+    dim: int,
+)
+```
+
+A mapping between the prior and a reference random variable.
+
+This mapping needs to be triangular. 
+  - If the mapping is lower triangular, one can evaluate the 
+    marginal densities of the corresponding DIRT object in the 
+    first $k$ variables, and condition on the first $k$ variables, 
+    where $1 \leq k \leq d$.
+  - If the mapping is upper triangular, one can evaluate the 
+    marginal densities of the corresponding DIRT object in the 
+    last $k$ variables, and condition on the final $k$ variables, 
+    where $1 \leq k \leq d$.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**reference**]{.parameter-name} [:]{.parameter-annotation-sep} [[Reference](`deep_tensor.references.Reference`)]{.parameter-annotation}</code>
+
+:   The density of the reference random variable.
+
+<code>[**Q**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+
+:   A function which maps from the reference distribution to the  prior.
+
+<code>[**Q_inv**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+
+:   The inverse of `Q`.
+
+<code>[**neglogdet_Q**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+
+:   TODO
+
+<code>[**neglogdet_Q_inv**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+
+:   TODO
+
+<code>[**dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The dimension of the parameter.

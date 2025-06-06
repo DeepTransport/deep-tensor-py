@@ -1,0 +1,16 @@
+# BoundedDomain { #deep_tensor.BoundedDomain }
+
+```python
+BoundedDomain(self, bounds: Tensor | None = None)
+```
+
+Mapping from a bounded domain to $(-1, 1)$.
+
+This class provides a linear mapping from a bounded domain, 
+$(x_{0}, x_{1})$, to $(-1, 1)$.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**bounds**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   A set of bounds, $(x_{0}, x_{1})$. The default choice is  `torch.tensor([-1.0, 1.0])`.

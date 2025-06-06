@@ -1,0 +1,17 @@
+# IdentityMapping { #deep_tensor.IdentityMapping }
+
+```python
+IdentityMapping(self, dim: int, reference: Reference | None = None)
+```
+
+An identity mapping.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The dimension of the mapping.
+
+<code>[**reference**]{.parameter-name} [:]{.parameter-annotation-sep} [[Reference](`deep_tensor.references.Reference`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The reference density. If this is not specified, it will  default to the unit Gaussian in $d$ dimensions with support  truncated to $[-4, 4]^{d}$.

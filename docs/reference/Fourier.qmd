@@ -1,0 +1,40 @@
+# Fourier { #deep_tensor.Fourier }
+
+```python
+Fourier(self, order: int)
+```
+
+Fourier polynomials.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**order**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The number of sine functions the basis is composed of. The  total number of basis functions, $n$, is equal to `2*order+2`.
+
+## Notes {.doc-section .doc-section-notes}
+
+The Fourier basis for the interval $[-1, 1]$, with cardinality $n$, 
+is given by
+$$
+    \left\{1, \sqrt{2}\sin(\pi x), \dots, \sqrt{2}\sin(k \pi x), 
+    \sqrt{2}\cos(\pi x), \dots, \sqrt{2}\cos(k \pi x), 
+    \sqrt{2}\cos(n \pi x / 2)\right\},
+$$
+where $k = 1, 2, \dots, \tfrac{n}{2}-1$. 
+
+The basis functions are orthonormal with respect to the 
+(normalised) weight function given by
+$$
+    \lambda(x) = \frac{1}{2}.
+$$
+
+## References {.doc-section .doc-section-references}
+
+Boyd, JP (2001, Section 4.5). *[Chebyshev and Fourier spectral 
+methods](https://link.springer.com/book/9783540514879).* Lecture 
+Notes in Engineering, Volume 49.
+
+Cui, T and Dolgov, S (2022). *[Deep composition of Tensor-Trains 
+using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).* 
+Foundations of Computational Mathematics, **22**, 1863--1922.

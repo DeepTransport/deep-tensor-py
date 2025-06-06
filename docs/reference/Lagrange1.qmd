@@ -1,0 +1,28 @@
+# Lagrange1 { #deep_tensor.Lagrange1 }
+
+```python
+Lagrange1(self, num_elems: int)
+```
+
+Piecewise linear polynomials.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**num_elems**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The number of elements to use.
+
+## Notes {.doc-section .doc-section-notes}
+
+To construct a piecewise linear basis, we divide the interval 
+$[0, 1]$ into `num_elems` equisized elements. Then, within each 
+element a given function can be represented by
+$$
+    f(x) \approx f(x_{0}) 
+        + \frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),
+$$
+where $x_{0}$ and $x_{1}$ denote the endpoints of the element.
+
+We use piecewise cubic polynomials to represent the (conditional) 
+CDFs corresponding to the piecewise linear representation of the 
+(square root of) the target density function.

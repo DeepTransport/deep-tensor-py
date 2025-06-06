@@ -1,0 +1,40 @@
+# Chebyshev1st { #deep_tensor.Chebyshev1st }
+
+```python
+Chebyshev1st(self, order: int)
+```
+
+Chebyshev polynomials of the first kind.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**order**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The maximum order of the polynomials.
+
+## Notes {.doc-section .doc-section-notes}
+
+The (normalised) Chebyshev polynomials of the first kind, defined 
+on $(-1, 1)$, are given by 
+$$
+\begin{align}
+    p_{0}(x) &= 1, \\
+    p_{k}(x) &= \sqrt{2}\cos(k\arccos(x)), 
+        \qquad k = 1, 2, \dots, n.
+\end{align}
+$$
+The polynomials are orthogonal with respect to the (normalised) 
+weighting function given by
+$$
+    \lambda(x) = \frac{1}{\pi\sqrt{1-x^{2}}}.
+$$
+
+## References {.doc-section .doc-section-references}
+
+Boyd, JP (2001, Appendix A.2). *[Chebyshev and Fourier spectral 
+methods](https://link.springer.com/book/9783540514879).* Lecture 
+Notes in Engineering, Volume 49.
+
+Cui, T, Dolgov, S and Zahm, O (2023). *[Self-reinforced polynomial 
+approximation methods for concentrated probability 
+densities](https://arxiv.org/abs/2303.02554)*. arXiv preprint.

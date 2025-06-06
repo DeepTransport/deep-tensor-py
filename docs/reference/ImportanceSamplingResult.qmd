@@ -1,0 +1,26 @@
+# ImportanceSamplingResult { #deep_tensor.ImportanceSamplingResult }
+
+```python
+ImportanceSamplingResult(
+    self,
+    log_weights: Tensor,
+    log_norm: Tensor,
+    ess: Tensor,
+)
+```
+
+An object containing the results of importance sampling.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**log_weights**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the unnormalised  importance weights associated with a set of samples.
+
+<code>[**log_norm**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An estimate of the logarithm of the normalising constant  associated with the target density.
+
+<code>[**ess**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An estimate of the effective sample size of the samples.

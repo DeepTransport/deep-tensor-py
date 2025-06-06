@@ -1,0 +1,40 @@
+# PriorTransformation { #deep_tensor.PriorTransformation }
+
+```python
+PriorTransformation(
+    self,
+    reference: Reference,
+    Q: Callable[[Tensor], Tensor],
+    Q_inv: Callable[[Tensor], Tensor],
+    neglogabsdet_Q_inv: Callable[[Tensor], Tensor],
+    dim: int,
+)
+```
+
+A mapping between the prior and a reference random variable.
+
+TODO: there are some properties that the transformation Q needs to
+verify (it needs to be invertible for the pushforward density 
+formula to make sense). 
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**reference**]{.parameter-name} [:]{.parameter-annotation-sep} [[Reference](`deep_tensor.references.Reference`)]{.parameter-annotation}</code>
+
+:   The density of the reference random variable.
+
+<code>[**Q**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+
+:   A function which maps from the prior to the reference  distribution.
+
+<code>[**Q_inv**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+
+:   The inverse of `Q`.
+
+<code>[**neglogabsdet_Q_inv**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+
+:   A function which takes as input an $n \times d$ matrix
+
+<code>[**dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The dimension of the parameter.

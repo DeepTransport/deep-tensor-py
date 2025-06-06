@@ -1,0 +1,17 @@
+# MCMCResult { #deep_tensor.MCMCResult }
+
+```python
+MCMCResult(self, xs: Tensor, acceptance_rate: Tensor)
+```
+
+An object containing a constructed Markov chain.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times d$ matrix containing the samples that form the  Markov chain.
+
+<code>[**acceptance_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   The acceptance rate of the sampler.

@@ -1,0 +1,52 @@
+# LagrangeP { #deep_tensor.LagrangeP }
+
+```python
+LagrangeP(self, order: int, num_elems: int)
+```
+
+Higher-order piecewise Lagrange polynomials.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**order**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The degree of the polynomials, $n$.
+
+<code>[**num_elems**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The number of elements to use.
+
+## Notes {.doc-section .doc-section-notes}
+
+To construct a higher-order Lagrange basis, we divide the interval 
+$[0, 1]$ into `num_elems` equisized elements, and use a set of 
+Lagrange polynomials of degree $n=\,$`order` within each element.
+
+Within a given element, we choose a set of interpolation points, 
+$\{x_{j}\}_{j=0}^{n}$, which consist of the endpoints of the 
+element and the roots of the Jacobi polynomial of degree $n-3$ 
+(mapped into the domain of the element). Then, a given function can 
+be approximated (within the element) as
+$$
+    f(x) \approx \sum_{j=0}^{n} f(x_{j})p_{j}(x),
+$$
+where the *Lagrange polynomials* $\{p_{j}(x)\}_{j=0}^{n}$ are 
+given by
+$$
+    p_{j}(x) = \frac{\prod_{k = 0, k \neq j}^{n}(x-x_{k})}
+        {\prod_{k = 0, k \neq j}^{n}(x_{j}-x_{k})}.
+$$
+To evaluate the interpolant, we use the second (true) form of the 
+Barycentric formula, which is more efficient and stable than the 
+above formula.
+
+We use piecewise Chebyshev polynomials of the second kind to 
+represent the (conditional) CDFs corresponding to the higher-order 
+Lagrange representation of the (square root of) the target density 
+function.
+
+## References {.doc-section .doc-section-references}
+
+Berrut, J and Trefethen, LN (2004). *[Barycentric Lagrange 
+interpolation](https://doi.org/10.1137/S0036144502417715).* 
+SIAM Review, **46**, 501--517.

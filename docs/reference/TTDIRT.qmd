@@ -1,0 +1,312 @@
+# TTDIRT { #deep_tensor.TTDIRT }
+
+```python
+TTDIRT(
+    self,
+    negloglik: Callable[[Tensor], Tensor],
+    prior: PriorTransformation,
+    bases: Basis1D | List[Basis1D],
+    bridge: Bridge | None = None,
+    sirt_options: TTOptions | None = None,
+    dirt_options: DIRTOptions | None = None,
+    prev_approx: Dict[int, TTSIRT] | None = None,
+)
+```
+
+Deep (squared) inverse Rosenblatt transport.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**negloglik**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+
+:   A function that receives an $n \times d$ matrix of samples and  returns an $n$-dimensional vector containing the negative  log-likelihood function evaluated at each sample.
+
+<code>[**prior**]{.parameter-name} [:]{.parameter-annotation-sep} [[PriorTransformation](`deep_tensor.prior_transformation.PriorTransformation`)]{.parameter-annotation}</code>
+
+:   An object which provides a coupling between the prior and a  product-form reference density.
+
+<code>[**bases**]{.parameter-name} [:]{.parameter-annotation-sep} [[Basis1D](`deep_tensor.polynomials.Basis1D`) \| [List](`typing.List`)\[[Basis1D](`deep_tensor.polynomials.Basis1D`)\]]{.parameter-annotation}</code>
+
+:   A list of polynomial bases (one for each dimension), or a  single polynomial basis (to be used in all dimensions), used to  construct the functional tensor trains at each iteration.
+
+<code>[**bridge**]{.parameter-name} [:]{.parameter-annotation-sep} [[Bridge](`deep_tensor.bridging_densities.Bridge`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   An object used to generate the intermediate densities to  approximate at each stage of the DIRT construction.
+
+<code>[**sirt_options**]{.parameter-name} [:]{.parameter-annotation-sep} [[TTOptions](`deep_tensor.options.TTOptions`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Options for constructing the SIRT approximation to the  ratio function (*i.e.*, the pullback of the current bridging  density under the existing composition of mappings) at each  iteration.
+
+<code>[**dirt_options**]{.parameter-name} [:]{.parameter-annotation-sep} [[DIRTOptions](`deep_tensor.options.DIRTOptions`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Options for constructing the DIRT approximation to the  target density.
+
+<code>[**prev_approx**]{.parameter-name} [:]{.parameter-annotation-sep} [[Dict](`typing.Dict`)\[[int](`int`), [TTSIRT](`deep_tensor.irt.tt_sirt.TTSIRT`)\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   A dictionary containing a set of SIRTs generated as part of  the construction of a previous DIRT object.
+
+## References {.doc-section .doc-section-references}
+
+Cui, T and Dolgov, S (2022). *[Deep composition of tensor-trains 
+using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).*
+Foundations of Computational Mathematics **22**, 1863--1922.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [eval_potential](#deep_tensor.TTDIRT.eval_potential) | Evaluates the potential function. |
+| [eval_pdf](#deep_tensor.TTDIRT.eval_pdf) | Evaluates the density function. |
+| [eval_rt](#deep_tensor.TTDIRT.eval_rt) | Evaluates the deep Rosenblatt transport. |
+| [eval_irt](#deep_tensor.TTDIRT.eval_irt) | Evaluates the deep inverse Rosenblatt transport. |
+| [eval_cirt](#deep_tensor.TTDIRT.eval_cirt) | Evaluates the conditional inverse Rosenblatt transport. |
+| [random](#deep_tensor.TTDIRT.random) | Generates a set of random samples.  |
+| [sobol](#deep_tensor.TTDIRT.sobol) | Generates a set of QMC samples. |
+
+### eval_potential { #deep_tensor.TTDIRT.eval_potential }
+
+```python
+TTDIRT.eval_potential(
+    ms: Tensor,
+    n_layers: Tensor = torch.inf,
+    subset: str | None = None,
+)
+```
+
+Evaluates the potential function.
+
+Returns the joint potential function, or the marginal potential 
+function for the first $k$ variables or the last $k$ variables,
+corresponding to the pullback of the reference measure under a 
+given number of layers of the DIRT.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing a set of samples drawn  from the current DIRT approximation to the target density.
+
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.inf]{.parameter-default}</code>
+
+:   The number of layers of the current DIRT construction to use.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**neglogfxs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential function of the target density evaluated at each element in `xs`.
+
+### eval_pdf { #deep_tensor.TTDIRT.eval_pdf }
+
+```python
+TTDIRT.eval_pdf(
+    ms: Tensor,
+    n_layers: Tensor = torch.inf,
+    subset: str | None = None,
+)
+```
+
+Evaluates the density function.
+
+Returns the joint density function, or the marginal density 
+function for the first $k$ variables or the last $k$ variables,
+corresponding to the pullback of the reference measure under 
+a given number of layers of the DIRT.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing a set of samples drawn  from the DIRT approximation to the target density.
+
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.inf]{.parameter-default}</code>
+
+:   The number of layers of the current DIRT construction to  use.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**fms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the value of the  approximation to the target density evaluated at each  element in `ms`.
+
+### eval_rt { #deep_tensor.TTDIRT.eval_rt }
+
+```python
+TTDIRT.eval_rt(
+    ms: Tensor,
+    n_layers: Tensor = torch.inf,
+    subset: str | None = None,
+)
+```
+
+Evaluates the deep Rosenblatt transport.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix of random variables drawn from the  density defined by the current DIRT.
+
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.inf]{.parameter-default}</code>
+
+:   The number of layers of the deep inverse Rosenblatt  transport to push the samples forward under. If not  specified, the samples will be pushed forward through all  the layers.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing the composition of  mappings evaluated at each value of `ms`.
+
+<code>[**neglogfms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential function  of the pullback of the reference density under the current  composition of mappings, evaluated at each sample in `ms`.
+
+### eval_irt { #deep_tensor.TTDIRT.eval_irt }
+
+```python
+TTDIRT.eval_irt(
+    rs: Tensor,
+    n_layers: int = torch.inf,
+    subset: str | None = None,
+)
+```
+
+Evaluates the deep inverse Rosenblatt transport.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing samples distributed  according to the reference density.
+
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.inf]{.parameter-default}</code>
+
+:   The number of layers of the deep inverse Rosenblatt  transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing the corresponding samples  from the approximation domain, after applying the deep  inverse Rosenblatt transport.
+
+<code>[**neglogfms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential function of the pullback of the reference density under the current  composition of mappings, evaluated at each sample in `xs`.
+
+### eval_cirt { #deep_tensor.TTDIRT.eval_cirt }
+
+```python
+TTDIRT.eval_cirt(
+    ms: Tensor,
+    rs: Tensor,
+    n_layers: int = torch.inf,
+    subset: str | None = None,
+)
+```
+
+Evaluates the conditional inverse Rosenblatt transport.
+
+Returns the conditional inverse Rosenblatt transport evaluated
+at a set of samples in the approximation domain. 
+
+The conditional inverse Rosenblatt transport takes the form
+
+$$
+    Y|M = \mathcal{R}^{-1}(\mathcal{R}_{k}(M), R),
+$$
+
+where $M$ is a $k$-dimensional random variable, $R$ is a 
+$n-k$-dimensional reference random variable, 
+$\mathcal{R}(\,\cdot\,)$ denotes the (full) Rosenblatt 
+transport, and $\mathcal{R}_{k}(\,\cdot\,)$ denotes the 
+Rosenblatt transport for the first (or last) $k$ variables.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing samples from the  approximation domain.
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times (d-k)$ matrix containing samples distributed  according to the reference density.
+
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.inf]{.parameter-default}</code>
+
+:   The number of layers of the deep inverse Rosenblatt  transport to push the samples forward under. If not  specified, the samples will be pushed forward through all  the layers.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Whether `ms` corresponds to the first $k$ variables  (`subset='first'`) of the approximation, or the last $k$  variables (`subset='last'`).
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**ys**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times (d-k)$ matrix containing the realisations of  $Y$ corresponding to the values of `rs` after applying the  conditional inverse Rosenblatt transport.
+
+<code>[**neglogfys**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential function  of the approximation to the conditional density of  $Y \textbar M$ evaluated at each sample in `rs`.
+
+### random { #deep_tensor.TTDIRT.random }
+
+```python
+TTDIRT.random(n: int)
+```
+
+Generates a set of random samples. 
+
+The samples are distributed according to the DIRT approximation 
+to the target posterior.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The number of samples to generate.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times d$ matrix containing the generated samples.
+
+### sobol { #deep_tensor.TTDIRT.sobol }
+
+```python
+TTDIRT.sobol(n: int)
+```
+
+Generates a set of QMC samples.
+
+The samples are distributed according to the DIRT approximation 
+to the target posterior.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+
+:   The number of samples to generate.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times d$ matrix containing the generated samples.
