@@ -17,7 +17,7 @@ jobs:
         python-version: "3.x"
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip torch
+        python -m pip install --upgrade pip torch h5py
     - name: Run unit tests
       run: |
         python -m unittest discover tests
