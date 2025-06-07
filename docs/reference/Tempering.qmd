@@ -52,4 +52,4 @@ bridging density does not fall below a given value.
 
 <code>[**max_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [20]{.parameter-default}</code>
 
-:   If selecting the $\beta$ values adaptively, the maximum number  of layers to construct. Note that, if the maximum number of layers is reached, the final bridging density may not be equal  to the posterior.
+:   If selecting the $\beta$ values adaptively, the maximum number  of layers to construct. Note that, if the maximum number of layers is reached, the final bridging density may not be the  target density.

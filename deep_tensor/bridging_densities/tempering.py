@@ -90,8 +90,8 @@ class Tempering(AbstractTempering):
     max_layers:
         If selecting the $\beta$ values adaptively, the maximum number 
         of layers to construct. Note that, if the maximum number of
-        layers is reached, the final bridging density may not be equal 
-        to the posterior.
+        layers is reached, the final bridging density may not be the 
+        target density.
         
     """
 
@@ -104,9 +104,15 @@ class Tempering(AbstractTempering):
         min_beta: Tensor | float = 1e-4,
         max_layers: int = 20
     ):
-        if betas == None:
+        
+        if betas is not None:
+            if torch.abs(betas[-1] - 1.0) > 1e-6:
+                msg = "Final beta value must be equal to 1."
+                raise Exception(msg)
+        else:
             betas = torch.tensor([])
-        self.betas = betas.sort()[0]
+        
+        self.betas = betas
         self.ess_tol = torch.tensor(ess_tol)
         self.ess_tol_init = torch.tensor(ess_tol_init)
         self.beta_factor = torch.tensor(beta_factor)
