@@ -15,9 +15,11 @@ Likelihood tempering.
 
 The intermediate densities, $\{\pi_{k}(\theta)\}_{k=1}^{N}$, 
 generated using this approach take the form
-$$\pi_{k}(\theta) \propto \pi_{0}(\theta)\mathcal{L}(\theta; y)^{\beta_{k}},$$
-where $\pi_{0}(\,\cdot\,)$ denotes the prior, $\mathcal{L}(\,\cdot\,; y)$ 
-denotes the likelihood, and $0 \leq \beta_{1} < \cdots < \beta_{N} = 1$.
+$$\pi_{k}(\theta) \propto (Q_{\sharp}\rho(\theta))^{1-\beta_{k}}\pi(\theta)^{\beta_{k}},$$
+where $Q_{\sharp}\rho(\cdot)$ denotes the pushforward of the 
+reference density, $\rho(\cdot)$, under the preconditioner, 
+$Q(\cdot)$, $\pi(\cdot)$ denotes the target density, and 
+$0 \leq \beta_{1} < \cdots < \beta_{N} = 1$.
 
 It is possible to provide this class with a set of $\beta$ values to 
 use. If these are not provided, they will be determined 

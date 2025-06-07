@@ -38,8 +38,6 @@ Mappings between the approximation domain and the domain of the polynomial basis
 | | |
 | --- | --- |
 | [BoundedDomain](BoundedDomain.qmd#deep_tensor.BoundedDomain) | Mapping from a bounded domain to $(-1, 1)$. |
-| [AlgebraicMapping](AlgebraicMapping.qmd#deep_tensor.AlgebraicMapping) | Mapping from an unbounded domain to $(-1, 1)$. |
-| [LogarithmicMapping](LogarithmicMapping.qmd#deep_tensor.LogarithmicMapping) | Mapping from an unbounded domain to $(-1, 1)$. |
 
 ## Options
 

@@ -1,5 +1,5 @@
 import abc
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import torch
 from torch import Tensor
@@ -169,7 +169,7 @@ class Bridge(abc.ABC):
         xs: Tensor, 
         neglogratios: Tensor,
         log_weights: Tensor
-    ) -> Tensor:
+    ) -> Tuple[Tensor, Tensor]:
         """Returns a reordered set of indices based on the importance
         weights between the current bridging density and the density 
         of the approximation to the previous target density evaluated

@@ -35,7 +35,7 @@ $$
 
 We use Chebyshev polynomials of the second kind to represent the 
 (conditional) CDFs corresponding to the Legendre representation of 
-the (square root of) the target density function.
+(the square root of) the target density function.
 
 ## References {.doc-section .doc-section-references}
 

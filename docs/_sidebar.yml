@@ -20,8 +20,6 @@ website:
       section: Polynomial Bases
     - contents:
       - reference/BoundedDomain.qmd
-      - reference/AlgebraicMapping.qmd
-      - reference/LogarithmicMapping.qmd
       section: Domain Mappings
     - contents:
       - reference/TTOptions.qmd
