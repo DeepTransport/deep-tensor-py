@@ -621,8 +621,12 @@ window.Quarto = {
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    neglogdet_Q_inv: Callable[[Tensor], Tensor],</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    dim: <span class="bu">int</span>,</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>A mapping between the prior and a reference random variable.</p>
-<p>This mapping needs to be triangular. - If the mapping is lower triangular, one can evaluate the marginal densities of the corresponding DIRT object in the first <span class="math inline">\(k\)</span> variables, and condition on the first <span class="math inline">\(k\)</span> variables, where <span class="math inline">\(1 \leq k \leq d\)</span>. - If the mapping is upper triangular, one can evaluate the marginal densities of the corresponding DIRT object in the last <span class="math inline">\(k\)</span> variables, and condition on the final <span class="math inline">\(k\)</span> variables, where <span class="math inline">\(1 \leq k \leq d\)</span>.</p>
+<p>A user-defined preconditioning function. Ideally, the pushforward of the reference density under the preconditioning function will be as similar as possible to the target density; this makes the subsequent construction of the DIRT approximation to the target density more efficient.</p>
+<p>The mapping, which we denote using <span class="math inline">\(Q(\cdot)\)</span>, needs to be invertible. There are additional benefits if the mapping is lower or upper triangular (or both):</p>
+<ul>
+<li>If the mapping is lower triangular, one can evaluate the marginal densities of the corresponding DIRT object in the first <span class="math inline">\(k\)</span> variables, and condition on the first <span class="math inline">\(k\)</span> variables, where <span class="math inline">\(1 \leq k &lt; d\)</span>.</li>
+<li>If the mapping is upper triangular, one can evaluate the marginal densities of the corresponding DIRT object in the last <span class="math inline">\(k\)</span> variables, and condition on the final <span class="math inline">\(k\)</span> variables, where <span class="math inline">\(1 \leq k &lt; d\)</span>.</li>
+</ul>
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
@@ -632,23 +636,23 @@ window.Quarto = {
 </dd>
 <dt><code><span class="parameter-name"><strong>Q</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
 <dd>
-<p>A function which maps from the reference distribution to the prior.</p>
+<p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain, and returns an <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain, after applying the mapping <span class="math inline">\(Q(\cdot)\)</span> to each sample.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>Q_inv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
 <dd>
-<p>The inverse of <code>Q</code>.</p>
+<p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain, and returns an <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain, after applying the mapping <span class="math inline">\(Q^{-1}(\cdot)\)</span> to each sample.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>neglogdet_Q</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
 <dd>
-<p>TODO</p>
+<p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain, and returns an <span class="math inline">\(n\)</span>-dimensional vector containing the negative log-determinant of <span class="math inline">\(Q(\cdot)\)</span> evaluated at each sample.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>neglogdet_Q_inv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
 <dd>
-<p>TODO</p>
+<p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain, and returns an <span class="math inline">\(n\)</span>-dimensional vector containing the negative log-determinant of <span class="math inline">\(Q^{-1}(\cdot)\)</span> evaluated at each sample.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>dim</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span></code></dt>
 <dd>
-<p>The dimension of the parameter.</p>
+<p>The dimension, <span class="math inline">\(d\)</span>, of the target (and reference) random variable.</p>
 </dd>
 </dl>
 

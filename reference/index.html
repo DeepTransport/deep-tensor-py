@@ -592,12 +592,12 @@ window.Quarto = {
 </section>
 <section id="preconditioners" class="level2">
 <h2 class="anchored" data-anchor-id="preconditioners">Preconditioners</h2>
-<p>Triangular mappings which are used as starting points for DIRT construction.</p>
+<p>Initial guesses for the mapping between the reference random variable and the target random variable.</p>
 <table class="caption-top table">
 <tbody>
 <tr class="odd">
 <td><a href="../reference/Preconditioner.html#deep_tensor.Preconditioner">Preconditioner</a></td>
-<td>A mapping between the prior and a reference random variable.</td>
+<td>A user-defined preconditioning function.</td>
 </tr>
 <tr class="even">
 <td><a href="../reference/IdentityMapping.html#deep_tensor.IdentityMapping">IdentityMapping</a></td>
@@ -605,7 +605,7 @@ window.Quarto = {
 </tr>
 <tr class="odd">
 <td><a href="../reference/UniformMapping.html#deep_tensor.UniformMapping">UniformMapping</a></td>
-<td>A mapping between an arbitrary (product form) reference density</td>
+<td>A mapping between the reference density and a uniform density.</td>
 </tr>
 </tbody>
 </table>

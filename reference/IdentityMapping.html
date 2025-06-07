@@ -615,12 +615,13 @@ window.Quarto = {
 <h1>IdentityMapping</h1>
 <div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>IdentityMapping(dim: <span class="bu">int</span>, reference: Reference <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>An identity mapping.</p>
+<p>This preconditioner is diagonal.</p>
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
 <dt><code><span class="parameter-name"><strong>dim</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span></code></dt>
 <dd>
-<p>The dimension of the mapping.</p>
+<p>The dimension of the target (and reference) random variables.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>reference</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`deep_tensor.references.Reference`">Reference</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>

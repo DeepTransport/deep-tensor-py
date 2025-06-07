@@ -614,7 +614,9 @@ window.Quarto = {
 <section id="deep_tensor.UniformMapping" class="level1">
 <h1>UniformMapping</h1>
 <div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>UniformMapping(bounds: Tensor, reference: Reference <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>A mapping between an arbitrary (product form) reference density and a uniform density with a specified set of bounds.</p>
+<p>A mapping between the reference density and a uniform density.</p>
+<p>The uniform density can have an arbitrary set of bounds in each dimension.</p>
+<p>This preconditioner is diagonal.</p>
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
