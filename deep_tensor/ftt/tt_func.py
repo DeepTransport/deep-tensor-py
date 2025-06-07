@@ -13,7 +13,7 @@ from .tt_data import TTData
 from ..constants import EPS
 from ..options import TTOptions
 from ..polynomials import Basis1D, Piecewise, Spectral
-from ..tools import check_finite, deim, maxvol
+from ..tools import deim, maxvol
 from ..tools.printing import als_info
 
 
@@ -480,7 +480,7 @@ class AbstractTTFunc(object):
         self, 
         H: Tensor, 
         error_tol: float | Tensor | None = None
-    ) -> Tuple[Tensor, Tensor, int]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         """Computes the truncated SVD for a given tensor block.
 
         Parameters
@@ -830,14 +830,14 @@ class AbstractTTFunc(object):
 
 
 class TTFunc(AbstractTTFunc):
-    r"""A multivariate functional tensor-train.
+    """A multivariate functional tensor-train.
 
     Parameters
     ----------
     target_func:
-        Maps an $n \times d$ matrix containing samples from the local 
-        domain to an $n$-dimensional vector containing the values of 
-        the target function at each sample.
+        Maps an n * d matrix containing samples from the local domain 
+        to an n-dimensional vector containing the values of the target 
+        function at each sample.
     bases:
         The bases associated with the approximation domain.
     options:
@@ -1103,11 +1103,9 @@ class TTFunc(AbstractTTFunc):
         been reached or the desired error tolerance is met, and False 
         otherwise.
         """
-        
         max_iters = cross_iter == self.options.max_cross
         max_error_tol = torch.max(self.errors[indices]) < self.options.cross_tol
         l2_error_tol = self.l2_err < self.options.cross_tol
-
         return max_iters or max_error_tol or l2_error_tol
 
     def _compute_cross_block_fixed(self, k: Tensor) -> None:
@@ -1214,8 +1212,8 @@ class TTFunc(AbstractTTFunc):
 
             if finished:
                 if self.options.verbose:
-                    msg = (f"TT-cross complete. "
-                           + f"Final TT ranks: {[int(r) for r in self.rank]}.")
+                    ranks = "-".join([str(int(r)) for r in self.rank])
+                    msg = (f"ALS complete. Final TT ranks: {ranks}.")
                     als_info(msg)
                 return
             else:

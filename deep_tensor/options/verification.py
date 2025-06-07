@@ -1,4 +1,7 @@
-def verify_method(method: str, accepted_methods: str) -> None:
+from typing import List
+
+
+def verify_method(method: str, accepted_methods: List[str]) -> None:
         
     if method in accepted_methods:
         return 

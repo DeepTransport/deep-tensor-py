@@ -6,8 +6,12 @@ from ..references import GaussianReference, Reference
 
 
 class UniformMapping(Preconditioner):
-    r"""A mapping between an arbitrary (product form) reference density 
-    and a uniform density with a specified set of bounds.
+    r"""A mapping between the reference density and a uniform density.
+
+    The uniform density can have an arbitrary set of bounds in each 
+    dimension.
+
+    This preconditioner is diagonal.
     
     Parameters
     ----------
@@ -28,32 +32,32 @@ class UniformMapping(Preconditioner):
 
         dim = bounds.shape[0]
         lbs, ubs = bounds.T
-        dms = ubs - lbs
+        dxs = ubs - lbs
 
-        def Q(xs: Tensor) -> Tensor:
-            """Maps from reference to uniform."""
+        def Q(us: Tensor) -> Tensor:
+            # Reference to uniform
+            d_us = us.shape[1]
+            zs = reference.eval_cdf(us)[0]
+            xs = lbs[:d_us] + dxs[:d_us] * zs 
+            return xs 
+        
+        def Q_inv(xs: Tensor) -> Tensor:
+            # Uniform to reference
             d_xs = xs.shape[1]
-            zs = reference.eval_cdf(xs)[0]
-            ms = lbs[:d_xs] + dms[:d_xs] * zs 
-            return ms 
+            zs = (xs - lbs[:d_xs]) / dxs[:d_xs]
+            us = reference.invert_cdf(zs)
+            return us
         
-        def Q_inv(ms: Tensor) -> Tensor:
-            """Maps from uniform to reference."""
-            d_ms = ms.shape[1]
-            zs = (ms - lbs[:d_ms]) / dms[:d_ms]
-            xs = reference.invert_cdf(zs)
-            return xs
+        def neglogdet_Q(us: Tensor) -> Tensor:
+            n_us, d_us = us.shape
+            neglogfxs = torch.full((n_us,), dxs[:d_us].prod().log())
+            return reference.eval_potential(us)[0] - neglogfxs
         
-        def neglogdet_Q(xs: Tensor) -> Tensor:
+        def neglogdet_Q_inv(xs: Tensor) -> Tensor:
             n_xs, d_xs = xs.shape
-            neglogfms = torch.full((n_xs,), dms[:d_xs].prod().log())
-            return reference.eval_potential(xs)[0] - neglogfms
-        
-        def neglogdet_Q_inv(ms: Tensor) -> Tensor:
-            n_ms, d_ms = ms.shape
-            xs = Q_inv(ms)
-            neglogfms = torch.full((n_ms,), dms[:d_ms].prod().log())
-            return neglogfms - reference.eval_potential(xs)[0]
+            us = Q_inv(xs)
+            neglogfxs = torch.full((n_xs,), dxs[:d_xs].prod().log())
+            return neglogfxs - reference.eval_potential(us)[0]
 
         Preconditioner.__init__(
             self, 

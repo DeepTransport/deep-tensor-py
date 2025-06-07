@@ -8,10 +8,12 @@ from ..references import Reference, GaussianReference
 class IdentityMapping(Preconditioner):
     r"""An identity mapping.
 
+    This preconditioner is diagonal.
+
     Parameters
     ----------
     dim: 
-        The dimension of the mapping.
+        The dimension of the target (and reference) random variables.
     reference:
         The reference density. If this is not specified, it will 
         default to the unit Gaussian in $d$ dimensions with support 

@@ -12,7 +12,6 @@ class TTData():
         direction: Direction | None = None,
         cores: dict[int, Tensor] | None = None
     ):
-
         self.direction = direction
         self.cores: dict[int, Tensor] = cores if cores is not None else {}
         self.interp_ls: dict[int, Tensor] = {}
@@ -37,7 +36,7 @@ class TTData():
         """Removes all of the intermediate data used to build the 
         tensor train (but retains the cores and evaluation direction).
         """
-        self.interp_ls = torch.tensor([])
+        self.interp_ls = {}
         self.res_x = {}
         self.res_w = {}
         return

@@ -57,11 +57,11 @@ class AbstractSIRT():
         return
     
     @property 
-    def defensive(self) -> Tensor:
+    def defensive(self) -> float:
         return self._defensive
     
     @defensive.setter 
-    def defensive(self, value: Tensor) -> None:
+    def defensive(self, value: float) -> None:
         self._defensive = value 
         return
     
@@ -118,7 +118,7 @@ class AbstractSIRT():
         self._Rs_b = value 
         return
 
-    def _construct_cdfs(self, tol: Tensor | float) -> None:
+    def _construct_cdfs(self, tol: float) -> Dict[int, CDF1D]:
         oned_cdfs = {}
         for k in range(self.dim):
             oned_cdfs[k] = construct_cdf(self.bases.polys[k], error_tol=tol)
@@ -640,9 +640,9 @@ class AbstractSIRT():
 
         ps_marg: dict[int, Tensor] = {}
         ps_marg[self.dim] = self.z
-        ps_marg_deriv: dict[int, Tensor] = {}
+        ps_marg_deriv: dict[int, Dict] = {}
         ps_grid: dict[int, Tensor] = {}
-        ps_grid_deriv: dict[int, Tensor] = {}
+        ps_grid_deriv: dict[int, Dict] = {}
         wls: dict[int, Tensor] = {}
 
         n_ls = ls.shape[0]
@@ -775,7 +775,7 @@ class AbstractSIRT():
         elif direction == Direction.BACKWARD:
             return torch.arange(self.dim-dim_z, self.dim)
 
-    def _eval_potential_grad_autodiff(self, xs: Tensor, subset: str) -> Tensor:
+    def _eval_potential_grad_autodiff(self, xs: Tensor, subset: str | None) -> Tensor:
         """Evaluates the gradient of the potential using autodiff."""
 
         xs_shape = xs.shape

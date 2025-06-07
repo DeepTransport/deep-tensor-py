@@ -75,7 +75,7 @@ quartodoc:
           members: [eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, eval_irt_pullback, random, sobol]
 
     - title: Preconditioners
-      desc: Triangular mappings which are used as starting points for DIRT construction.
+      desc: Initial guesses for the mapping between the reference random variable and the target random variable.
       contents:
         - name: Preconditioner
           members: []

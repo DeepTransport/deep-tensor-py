@@ -6,11 +6,13 @@ IdentityMapping(dim: int, reference: Reference | None = None)
 
 An identity mapping.
 
+This preconditioner is diagonal.
+
 ## Parameters {.doc-section .doc-section-parameters}
 
 <code>[**dim**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
 
-:   The dimension of the mapping.
+:   The dimension of the target (and reference) random variables.
 
 <code>[**reference**]{.parameter-name} [:]{.parameter-annotation-sep} [[Reference](`deep_tensor.references.Reference`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 

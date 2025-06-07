@@ -8,36 +8,56 @@ from ..references import Reference
 
 @dataclass
 class Preconditioner():
-    r"""A mapping between the prior and a reference random variable.
+    r"""A user-defined preconditioning function.
+    Ideally, the pushforward of the reference density under the 
+    preconditioning function will be as similar as possible to the 
+    target density; this makes the subsequent construction of the DIRT 
+    approximation to the target density more efficient.
 
-    This mapping needs to be triangular. 
+    The mapping, which we denote using $Q(\cdot)$, needs to be 
+    invertible. There are additional benefits if the mapping is lower 
+    or upper triangular (or both):
+
       - If the mapping is lower triangular, one can evaluate the 
         marginal densities of the corresponding DIRT object in the 
         first $k$ variables, and condition on the first $k$ variables, 
-        where $1 \leq k \leq d$.
+        where $1 \leq k < d$.
       - If the mapping is upper triangular, one can evaluate the 
         marginal densities of the corresponding DIRT object in the 
         last $k$ variables, and condition on the final $k$ variables, 
-        where $1 \leq k \leq d$.
+        where $1 \leq k < d$.
     
     Parameters
     ----------
     reference:
         The density of the reference random variable.
     Q:
-        A function which maps from the reference distribution to the 
-        prior.
+        A function which takes an $n \times k$ matrix containing 
+        samples from the reference domain, and returns an $n \times k$ 
+        matrix containing samples from the approximation domain, after 
+        applying the mapping $Q(\cdot)$ to each sample.
     Q_inv: 
-        The inverse of `Q`.
+        A function which takes an $n \times k$ matrix containing 
+        samples from the approximation domain, and returns an 
+        $n \times k$ matrix containing samples from the reference 
+        domain, after applying the mapping $Q^{-1}(\cdot)$ to each 
+        sample.
     neglogdet_Q:
-        TODO
+        A function which takes an $n \times k$ matrix containing 
+        samples from the reference domain, and returns an 
+        $n$-dimensional vector containing the negative log-determinant 
+        of $Q(\cdot)$ evaluated at each sample.
     neglogdet_Q_inv:
-        TODO
+        A function which takes an $n \times k$ matrix containing 
+        samples from the approximation domain, and returns an 
+        $n$-dimensional vector containing the negative log-determinant 
+        of $Q^{-1}(\cdot)$ evaluated at each sample.
     dim: 
-        The dimension of the parameter.
+        The dimension, $d$, of the target (and reference) random 
+        variable.
 
     """
-
+    
     reference: Reference
     Q: Callable[[Tensor], Tensor]
     Q_inv: Callable[[Tensor], Tensor]

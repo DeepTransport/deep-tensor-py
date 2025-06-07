@@ -10,13 +10,13 @@ An object used to generate an approximate coupling between random variables usin
 
 ## Preconditioners
 
-Triangular mappings which are used as starting points for DIRT construction.
+Initial guesses for the mapping between the reference random variable and the target random variable.
 
 | | |
 | --- | --- |
-| [Preconditioner](Preconditioner.qmd#deep_tensor.Preconditioner) | A mapping between the prior and a reference random variable. |
+| [Preconditioner](Preconditioner.qmd#deep_tensor.Preconditioner) | A user-defined preconditioning function. |
 | [IdentityMapping](IdentityMapping.qmd#deep_tensor.IdentityMapping) | An identity mapping. |
-| [UniformMapping](UniformMapping.qmd#deep_tensor.UniformMapping) | A mapping between an arbitrary (product form) reference density  |
+| [UniformMapping](UniformMapping.qmd#deep_tensor.UniformMapping) | A mapping between the reference density and a uniform density. |
 
 ## Polynomial Bases
 

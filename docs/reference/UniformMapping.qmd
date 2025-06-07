@@ -4,8 +4,12 @@
 UniformMapping(bounds: Tensor, reference: Reference | None = None)
 ```
 
-A mapping between an arbitrary (product form) reference density 
-and a uniform density with a specified set of bounds.
+A mapping between the reference density and a uniform density.
+
+The uniform density can have an arbitrary set of bounds in each 
+dimension.
+
+This preconditioner is diagonal.
 
 ## Parameters {.doc-section .doc-section-parameters}
 

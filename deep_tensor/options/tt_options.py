@@ -4,7 +4,7 @@ from .verification import verify_method
 
 
 TT_METHODS = ["random", "amen", "fixed_rank"]
-INT_METHODS = ["qdeim", "deim", "maxvol"]
+INT_METHODS = ["deim", "maxvol"]
 
 
 @dataclass

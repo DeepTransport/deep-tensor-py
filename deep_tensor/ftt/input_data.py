@@ -99,7 +99,7 @@ class InputData():
         self.count = 0
         return
         
-    def get_samples(self, n: int|None = None) -> Tensor:
+    def get_samples(self, n: int) -> Tensor:
         """Returns a set of samples from the local domain.
         
         Parameters
@@ -126,11 +126,9 @@ class InputData():
 
         indices = torch.concatenate((torch.arange(self.count, n_samples), 
                                      torch.arange(n2)))
-        
         self.count = n2
         msg = "All samples have been used. Starting from the beginning."
         warnings.warn(msg)
-        
         return self.ls_samp[indices]
         
     def set_debug(
@@ -160,7 +158,10 @@ class InputData():
             self.fxs_debug = target_func(self.ls_debug)
         return
     
-    def relative_error(self, fxs_approx: Tensor) -> Tuple[Tensor, Tensor]:
+    def relative_error(
+        self, 
+        fxs_approx: Tensor
+    ) -> Tuple[Tensor | float, Tensor | float]:
         """Estimates the L_2 and L_inf error between the target 
         function and FTT approximation using a set of samples.
         

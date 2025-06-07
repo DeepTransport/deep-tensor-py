@@ -8,7 +8,7 @@ from ..polynomials import Basis1D
 
 
 class ApproxBases():
-    r"""Container of information on the approximation bases.
+    """Container of information on the approximation bases.
     
     This class contains information on the set of polynomial basis 
     functions used the construct the FTT, and the mapping from the 
@@ -18,7 +18,7 @@ class ApproxBases():
     ----------
     polys:
         Tensor-product univariate polynomial basis functions, defined 
-        on a local domain (generally $[-1, 1]$).
+        on a local domain (generally (-1, 1)).
     domains:
         An invertible mapping between the approximation domain and the 
         domain of the polynomial basis functions.
