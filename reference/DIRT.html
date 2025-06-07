@@ -138,7 +138,7 @@ window.Quarto = {
 
 </head>
 
-<body class="nav-fixed fullcontent quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+<body class="nav-sidebar floating nav-fixed fullcontent quarto-light"><script id="quarto-html-before-body" type="application/javascript">
     const toggleBodyColorMode = (bsSheetEl) => {
       const mode = bsSheetEl.getAttribute("data-mode");
       const bodyEl = window.document.querySelector("body");
@@ -326,7 +326,7 @@ window.Quarto = {
 <span class="menu-text">Examples</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="../reference/index.html"> 
+    <a class="nav-link active" href="../reference/index.html" aria-current="page"> 
 <span class="menu-text">API Reference</span></a>
   </li>  
 </ul>
@@ -343,14 +343,269 @@ window.Quarto = {
 </div>
       </div> <!-- /container-fluid -->
     </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/DIRT.html">Deep Inverse Rosenblatt Transport</a></li><li class="breadcrumb-item"><a href="../reference/DIRT.html">DIRT</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
 </header>
 <!-- content -->
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">API Reference</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Deep Inverse Rosenblatt Transport</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/DIRT.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">DIRT</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false">
+ <span class="menu-text">Preconditioners</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Preconditioner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preconditioner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/IdentityMapping.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">IdentityMapping</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/UniformMapping.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">UniformMapping</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
+ <span class="menu-text">Polynomial Bases</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Lagrange1.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lagrange1</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/LagrangeP.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">LagrangeP</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Chebyshev1st.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Chebyshev1st</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Chebyshev2nd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Chebyshev2nd</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Fourier.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fourier</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Legendre.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Legendre</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false">
+ <span class="menu-text">Domain Mappings</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/BoundedDomain.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">BoundedDomain</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/AlgebraicMapping.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">AlgebraicMapping</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/LogarithmicMapping.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">LogarithmicMapping</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false">
+ <span class="menu-text">Options</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/TTOptions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TTOptions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/DIRTOptions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DIRTOptions</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="false">
+ <span class="menu-text">Reference Densities</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/GaussianReference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GaussianReference</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/UniformReference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">UniformReference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="false">
+ <span class="menu-text">Bridges</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/SingleLayer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SingleLayer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Tempering.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tempering</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="false">
+ <span class="menu-text">Debiasing</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_importance_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_importance_sampling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_independence_sampler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_independence_sampler</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_dirt_pcn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_dirt_pcn</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/ImportanceSamplingResult.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ImportanceSamplingResult</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/MCMCResult.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MCMCResult</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"></header>
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/DIRT.html">Deep Inverse Rosenblatt Transport</a></li><li class="breadcrumb-item"><a href="../reference/DIRT.html">DIRT</a></li></ol></nav></header>
 
 
 
@@ -359,16 +614,15 @@ window.Quarto = {
 <section id="deep_tensor.DIRT" class="level1">
 <h1>DIRT</h1>
 <div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>DIRT(</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="va">self</span>,</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    negloglik: Callable[[Tensor], Tensor],</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    neglogpri: Callable[[Tensor], Tensor],</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    preconditioner: Preconditioner,</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    bases: Basis1D <span class="op">|</span> List[Basis1D],</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    bridge: Bridge <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    tt_options: TTOptions <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    dirt_options: DIRTOptions <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    prev_approx: Dict[<span class="bu">int</span>, SIRT] <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    negloglik: Callable[[Tensor], Tensor],</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    neglogpri: Callable[[Tensor], Tensor],</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    preconditioner: Preconditioner,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    bases: Basis1D <span class="op">|</span> List[Basis1D],</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    bridge: Bridge <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    tt_options: TTOptions <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    dirt_options: DIRTOptions <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    prev_approx: Dict[<span class="bu">int</span>, SIRT] <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Deep (squared) inverse Rosenblatt transport.</p>
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
@@ -383,7 +637,7 @@ window.Quarto = {
 </dd>
 <dt><code><span class="parameter-name"><strong>bases</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`deep_tensor.polynomials.Basis1D`">Basis1D</a> | <a href="`typing.List`">List</a>[<a href="`deep_tensor.polynomials.Basis1D`">Basis1D</a>]</span></code></dt>
 <dd>
-<p>A list of polynomial bases (one for each dimension), or a single polynomial basis (to be used in all dimensions), used to construct the functional tensor trains at each iteration.</p>
+<p>A list of sets of basis functions for each dimension, or a single set of basis functions (to be used in all dimensions), used to construct the functional tensor trains at each iteration.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>bridge</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`deep_tensor.bridging_densities.Bridge`">Bridge</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
@@ -391,7 +645,7 @@ window.Quarto = {
 </dd>
 <dt><code><span class="parameter-name"><strong>tt_options</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`deep_tensor.options.TTOptions`">TTOptions</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
-<p>Options for constructing the SIRT approximation to the ratio function (<em>i.e.</em>, the pullback of the current bridging density under the existing composition of mappings) at each iteration.</p>
+<p>Options for constructing the FTT approximation to the square root of the ratio function (<em>i.e.</em>, the pullback of the current bridging density under the existing composition of mappings) at each iteration.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>dirt_options</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`deep_tensor.options.DIRTOptions`">DIRTOptions</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
@@ -438,10 +692,14 @@ window.Quarto = {
 <td>Evaluates the conditional inverse Rosenblatt transport.</td>
 </tr>
 <tr class="even">
+<td><a href="#deep_tensor.DIRT.eval_irt_pullback">eval_irt_pullback</a></td>
+<td>Evaluates the pullback of a density function under the DIRT mapping.</td>
+</tr>
+<tr class="odd">
 <td><a href="#deep_tensor.DIRT.random">random</a></td>
 <td>Generates a set of random samples.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><a href="#deep_tensor.DIRT.sobol">sobol</a></td>
 <td>Generates a set of QMC samples.</td>
 </tr>
@@ -450,26 +708,26 @@ window.Quarto = {
 <section id="deep_tensor.DIRT.eval_potential" class="level3">
 <h3 class="anchored" data-anchor-id="deep_tensor.DIRT.eval_potential">eval_potential</h3>
 <div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>DIRT.eval_potential(</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    ms: Tensor,</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    n_layers: Tensor <span class="op">=</span> torch.inf,</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    xs: Tensor,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    n_layers: <span class="bu">int</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Evaluates the potential function.</p>
 <p>Returns the joint potential function, or the marginal potential function for the first <span class="math inline">\(k\)</span> variables or the last <span class="math inline">\(k\)</span> variables, corresponding to the pullback of the reference measure under a given number of layers of the DIRT.</p>
 <section id="parameters-1" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-1">Parameters</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>ms</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n \times k\)</span> matrix containing a set of samples drawn from the current DIRT approximation to the target density.</p>
-</dd>
-<dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">torch.inf</span></code></dt>
-<dd>
-<p>The number of layers of the current DIRT construction to use.</p>
+<p>An <span class="math inline">\(n \times k\)</span> matrix containing a set of samples from the approximation domain.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
 <p>If the samples contain a subset of the variables, (<em>i.e.,</em> <span class="math inline">\(k &lt; d\)</span>), whether they correspond to the first <span class="math inline">\(k\)</span> variables (<code>subset='first'</code>) or the last <span class="math inline">\(k\)</span> variables (<code>subset='last'</code>).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>The number of layers of the current DIRT construction to use when computing the potential. If not specified, all layers will be used when computing the potential.</p>
 </dd>
 </dl>
 </section>
@@ -486,61 +744,57 @@ window.Quarto = {
 <section id="deep_tensor.DIRT.eval_pdf" class="level3">
 <h3 class="anchored" data-anchor-id="deep_tensor.DIRT.eval_pdf">eval_pdf</h3>
 <div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>DIRT.eval_pdf(</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    ms: Tensor,</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    n_layers: Tensor <span class="op">=</span> torch.inf,</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    xs: Tensor,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    n_layers: <span class="bu">int</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Evaluates the density function.</p>
 <p>Returns the joint density function, or the marginal density function for the first <span class="math inline">\(k\)</span> variables or the last <span class="math inline">\(k\)</span> variables, corresponding to the pullback of the reference measure under a given number of layers of the DIRT.</p>
 <section id="parameters-2" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-2">Parameters</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>ms</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
 <p>An <span class="math inline">\(n \times k\)</span> matrix containing a set of samples drawn from the DIRT approximation to the target density.</p>
-</dd>
-<dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">torch.inf</span></code></dt>
-<dd>
-<p>The number of layers of the current DIRT construction to use.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
 <p>If the samples contain a subset of the variables, (<em>i.e.,</em> <span class="math inline">\(k &lt; d\)</span>), whether they correspond to the first <span class="math inline">\(k\)</span> variables (<code>subset='first'</code>) or the last <span class="math inline">\(k\)</span> variables (<code>subset='last'</code>).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>The number of layers of the current DIRT construction to use. If not specified, all</p>
 </dd>
 </dl>
 </section>
 <section id="returns-1" class="level4 doc-section doc-section-returns">
 <h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-1">Returns</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>fms</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>fxs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the value of the approximation to the target density evaluated at each element in <code>ms</code>.</p>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the value of the approximation to the target density evaluated at each element in <code>xs</code>.</p>
 </dd>
 </dl>
 </section>
 </section>
 <section id="deep_tensor.DIRT.eval_rt" class="level3">
 <h3 class="anchored" data-anchor-id="deep_tensor.DIRT.eval_rt">eval_rt</h3>
-<div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>DIRT.eval_rt(</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    ms: Tensor,</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    n_layers: Tensor <span class="op">=</span> torch.inf,</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>DIRT.eval_rt(xs: Tensor, subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>, n_layers: <span class="bu">int</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Evaluates the deep Rosenblatt transport.</p>
 <section id="parameters-3" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-3">Parameters</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>ms</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n \times k\)</span> matrix of random variables drawn from the density defined by the current DIRT.</p>
-</dd>
-<dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">torch.inf</span></code></dt>
-<dd>
-<p>The number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.</p>
+<p>An <span class="math inline">\(n \times k\)</span> matrix of samples from the approximation domain.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
 <p>If the samples contain a subset of the variables, (<em>i.e.,</em> <span class="math inline">\(k &lt; d\)</span>), whether they correspond to the first <span class="math inline">\(k\)</span> variables (<code>subset='first'</code>) or the last <span class="math inline">\(k\)</span> variables (<code>subset='last'</code>).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>The number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.</p>
 </dd>
 </dl>
 </section>
@@ -549,44 +803,48 @@ window.Quarto = {
 <dl>
 <dt><code><span class="parameter-name"><strong>rs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n \times k\)</span> matrix containing the composition of mappings evaluated at each value of <code>ms</code>.</p>
+<p>An <span class="math inline">\(n \times k\)</span> matrix containing the composition of mappings evaluated at each value of <code>xs</code>.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>neglogfms</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>neglogfxs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function of the pullback of the reference density under the current composition of mappings, evaluated at each sample in <code>ms</code>.</p>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function of the pullback of the reference density under the current composition of mappings evaluated at each sample in <code>xs</code>.</p>
 </dd>
 </dl>
 </section>
 </section>
 <section id="deep_tensor.DIRT.eval_irt" class="level3">
 <h3 class="anchored" data-anchor-id="deep_tensor.DIRT.eval_irt">eval_irt</h3>
-<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>DIRT.eval_irt(rs: Tensor, n_layers: <span class="bu">int</span> <span class="op">=</span> torch.inf, subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>DIRT.eval_irt(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    rs: Tensor,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    n_layers: <span class="bu">int</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Evaluates the deep inverse Rosenblatt transport.</p>
 <section id="parameters-4" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-4">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>rs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n \times k\)</span> matrix containing samples distributed according to the reference density.</p>
-</dd>
-<dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">torch.inf</span></code></dt>
-<dd>
-<p>The number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.</p>
+<p>An <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
 <p>If the samples contain a subset of the variables, (<em>i.e.,</em> <span class="math inline">\(k &lt; d\)</span>), whether they correspond to the first <span class="math inline">\(k\)</span> variables (<code>subset='first'</code>) or the last <span class="math inline">\(k\)</span> variables (<code>subset='last'</code>).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>The number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.</p>
 </dd>
 </dl>
 </section>
 <section id="returns-3" class="level4 doc-section doc-section-returns">
 <h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-3">Returns</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>ms</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
 <p>An <span class="math inline">\(n \times k\)</span> matrix containing the corresponding samples from the approximation domain, after applying the deep inverse Rosenblatt transport.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>neglogfms</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>neglogfxs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
 <p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function of the pullback of the reference density under the current composition of mappings, evaluated at each sample in <code>xs</code>.</p>
 </dd>
@@ -596,36 +854,36 @@ window.Quarto = {
 <section id="deep_tensor.DIRT.eval_cirt" class="level3">
 <h3 class="anchored" data-anchor-id="deep_tensor.DIRT.eval_cirt">eval_cirt</h3>
 <div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>DIRT.eval_cirt(</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    ms: Tensor,</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    ys: Tensor,</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    rs: Tensor,</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    n_layers: <span class="bu">int</span> <span class="op">=</span> torch.inf,</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">=</span> <span class="st">'first'</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    n_layers: <span class="bu">int</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Evaluates the conditional inverse Rosenblatt transport.</p>
 <p>Returns the conditional inverse Rosenblatt transport evaluated at a set of samples in the approximation domain.</p>
 <p>The conditional inverse Rosenblatt transport takes the form</p>
 <p><span class="math display">\[
-    Y|M = \mathcal{T}(\mathcal{R}_{k}(M), R),
+    X|Y = \mathcal{T}(\mathcal{R}_{k}(Y), R),
 \]</span></p>
-<p>where <span class="math inline">\(M\)</span> is a <span class="math inline">\(k\)</span>-dimensional random variable, <span class="math inline">\(R\)</span> is a <span class="math inline">\(n-k\)</span>-dimensional reference random variable, <span class="math inline">\(\mathcal{R}(\,\cdot\,)\)</span> denotes the (full) Rosenblatt transport, <span class="math inline">\(\mathcal{T}(\,\cdot\,) := \mathcal{R}^{-1}(\,\cdot\,)\)</span>, denotes its inverse, and <span class="math inline">\(\mathcal{R}_{k}(\,\cdot\,)\)</span> denotes the Rosenblatt transport for the first (or last) <span class="math inline">\(k\)</span> variables.</p>
+<p>where <span class="math inline">\(Y\)</span> is a <span class="math inline">\(k\)</span>-dimensional random variable, <span class="math inline">\(R\)</span> is a <span class="math inline">\(n-k\)</span>-dimensional reference random variable, <span class="math inline">\(\mathcal{R}(\,\cdot\,)\)</span> denotes the (full) Rosenblatt transport, <span class="math inline">\(\mathcal{T}(\,\cdot\,) := \mathcal{R}^{-1}(\,\cdot\,)\)</span>, denotes its inverse, and <span class="math inline">\(\mathcal{R}_{k}(\,\cdot\,)\)</span> denotes the Rosenblatt transport for the first (or last) <span class="math inline">\(k\)</span> variables.</p>
 <section id="parameters-5" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-5">Parameters</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>ms</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>ys</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
 <p>An <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>rs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n \times (d-k)\)</span> matrix containing samples distributed according to the reference density.</p>
+<p>An <span class="math inline">\(n \times (d-k)\)</span> matrix containing samples from the reference domain.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">torch.inf</span></code></dt>
+<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'first'</span></code></dt>
+<dd>
+<p>Whether <code>ys</code> corresponds to the first <span class="math inline">\(k\)</span> variables (<code>subset='first'</code>) of the approximation, or the last <span class="math inline">\(k\)</span> variables (<code>subset='last'</code>).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
 <p>The number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.</p>
-</dd>
-<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
-<dd>
-<p>Whether <code>ms</code> corresponds to the first <span class="math inline">\(k\)</span> variables (<code>subset='first'</code>) of the approximation, or the last <span class="math inline">\(k\)</span> variables (<code>subset='last'</code>).</p>
 </dd>
 </dl>
 </section>
@@ -638,39 +896,56 @@ window.Quarto = {
 </dd>
 <dt><code><span class="parameter-name"><strong>neglogfys</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function of the approximation to the conditional density of <span class="math inline">\(Y \textbar M\)</span> evaluated at each sample in <code>rs</code>.</p>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function of the approximation to the conditional density of <span class="math inline">\(X \textbar Y\)</span> evaluated at each sample in <code>rs</code>.</p>
 </dd>
 </dl>
 </section>
 </section>
-<section id="deep_tensor.DIRT.random" class="level3">
-<h3 class="anchored" data-anchor-id="deep_tensor.DIRT.random">random</h3>
-<div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>DIRT.random(n: <span class="bu">int</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Generates a set of random samples.</p>
-<p>The samples are distributed according to the DIRT approximation to the target density.</p>
+<section id="deep_tensor.DIRT.eval_irt_pullback" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.DIRT.eval_irt_pullback">eval_irt_pullback</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>DIRT.eval_irt_pullback(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    potential: Callable[[Tensor], Tensor],</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    rs: Tensor,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    n_layers: <span class="bu">int</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Evaluates the pullback of a density function under the DIRT mapping.</p>
+<p>This function evaluates <span class="math inline">\(\mathcal{T}^{\sharp}f(r)\)</span>, where <span class="math inline">\(\mathcal{T}(\cdot)\)</span> denotes the inverse Rosenblatt transport and <span class="math inline">\(f(\cdot)\)</span> denotes an arbitrary density function.</p>
 <section id="parameters-6" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-6">Parameters</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>n</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>potential</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
 <dd>
-<p>The number of samples to generate.</p>
+<p>A function that takes an <span class="math inline">\(n \times k\)</span> matrix of samples from the approximation domain, and returns an <span class="math inline">\(n\)</span>-dimensional vector containing the potential function associated with <span class="math inline">\(f(\cdot)\)</span> evaluated at each sample.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>rs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times k\)</span> matrix containing a set of samples from the reference domain.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>If the samples contain a subset of the variables, (<em>i.e.,</em> <span class="math inline">\(k &lt; d\)</span>), whether they correspond to the first <span class="math inline">\(k\)</span> variables (<code>subset='first'</code>) or the last <span class="math inline">\(k\)</span> variables (<code>subset='last'</code>).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>The number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.</p>
 </dd>
 </dl>
 </section>
 <section id="returns-5" class="level4 doc-section doc-section-returns">
 <h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-5">Returns</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>ms</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>neglogTfrs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n \times d\)</span> matrix containing the generated samples.</p>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential of the pullback function evaluated at each element in <code>rs</code>.</p>
 </dd>
 </dl>
 </section>
 </section>
-<section id="deep_tensor.DIRT.sobol" class="level3">
-<h3 class="anchored" data-anchor-id="deep_tensor.DIRT.sobol">sobol</h3>
-<div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>DIRT.sobol(n: <span class="bu">int</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Generates a set of QMC samples.</p>
+<section id="deep_tensor.DIRT.random" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.DIRT.random">random</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>DIRT.random(n: <span class="bu">int</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Generates a set of random samples.</p>
 <p>The samples are distributed according to the DIRT approximation to the target density.</p>
 <section id="parameters-7" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-7">Parameters</h4>
@@ -684,7 +959,31 @@ window.Quarto = {
 <section id="returns-6" class="level4 doc-section doc-section-returns">
 <h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-6">Returns</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>ms</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times d\)</span> matrix containing the generated samples.</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="deep_tensor.DIRT.sobol" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.DIRT.sobol">sobol</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>DIRT.sobol(n: <span class="bu">int</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Generates a set of QMC samples.</p>
+<p>The samples are distributed according to the DIRT approximation to the target density.</p>
+<section id="parameters-8" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-8">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>n</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span></code></dt>
+<dd>
+<p>The number of samples to generate.</p>
+</dd>
+</dl>
+</section>
+<section id="returns-7" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-7">Returns</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
 <p>An <span class="math inline">\(n \times d\)</span> matrix containing the generated samples.</p>
 </dd>
