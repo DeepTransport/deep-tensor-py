@@ -474,18 +474,6 @@ window.Quarto = {
  <span class="menu-text">BoundedDomain</span></a>
   </div>
 </li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../reference/AlgebraicMapping.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">AlgebraicMapping</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../reference/LogarithmicMapping.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">LogarithmicMapping</span></a>
-  </div>
-</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -622,7 +610,7 @@ window.Quarto = {
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    max_layers: <span class="bu">int</span> <span class="op">=</span> <span class="dv">20</span>,</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Likelihood tempering.</p>
-<p>The intermediate densities, <span class="math inline">\(\{\pi_{k}(\theta)\}_{k=1}^{N}\)</span>, generated using this approach take the form <span class="math display">\[\pi_{k}(\theta) \propto \pi_{0}(\theta)\mathcal{L}(\theta; y)^{\beta_{k}},\]</span> where <span class="math inline">\(\pi_{0}(\,\cdot\,)\)</span> denotes the prior, <span class="math inline">\(\mathcal{L}(\,\cdot\,; y)\)</span> denotes the likelihood, and <span class="math inline">\(0 \leq \beta_{1} &lt; \cdots &lt; \beta_{N} = 1\)</span>.</p>
+<p>The intermediate densities, <span class="math inline">\(\{\pi_{k}(\theta)\}_{k=1}^{N}\)</span>, generated using this approach take the form <span class="math display">\[\pi_{k}(\theta) \propto (Q_{\sharp}\rho(\theta))^{1-\beta_{k}}\pi(\theta)^{\beta_{k}},\]</span> where <span class="math inline">\(Q_{\sharp}\rho(\cdot)\)</span> denotes the pushforward of the reference density, <span class="math inline">\(\rho(\cdot)\)</span>, under the preconditioner, <span class="math inline">\(Q(\cdot)\)</span>, <span class="math inline">\(\pi(\cdot)\)</span> denotes the target density, and <span class="math inline">\(0 \leq \beta_{1} &lt; \cdots &lt; \beta_{N} = 1\)</span>.</p>
 <p>It is possible to provide this class with a set of <span class="math inline">\(\beta\)</span> values to use. If these are not provided, they will be determined automatically by finding the largest possible <span class="math inline">\(\beta\)</span>, at each iteration, such that the ESS of a reweighted set of samples distributed according to (a TT approximation to) the previous bridging density does not fall below a given value.</p>
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
