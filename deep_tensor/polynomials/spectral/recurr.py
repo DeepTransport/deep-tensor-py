@@ -15,7 +15,7 @@ class Recurr(Spectral, abc.ABC):
         a: Tensor,
         b: Tensor,
         c: Tensor,
-        norm: float
+        norm: float | Tensor
     ):
         """Class for spectral polynomials for which the three-term 
         recurrence relation is known. This relation takes the form
@@ -116,7 +116,7 @@ class Recurr(Spectral, abc.ABC):
         
         dpdls = torch.zeros((ls.numel(), self.order+1))
         if self.order == 0:
-            return ps
+            return dpdls
         
         ps = self.eval_basis(ls) / self.norm
         

@@ -139,14 +139,14 @@ class LagrangeP(Piecewise):
 
     We use piecewise Chebyshev polynomials of the second kind to 
     represent the (conditional) CDFs corresponding to the higher-order 
-    Lagrange representation of the (square root of) the target density 
+    Lagrange representation of (the square root of) the target density 
     function.
 
     References
     ----------
     Berrut, J and Trefethen, LN (2004). *[Barycentric Lagrange 
     interpolation](https://doi.org/10.1137/S0036144502417715).* 
-    SIAM Review, **46**, 501--517.
+    SIAM Review **46**, 501--517.
     
     """
 
@@ -217,7 +217,7 @@ class LagrangeP(Piecewise):
         dls[(dls < 0) & (dls.abs() < EPS)] = -EPS 
         return dls
     
-    def _compute_nodes(self) -> Tensor:
+    def _compute_nodes(self) -> None:
         """Computes the values of the global nodes. The grid of the 
         polynomial is divided into 'num_elems' equispaced elements. 
         Within each element, the nodes of the Jacobi polynomial of the 
@@ -232,7 +232,7 @@ class LagrangeP(Piecewise):
         self.nodes = nodes
         return
     
-    def _compute_mass(self) -> Tensor:
+    def _compute_mass(self) -> None:
         """Computes the mass matrix and its Cholesky factor."""
         n_loc = self.local.cardinality
         mass_elem = self.local.mass * (0.5 * self.jac)
@@ -243,7 +243,7 @@ class LagrangeP(Piecewise):
         self.mass_R = torch.linalg.cholesky(self.mass).T
         return
     
-    def _compute_int_W(self) -> Tensor:
+    def _compute_int_W(self) -> None:
         """Computes the integration operator."""
         n_loc = self.local.cardinality
         weights_elem = self.local.weights * (0.5 * self.jac)

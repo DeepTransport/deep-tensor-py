@@ -29,8 +29,8 @@ class Lagrange1(Piecewise):
     where $x_{0}$ and $x_{1}$ denote the endpoints of the element.
 
     We use piecewise cubic polynomials to represent the (conditional) 
-    CDFs corresponding to the piecewise linear representation of the 
-    (square root of) the target density function.
+    CDFs corresponding to the piecewise linear representation of (the 
+    square root of) the target density function.
     
     """
 
