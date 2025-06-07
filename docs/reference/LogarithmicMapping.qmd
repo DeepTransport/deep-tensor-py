@@ -1,7 +1,7 @@
 # LogarithmicMapping { #deep_tensor.LogarithmicMapping }
 
 ```python
-LogarithmicMapping(self, scale: float | Tensor = 1.0)
+LogarithmicMapping(scale: float | Tensor = 1.0)
 ```
 
 Mapping from an unbounded domain to $(-1, 1)$.

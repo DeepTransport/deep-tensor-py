@@ -1,7 +1,7 @@
 # Lagrange1 { #deep_tensor.Lagrange1 }
 
 ```python
-Lagrange1(self, num_elems: int)
+Lagrange1(num_elems: int)
 ```
 
 Piecewise linear polynomials.

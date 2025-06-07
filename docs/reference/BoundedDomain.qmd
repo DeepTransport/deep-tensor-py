@@ -1,7 +1,7 @@
 # BoundedDomain { #deep_tensor.BoundedDomain }
 
 ```python
-BoundedDomain(self, bounds: Tensor | None = None)
+BoundedDomain(bounds: Tensor | None = None)
 ```
 
 Mapping from a bounded domain to $(-1, 1)$.

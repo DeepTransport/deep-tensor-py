@@ -72,7 +72,7 @@ quartodoc:
       package: deep_tensor
       contents:
         - name: DIRT
-          members: [eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, random, sobol]
+          members: [eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, eval_irt_pullback, random, sobol]
 
     - title: Preconditioners
       desc: Triangular mappings which are used as starting points for DIRT construction.

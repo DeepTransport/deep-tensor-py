@@ -1,7 +1,7 @@
 # AlgebraicMapping { #deep_tensor.AlgebraicMapping }
 
 ```python
-AlgebraicMapping(self, scale: float | Tensor = 1.0)
+AlgebraicMapping(scale: float | Tensor = 1.0)
 ```
 
 Mapping from an unbounded domain to $(-1, 1)$.

@@ -1,7 +1,7 @@
 # UniformMapping { #deep_tensor.UniformMapping }
 
 ```python
-UniformMapping(self, bounds: Tensor, reference: Reference | None = None)
+UniformMapping(bounds: Tensor, reference: Reference | None = None)
 ```
 
 A mapping between an arbitrary (product form) reference density 

@@ -4,8 +4,6 @@ from typing import Dict, List
 import torch
 from torch import Tensor
 
-from ..references import Reference
-
 
 class Bridge(abc.ABC):
 
@@ -45,7 +43,6 @@ class Bridge(abc.ABC):
     @abc.abstractmethod
     def _get_ratio_func(
         self, 
-        reference: Reference, 
         method: str,
         rs: Tensor,
         neglogliks: Tensor, 
@@ -57,8 +54,6 @@ class Bridge(abc.ABC):
         
         Parameters
         ----------
-        reference:
-            The reference distribution.
         method:
             The method used to compute the ratio function. Can be
             'eratio' (exact) or 'aratio' (approximate).

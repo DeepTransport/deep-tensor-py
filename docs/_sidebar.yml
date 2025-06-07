@@ -1,0 +1,46 @@
+website:
+  sidebar:
+  - contents:
+    - reference/index.qmd
+    - contents:
+      - reference/DIRT.qmd
+      section: Deep Inverse Rosenblatt Transport
+    - contents:
+      - reference/Preconditioner.qmd
+      - reference/IdentityMapping.qmd
+      - reference/UniformMapping.qmd
+      section: Preconditioners
+    - contents:
+      - reference/Lagrange1.qmd
+      - reference/LagrangeP.qmd
+      - reference/Chebyshev1st.qmd
+      - reference/Chebyshev2nd.qmd
+      - reference/Fourier.qmd
+      - reference/Legendre.qmd
+      section: Polynomial Bases
+    - contents:
+      - reference/BoundedDomain.qmd
+      - reference/AlgebraicMapping.qmd
+      - reference/LogarithmicMapping.qmd
+      section: Domain Mappings
+    - contents:
+      - reference/TTOptions.qmd
+      - reference/DIRTOptions.qmd
+      section: Options
+    - contents:
+      - reference/GaussianReference.qmd
+      - reference/UniformReference.qmd
+      section: Reference Densities
+    - contents:
+      - reference/SingleLayer.qmd
+      - reference/Tempering.qmd
+      section: Bridges
+    - contents:
+      - reference/run_importance_sampling.qmd
+      - reference/run_independence_sampler.qmd
+      - reference/run_dirt_pcn.qmd
+      - reference/ImportanceSamplingResult.qmd
+      - reference/MCMCResult.qmd
+      section: Debiasing
+    id: reference
+  - id: dummy-sidebar

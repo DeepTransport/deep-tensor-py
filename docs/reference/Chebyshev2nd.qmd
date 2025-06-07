@@ -1,7 +1,7 @@
 # Chebyshev2nd { #deep_tensor.Chebyshev2nd }
 
 ```python
-Chebyshev2nd(self, order: int)
+Chebyshev2nd(order: int)
 ```
 
 Chebyshev polynomials of the second kind.

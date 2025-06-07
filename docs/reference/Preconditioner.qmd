@@ -2,7 +2,6 @@
 
 ```python
 Preconditioner(
-    self,
     reference: Reference,
     Q: Callable[[Tensor], Tensor],
     Q_inv: Callable[[Tensor], Tensor],

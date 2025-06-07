@@ -1,7 +1,7 @@
 # Fourier { #deep_tensor.Fourier }
 
 ```python
-Fourier(self, order: int)
+Fourier(order: int)
 ```
 
 Fourier polynomials.

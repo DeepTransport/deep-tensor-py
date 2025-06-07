@@ -57,20 +57,20 @@ class AbstractSIRT():
         return
     
     @property 
-    def defensive(self) -> Tensor | float:
+    def defensive(self) -> Tensor:
         return self._defensive
     
     @defensive.setter 
-    def defensive(self, value: Tensor | float) -> None:
+    def defensive(self, value: Tensor) -> None:
         self._defensive = value 
         return
     
     @property 
-    def z_func(self) -> Tensor | float:
+    def z_func(self) -> Tensor:
         return self._z_func
     
     @z_func.setter 
-    def z_func(self, value: Tensor | float) -> None:
+    def z_func(self, value: Tensor) -> None:
         self._z_func = value 
         return 
     
@@ -79,7 +79,7 @@ class AbstractSIRT():
         return self.bases.dim 
     
     @property
-    def z(self) -> Tensor | float:
+    def z(self) -> Tensor:
         return self.defensive + self.z_func
     
     @property 

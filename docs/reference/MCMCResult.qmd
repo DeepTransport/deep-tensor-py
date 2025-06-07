@@ -1,7 +1,7 @@
 # MCMCResult { #deep_tensor.MCMCResult }
 
 ```python
-MCMCResult(self, xs: Tensor, acceptance_rate: Tensor)
+MCMCResult(xs: Tensor, acceptance_rate: Tensor)
 ```
 
 An object containing a constructed Markov chain.

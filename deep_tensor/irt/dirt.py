@@ -107,165 +107,61 @@ class AbstractDIRT(abc.ABC):
 
     def _eval_rt_reference(
         self,
-        xs: Tensor,
-        n_layers: Tensor = torch.inf,
-        subset: str | None = None
+        us: Tensor,
+        subset: str | None = None,
+        n_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
-        r"""Evaluates the deep Rosenblatt transport.
-        
-        Parameters
-        ----------
-        xs:
-            An $n \times k$ matrix of random variables in the reference
-            domain.
-        n_layers:
-            The number of layers of the deep inverse Rosenblatt 
-            transport to push the samples forward under. If not 
-            specified, the samples will be pushed forward through all 
-            the layers.
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-
-        Returns
-        -------
-        rs:
-            An $n \times k$ matrix containing the composition of 
-            mappings evaluated at each value of `xs`.
-        neglogfxs:
-            An $n$-dimensional vector containing the potential function 
-            of the pullback of the reference density under the current 
-            composition of mappings, evaluated at each sample in `xs`.
-
+        r"""Evaluates the deep Rosenblatt transport for the pullback of 
+        the target density under the preconditioning map.
         """
         
-        n_layers = min(n_layers, self.n_layers)
-        rs = xs.clone()
-
-        neglogfxs = torch.zeros(rs.shape[0])
+        if n_layers is None:
+            n_layers = self.n_layers
+        
+        rs = us.clone()
+        neglogfus = torch.zeros(rs.shape[0])
 
         for i in range(n_layers):
-            
             zs = self.sirts[i]._eval_rt(rs)
             neglogsirts = self.sirts[i]._eval_potential(rs, subset)
-
             rs = self.reference.invert_cdf(zs)
             neglogrefs = self.reference.eval_potential(rs)[0]
-            neglogfxs += neglogsirts - neglogrefs
+            neglogfus += neglogsirts - neglogrefs
 
         neglogrefs = self.reference.eval_potential(rs)[0]
-        neglogfxs += neglogrefs
+        neglogfus += neglogrefs
 
-        return rs, neglogfxs
+        return rs, neglogfus
     
     def _eval_irt_reference(
         self, 
         rs: Tensor, 
-        n_layers: int = torch.inf,
-        subset: str | None = None
+        subset: str | None = None,
+        n_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
-        r"""Evaluates the deep inverse Rosenblatt transport.
-
-        Parameters
-        ----------
-        rs:
-            An $n \times k$ matrix containing samples distributed 
-            according to the reference density.
-        n_layers: 
-            The number of layers of the deep inverse Rosenblatt 
-            transport to pull the samples back under. If not specified,
-            the samples will be pulled back through all the layers.
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-
-        Returns
-        -------
-        xs: 
-            An $n \times k$ matrix containing the corresponding samples 
-            after applying the deep inverse Rosenblatt transport.
-        neglogfxs:
-            An $n$-dimensional vector containing the potential function
-            of the pullback of the reference density under the current 
-            composition of mappings, evaluated at each sample in `xs`.
-
+        """Evaluates the deep inverse Rosenblatt transport for the 
+        pullback of the target density under the preconditioning map.
         """
 
-        n_layers = min(n_layers, self.n_layers)
-        xs = rs.clone()
-
-        neglogfxs = self.reference.eval_potential(xs)[0]
+        if n_layers is None:
+            n_layers = self.n_layers
+        
+        us = rs.clone()
+        neglogfus = self.reference.eval_potential(us)[0]
 
         for i in range(n_layers-1, -1, -1):
-            neglogrefs = self.reference.eval_potential(xs)[0]
-            zs = self.reference.eval_cdf(xs)[0]
-            xs, neglogsirts = self.sirts[i]._eval_irt(zs, subset)
-            neglogfxs += neglogsirts - neglogrefs
+            neglogrefs = self.reference.eval_potential(us)[0]
+            zs = self.reference.eval_cdf(us)[0]
+            us, neglogsirts = self.sirts[i]._eval_irt(zs, subset)
+            neglogfus += neglogsirts - neglogrefs
 
-        return xs, neglogfxs
-
-    def eval_irt_pullback(
-        self,
-        potential: Callable[[Tensor], Tensor],
-        rs: Tensor, 
-        subset: str = "first"
-    ) -> Tensor:
-        r"""Evaluates the pullback, T^{\sharp}f(r), of the target 
-        function under the DIRT mapping.
-
-        This function evaluates T^{\sharp}f(r), where T denotes the 
-        inverse Rosenblatt transport and f denotes a (possibly 
-        unnormalised) density function.
-
-        Parameters
-        ----------
-        potential:
-            A function that returns the negative logarithm of the 
-            function, f, to evaluate the pullback of.
-        rs:
-            An n * d tensor containing a set of samples from the 
-            reference domain.
-
-        Returns
-        -------
-        neglogTfrs
-            An n-dimensional vector containing the negative logarithm 
-            of the pullback function evaluated at each element in rs.
-        
-        """
-        neglogrefs = self.reference.eval_potential(rs)[0]
-        ms, neglogfms_dirt = self.eval_irt(rs, subset=subset)
-        neglogfms = potential(ms)
-        neglogTfrs = neglogfms + neglogrefs - neglogfms_dirt
-        return neglogTfrs
-    
-    def eval_cirt_pullback(
-        self, 
-        potential: Callable[[Tensor], Tensor],
-        ms: Tensor,
-        rs: Tensor,
-        subset: str = "first"
-    ) -> Tensor:
-        r"""TODO: write docstring.
-        
-        Potential needs to return $f(x|y)$ (adjust notation).
-        
-        """
-        neglogrefs = self.reference.eval_potential(rs)[0]
-        ms, neglogfms_cirt = self.eval_cirt(ms, rs, subset=subset)
-        neglogfms = potential(ms)
-        neglogTfrs = neglogfms + neglogrefs - neglogfms_cirt
-        return neglogTfrs
+        return us, neglogfus
 
     def eval_potential(
         self, 
-        ms: Tensor,
-        n_layers: Tensor = torch.inf,
-        subset: str | None = None
+        xs: Tensor,
+        subset: str | None = None,
+        n_layers: int | None = None
     ) -> Tensor:
         r"""Evaluates the potential function.
         
@@ -276,17 +172,18 @@ class AbstractDIRT(abc.ABC):
         
         Parameters
         ----------
-        ms:
-            An $n \times k$ matrix containing a set of samples drawn 
-            from the current DIRT approximation to the target density.
-        n_layers:
-            The number of layers of the current DIRT construction to
-            use.
+        xs:
+            An $n \times k$ matrix containing a set of samples from the 
+            approximation domain.
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
+        n_layers:
+            The number of layers of the current DIRT construction to
+            use when computing the potential. If not specified, all 
+            layers will be used when computing the potential.
 
         Returns
         -------
@@ -295,15 +192,16 @@ class AbstractDIRT(abc.ABC):
             of the target density evaluated at each element in `xs`.
 
         """
-        n_layers = min(n_layers, self.n_layers)
-        neglogfms = self.eval_rt(ms, n_layers, subset)[1]
-        return neglogfms
+        if n_layers is None:
+            n_layers = self.n_layers
+        neglogfxs = self.eval_rt(xs, subset, n_layers)[1]
+        return neglogfxs
     
     def eval_pdf(
         self, 
-        ms: Tensor,
-        n_layers: Tensor = torch.inf,
-        subset: str | None = None
+        xs: Tensor,
+        subset: str | None = None,
+        n_layers: int | None = None
     ) -> Tensor: 
         r"""Evaluates the density function.
         
@@ -314,119 +212,124 @@ class AbstractDIRT(abc.ABC):
         
         Parameters
         ----------
-        ms:
+        xs:
             An $n \times k$ matrix containing a set of samples drawn 
             from the DIRT approximation to the target density.
-        n_layers:
-            The number of layers of the current DIRT construction to 
-            use.
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
+        n_layers:
+            The number of layers of the current DIRT construction to 
+            use. If not specified, all 
 
         Returns
         -------
-        fms:
+        fxs:
             An $n$-dimensional vector containing the value of the 
             approximation to the target density evaluated at each 
-            element in `ms`.
+            element in `xs`.
         
         """
-        neglogfms = self.eval_potential(ms, n_layers, subset)
-        fms = torch.exp(-neglogfms)
-        return fms
+        if n_layers is None:
+            n_layers = self.n_layers
+        neglogfxs = self.eval_potential(xs, subset, n_layers)
+        fxs = torch.exp(-neglogfxs)
+        return fxs
 
     def eval_rt(
         self,
-        ms: Tensor,
-        n_layers: Tensor = torch.inf,
-        subset: str | None = None
+        xs: Tensor,
+        subset: str | None = None,
+        n_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the deep Rosenblatt transport.
         
         Parameters
         ----------
-        ms:
-            An $n \times k$ matrix of random variables drawn from the 
-            density defined by the current DIRT.
-        n_layers:
-            The number of layers of the deep inverse Rosenblatt 
-            transport to push the samples forward under. If not 
-            specified, the samples will be pushed forward through all 
-            the layers.
+        xs:
+            An $n \times k$ matrix of samples from the approximation 
+            domain.
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
+        n_layers:
+            The number of layers of the deep inverse Rosenblatt 
+            transport to push the samples forward under. If not 
+            specified, the samples will be pushed forward through all 
+            the layers.
 
         Returns
         -------
         rs:
             An $n \times k$ matrix containing the composition of 
-            mappings evaluated at each value of `ms`.
-        neglogfms:
+            mappings evaluated at each value of `xs`.
+        neglogfxs:
             An $n$-dimensional vector containing the potential function 
             of the pullback of the reference density under the current 
-            composition of mappings, evaluated at each sample in `ms`.
+            composition of mappings evaluated at each sample in `xs`.
 
         """
-        n_layers = min(n_layers, self.n_layers)
-        neglogabsdet_ms = self.preconditioner.neglogdet_Q_inv(ms)
-        xs = self.preconditioner.Q_inv(ms)
-        rs, neglogfxs = self._eval_rt_reference(xs, n_layers, subset)
-        neglogfms = neglogfxs + neglogabsdet_ms
-        return rs, neglogfms
+        if n_layers is None:
+            n_layers = self.n_layers
+        neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs)
+        us = self.preconditioner.Q_inv(xs)
+        rs, neglogfus = self._eval_rt_reference(us, subset, n_layers)
+        neglogfxs = neglogfus + neglogdet_xs
+        return rs, neglogfxs
 
     def eval_irt(
         self, 
         rs: Tensor, 
-        n_layers: int = torch.inf,
-        subset: str | None = None
+        subset: str | None = None,
+        n_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the deep inverse Rosenblatt transport.
 
         Parameters
         ----------
         rs:
-            An $n \times k$ matrix containing samples distributed 
-            according to the reference density.
-        n_layers: 
-            The number of layers of the deep inverse Rosenblatt 
-            transport to pull the samples back under. If not specified,
-            the samples will be pulled back through all the layers.
+            An $n \times k$ matrix containing samples from the 
+            reference domain.
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
+        n_layers: 
+            The number of layers of the deep inverse Rosenblatt 
+            transport to pull the samples back under. If not specified,
+            the samples will be pulled back through all the layers.
 
         Returns
         -------
-        ms:
+        xs:
             An $n \times k$ matrix containing the corresponding samples 
             from the approximation domain, after applying the deep 
             inverse Rosenblatt transport.
-        neglogfms:
+        neglogfxs:
             An $n$-dimensional vector containing the potential function
             of the pullback of the reference density under the current 
             composition of mappings, evaluated at each sample in `xs`.
 
         """
-        xs, neglogfxs = self._eval_irt_reference(rs, n_layers, subset)
-        ms = self.preconditioner.Q(xs)
-        neglogabsdet_ms = self.preconditioner.neglogdet_Q_inv(ms)
-        neglogfms = neglogfxs + neglogabsdet_ms
-        return ms, neglogfms
+        if n_layers is None:
+            n_layers = self.n_layers
+        us, neglogfus = self._eval_irt_reference(rs, subset, n_layers)
+        xs = self.preconditioner.Q(us)
+        neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs)
+        neglogfxs = neglogfus + neglogdet_xs
+        return xs, neglogfxs
     
     def eval_cirt(
         self, 
-        ms: Tensor, 
+        ys: Tensor, 
         rs: Tensor, 
-        n_layers: int = torch.inf,
-        subset: str | None = None
+        subset: str = "first",
+        n_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the conditional inverse Rosenblatt transport.
 
@@ -436,10 +339,10 @@ class AbstractDIRT(abc.ABC):
         The conditional inverse Rosenblatt transport takes the form
         
         $$
-            Y|M = \mathcal{T}(\mathcal{R}_{k}(M), R),
+            X|Y = \mathcal{T}(\mathcal{R}_{k}(Y), R),
         $$
 
-        where $M$ is a $k$-dimensional random variable, $R$ is a 
+        where $Y$ is a $k$-dimensional random variable, $R$ is a 
         $n-k$-dimensional reference random variable, 
         $\mathcal{R}(\,\cdot\,)$ denotes the (full) Rosenblatt 
         transport, $\mathcal{T}(\,\cdot\,) := \mathcal{R}^{-1}(\,\cdot\,)$, 
@@ -448,21 +351,21 @@ class AbstractDIRT(abc.ABC):
         
         Parameters
         ----------
-        ms:
+        ys:
             An $n \times k$ matrix containing samples from the 
             approximation domain.
         rs:
-            An $n \times (d-k)$ matrix containing samples distributed 
-            according to the reference density.
+            An $n \times (d-k)$ matrix containing samples from the 
+            reference domain.
+        subset: 
+            Whether `ys` corresponds to the first $k$ variables 
+            (`subset='first'`) of the approximation, or the last $k$ 
+            variables (`subset='last'`).
         n_layers:
             The number of layers of the deep inverse Rosenblatt 
             transport to push the samples forward under. If not 
             specified, the samples will be pushed forward through all 
             the layers.
-        subset: 
-            Whether `ms` corresponds to the first $k$ variables 
-            (`subset='first'`) of the approximation, or the last $k$ 
-            variables (`subset='last'`).
         
         Returns
         -------
@@ -473,59 +376,130 @@ class AbstractDIRT(abc.ABC):
         neglogfys:
             An $n$-dimensional vector containing the potential function 
             of the approximation to the conditional density of 
-            $Y \textbar M$ evaluated at each sample in `rs`.
+            $X \textbar Y$ evaluated at each sample in `rs`.
     
         """
         
-        ms = torch.atleast_2d(ms)
+        ys = torch.atleast_2d(ys)
         rs = torch.atleast_2d(rs)
 
         n_rs, d_rs = rs.shape
-        n_ms, d_ms = ms.shape
+        n_ys, d_ys = ys.shape
 
-        if d_rs == 0 or d_ms == 0:
-            msg = "The dimensions of both 'ms' and 'zs' must be at least 1."
+        if d_rs == 0 or d_ys == 0:
+            msg = "The dimensions of both 'ys' and 'rs' must be at least 1."
             raise Exception(msg)
         
-        if d_rs + d_ms != self.dim:
-            msg = ("The dimensions of X and Z must sum " 
+        if d_rs + d_ys != self.dim:
+            msg = ("The dimensions of 'ys' and 'rs' must sum " 
                    + "to the dimension of the approximation.")
             raise Exception(msg)
-        
-        if n_rs != n_ms: 
-            if n_ms != 1:
-                msg = "The number of samples of X and Z must be equal."
+
+        if n_rs != n_ys: 
+            if n_ys != 1:
+                msg = ("The number of samples in 'ys' and 'ms' "
+                       + "(i.e., the number of rows) must be equal.")
                 raise Exception(msg)
-            ms = ms.repeat(n_rs, 1)
+            ys = ys.repeat(n_rs, 1)
         
         direction = SIRT._get_direction(subset)
         if direction == Direction.FORWARD:
-            inds_m = torch.arange(d_ms)
-            inds_y = torch.arange(d_ms, self.dim)
+            inds_y = torch.arange(d_ys)
+            inds_x = torch.arange(d_ys, self.dim)
         elif direction == Direction.BACKWARD:
-            inds_m = torch.arange(d_rs, self.dim)
-            inds_y = torch.arange(d_rs)
+            inds_y = torch.arange(d_rs, self.dim)
+            inds_x = torch.arange(d_rs)
         
         # Evaluate marginal RT
-        rs_m, neglogfms = self.eval_rt(ms, n_layers, subset)
+        rs_y, neglogfys = self.eval_rt(ys, subset, n_layers)
 
         # Evaluate joint RT
-        rs_my = torch.empty((n_rs, self.dim))
-        rs_my[:, inds_m] = rs_m 
-        rs_my[:, inds_y] = rs
-        mys, neglogfmys = self.eval_irt(rs_my, n_layers, subset)
+        rs_yx = torch.empty((n_rs, self.dim))
+        rs_yx[:, inds_y] = rs_y 
+        rs_yx[:, inds_x] = rs
+        yxs, neglogfyxs = self.eval_irt(rs_yx, subset, n_layers)
         
-        ys = mys[:, inds_y]
-        neglogfys = neglogfmys - neglogfms
+        xs = yxs[:, inds_x]
+        neglogfxs = neglogfyxs - neglogfys
+        return xs, neglogfxs
 
-        return ys, neglogfys
+    def eval_irt_pullback(
+        self,
+        potential: Callable[[Tensor], Tensor],
+        rs: Tensor, 
+        subset: str | None = None,
+        n_layers: int | None = None
+    ) -> Tensor:
+        r"""Evaluates the pullback of a density function under the DIRT mapping.
+
+        This function evaluates $\mathcal{T}^{\sharp}f(r)$, where 
+        $\mathcal{T}(\cdot)$ denotes the inverse Rosenblatt transport and 
+        $f(\cdot)$ denotes an arbitrary density function.
+
+        Parameters
+        ----------
+        potential:
+            A function that takes an $n \times k$ matrix of samples 
+            from the approximation domain, and returns an 
+            $n$-dimensional vector containing the potential function 
+            associated with $f(\cdot)$ evaluated at each sample.
+        rs:
+            An $n \times k$ matrix containing a set of samples from the 
+            reference domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+        n_layers: 
+            The number of layers of the deep inverse Rosenblatt 
+            transport to pull the samples back under. If not specified,
+            the samples will be pulled back through all the layers.
+
+        Returns
+        -------
+        neglogTfrs:
+            An $n$-dimensional vector containing the potential of the 
+            pullback function evaluated at each element in `rs`.
+        
+        """
+        neglogrefs = self.reference.eval_potential(rs)[0]
+        xs, neglogfxs_dirt = self.eval_irt(rs, subset, n_layers)
+        neglogfxs = potential(xs)
+        neglogTfrs = neglogfxs + neglogrefs - neglogfxs_dirt
+        return neglogTfrs
     
-    def eval_rt_jac(self, ms: Tensor, subset: str | None = None) -> Tensor:
+    def eval_cirt_pullback(
+        self, 
+        potential: Callable[[Tensor], Tensor],
+        ys: Tensor,
+        rs: Tensor,
+        subset: str = "first",
+        n_layers: int | None = None
+    ) -> Tensor:
+        r"""TODO: write docstring.
+        
+        Potential needs to return $f(x|y)$ (adjust notation).
+        
+        """
+        neglogrefs = self.reference.eval_potential(rs)[0]
+        ys, neglogfys_cirt = self.eval_cirt(ys, rs, subset, n_layers)
+        neglogfys = potential(ys)
+        neglogTfrs = neglogfys + neglogrefs - neglogfys_cirt
+        return neglogTfrs
+
+    def eval_rt_jac(
+        self, 
+        xs: Tensor, 
+        subset: str | None = None,
+        n_layers: int | None = None 
+    ) -> Tensor:
         r"""Evaluates the Jacobian of the deep Rosenblatt transport.
 
         Evaluates the Jacobian of the mapping $R = \mathcal{R}(X)$, 
-        where $R$ denotes the reference random variable and $X$ denotes 
-        the approximation to the target random variable. 
+        where $R$ denotes the reference random variable, $X$ denotes 
+        the approximation to the target random variable, and 
+        $\mathcal{R}$ denotes the Rosenblatt transport.
 
         Note that element $J_{ij}$ of the Jacobian is given by
         $$J_{ij} = \frac{\partial r_{i}}{\partial x_{j}}.$$
@@ -540,6 +514,10 @@ class AbstractDIRT(abc.ABC):
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
+        n_layers: 
+            The number of layers of the deep Rosenblatt transport to 
+            evaluate the Jacobian for. If not specified, the Jacobian 
+            for the full Rosenblatt transport will be evaluated.
 
         Returns
         -------
@@ -550,42 +528,53 @@ class AbstractDIRT(abc.ABC):
 
         """
 
-        n_ms, d_ms = ms.shape
+        n_xs, d_xs = xs.shape
 
-        def _eval_rt(ms: Tensor) -> Tensor:
-            ms = ms.reshape(n_ms, d_ms)
-            return self.eval_rt(ms, subset=subset)[0].sum(dim=0)
+        def _eval_rt(xs: Tensor) -> Tensor:
+            xs = xs.reshape(n_xs, d_xs)
+            return self.eval_rt(xs, subset, n_layers)[0].sum(dim=0)
         
-        Js = jacobian(_eval_rt, ms.flatten(), vectorize=True)
-        return Js.reshape(d_ms, n_ms, d_ms)
+        Js: Tensor = jacobian(_eval_rt, xs.flatten(), vectorize=True)
+        return Js.reshape(d_xs, n_xs, d_xs)
     
-    def eval_irt_jac(self, rs: Tensor, subset: str | None = None) -> Tensor:
+    def eval_irt_jac(
+        self, 
+        rs: Tensor, 
+        subset: str | None = None,
+        n_layers: int | None = None 
+    ) -> Tensor:
         r"""Evaluates the Jacobian of the deep inverse Rosenblatt transport.
 
-        Evaluates the Jacobian of the mapping $X = \mathcal{R}^{-1}(R)$, 
-        where $R$ denotes the reference random variable and $X$ denotes 
-        the approximation to the target random variable. 
+        Evaluates the Jacobian of the mapping $X = \mathcal{T}(R)$, 
+        where $R$ denotes the reference random variable, $X$ denotes 
+        the approximation to the target random variable, and 
+        $\mathcal{T}$ denotes the inverse Rosenblatt transport.
 
         Note that element $J_{ij}$ of the Jacobian is given by
         $$J_{ij} = \frac{\partial x_{i}}{\partial r_{j}}.$$
 
         Parameters
         ----------
-        xs:
+        rs:
             An $n \times d$ matrix containing a set of samples from the 
-            approximation domain.
+            reference domain.
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
+        n_layers: 
+            The number of layers of the deep inverse Rosenblatt 
+            transport to evaluate the Jacobian for. If not specified,
+            the Jacobian for the full inverse Rosenblatt transport will
+            be evaluated.
 
         Returns
         -------
         Js:
             A $k \times n \times k$ tensor, where element $ijk$ 
             contains element $ik$ of the Jacobian for the $j$th sample 
-            in `xs`.
+            in `rs`.
 
         """
 
@@ -593,9 +582,9 @@ class AbstractDIRT(abc.ABC):
 
         def _eval_irt(rs: Tensor) -> Tensor:
             rs = rs.reshape(n_rs, d_rs)
-            return self.eval_irt(rs, subset=subset)[0].sum(dim=0)
+            return self.eval_irt(rs, subset, n_layers)[0].sum(dim=0)
         
-        Js = jacobian(_eval_irt, rs.flatten(), vectorize=True)
+        Js: Tensor = jacobian(_eval_irt, rs.flatten(), vectorize=True)
         return Js.reshape(d_rs, n_rs, d_rs)
 
     def random(self, n: int) -> Tensor: 
@@ -611,13 +600,13 @@ class AbstractDIRT(abc.ABC):
 
         Returns
         -------
-        ms:
+        xs:
             An $n \times d$ matrix containing the generated samples.
         
         """
         rs = self.reference.random(self.dim, n)
-        ms = self.eval_irt(rs)[0]
-        return ms
+        xs = self.eval_irt(rs)[0]
+        return xs
     
     def sobol(self, n: int) -> Tensor:
         r"""Generates a set of QMC samples.
@@ -632,13 +621,13 @@ class AbstractDIRT(abc.ABC):
         
         Returns
         -------
-        ms:
+        xs:
             An $n \times d$ matrix containing the generated samples.
 
         """
         rs = self.reference.sobol(self.dim, n)
-        ms = self.eval_irt(rs)[0]
-        return ms
+        xs = self.eval_irt(rs)[0]
+        return xs
     
     @staticmethod
     def parse_filename(fname: str) -> str:
@@ -724,17 +713,18 @@ class DIRT(AbstractDIRT):
         returns an $n$-dimensional vector containing the negative 
         log-prior density evaluated at each sample.
     bases:
-        A list of polynomial bases (one for each dimension), or a 
-        single polynomial basis (to be used in all dimensions), used to 
-        construct the functional tensor trains at each iteration.
+        A list of sets of basis functions for each dimension, or a 
+        single set of basis functions (to be used in all dimensions), 
+        used to construct the functional tensor trains at each 
+        iteration.
     bridge: 
         An object used to generate the intermediate densities to 
         approximate at each stage of the DIRT construction.
     tt_options:
-        Options for constructing the SIRT approximation to the 
-        ratio function (*i.e.*, the pullback of the current bridging 
-        density under the existing composition of mappings) at each 
-        iteration.
+        Options for constructing the FTT approximation to the square 
+        root of the ratio function (*i.e.*, the pullback of the current 
+        bridging density under the existing composition of mappings) at 
+        each iteration.
     dirt_options:
         Options for constructing the DIRT approximation to the 
         target density.
@@ -771,9 +761,9 @@ class DIRT(AbstractDIRT):
             return neglogpris + neglogliks + neglogdets
 
         if bridge is None:
-            bridge = Tempering(min_beta=1e-3, ess_tol=0.4)
+            bridge = Tempering()
         if tt_options is None:
-            tt_options = TTOptions(max_cross=1, tt_method="amen")
+            tt_options = TTOptions()
         if dirt_options is None:
             dirt_options = DIRTOptions()
 
@@ -976,9 +966,6 @@ class DIRT(AbstractDIRT):
         """
 
         t0 = time.time()
-
-        # rs, _ = self.bases.sample_measure(self.pre_sample_size)
-        # neglogrefs_rs = self.reference.eval_potential(rs)[0]
         
         while True:
 

@@ -1,7 +1,7 @@
 # Chebyshev1st { #deep_tensor.Chebyshev1st }
 
 ```python
-Chebyshev1st(self, order: int)
+Chebyshev1st(order: int)
 ```
 
 Chebyshev polynomials of the first kind.

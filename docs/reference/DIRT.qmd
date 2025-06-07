@@ -2,7 +2,6 @@
 
 ```python
 DIRT(
-    self,
     negloglik: Callable[[Tensor], Tensor],
     neglogpri: Callable[[Tensor], Tensor],
     preconditioner: Preconditioner,
@@ -28,7 +27,7 @@ Deep (squared) inverse Rosenblatt transport.
 
 <code>[**bases**]{.parameter-name} [:]{.parameter-annotation-sep} [[Basis1D](`deep_tensor.polynomials.Basis1D`) \| [List](`typing.List`)\[[Basis1D](`deep_tensor.polynomials.Basis1D`)\]]{.parameter-annotation}</code>
 
-:   A list of polynomial bases (one for each dimension), or a  single polynomial basis (to be used in all dimensions), used to  construct the functional tensor trains at each iteration.
+:   A list of sets of basis functions for each dimension, or a  single set of basis functions (to be used in all dimensions),  used to construct the functional tensor trains at each  iteration.
 
 <code>[**bridge**]{.parameter-name} [:]{.parameter-annotation-sep} [[Bridge](`deep_tensor.bridging_densities.Bridge`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
@@ -36,7 +35,7 @@ Deep (squared) inverse Rosenblatt transport.
 
 <code>[**tt_options**]{.parameter-name} [:]{.parameter-annotation-sep} [[TTOptions](`deep_tensor.options.TTOptions`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   Options for constructing the SIRT approximation to the  ratio function (*i.e.*, the pullback of the current bridging  density under the existing composition of mappings) at each  iteration.
+:   Options for constructing the FTT approximation to the square  root of the ratio function (*i.e.*, the pullback of the current  bridging density under the existing composition of mappings) at  each iteration.
 
 <code>[**dirt_options**]{.parameter-name} [:]{.parameter-annotation-sep} [[DIRTOptions](`deep_tensor.options.DIRTOptions`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
@@ -61,6 +60,7 @@ Foundations of Computational Mathematics **22**, 1863--1922.
 | [eval_rt](#deep_tensor.DIRT.eval_rt) | Evaluates the deep Rosenblatt transport. |
 | [eval_irt](#deep_tensor.DIRT.eval_irt) | Evaluates the deep inverse Rosenblatt transport. |
 | [eval_cirt](#deep_tensor.DIRT.eval_cirt) | Evaluates the conditional inverse Rosenblatt transport. |
+| [eval_irt_pullback](#deep_tensor.DIRT.eval_irt_pullback) | Evaluates the pullback of a density function under the DIRT mapping. |
 | [random](#deep_tensor.DIRT.random) | Generates a set of random samples.  |
 | [sobol](#deep_tensor.DIRT.sobol) | Generates a set of QMC samples. |
 
@@ -68,9 +68,9 @@ Foundations of Computational Mathematics **22**, 1863--1922.
 
 ```python
 DIRT.eval_potential(
-    ms: Tensor,
-    n_layers: Tensor = torch.inf,
+    xs: Tensor,
     subset: str | None = None,
+    n_layers: int | None = None,
 )
 ```
 
@@ -83,17 +83,17 @@ given number of layers of the DIRT.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
-:   An $n \times k$ matrix containing a set of samples drawn  from the current DIRT approximation to the target density.
-
-<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.inf]{.parameter-default}</code>
-
-:   The number of layers of the current DIRT construction to use.
+:   An $n \times k$ matrix containing a set of samples from the  approximation domain.
 
 <code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
+
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The number of layers of the current DIRT construction to use when computing the potential. If not specified, all  layers will be used when computing the potential.
 
 #### Returns {.doc-section .doc-section-returns}
 
@@ -105,9 +105,9 @@ given number of layers of the DIRT.
 
 ```python
 DIRT.eval_pdf(
-    ms: Tensor,
-    n_layers: Tensor = torch.inf,
+    xs: Tensor,
     subset: str | None = None,
+    n_layers: int | None = None,
 )
 ```
 
@@ -120,64 +120,64 @@ a given number of layers of the DIRT.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
 :   An $n \times k$ matrix containing a set of samples drawn  from the DIRT approximation to the target density.
-
-<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.inf]{.parameter-default}</code>
-
-:   The number of layers of the current DIRT construction to  use.
 
 <code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
 
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The number of layers of the current DIRT construction to  use. If not specified, all
+
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[**fms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**fxs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
-:   An $n$-dimensional vector containing the value of the  approximation to the target density evaluated at each  element in `ms`.
+:   An $n$-dimensional vector containing the value of the  approximation to the target density evaluated at each  element in `xs`.
 
 ### eval_rt { #deep_tensor.DIRT.eval_rt }
 
 ```python
-DIRT.eval_rt(
-    ms: Tensor,
-    n_layers: Tensor = torch.inf,
-    subset: str | None = None,
-)
+DIRT.eval_rt(xs: Tensor, subset: str | None = None, n_layers: int | None = None)
 ```
 
 Evaluates the deep Rosenblatt transport.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
-:   An $n \times k$ matrix of random variables drawn from the  density defined by the current DIRT.
-
-<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.inf]{.parameter-default}</code>
-
-:   The number of layers of the deep inverse Rosenblatt  transport to push the samples forward under. If not  specified, the samples will be pushed forward through all  the layers.
+:   An $n \times k$ matrix of samples from the approximation  domain.
 
 <code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
 
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The number of layers of the deep inverse Rosenblatt  transport to push the samples forward under. If not  specified, the samples will be pushed forward through all  the layers.
+
 #### Returns {.doc-section .doc-section-returns}
 
 <code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
-:   An $n \times k$ matrix containing the composition of  mappings evaluated at each value of `ms`.
+:   An $n \times k$ matrix containing the composition of  mappings evaluated at each value of `xs`.
 
-<code>[**neglogfms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**neglogfxs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
-:   An $n$-dimensional vector containing the potential function  of the pullback of the reference density under the current  composition of mappings, evaluated at each sample in `ms`.
+:   An $n$-dimensional vector containing the potential function  of the pullback of the reference density under the current  composition of mappings evaluated at each sample in `xs`.
 
 ### eval_irt { #deep_tensor.DIRT.eval_irt }
 
 ```python
-DIRT.eval_irt(rs: Tensor, n_layers: int = torch.inf, subset: str | None = None)
+DIRT.eval_irt(
+    rs: Tensor,
+    subset: str | None = None,
+    n_layers: int | None = None,
+)
 ```
 
 Evaluates the deep inverse Rosenblatt transport.
@@ -186,23 +186,23 @@ Evaluates the deep inverse Rosenblatt transport.
 
 <code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
-:   An $n \times k$ matrix containing samples distributed  according to the reference density.
-
-<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.inf]{.parameter-default}</code>
-
-:   The number of layers of the deep inverse Rosenblatt  transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.
+:   An $n \times k$ matrix containing samples from the  reference domain.
 
 <code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
 
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The number of layers of the deep inverse Rosenblatt  transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.
+
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
 :   An $n \times k$ matrix containing the corresponding samples  from the approximation domain, after applying the deep  inverse Rosenblatt transport.
 
-<code>[**neglogfms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**neglogfxs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
 :   An $n$-dimensional vector containing the potential function of the pullback of the reference density under the current  composition of mappings, evaluated at each sample in `xs`.
 
@@ -210,10 +210,10 @@ Evaluates the deep inverse Rosenblatt transport.
 
 ```python
 DIRT.eval_cirt(
-    ms: Tensor,
+    ys: Tensor,
     rs: Tensor,
-    n_layers: int = torch.inf,
-    subset: str | None = None,
+    subset: str = 'first',
+    n_layers: int | None = None,
 )
 ```
 
@@ -225,10 +225,10 @@ at a set of samples in the approximation domain.
 The conditional inverse Rosenblatt transport takes the form
 
 $$
-    Y|M = \mathcal{T}(\mathcal{R}_{k}(M), R),
+    X|Y = \mathcal{T}(\mathcal{R}_{k}(Y), R),
 $$
 
-where $M$ is a $k$-dimensional random variable, $R$ is a 
+where $Y$ is a $k$-dimensional random variable, $R$ is a 
 $n-k$-dimensional reference random variable, 
 $\mathcal{R}(\,\cdot\,)$ denotes the (full) Rosenblatt 
 transport, $\mathcal{T}(\,\cdot\,) := \mathcal{R}^{-1}(\,\cdot\,)$, 
@@ -237,21 +237,21 @@ the Rosenblatt transport for the first (or last) $k$ variables.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
-<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**ys**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
 :   An $n \times k$ matrix containing samples from the  approximation domain.
 
 <code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
-:   An $n \times (d-k)$ matrix containing samples distributed  according to the reference density.
+:   An $n \times (d-k)$ matrix containing samples from the  reference domain.
 
-<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.inf]{.parameter-default}</code>
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'first\']{.parameter-default}</code>
+
+:   Whether `ys` corresponds to the first $k$ variables  (`subset='first'`) of the approximation, or the last $k$  variables (`subset='last'`).
+
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   The number of layers of the deep inverse Rosenblatt  transport to push the samples forward under. If not  specified, the samples will be pushed forward through all  the layers.
-
-<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
-
-:   Whether `ms` corresponds to the first $k$ variables  (`subset='first'`) of the approximation, or the last $k$  variables (`subset='last'`).
 
 #### Returns {.doc-section .doc-section-returns}
 
@@ -261,7 +261,48 @@ the Rosenblatt transport for the first (or last) $k$ variables.
 
 <code>[**neglogfys**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
-:   An $n$-dimensional vector containing the potential function  of the approximation to the conditional density of  $Y \textbar M$ evaluated at each sample in `rs`.
+:   An $n$-dimensional vector containing the potential function  of the approximation to the conditional density of  $X \textbar Y$ evaluated at each sample in `rs`.
+
+### eval_irt_pullback { #deep_tensor.DIRT.eval_irt_pullback }
+
+```python
+DIRT.eval_irt_pullback(
+    potential: Callable[[Tensor], Tensor],
+    rs: Tensor,
+    subset: str | None = None,
+    n_layers: int | None = None,
+)
+```
+
+Evaluates the pullback of a density function under the DIRT mapping.
+
+This function evaluates $\mathcal{T}^{\sharp}f(r)$, where 
+$\mathcal{T}(\cdot)$ denotes the inverse Rosenblatt transport and 
+$f(\cdot)$ denotes an arbitrary density function.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**potential**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+
+:   A function that takes an $n \times k$ matrix of samples  from the approximation domain, and returns an  $n$-dimensional vector containing the potential function  associated with $f(\cdot)$ evaluated at each sample.
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing a set of samples from the  reference domain.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
+
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The number of layers of the deep inverse Rosenblatt  transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**neglogTfrs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential of the  pullback function evaluated at each element in `rs`.
 
 ### random { #deep_tensor.DIRT.random }
 
@@ -282,7 +323,7 @@ to the target density.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
 :   An $n \times d$ matrix containing the generated samples.
 
@@ -305,6 +346,6 @@ to the target density.
 
 #### Returns {.doc-section .doc-section-returns}
 
-<code>[**ms**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
 :   An $n \times d$ matrix containing the generated samples.

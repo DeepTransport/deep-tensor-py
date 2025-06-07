@@ -1,7 +1,7 @@
 # LagrangeP { #deep_tensor.LagrangeP }
 
 ```python
-LagrangeP(self, order: int, num_elems: int)
+LagrangeP(order: int, num_elems: int)
 ```
 
 Higher-order piecewise Lagrange polynomials.
