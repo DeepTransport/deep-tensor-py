@@ -27,9 +27,9 @@ class InputData():
 
     def __init__(
         self, 
-        xs_samp: Tensor|None = None, 
-        xs_debug: Tensor|None = None, 
-        fxs_debug: Tensor|None = None
+        xs_samp: Tensor | None = None, 
+        xs_debug: Tensor | None = None, 
+        fxs_debug: Tensor | None = None
     ):
         
         if xs_samp is None:

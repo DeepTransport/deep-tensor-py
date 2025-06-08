@@ -3,10 +3,10 @@
 ```python
 Preconditioner(
     reference: Reference,
-    Q: Callable[[Tensor], Tensor],
-    Q_inv: Callable[[Tensor], Tensor],
-    neglogdet_Q: Callable[[Tensor], Tensor],
-    neglogdet_Q_inv: Callable[[Tensor], Tensor],
+    Q: Callable[[Tensor, str], Tensor],
+    Q_inv: Callable[[Tensor, str], Tensor],
+    neglogdet_Q: Callable[[Tensor, str], Tensor],
+    neglogdet_Q_inv: Callable[[Tensor, str], Tensor],
     dim: int,
 )
 ```
@@ -30,25 +30,27 @@ or upper triangular (or both):
     last $k$ variables, and condition on the final $k$ variables, 
     where $1 \leq k < d$.
 
+TODO: fix the docstring here...
+
 ## Parameters {.doc-section .doc-section-parameters}
 
 <code>[**reference**]{.parameter-name} [:]{.parameter-annotation-sep} [[Reference](`deep_tensor.references.Reference`)]{.parameter-annotation}</code>
 
 :   The density of the reference random variable.
 
-<code>[**Q**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+<code>[**Q**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`), [str](`str`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
 
 :   A function which takes an $n \times k$ matrix containing  samples from the reference domain, and returns an $n \times k$  matrix containing samples from the approximation domain, after  applying the mapping $Q(\cdot)$ to each sample.
 
-<code>[**Q_inv**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+<code>[**Q_inv**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`), [str](`str`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
 
 :   A function which takes an $n \times k$ matrix containing  samples from the approximation domain, and returns an  $n \times k$ matrix containing samples from the reference  domain, after applying the mapping $Q^{-1}(\cdot)$ to each  sample.
 
-<code>[**neglogdet_Q**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+<code>[**neglogdet_Q**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`), [str](`str`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
 
 :   A function which takes an $n \times k$ matrix containing  samples from the reference domain, and returns an  $n$-dimensional vector containing the negative log-determinant  of $Q(\cdot)$ evaluated at each sample.
 
-<code>[**neglogdet_Q_inv**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+<code>[**neglogdet_Q_inv**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`), [str](`str`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
 
 :   A function which takes an $n \times k$ matrix containing  samples from the approximation domain, and returns an  $n$-dimensional vector containing the negative log-determinant  of $Q^{-1}(\cdot)$ evaluated at each sample.
 

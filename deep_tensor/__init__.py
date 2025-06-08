@@ -45,7 +45,6 @@ from .polynomials import (
 from .preconditioners import (
     Preconditioner, 
     DIRTPreconditioner, 
-    EmpiricalCDFMapping,
     IdentityMapping,
     SampleBasedPreconditioner,
     UniformMapping

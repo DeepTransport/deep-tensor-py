@@ -5,4 +5,3 @@ from .identity_mapping import IdentityMapping
 from .sample_based_preconditioner import SampleBasedPreconditioner
 
 from .uniform_mapping import UniformMapping
-from .empirical_cdf_mapping import EmpiricalCDFMapping

@@ -30,17 +30,17 @@ class IdentityMapping(Preconditioner):
         if reference is None:
             reference = GaussianReference()
 
-        def Q(xs: Tensor) -> Tensor:
+        def Q(us: Tensor, subset: str) -> Tensor:
+            return us
+        
+        def Q_inv(xs: Tensor, subset: str) -> Tensor:
             return xs
         
-        def Q_inv(ms: Tensor) -> Tensor:
-            return ms
+        def neglogdet_Q(us: Tensor, subset: str) -> Tensor:
+            return torch.zeros(us.shape[0])
         
-        def neglogdet_Q(xs: Tensor) -> Tensor:
+        def neglogdet_Q_inv(xs: Tensor, subset: str) -> Tensor: 
             return torch.zeros(xs.shape[0])
-        
-        def neglogdet_Q_inv(ms: Tensor) -> Tensor: 
-            return torch.zeros(ms.shape[0])
         
         Preconditioner.__init__(
             self, 

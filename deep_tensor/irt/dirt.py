@@ -7,7 +7,7 @@ import torch
 from torch import Tensor
 from torch.autograd.functional import jacobian
 
-from .sirt import AbstractSIRT, SIRT, SavedSIRT
+from .sirt import AbstractSIRT, SIRT, SavedSIRT, SUBSET2DIRECTION
 from ..bridging_densities import (
     Bridge, Tempering, 
     BRIDGE2NAME, NAME2SAVEBRIDGE
@@ -108,21 +108,18 @@ class AbstractDIRT(abc.ABC):
     def _eval_rt_reference(
         self,
         us: Tensor,
-        subset: str | None = None,
-        n_layers: int | None = None
+        subset: str,
+        n_layers: int
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the deep Rosenblatt transport for the pullback of 
         the target density under the preconditioning map.
         """
         
-        if n_layers is None:
-            n_layers = self.n_layers
-        
         rs = us.clone()
         neglogfus = torch.zeros(rs.shape[0])
 
         for i in range(n_layers):
-            zs = self.sirts[i]._eval_rt(rs)
+            zs = self.sirts[i]._eval_rt(rs, subset)
             neglogsirts = self.sirts[i]._eval_potential(rs, subset)
             rs = self.reference.invert_cdf(zs)
             neglogrefs = self.reference.eval_potential(rs)[0]
@@ -136,7 +133,7 @@ class AbstractDIRT(abc.ABC):
     def _eval_irt_reference(
         self, 
         rs: Tensor, 
-        subset: str | None = None,
+        subset: str = "first",
         n_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
         """Evaluates the deep inverse Rosenblatt transport for the 
@@ -157,86 +154,29 @@ class AbstractDIRT(abc.ABC):
 
         return us, neglogfus
 
-    def eval_potential(
-        self, 
-        xs: Tensor,
-        subset: str | None = None,
-        n_layers: int | None = None
-    ) -> Tensor:
-        r"""Evaluates the potential function.
+    def _parse_subset(self, subset: str | None) -> str:
         
-        Returns the joint potential function, or the marginal potential 
-        function for the first $k$ variables or the last $k$ variables,
-        corresponding to the pullback of the reference measure under a 
-        given number of layers of the DIRT.
+        if subset is None:
+            subset = "first"
         
-        Parameters
-        ----------
-        xs:
-            An $n \times k$ matrix containing a set of samples from the 
-            approximation domain.
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-        n_layers:
-            The number of layers of the current DIRT construction to
-            use when computing the potential. If not specified, all 
-            layers will be used when computing the potential.
+        subset = subset.lower()
 
-        Returns
-        -------
-        neglogfxs:
-            An $n$-dimensional vector containing the potential function
-            of the target density evaluated at each element in `xs`.
-
-        """
-        if n_layers is None:
-            n_layers = self.n_layers
-        neglogfxs = self.eval_rt(xs, subset, n_layers)[1]
-        return neglogfxs
-    
-    def eval_pdf(
-        self, 
-        xs: Tensor,
-        subset: str | None = None,
-        n_layers: int | None = None
-    ) -> Tensor: 
-        r"""Evaluates the density function.
+        if subset == "last" and self.n_layers > 1:
+            msg = ("When using a DIRT object with more than one layer, "
+                   + "it is not possible to sample from the marginal " 
+                   + "densities in the final k variables (where k < d) "
+                   + "or the density of the first (d-k) variables "
+                   + "conditioned on the final k variables. "
+                   + "Please reverse the variable ordering or construct "
+                   + "a DIRT object with a single layer.")
+            raise Exception(msg)
+        if subset not in ("first", "last"):
+            msg = ("Invalid subset parameter encountered "
+                   + f"(subset='{subset}'). Valid choices are "
+                   + "'first', 'last'.")
+            raise ValueError(msg)
         
-        Returns the joint density function, or the marginal density 
-        function for the first $k$ variables or the last $k$ variables,
-        corresponding to the pullback of the reference measure under 
-        a given number of layers of the DIRT.
-        
-        Parameters
-        ----------
-        xs:
-            An $n \times k$ matrix containing a set of samples drawn 
-            from the DIRT approximation to the target density.
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-        n_layers:
-            The number of layers of the current DIRT construction to 
-            use. If not specified, all 
-
-        Returns
-        -------
-        fxs:
-            An $n$-dimensional vector containing the value of the 
-            approximation to the target density evaluated at each 
-            element in `xs`.
-        
-        """
-        if n_layers is None:
-            n_layers = self.n_layers
-        neglogfxs = self.eval_potential(xs, subset, n_layers)
-        fxs = torch.exp(-neglogfxs)
-        return fxs
+        return subset
 
     def eval_rt(
         self,
@@ -275,8 +215,9 @@ class AbstractDIRT(abc.ABC):
         """
         if n_layers is None:
             n_layers = self.n_layers
-        neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs)
-        us = self.preconditioner.Q_inv(xs)
+        subset = self._parse_subset(subset)
+        neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs, subset)
+        us = self.preconditioner.Q_inv(xs, subset)
         rs, neglogfus = self._eval_rt_reference(us, subset, n_layers)
         neglogfxs = neglogfus + neglogdet_xs
         return rs, neglogfxs
@@ -318,9 +259,10 @@ class AbstractDIRT(abc.ABC):
         """
         if n_layers is None:
             n_layers = self.n_layers
+        subset = self._parse_subset(subset)
         us, neglogfus = self._eval_irt_reference(rs, subset, n_layers)
-        xs = self.preconditioner.Q(us)
-        neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs)
+        xs = self.preconditioner.Q(us, subset)
+        neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs, subset)
         neglogfxs = neglogfus + neglogdet_xs
         return xs, neglogfxs
     
@@ -388,21 +330,22 @@ class AbstractDIRT(abc.ABC):
 
         if d_rs == 0 or d_ys == 0:
             msg = "The dimensions of both 'ys' and 'rs' must be at least 1."
-            raise Exception(msg)
+            raise ValueError(msg)
         
         if d_rs + d_ys != self.dim:
             msg = ("The dimensions of 'ys' and 'rs' must sum " 
                    + "to the dimension of the approximation.")
-            raise Exception(msg)
+            raise ValueError(msg)
 
         if n_rs != n_ys: 
             if n_ys != 1:
                 msg = ("The number of samples in 'ys' and 'ms' "
                        + "(i.e., the number of rows) must be equal.")
-                raise Exception(msg)
+                raise ValueError(msg)
             ys = ys.repeat(n_rs, 1)
         
-        direction = SIRT._get_direction(subset)
+        subset = self._parse_subset(subset)
+        direction = SUBSET2DIRECTION[subset]
         if direction == Direction.FORWARD:
             inds_y = torch.arange(d_ys)
             inds_x = torch.arange(d_ys, self.dim)
@@ -487,6 +430,83 @@ class AbstractDIRT(abc.ABC):
         neglogfys = potential(ys)
         neglogTfrs = neglogfys + neglogrefs - neglogfys_cirt
         return neglogTfrs
+
+    def eval_potential(
+        self, 
+        xs: Tensor,
+        subset: str | None = None,
+        n_layers: int | None = None
+    ) -> Tensor:
+        r"""Evaluates the potential function.
+        
+        Returns the joint potential function, or the marginal potential 
+        function for the first $k$ variables or the last $k$ variables,
+        corresponding to the pullback of the reference measure under a 
+        given number of layers of the DIRT.
+        
+        Parameters
+        ----------
+        xs:
+            An $n \times k$ matrix containing a set of samples from the 
+            approximation domain.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+        n_layers:
+            The number of layers of the current DIRT construction to
+            use when computing the potential. If not specified, all 
+            layers will be used when computing the potential.
+
+        Returns
+        -------
+        neglogfxs:
+            An $n$-dimensional vector containing the potential function
+            of the target density evaluated at each element in `xs`.
+
+        """
+        neglogfxs = self.eval_rt(xs, subset, n_layers)[1]
+        return neglogfxs
+    
+    def eval_pdf(
+        self, 
+        xs: Tensor,
+        subset: str | None = None,
+        n_layers: int | None = None
+    ) -> Tensor: 
+        r"""Evaluates the density function.
+        
+        Returns the joint density function, or the marginal density 
+        function for the first $k$ variables or the last $k$ variables,
+        corresponding to the pullback of the reference measure under 
+        a given number of layers of the DIRT.
+        
+        Parameters
+        ----------
+        xs:
+            An $n \times k$ matrix containing a set of samples drawn 
+            from the DIRT approximation to the target density.
+        subset: 
+            If the samples contain a subset of the variables, (*i.e.,* 
+            $k < d$), whether they correspond to the first $k$ 
+            variables (`subset='first'`) or the last $k$ variables 
+            (`subset='last'`).
+        n_layers:
+            The number of layers of the current DIRT construction to 
+            use. If not specified, all 
+
+        Returns
+        -------
+        fxs:
+            An $n$-dimensional vector containing the value of the 
+            approximation to the target density evaluated at each 
+            element in `xs`.
+        
+        """
+        neglogfxs = self.eval_potential(xs, subset, n_layers)
+        fxs = torch.exp(-neglogfxs)
+        return fxs
 
     def eval_rt_jac(
         self, 
@@ -752,12 +772,12 @@ class DIRT(AbstractDIRT):
         prev_approx: Dict[int, SIRT] | None = None
     ):
         
-        def neglogfx_Q(xs: Tensor) -> Tensor:
-            ms = self.preconditioner.Q(xs)
-            neglogdets = self.preconditioner.neglogdet_Q(xs)
-            neglogliks = negloglik(ms)
-            neglogpris = neglogpri(ms)
-            self.num_eval += xs.shape[0]
+        def neglogfx_Q(us: Tensor) -> Tensor:
+            xs = self.preconditioner.Q(us, "first")
+            neglogdets = self.preconditioner.neglogdet_Q(us, "first")
+            neglogliks = negloglik(xs)
+            neglogpris = neglogpri(xs)
+            self.num_eval += us.shape[0]
             return neglogpris + neglogliks + neglogdets
 
         if bridge is None:

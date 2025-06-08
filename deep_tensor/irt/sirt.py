@@ -17,6 +17,11 @@ from ..tools import check_finite
 
 PotentialFunc = Callable[[Tensor], Tensor]
 
+SUBSET2DIRECTION = {
+    "first": Direction.FORWARD,
+    "last": Direction.BACKWARD
+}
+
 
 class AbstractSIRT():
 
@@ -747,26 +752,6 @@ class AbstractSIRT():
             J = self._eval_rt_jac_local_backward(ls)
         return J
     
-    @staticmethod
-    def _get_direction(subset: str | None) -> Direction:
-        """Converts the subset parameter into the direction 
-        corresponding to the marginalisation tensors that should be 
-        used.
-        """
-
-        if subset is None:
-            return Direction.FORWARD
-        
-        subset = subset.lower()
-        if subset == "first":
-            return Direction.FORWARD
-        elif subset == "last":
-            return Direction.BACKWARD
-        
-        msg = ("Unknown value of 'subset' found. Acceptable values "
-               + "are 'first', 'last', or None.")
-        raise Exception(msg)
-
     def _get_transform_indices(self, dim_z: int, direction: Direction) -> Tensor:
         """TODO: write docstring."""
 
@@ -856,7 +841,7 @@ class AbstractSIRT():
         neglogfls = self.z.log() - (gs_sq + self.defensive).log() + neglogwls
         return neglogfls
     
-    def _eval_potential(self, xs: Tensor, subset: str | None = None) -> Tensor:
+    def _eval_potential(self, xs: Tensor, subset: str) -> Tensor:
         r"""Evaluates the potential function.
 
         Returns the joint potential function, or the marginal potential 
@@ -881,7 +866,7 @@ class AbstractSIRT():
             density evaluated at each sample in `xs`.
 
         """
-        direction = self._get_direction(subset)
+        direction = SUBSET2DIRECTION[subset]
         indices = self._get_transform_indices(xs.shape[1], direction)
         ls, dldxs = self.bases.approx2local(xs, indices)
         neglogfls = self._eval_potential_local(ls, direction)
@@ -913,9 +898,9 @@ class AbstractSIRT():
             density evaluated at each sample in `xs`.
 
         """
-        xs = self.preconditioner.Q_inv(ms)
+        xs = self.preconditioner.Q_inv(ms, subset)
         neglogfxs = self._eval_potential(xs, subset)
-        neglogabsdet_ms = self.preconditioner.neglogdet_Q_inv(ms)
+        neglogabsdet_ms = self.preconditioner.neglogdet_Q_inv(ms, subset)
         neglogfms = neglogfxs + neglogabsdet_ms
         return neglogfms
 
@@ -979,7 +964,7 @@ class AbstractSIRT():
         fms = torch.exp(-neglogfms)
         return fms
     
-    def _eval_rt(self, xs: Tensor, subset: str | None = None) -> Tensor:
+    def _eval_rt(self, xs: Tensor, subset: str) -> Tensor:
         r"""Evaluates the Rosenblatt transport.
 
         Returns the joint Rosenblatt transport, or the marginal 
@@ -1005,13 +990,13 @@ class AbstractSIRT():
             Rosenblatt transport.
 
         """
-        direction = self._get_direction(subset)
+        direction = SUBSET2DIRECTION[subset]
         indices = self._get_transform_indices(xs.shape[1], direction)
         ls = self.approx.bases.approx2local(xs, indices)[0]
         zs = self._eval_rt_local(ls, direction)
         return zs
 
-    def eval_rt(self, ms: Tensor, subset: str | None = None) -> Tensor:
+    def eval_rt(self, ms: Tensor, subset: str) -> Tensor:
         r"""Evaluates the Rosenblatt transport.
 
         Returns the joint Rosenblatt transport, or the marginal 
@@ -1037,15 +1022,11 @@ class AbstractSIRT():
             Rosenblatt transport.
 
         """
-        xs = self.preconditioner.Q_inv(ms)
+        xs = self.preconditioner.Q_inv(ms, subset)
         zs = self._eval_rt(xs, subset)
         return zs
     
-    def _eval_irt(
-        self, 
-        zs: Tensor,
-        subset: str | None = None
-    ) -> Tuple[Tensor, Tensor]:
+    def _eval_irt(self, zs: Tensor, subset: str) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the inverse Rosenblatt transport.
         
         Returns the joint inverse Rosenblatt transport, or the marginal 
@@ -1073,18 +1054,14 @@ class AbstractSIRT():
             the potential function evaluated at each sample in `xs`.
         
         """
-        direction = self._get_direction(subset)
+        direction = SUBSET2DIRECTION[subset]
         indices = self._get_transform_indices(zs.shape[1], direction)
         ls, neglogfls = self._eval_irt_local(zs, direction)
         xs, dxdls = self.bases.local2approx(ls, indices)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs
 
-    def eval_irt(
-        self, 
-        zs: Tensor,
-        subset: str | None = None
-    ) -> Tuple[Tensor, Tensor]:
+    def eval_irt(self, zs: Tensor, subset: str) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the inverse Rosenblatt transport.
         
         Returns the joint inverse Rosenblatt transport, or the marginal 
@@ -1115,8 +1092,8 @@ class AbstractSIRT():
         xs, neglogfxs = self._eval_irt(zs, subset)
 
         # Map samples back into actual domain
-        ms = self.preconditioner.Q(xs)
-        neglogabsdet_ms = self.preconditioner.neglogdet_Q_inv(ms)
+        ms = self.preconditioner.Q(xs, subset)
+        neglogabsdet_ms = self.preconditioner.neglogdet_Q_inv(ms, subset)
         neglogfms = neglogfxs + neglogabsdet_ms
 
         return ms, neglogfms
@@ -1125,7 +1102,7 @@ class AbstractSIRT():
         self, 
         xs: Tensor, 
         zs: Tensor, 
-        subset: str | None = None
+        subset: str
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the conditional inverse Rosenblatt transport.
 
@@ -1184,7 +1161,7 @@ class AbstractSIRT():
                 raise Exception(msg)
             xs = xs.repeat(n_zs, 1)
         
-        direction = self._get_direction(subset)
+        direction = SUBSET2DIRECTION[subset]
         if direction == Direction.FORWARD:
             inds_x = torch.arange(d_xs)
             inds_z = torch.arange(d_xs, self.dim)
@@ -1250,7 +1227,7 @@ class AbstractSIRT():
         self, 
         xs: Tensor, 
         method: str = "autodiff",
-        subset: str | None = None
+        subset: str = "first"
     ) -> Tensor:
         r"""Evaluates the Jacobian of the Rosenblatt transport.
 
@@ -1286,7 +1263,7 @@ class AbstractSIRT():
 
         """
 
-        direction = self._get_direction(subset)
+        direction = SUBSET2DIRECTION[subset]
         method = method.lower()
         if method not in ("manual", "autodiff"):
             raise Exception("Unknown method.")
