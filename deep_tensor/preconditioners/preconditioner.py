@@ -34,31 +34,32 @@ class Preconditioner():
     Q:
         A function which takes an $n \times k$ matrix containing 
         samples from the reference domain and a string indicating 
-        whether these are samples of the first (subset='first') or last 
-        (subset='last') k variables, and returns an $n \times k$ 
-        matrix containing samples from the approximation domain, after 
-        applying the mapping $Q(\cdot)$ to each sample.
+        whether these are samples of the first (`subset='first'`) or 
+        last (`subset='last'`) $k$ variables, and returns an 
+        $n \times k$ matrix containing samples from the approximation 
+        domain, after applying the mapping $Q(\cdot)$ to each sample.
     Q_inv: 
         A function which takes an $n \times k$ matrix containing 
         samples from the approximation domain and a string indicating 
-        whether these are samples of the first (subset='first') or last 
-        (subset='last') k variables, and returns an $n \times k$ matrix 
-        containing samples from the reference domain, after applying 
-        the mapping $Q^{-1}(\cdot)$ to each sample.
+        whether these are samples of the first (`subset='first'`) or 
+        last (`subset='last'`) $k$ variables, and returns an 
+        $n \times k$ matrix containing samples from the reference 
+        domain, after applying the mapping $Q^{-1}(\cdot)$ to each 
+        sample.
     neglogdet_Q:
         A function which takes an $n \times k$ matrix containing 
         samples from the reference domain and a string indicating 
-        whether these are samples of the first (subset='first') or last 
-        (subset='last') k variables, and returns an $n$-dimensional 
-        vector containing the negative log-determinant of $Q(\cdot)$ 
-        evaluated at each sample.
+        whether these are samples of the first (`subset='first'`) or 
+        last (`subset='last'`) $k$ variables, and returns an 
+        $n$-dimensional vector containing the negative log-determinant 
+        of $Q(\cdot)$ evaluated at each sample.
     neglogdet_Q_inv:
         A function which takes an $n \times k$ matrix containing 
         samples from the approximation domain and a string indicating 
-        whether these are samples of the first (subset='first') or last 
-        (subset='last') k variables, and returns an $n$-dimensional 
-        vector containing the negative log-determinant of 
-        $Q^{-1}(\cdot)$ evaluated at each sample.
+        whether these are samples of the first (`subset='first'`) or 
+        last (`subset='last'`) $k$ variables, and returns an 
+        $n$-dimensional vector containing the negative log-determinant 
+        of $Q^{-1}(\cdot)$ evaluated at each sample.
     dim: 
         The dimension, $d$, of the target (and reference) random 
         variable.
