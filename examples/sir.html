@@ -453,14 +453,14 @@ window.Quarto = {
 \frac{\mathrm{d}I(t)}{\mathrm{d}t} = \beta S I - \gamma I, \quad
 \frac{\mathrm{d}R(t)}{\mathrm{d}t} = \gamma I,
 \]</span></p>
-<p>where <span class="math inline">\(S(t)\)</span>, <span class="math inline">\(I(t)\)</span> and <span class="math inline">\(R(t)\)</span> denote the number of susceptible, infected and recovered people at time <span class="math inline">\(t\)</span>, and <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\gamma\)</span> are unknown parameters. For the sake of simplicity, we assume that <span class="math inline">\(S(t)\)</span>, <span class="math inline">\(I(t)\)</span> and <span class="math inline">\(R(t)\)</span> can take non-integer values.</p>
-<p>We will assume that the initial conditions for the problem are given by <span class="math inline">\(S(0) = 99\)</span>, <span class="math inline">\(I(0) = 1\)</span>, <span class="math inline">\(R(0) = 0\)</span>, and that we receive four noisy observations of the number of infected people, at times <span class="math inline">\(t \in \{1.25, 2.5, 3.75, 5\}\)</span>. We will assume that each of these observations is corrupted by additive, independent Gaussian noise with a mean of <span class="math inline">\(0\)</span> and a standard deviation of <span class="math inline">\(1\)</span>.</p>
+<p>where <span class="math inline">\(S(t)\)</span>, <span class="math inline">\(I(t)\)</span> and <span class="math inline">\(R(t)\)</span> denote the number of susceptible, infectious and recovered people at time <span class="math inline">\(t\)</span>, and <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\gamma\)</span> are unknown parameters. For the sake of simplicity, we assume that <span class="math inline">\(S(t)\)</span>, <span class="math inline">\(I(t)\)</span> and <span class="math inline">\(R(t)\)</span> can take non-integer values.</p>
+<p>We will assume that the initial conditions for the problem are given by <span class="math inline">\(S(0) = 99\)</span>, <span class="math inline">\(I(0) = 1\)</span>, <span class="math inline">\(R(0) = 0\)</span>, and that we receive four noisy observations of the number of infectious people, at times <span class="math inline">\(t \in \{1.25, 2.5, 3.75, 5\}\)</span>. We will assume that each of these observations is corrupted by additive, independent Gaussian noise with a mean of <span class="math inline">\(0\)</span> and a standard deviation of <span class="math inline">\(1\)</span>.</p>
 <p>Finally, we will choose a uniform prior for <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\gamma\)</span>; that is, <span class="math inline">\((\beta, \gamma) \sim \mathcal{U}([0, 2]^{2})\)</span>.</p>
 </section>
 <section id="implementation-in-mathttdeep_tensor" class="level1">
 <h1>Implementation in <span class="math inline">\(\mathtt{deep\_tensor}\)</span></h1>
 <p>To solve this inference problem using <span class="math inline">\(\mathtt{deep\_tensor}\)</span>, we begin by importing the relevant libraries and defining the SIR model.</p>
-<div id="f27c69ee" class="cell" data-execution_count="1">
+<div id="8c7dd94d" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
@@ -469,7 +469,7 @@ window.Quarto = {
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> SIRModel()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we generate some synthetic observations. We will assume that the true values of the parameters are <span class="math inline">\((\beta, \gamma) = (0.1, 1.0)\)</span>.</p>
-<div id="f6064f40" class="cell" data-execution_count="3">
+<div id="ddb56810" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>xs_true <span class="op">=</span> torch.tensor([[<span class="fl">0.1</span>, <span class="fl">1.0</span>]])</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>ys_true <span class="op">=</span> model.solve_fwd(xs_true)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>noise <span class="op">=</span> torch.randn_like(ys_true)</span>
@@ -494,7 +494,7 @@ Note
 <p>The <code>negloglik</code> and <code>neglogpri</code> functions must be able to handle multiple sets of parameters. Each function should accept as input a two-dimensional <code>torch.Tensor</code>, where each row contains a sample, and return a one-dimensional <code>torch.Tensor</code> object containing the negative log-likelihood, or negative log-prior density, evaluated at each sample.</p>
 </div>
 </div>
-<div id="a3ee26e0" class="cell" data-execution_count="4">
+<div id="27873e30" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> negloglik(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    ys <span class="op">=</span> model.solve_fwd(xs)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">0.5</span> <span class="op">*</span> (ys <span class="op">-</span> ys_obs).square().<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)</span>
@@ -511,7 +511,7 @@ Note
 <p>Next, we specify a product-form reference density. A good choice in most cases is the standard Gaussian density.</p>
 <p>We must also specify a <em>preconditioner</em>. Recall that the DIRT object provides a coupling between a product-form reference density and an approximation to the target density. A preconditioner can be considered an initial guess as to what this coupling is.</p>
 <p>Choosing an suitable preconditioner can reduce the computational expense required to construct the DIRT object significantly. In the context of a Bayesian inverse problem, a suitable choice is a mapping from the reference density to the prior.</p>
-<div id="cc7c6aff" class="cell" data-execution_count="5">
+<div id="16e8ca77" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> torch.tensor([[<span class="fl">0.0</span>, <span class="fl">2.0</span>], [<span class="fl">0.0</span>, <span class="fl">2.0</span>]])</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference()</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.UniformMapping(bounds, reference)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -521,14 +521,14 @@ Note
 <h3 class="anchored" data-anchor-id="approximation-bases">Approximation Bases</h3>
 <p>Next, we specify the polynomial basis which will be used when approximating the marginal PDFs and CDFs required to define the (inverse) Rosenblatt transport. We can specify a list of bases in each dimension, or a single basis (which will be used in all dimensions).</p>
 <p>Here, we use a piecewise linear basis with 20 equisized elements in each dimension.</p>
-<div id="df283152" class="cell" data-execution_count="6">
+<div id="b09f9ef8" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>bases <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="dirt-object" class="level3">
 <h3 class="anchored" data-anchor-id="dirt-object">DIRT Object</h3>
 <p>Now we can construct the DIRT object.</p>
-<div id="80e423c6" class="cell" data-execution_count="7">
+<div id="5a1104ba" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    negloglik, </span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    neglogpri, </span>
@@ -580,7 +580,7 @@ Figure&nbsp;1: A comparison between the true posterior density (left) and the DI
 </div>
 </div>
 <p>We can sample from the approximation to the posterior by drawing a set of samples from the reference density and calling the <code>eval_irt</code> method of the DIRT object. Note that the <code>eval_irt</code> method also returns the potential function of the DIRT approximation to the target density evaluated at each sample.</p>
-<div id="b44cf14c" class="cell" data-execution_count="9">
+<div id="9f81115b" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> dirt.reference.random(d<span class="op">=</span>dirt.dim, n<span class="op">=</span><span class="dv">20</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>samples, potentials <span class="op">=</span> dirt.eval_irt(rs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -620,7 +620,7 @@ Figure&nbsp;2: Samples from the DIRT approximation to the posterior.
 <section id="mcmc-sampling" class="level3">
 <h3 class="anchored" data-anchor-id="mcmc-sampling">MCMC Sampling</h3>
 <p>First, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density.</p>
-<div id="c51bf139" class="cell" data-execution_count="11">
+<div id="e79903e1" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> potential(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> negloglik(xs) <span class="op">+</span> neglogpri(xs)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -631,7 +631,7 @@ Figure&nbsp;2: Samples from the DIRT approximation to the posterior.
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_independence_sampler(samples, potentials_irt, potentials_true)</span>
 <span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Acceptance rate: </span><span class="sc">{</span>res<span class="sc">.</span>acceptance_rate<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Acceptance rate: 0.9100</code></pre>
+<pre><code>Acceptance rate: 0.9020</code></pre>
 </div>
 </div>
 <p><a href="#fig-chain" class="quarto-xref">Figure&nbsp;3</a> shows the first 20 points of the simulated Markov chain.</p>
@@ -667,11 +667,11 @@ Figure&nbsp;3: The first 20 points of the simulated Markov chain, plotted on top
 <section id="importance-sampling" class="level3">
 <h3 class="anchored" data-anchor-id="importance-sampling">Importance Sampling</h3>
 <p>As an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation appropriately.</p>
-<div id="2a4d5193" class="cell" data-execution_count="13">
+<div id="5648ae44" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_importance_sampling(potentials_irt, potentials_true)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"ESS: </span><span class="sc">{</span>res<span class="sc">.</span>ess<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>ESS: 976.20</code></pre>
+<pre><code>ESS: 950.98</code></pre>
 </div>
 </div>
 <p>As expected, the effective sample size (ESS) is almost equal to the number of samples.</p>

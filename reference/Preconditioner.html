@@ -603,10 +603,10 @@ window.Quarto = {
 <h1>Preconditioner</h1>
 <div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>Preconditioner(</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    reference: Reference,</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Q: Callable[[Tensor], Tensor],</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    Q_inv: Callable[[Tensor], Tensor],</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    neglogdet_Q: Callable[[Tensor], Tensor],</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    neglogdet_Q_inv: Callable[[Tensor], Tensor],</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Q: Callable[[Tensor, <span class="bu">str</span>], Tensor],</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    Q_inv: Callable[[Tensor, <span class="bu">str</span>], Tensor],</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    neglogdet_Q: Callable[[Tensor, <span class="bu">str</span>], Tensor],</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    neglogdet_Q_inv: Callable[[Tensor, <span class="bu">str</span>], Tensor],</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    dim: <span class="bu">int</span>,</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>A user-defined preconditioning function. Ideally, the pushforward of the reference density under the preconditioning function will be as similar as possible to the target density; this makes the subsequent construction of the DIRT approximation to the target density more efficient.</p>
@@ -615,6 +615,7 @@ window.Quarto = {
 <li>If the mapping is lower triangular, one can evaluate the marginal densities of the corresponding DIRT object in the first <span class="math inline">\(k\)</span> variables, and condition on the first <span class="math inline">\(k\)</span> variables, where <span class="math inline">\(1 \leq k &lt; d\)</span>.</li>
 <li>If the mapping is upper triangular, one can evaluate the marginal densities of the corresponding DIRT object in the last <span class="math inline">\(k\)</span> variables, and condition on the final <span class="math inline">\(k\)</span> variables, where <span class="math inline">\(1 \leq k &lt; d\)</span>.</li>
 </ul>
+<p>TODO: fix the docstring here…</p>
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
@@ -622,19 +623,19 @@ window.Quarto = {
 <dd>
 <p>The density of the reference random variable.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>Q</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
+<dt><code><span class="parameter-name"><strong>Q</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>, <a href="`str`">str</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
 <dd>
 <p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain, and returns an <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain, after applying the mapping <span class="math inline">\(Q(\cdot)\)</span> to each sample.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>Q_inv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
+<dt><code><span class="parameter-name"><strong>Q_inv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>, <a href="`str`">str</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
 <dd>
 <p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain, and returns an <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain, after applying the mapping <span class="math inline">\(Q^{-1}(\cdot)\)</span> to each sample.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>neglogdet_Q</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
+<dt><code><span class="parameter-name"><strong>neglogdet_Q</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>, <a href="`str`">str</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
 <dd>
 <p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain, and returns an <span class="math inline">\(n\)</span>-dimensional vector containing the negative log-determinant of <span class="math inline">\(Q(\cdot)\)</span> evaluated at each sample.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>neglogdet_Q_inv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
+<dt><code><span class="parameter-name"><strong>neglogdet_Q_inv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>, <a href="`str`">str</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
 <dd>
 <p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain, and returns an <span class="math inline">\(n\)</span>-dimensional vector containing the negative log-determinant of <span class="math inline">\(Q^{-1}(\cdot)\)</span> evaluated at each sample.</p>
 </dd>
