@@ -20,7 +20,7 @@ Options for configuring the construction of a DIRT object.
 
 <code>[**num_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
 
-:   TODO: remove this eventually.
+:   The number of samples generated to be used as part of the  construction of the DIRT.
 
 <code>[**num_debugs**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
 

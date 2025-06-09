@@ -2,8 +2,8 @@
 
 ```python
 TTOptions(
-    max_cross: int = 1,
-    cross_tol: float = 0.0001,
+    max_als: int = 1,
+    als_tol: float = 0.0001,
     init_rank: int = 20,
     kick_rank: int = 2,
     max_rank: int = 30,
@@ -11,7 +11,7 @@ TTOptions(
     cdf_tol: float = 1e-10,
     tt_method: str = 'amen',
     int_method: str = 'maxvol',
-    verbose: bool = True,
+    verbose: int = 1,
 )
 ```
 
@@ -19,13 +19,13 @@ Options for configuring the construction of an FTT object.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**max_cross**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
+<code>[**max_als**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
 
-:   The maximum number of cross iterations to be carried out during  the FTT construction.
+:   The maximum number of ALS iterations to be carried out during  the FTT construction.
 
-<code>[**cross_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0001]{.parameter-default}</code>
+<code>[**als_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0001]{.parameter-default}</code>
 
-:   TODO
+:   The tolerance to use to determine whether the ALS iterations  should be terminated.
 
 <code>[**init_rank**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [20]{.parameter-default}</code>
 
@@ -33,7 +33,7 @@ Options for configuring the construction of an FTT object.
 
 <code>[**kick_rank**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [2]{.parameter-default}</code>
 
-:   The rank of the enrichment set of samples added at each cross  iteration.
+:   The rank of the enrichment set of samples added at each ALS  iteration.
 
 <code>[**max_rank**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [30]{.parameter-default}</code>
 
@@ -55,9 +55,9 @@ Options for configuring the construction of an FTT object.
 
 :   The interpolation method used when constructing the tensor  cores. Can be `'maxvol'` (Goreinov *et al.*, 2010) or `'deim'`  (Chaturantabut and Sorensen, 2010).
 
-<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
 
-:   Whether to print the results of FTT construction to the screen  at each iteration.
+:   If `verbose=0`, no information about the construction of the  FTT will be printed to the screen. If `verbose=1`, diagnostic  information will be prined at the end of each ALS iteration. If `verbose=2`, the tensor core currently being constructed  during each ALS iteration will also be displayed.
 
 ## References {.doc-section .doc-section-references}
 

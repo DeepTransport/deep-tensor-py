@@ -9,7 +9,7 @@ jupyter: python3
 
 Here, we characterise the posterior distribution associated with a susceptible-infectious-recovered (SIR) model. We will consider a similar setup to that described in @Cui2023.
 
-# Introduction
+# Problem Setup
 
 We consider the SIR model given by the system of ODEs
 
@@ -31,9 +31,10 @@ To solve this inference problem using $\mathtt{deep\_tensor}$, we begin by impor
 
 ```{python}
 
-import deep_tensor as dt
 from matplotlib import pyplot as plt
 import torch
+
+import deep_tensor as dt
 
 from models import SIRModel
 model = SIRModel()
@@ -44,6 +45,7 @@ model = SIRModel()
 #| echo: false
 #| output: false
 
+from plotting import add_arrows
 plt.style.use("plotstyle.mplstyle")
 torch.manual_seed(1)
 
@@ -88,7 +90,7 @@ def neglogpri(xs: torch.Tensor) -> torch.Tensor:
 
 ### Reference Density and Preconditioner
 
-Next, we specify a product-form reference density. A good choice in most cases is the standard Gaussian density.
+Next, we specify a product-form reference density. A suitable choice in most cases is the standard Gaussian density.
 
 We must also specify a *preconditioner*. Recall that the DIRT object provides a coupling between a product-form reference density and an approximation to the target density. A preconditioner can be considered an initial guess as to what this coupling is.
 
@@ -106,11 +108,11 @@ preconditioner = dt.UniformMapping(bounds, reference)
 
 Next, we specify the polynomial basis which will be used when approximating the marginal PDFs and CDFs required to define the (inverse) Rosenblatt transport. We can specify a list of bases in each dimension, or a single basis (which will be used in all dimensions).
 
-Here, we use a piecewise linear basis with 20 equisized elements in each dimension.
+Here, we use a basis comprised of Legendre polynomials with a maximum degree of 30 in each dimension.
 
 ```{python}
 
-bases = dt.Lagrange1(num_elems=20)
+bases = dt.Legendre(order=30)
 
 ```
 
@@ -120,18 +122,34 @@ Now we can construct the DIRT object.
 
 ```{python}
 
-dirt = dt.DIRT(
-    negloglik, 
-    neglogpri, 
-    preconditioner, 
-    bases,
-    tt_options=dt.TTOptions(verbose=False),
-    dirt_options=dt.DIRTOptions(verbose=False)
-)
+dirt = dt.DIRT(negloglik, neglogpri, preconditioner, bases)
 
 ```
 
-@fig-post shows a plot of the DIRT approximation to the posterior, as well as the true posterior for comparison. The posterior is very concentrated in comparison to the prior (particularly for parameter $\beta$).
+Observe that a set of diagnostic information is printed at each stage of DIRT construction.
+
+## Sampling, Marginalisation and Conditioning
+
+We now illustrate how to use the DIRT approximation to carry out a range of tasks.
+
+### Sampling
+
+First, it is possible to evaluate the DIRT approximation to the target density pointwise. The below code evaluates the potential function associated with the DIRT approximation to the target density, on a grid of $\beta$ and $\gamma$ values.
+
+```{python}
+
+# Define grid to evaluate potential function on
+n_grid = 200
+beta_grid = torch.linspace(0.05, 0.14, n_grid)
+gamma_grid = torch.linspace(0.80, 1.40, n_grid)
+grid = torch.tensor([[b, g] for g in gamma_grid for b in beta_grid])
+
+# Evaluate potential function
+potentials_grid = dirt.eval_potential(grid)
+
+```
+
+@fig-post shows a plot of the DIRT density evaluated on the above grid and compares it to the true posterior. The posterior is very concentrated in comparison to the prior (particularly for parameter $\beta$).
 
 ```{python}
 #| code-fold: true
@@ -139,24 +157,24 @@ dirt = dt.DIRT(
 #| fig-cap: A comparison between the true posterior density (left) and the DIRT approximation (right).
 #| label: fig-post
 
-n_grid = 300
-b_grid = torch.linspace(0.05, 0.14, n_grid)
-g_grid = torch.linspace(0.80, 1.40, n_grid)
-grid = torch.tensor([[b, g] for g in g_grid for b in b_grid])
-
 fig, axes = plt.subplots(1, 2, figsize=(7, 3.5), sharex=True, sharey=True)
 
+# Compute true density
 pdf_true = torch.exp(-(negloglik(grid) + neglogpri(grid)))
 pdf_true = pdf_true.reshape(n_grid, n_grid)
 
-pdf_dirt = dirt.eval_pdf(grid)
+# Normalise true density
+db = beta_grid[1] - beta_grid[0]
+dg = gamma_grid[1] - gamma_grid[0]
+pdf_true /= (pdf_true.sum() * db * dg)
+
+# Compute DIRT approximation
+pdf_dirt = torch.exp(-potentials_grid)
 pdf_dirt = pdf_dirt.reshape(n_grid, n_grid)
 
-axes[0].pcolormesh(b_grid, g_grid, pdf_true)
-axes[1].pcolormesh(b_grid, g_grid, pdf_dirt)
-
+axes[0].pcolormesh(beta_grid, gamma_grid, pdf_true)
+axes[1].pcolormesh(beta_grid, gamma_grid, pdf_dirt)
 axes[0].set_ylabel(r"$\gamma$")
-
 for ax in axes:
     ax.set_xlabel(r"$\beta$")
     ax.set_box_aspect(1)
@@ -165,7 +183,7 @@ plt.show()
 
 ```
 
-We can sample from the approximation to the posterior by drawing a set of samples from the reference density and calling the `eval_irt` method of the DIRT object. Note that the `eval_irt` method also returns the potential function of the DIRT approximation to the target density evaluated at each sample.
+We can sample from the DIRT density by drawing a set of samples from the reference density and calling the `eval_irt` method of the DIRT object. Note that the `eval_irt` method also returns the potential function of the DIRT density evaluated at each sample.
 
 ```{python}
 
@@ -184,9 +202,8 @@ samples, potentials = dirt.eval_irt(rs)
 
 fig, ax = plt.subplots(figsize=(7, 3.5), sharex=True, sharey=True)
 
-ax.pcolormesh(b_grid, g_grid, pdf_dirt)
+ax.pcolormesh(beta_grid, gamma_grid, pdf_dirt)
 ax.scatter(*samples.T, c="white", s=4)
-
 ax.set_xlabel(r"$\beta$")
 ax.set_ylabel(r"$\gamma$")
 ax.set_box_aspect(1)
@@ -195,59 +212,100 @@ plt.show()
 
 ```
 
-## Debiasing
+### Marginalisation
 
-While the DIRT approximation to the posterior density is quite accurate, we may still wish to correct for bias in the approximation results. We can do this by using the DIRT density as part of a Markov chain Monte Carlo (MCMC) sampler, or as a proposal density for importance sampling.
+We can also sample from and evaluate specific marginal densities. In the case of a multi-layered DIRT, we can evaluate the (normalised) DIRT approximation to the marginal density of the first $k$ variables, where $1 \leq k \leq d$ (where $d$ denotes the dimension of the target random variable).
 
-### MCMC Sampling
-
-First, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density. 
+The below code generates a set of samples from the marginal density of parameter $\beta$, and evaluates the marginal density on a grid of $\beta$ values.
 
 ```{python}
 
-def potential(xs: torch.Tensor) -> torch.Tensor:
-    return negloglik(xs) + neglogpri(xs)
+# Generate marginal samples of parameter beta
+rs_beta = dirt.reference.random(d=1, n=1000)
+samples_beta, potentials_beta = dirt.eval_irt(rs_beta, subset="first")
 
-rs = dirt.reference.random(d=dirt.dim, n=1000)
-samples, potentials_irt = dirt.eval_irt(rs)
-potentials_true = potential(samples)
-
-res = dt.run_independence_sampler(samples, potentials_irt, potentials_true)
-print(f"Acceptance rate: {res.acceptance_rate:.4f}")
+# Evaluate marginal potential on the grid of beta values defined previously
+potentials_grid = dirt.eval_potential(beta_grid[:, None], subset="first")
 
 ```
 
-@fig-chain shows the first 20 points of the simulated Markov chain.
+@fig-marginal plots the samples of $\beta$, and provides a comparison between the DIRT approximation to the density and the true density.
 
 ```{python}
 #| code-fold: true
 #| fig-align: center
-#| fig-cap: The first 20 points of the simulated Markov chain, plotted on top of the true posterior density.
-#| label: fig-chain
+#| fig-cap: A comparison between the true marginal density of $\beta$ and the DIRT approximation.
+#| label: fig-marginal
 
-fig, ax = plt.subplots(figsize=(7, 3.5), sharex=True, sharey=True)
+pdf_true_marg = pdf_true.sum(dim=0) * dg
+pdf_dirt_marg = torch.exp(-potentials_grid)
 
-ax.pcolormesh(b_grid, g_grid, pdf_true)
-ax.scatter(*res.xs[:20].T, c="white", s=4)
-ax.plot(*res.xs[:20].T, c="white", lw=0.4)
+fig, ax = plt.subplots(figsize=(6.5, 3.5))
 
+ax.plot(beta_grid, pdf_true_marg, c="k", label=r"True density", zorder=2)
+ax.plot(beta_grid, pdf_dirt_marg, c="tab:green", ls="--", label=r"DIRT density", zorder=3)
+ax.hist(samples_beta, color="tab:green", density=True, alpha=0.5, zorder=1, label="Samples")
 ax.set_xlabel(r"$\beta$")
-ax.set_ylabel(r"$\gamma$")
+ax.set_ylabel(r"$f(\beta)$")
 ax.set_box_aspect(1)
+ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+add_arrows(ax)
 
 plt.show()
 
 ```
 
-### Importance Sampling
+### Conditioning
 
-As an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation appropriately.
+Finally, we can sample from and evaluate specific conditional densities. In the case of a multi-layered DIRT, we can evaluate the (normalised) DIRT approximation to the conditional density of the final $(d-k)$ variables conditioned on the first $k$ variables, where $1 \leq k < d$ (where $d$ denotes the dimension of the target random variable).
+
+The below code generates a set of samples from the density of $\gamma$ conditioned on a value of $\beta=0.1$, and evaluates the conditional density on a grid of $\gamma$ values.
 
 ```{python}
 
-res = dt.run_importance_sampling(potentials_irt, potentials_true)
-print(f"ESS: {res.ess:.2f}")
+# Define beta value to condition on
+beta_cond = torch.tensor([[0.10]])
+
+# Generate conditional samples of gamma
+rs_cond = dirt.reference.random(d=1, n=1000)
+samples_gamma, potentials_gamma = dirt.eval_cirt(beta_cond, rs_cond, subset="first")
+
+# Evaluate conditional potential on a grid of gamma values
+gamma_grid = torch.linspace(0.9, 1.1, 200)[:, None]
+potentials_grid = dirt.eval_potential_cond(beta_cond, gamma_grid, subset="first")
 
 ```
 
-As expected, the effective sample size (ESS) is almost equal to the number of samples.
+@fig-conditional plots the conditional samples of $\gamma$, and provides a comparison between the DIRT approximation to the conditional density and the true density.
+
+```{python}
+#| code-fold: true
+#| fig-align: center
+#| fig-cap: A comparison between the true conditional density of $\gamma | \beta = 0.1$ and the DIRT approximation.
+#| label: fig-conditional
+
+beta_cond = beta_cond.repeat(gamma_grid.shape[0], 1)
+grid_cond = torch.hstack((beta_cond, gamma_grid))
+dg = gamma_grid[1] - gamma_grid[0]
+
+# Evaluate true conditional density
+pdf_true_cond = torch.exp(-(negloglik(grid_cond) + neglogpri(grid_cond))).flatten()
+pdf_dirt_cond = torch.exp(-potentials_grid)
+
+# Normalise true conditional density
+pdf_true_cond /= (pdf_true_cond.sum() * dg)
+
+fig, ax = plt.subplots(figsize=(6.5, 3.5))
+
+ax.plot(gamma_grid, pdf_true_cond, c="k", label=r"True density", zorder=3)
+ax.plot(gamma_grid, pdf_dirt_cond, c="tab:purple", ls="--", label=r"DIRT density", zorder=3)
+ax.hist(samples_gamma, color="tab:purple", density=True, alpha=0.5, zorder=1, label="Samples")
+ax.set_xlabel(r"$\gamma$")
+ax.set_ylabel(r"$f(\gamma|\beta=0.1)$")
+ax.set_box_aspect(1)
+ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+add_arrows(ax)
+
+plt.show()
+
+```

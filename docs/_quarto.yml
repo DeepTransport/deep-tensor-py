@@ -72,7 +72,7 @@ quartodoc:
       package: deep_tensor
       contents:
         - name: DIRT
-          members: [eval_potential, eval_pdf, eval_rt, eval_irt, eval_cirt, eval_irt_pullback, random, sobol]
+          members: [eval_potential, eval_potential_cond, eval_rt, eval_irt, eval_cirt, eval_irt_pullback, random, sobol]
 
     - title: Preconditioners
       desc: Initial guesses for the mapping between the reference random variable and the target random variable.
