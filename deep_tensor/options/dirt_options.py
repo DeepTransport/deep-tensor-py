@@ -16,7 +16,8 @@ class DIRTOptions():
         The method used for the ratio function at each iteration. Can 
         be `'aratio'` (approximate ratio) or `'eratio'` (exact ratio).
     num_samples:
-        TODO: remove this eventually.
+        The number of samples generated to be used as part of the 
+        construction of the DIRT.
     num_debugs:
         The number of samples used to evaluate the quality of each SIRT 
         constructed during the construction of the DIRT.

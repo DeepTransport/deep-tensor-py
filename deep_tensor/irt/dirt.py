@@ -294,8 +294,10 @@ class AbstractDIRT(abc.ABC):
         Parameters
         ----------
         ys:
-            An $n \times k$ matrix containing samples from the 
-            approximation domain.
+            A $1 \times k$ (if the same realisation of $Y$ is to be 
+            used for all samples in `rs`) or $n \times k$ matrix (if a 
+            different realisation of $Y$ is to be used for all samples 
+            in `rs`) containing samples from the approximation domain.
         rs:
             An $n \times (d-k)$ matrix containing samples from the 
             reference domain.
@@ -311,11 +313,11 @@ class AbstractDIRT(abc.ABC):
         
         Returns
         -------
-        ys:
+        xs:
             An $n \times (d-k)$ matrix containing the realisations of 
-            $Y$ corresponding to the values of `rs` after applying the 
+            $X$ corresponding to the values of `rs` after applying the 
             conditional inverse Rosenblatt transport.
-        neglogfys:
+        neglogfxs:
             An $n$-dimensional vector containing the potential function 
             of the approximation to the conditional density of 
             $X \textbar Y$ evaluated at each sample in `rs`.
@@ -339,7 +341,7 @@ class AbstractDIRT(abc.ABC):
 
         if n_rs != n_ys: 
             if n_ys != 1:
-                msg = ("The number of samples in 'ys' and 'ms' "
+                msg = ("The number of samples in 'ys' and 'rs' "
                        + "(i.e., the number of rows) must be equal.")
                 raise ValueError(msg)
             ys = ys.repeat(n_rs, 1)
@@ -507,6 +509,82 @@ class AbstractDIRT(abc.ABC):
         neglogfxs = self.eval_potential(xs, subset, n_layers)
         fxs = torch.exp(-neglogfxs)
         return fxs
+
+    def eval_potential_cond(
+        self, 
+        ys: Tensor, 
+        xs: Tensor, 
+        subset: str = "first",
+        n_layers: int | None = None
+    ) -> Tensor:
+        r"""Evaluates the conditional potential function.
+
+        Returns the conditional potential function evaluated
+        at a set of samples in the approximation domain. 
+        
+        Parameters
+        ----------
+        ys:
+            An $n \times k$ matrix containing samples from the 
+            approximation domain.
+        xs:
+            An $n \times (d-k)$ matrix containing samples from the 
+            approximation domain.
+        subset: 
+            Whether `ys` corresponds to the first $k$ variables 
+            (`subset='first'`) of the approximation, or the last $k$ 
+            variables (`subset='last'`).
+        n_layers:
+            The number of layers of the deep inverse Rosenblatt 
+            transport to push the samples forward under. If not 
+            specified, the samples will be pushed forward through all 
+            the layers.
+        
+        Returns
+        -------
+        neglogfxs:
+            An $n$-dimensional vector containing the potential function 
+            of the approximation to the conditional density of 
+            $X \textbar Y$ evaluated at each sample in `xs`.
+    
+        """
+        
+        ys = torch.atleast_2d(ys)
+        xs = torch.atleast_2d(xs)
+
+        n_xs, d_xs = xs.shape
+        n_ys, d_ys = ys.shape
+
+        if d_xs == 0 or d_ys == 0:
+            msg = "The dimensions of both 'ys' and 'xs' must be at least 1."
+            raise ValueError(msg)
+        
+        if d_xs + d_ys != self.dim:
+            msg = ("The dimensions of 'ys' and 'xs' must sum " 
+                   + "to the dimension of the approximation.")
+            raise ValueError(msg)
+
+        if n_xs != n_ys: 
+            if n_ys != 1:
+                msg = ("The number of samples in 'ys' and 'xs' "
+                       + "(i.e., the number of rows) must be equal.")
+                raise ValueError(msg)
+            ys = ys.repeat(n_xs, 1)
+        
+        subset = self._parse_subset(subset)
+
+        direction = SUBSET2DIRECTION[subset]
+        if direction == Direction.FORWARD:
+            yxs = torch.hstack((ys, xs))
+        elif direction == Direction.BACKWARD:
+            yxs = torch.hstack((xs, ys))
+        
+        # Evaluate marginal RT
+        neglogfys = self.eval_potential(ys, subset, n_layers)
+        neglogfyxs = self.eval_potential(yxs, subset, n_layers)
+
+        neglogfxs = neglogfyxs - neglogfys
+        return neglogfxs
 
     def eval_rt_jac(
         self, 

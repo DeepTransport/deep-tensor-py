@@ -13,15 +13,16 @@ class TTOptions():
     
     Parameters
     ----------
-    max_cross:
-        The maximum number of cross iterations to be carried out during 
+    max_als:
+        The maximum number of ALS iterations to be carried out during 
         the FTT construction.
-    cross_tol:
-        TODO
+    als_tol:
+        The tolerance to use to determine whether the ALS iterations 
+        should be terminated.
     init_rank:
         The initial rank of each tensor core.
     kick_rank:
-        The rank of the enrichment set of samples added at each cross 
+        The rank of the enrichment set of samples added at each ALS 
         iteration.
     max_rank:
         The maximum allowable rank of each tensor core.
@@ -39,8 +40,11 @@ class TTOptions():
         cores. Can be `'maxvol'` (Goreinov *et al.*, 2010) or `'deim'` 
         (Chaturantabut and Sorensen, 2010).
     verbose:
-        Whether to print the results of FTT construction to the screen 
-        at each iteration.
+        If `verbose=0`, no information about the construction of the 
+        FTT will be printed to the screen. If `verbose=1`, diagnostic 
+        information will be prined at the end of each ALS iteration.
+        If `verbose=2`, the tensor core currently being constructed 
+        during each ALS iteration will also be displayed.
 
     References
     ----------
@@ -54,8 +58,8 @@ class TTOptions():
     
     """
         
-    max_cross: int = 1
-    cross_tol: float = 1e-04
+    max_als: int = 1
+    als_tol: float = 1e-04
     init_rank: int = 20
     kick_rank: int = 2
     max_rank: int = 30
@@ -63,7 +67,7 @@ class TTOptions():
     cdf_tol: float = 1e-10
     tt_method: str = "amen"
     int_method: str = "maxvol"
-    verbose: bool = True
+    verbose: int = 1
     
     def __post_init__(self):
         if self.kick_rank == 0:

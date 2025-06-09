@@ -78,7 +78,7 @@ class AbstractTTFunc(object):
         construct a FTT approximation to the target function.
         """
         n = self.dim * (self.options.init_rank 
-                        + self.options.kick_rank * (self.options.max_cross + 1))
+                        + self.options.kick_rank * (self.options.max_als + 1))
         return n
 
     @staticmethod
@@ -1103,9 +1103,9 @@ class TTFunc(AbstractTTFunc):
         been reached or the desired error tolerance is met, and False 
         otherwise.
         """
-        max_iters = cross_iter == self.options.max_cross
-        max_error_tol = torch.max(self.errors[indices]) < self.options.cross_tol
-        l2_error_tol = self.l2_err < self.options.cross_tol
+        max_iters = cross_iter == self.options.max_als
+        max_error_tol = torch.max(self.errors[indices]) < self.options.als_tol
+        l2_error_tol = self.l2_err < self.options.als_tol
         return max_iters or max_error_tol or l2_error_tol
 
     def _compute_cross_block_fixed(self, k: Tensor) -> None:
@@ -1166,7 +1166,7 @@ class TTFunc(AbstractTTFunc):
 
         cross_iter = 0
 
-        if self.options.verbose:
+        if self.options.verbose > 0:
             self._print_info_header()
 
         if self.tt_data.cores == {}:
@@ -1187,7 +1187,7 @@ class TTFunc(AbstractTTFunc):
                 indices = torch.arange(self.dim-1, 0, -1)
             
             for i, k in enumerate(indices):
-                if self.options.verbose:
+                if self.options.verbose > 1:
                     msg = f"Building block {i+1} / {self.dim}..."
                     als_info(msg, end="\r")
                 if self.options.tt_method == "fixed_rank":
@@ -1201,17 +1201,17 @@ class TTFunc(AbstractTTFunc):
             finished = self._is_finished(cross_iter, indices)
             
             if finished:
-                if self.options.verbose:
+                if self.options.verbose > 1:
                     msg = f"Building block {self.dim} / {self.dim}..."
                     als_info(msg, end="\r")
                 self._compute_final_block()
             
             self._compute_relative_error()
-            if self.options.verbose:
+            if self.options.verbose > 0:
                 self._print_info(cross_iter, indices)
 
             if finished:
-                if self.options.verbose:
+                if self.options.verbose > 0:
                     ranks = "-".join([str(int(r)) for r in self.rank])
                     msg = (f"ALS complete. Final TT ranks: {ranks}.")
                     als_info(msg)
