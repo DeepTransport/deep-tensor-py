@@ -664,8 +664,8 @@ window.Quarto = {
 <td>Evaluates the potential function.</td>
 </tr>
 <tr class="even">
-<td><a href="#deep_tensor.DIRT.eval_pdf">eval_pdf</a></td>
-<td>Evaluates the density function.</td>
+<td><a href="#deep_tensor.DIRT.eval_potential_cond">eval_potential_cond</a></td>
+<td>Evaluates the conditional potential function.</td>
 </tr>
 <tr class="odd">
 <td><a href="#deep_tensor.DIRT.eval_rt">eval_rt</a></td>
@@ -729,38 +729,43 @@ window.Quarto = {
 </dl>
 </section>
 </section>
-<section id="deep_tensor.DIRT.eval_pdf" class="level3">
-<h3 class="anchored" data-anchor-id="deep_tensor.DIRT.eval_pdf">eval_pdf</h3>
-<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>DIRT.eval_pdf(</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    xs: Tensor,</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    n_layers: <span class="bu">int</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Evaluates the density function.</p>
-<p>Returns the joint density function, or the marginal density function for the first <span class="math inline">\(k\)</span> variables or the last <span class="math inline">\(k\)</span> variables, corresponding to the pullback of the reference measure under a given number of layers of the DIRT.</p>
+<section id="deep_tensor.DIRT.eval_potential_cond" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.DIRT.eval_potential_cond">eval_potential_cond</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>DIRT.eval_potential_cond(</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    ys: Tensor,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    xs: Tensor,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">=</span> <span class="st">'first'</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    n_layers: <span class="bu">int</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Evaluates the conditional potential function.</p>
+<p>Returns the conditional potential function evaluated at a set of samples in the approximation domain.</p>
 <section id="parameters-2" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-2">Parameters</h4>
 <dl>
+<dt><code><span class="parameter-name"><strong>ys</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain.</p>
+</dd>
 <dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n \times k\)</span> matrix containing a set of samples drawn from the DIRT approximation to the target density.</p>
+<p>An <span class="math inline">\(n \times (d-k)\)</span> matrix containing samples from the approximation domain.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'first'</span></code></dt>
 <dd>
-<p>If the samples contain a subset of the variables, (<em>i.e.,</em> <span class="math inline">\(k &lt; d\)</span>), whether they correspond to the first <span class="math inline">\(k\)</span> variables (<code>subset='first'</code>) or the last <span class="math inline">\(k\)</span> variables (<code>subset='last'</code>).</p>
+<p>Whether <code>ys</code> corresponds to the first <span class="math inline">\(k\)</span> variables (<code>subset='first'</code>) of the approximation, or the last <span class="math inline">\(k\)</span> variables (<code>subset='last'</code>).</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
-<p>The number of layers of the current DIRT construction to use. If not specified, all</p>
+<p>The number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.</p>
 </dd>
 </dl>
 </section>
 <section id="returns-1" class="level4 doc-section doc-section-returns">
 <h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-1">Returns</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>fxs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>neglogfxs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the value of the approximation to the target density evaluated at each element in <code>xs</code>.</p>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function of the approximation to the conditional density of <span class="math inline">\(X \textbar Y\)</span> evaluated at each sample in <code>xs</code>.</p>
 </dd>
 </dl>
 </section>
@@ -859,7 +864,7 @@ window.Quarto = {
 <dl>
 <dt><code><span class="parameter-name"><strong>ys</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain.</p>
+<p>A <span class="math inline">\(1 \times k\)</span> (if the same realisation of <span class="math inline">\(Y\)</span> is to be used for all samples in <code>rs</code>) or <span class="math inline">\(n \times k\)</span> matrix (if a different realisation of <span class="math inline">\(Y\)</span> is to be used for all samples in <code>rs</code>) containing samples from the approximation domain.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>rs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
@@ -878,11 +883,11 @@ window.Quarto = {
 <section id="returns-4" class="level4 doc-section doc-section-returns">
 <h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-4">Returns</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>ys</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n \times (d-k)\)</span> matrix containing the realisations of <span class="math inline">\(Y\)</span> corresponding to the values of <code>rs</code> after applying the conditional inverse Rosenblatt transport.</p>
+<p>An <span class="math inline">\(n \times (d-k)\)</span> matrix containing the realisations of <span class="math inline">\(X\)</span> corresponding to the values of <code>rs</code> after applying the conditional inverse Rosenblatt transport.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>neglogfys</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>neglogfxs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
 <p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function of the approximation to the conditional density of <span class="math inline">\(X \textbar Y\)</span> evaluated at each sample in <code>rs</code>.</p>
 </dd>

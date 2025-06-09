@@ -402,7 +402,7 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#problem-setup" id="toc-problem-setup" class="nav-link active" data-scroll-target="#problem-setup">Problem Setup</a></li>
   <li><a href="#implementation-in-mathttdeep_tensor" id="toc-implementation-in-mathttdeep_tensor" class="nav-link" data-scroll-target="#implementation-in-mathttdeep_tensor">Implementation in <span class="math inline">\(\mathtt{deep\_tensor}\)</span></a>
   <ul class="collapse">
   <li><a href="#dirt-construction" id="toc-dirt-construction" class="nav-link" data-scroll-target="#dirt-construction">DIRT Construction</a>
@@ -412,10 +412,11 @@ window.Quarto = {
   <li><a href="#approximation-bases" id="toc-approximation-bases" class="nav-link" data-scroll-target="#approximation-bases">Approximation Bases</a></li>
   <li><a href="#dirt-object" id="toc-dirt-object" class="nav-link" data-scroll-target="#dirt-object">DIRT Object</a></li>
   </ul></li>
-  <li><a href="#debiasing" id="toc-debiasing" class="nav-link" data-scroll-target="#debiasing">Debiasing</a>
+  <li><a href="#sampling-marginalisation-and-conditioning" id="toc-sampling-marginalisation-and-conditioning" class="nav-link" data-scroll-target="#sampling-marginalisation-and-conditioning">Sampling, Marginalisation and Conditioning</a>
   <ul class="collapse">
-  <li><a href="#mcmc-sampling" id="toc-mcmc-sampling" class="nav-link" data-scroll-target="#mcmc-sampling">MCMC Sampling</a></li>
-  <li><a href="#importance-sampling" id="toc-importance-sampling" class="nav-link" data-scroll-target="#importance-sampling">Importance Sampling</a></li>
+  <li><a href="#sampling" id="toc-sampling" class="nav-link" data-scroll-target="#sampling">Sampling</a></li>
+  <li><a href="#marginalisation" id="toc-marginalisation" class="nav-link" data-scroll-target="#marginalisation">Marginalisation</a></li>
+  <li><a href="#conditioning" id="toc-conditioning" class="nav-link" data-scroll-target="#conditioning">Conditioning</a></li>
   </ul></li>
   </ul></li>
   </ul>
@@ -445,8 +446,8 @@ window.Quarto = {
 
 
 <p>Here, we characterise the posterior distribution associated with a susceptible-infectious-recovered (SIR) model. We will consider a similar setup to that described in <span class="citation" data-cites="Cui2023">Cui, Dolgov, and Zahm (<a href="#ref-Cui2023" role="doc-biblioref">2023</a>)</span>.</p>
-<section id="introduction" class="level1">
-<h1>Introduction</h1>
+<section id="problem-setup" class="level1">
+<h1>Problem Setup</h1>
 <p>We consider the SIR model given by the system of ODEs</p>
 <p><span class="math display">\[
 \frac{\mathrm{d}S(t)}{\mathrm{d}t} = -\beta S I, \quad
@@ -460,16 +461,17 @@ window.Quarto = {
 <section id="implementation-in-mathttdeep_tensor" class="level1">
 <h1>Implementation in <span class="math inline">\(\mathtt{deep\_tensor}\)</span></h1>
 <p>To solve this inference problem using <span class="math inline">\(\mathtt{deep\_tensor}\)</span>, we begin by importing the relevant libraries and defining the SIR model.</p>
-<div id="8c7dd94d" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> models <span class="im">import</span> SIRModel</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> SIRModel()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="5313ec97" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> models <span class="im">import</span> SIRModel</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> SIRModel()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we generate some synthetic observations. We will assume that the true values of the parameters are <span class="math inline">\((\beta, \gamma) = (0.1, 1.0)\)</span>.</p>
-<div id="ddb56810" class="cell" data-execution_count="3">
+<div id="59789c61" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>xs_true <span class="op">=</span> torch.tensor([[<span class="fl">0.1</span>, <span class="fl">1.0</span>]])</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>ys_true <span class="op">=</span> model.solve_fwd(xs_true)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>noise <span class="op">=</span> torch.randn_like(ys_true)</span>
@@ -494,7 +496,7 @@ Note
 <p>The <code>negloglik</code> and <code>neglogpri</code> functions must be able to handle multiple sets of parameters. Each function should accept as input a two-dimensional <code>torch.Tensor</code>, where each row contains a sample, and return a one-dimensional <code>torch.Tensor</code> object containing the negative log-likelihood, or negative log-prior density, evaluated at each sample.</p>
 </div>
 </div>
-<div id="27873e30" class="cell" data-execution_count="4">
+<div id="1a73747c" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> negloglik(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    ys <span class="op">=</span> model.solve_fwd(xs)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">0.5</span> <span class="op">*</span> (ys <span class="op">-</span> ys_obs).square().<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)</span>
@@ -508,10 +510,10 @@ Note
 </section>
 <section id="reference-density-and-preconditioner" class="level3">
 <h3 class="anchored" data-anchor-id="reference-density-and-preconditioner">Reference Density and Preconditioner</h3>
-<p>Next, we specify a product-form reference density. A good choice in most cases is the standard Gaussian density.</p>
+<p>Next, we specify a product-form reference density. A suitable choice in most cases is the standard Gaussian density.</p>
 <p>We must also specify a <em>preconditioner</em>. Recall that the DIRT object provides a coupling between a product-form reference density and an approximation to the target density. A preconditioner can be considered an initial guess as to what this coupling is.</p>
 <p>Choosing an suitable preconditioner can reduce the computational expense required to construct the DIRT object significantly. In the context of a Bayesian inverse problem, a suitable choice is a mapping from the reference density to the prior.</p>
-<div id="16e8ca77" class="cell" data-execution_count="5">
+<div id="85e53ef7" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> torch.tensor([[<span class="fl">0.0</span>, <span class="fl">2.0</span>], [<span class="fl">0.0</span>, <span class="fl">2.0</span>]])</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference()</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.UniformMapping(bounds, reference)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -520,51 +522,98 @@ Note
 <section id="approximation-bases" class="level3">
 <h3 class="anchored" data-anchor-id="approximation-bases">Approximation Bases</h3>
 <p>Next, we specify the polynomial basis which will be used when approximating the marginal PDFs and CDFs required to define the (inverse) Rosenblatt transport. We can specify a list of bases in each dimension, or a single basis (which will be used in all dimensions).</p>
-<p>Here, we use a piecewise linear basis with 20 equisized elements in each dimension.</p>
-<div id="b09f9ef8" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>bases <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Here, we use a basis comprised of Legendre polynomials with a maximum degree of 30 in each dimension.</p>
+<div id="7be19a12" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>bases <span class="op">=</span> dt.Legendre(order<span class="op">=</span><span class="dv">30</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="dirt-object" class="level3">
 <h3 class="anchored" data-anchor-id="dirt-object">DIRT Object</h3>
 <p>Now we can construct the DIRT object.</p>
-<div id="5a1104ba" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    negloglik, </span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    neglogpri, </span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    preconditioner, </span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    bases,</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    tt_options<span class="op">=</span>dt.TTOptions(verbose<span class="op">=</span><span class="va">False</span>),</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    dirt_options<span class="op">=</span>dt.DIRTOptions(verbose<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="ee521818" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(negloglik, neglogpri, preconditioner, bases)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 2.00e+03 | Cum. Time: 2.54e-01 s | Beta: 0.0001 | ESS: 0.9745
+[ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
+[ALS]     1 |        930 |        8 |     1.00000e+00 |      1.00000e+00 |     5.21830e-03 |      1.08928e-03
+[ALS]  ALS complete. Final TT ranks: 8-1.
+[DIRT] Iter:  2 | Cum. Fevals: 5.86e+03 | Cum. Time: 8.80e-01 s | Beta: 0.0037 | ESS: 0.5125 | DHell: 0.0013
+[ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
+[ALS]     1 |        620 |       10 |     1.39594e+00 |      1.39594e+00 |     2.18277e-01 |      4.29492e-02
+[ALS]  ALS complete. Final TT ranks: 10-1.
+[DIRT] Iter:  3 | Cum. Fevals: 9.10e+03 | Cum. Time: 1.51e+00 s | Beta: 0.0204 | ESS: 0.5077 | DHell: 0.0274
+[ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
+[ALS]     1 |        744 |       12 |     2.50977e-01 |      2.50977e-01 |     4.73993e-02 |      2.83657e-02
+[ALS]  ALS complete. Final TT ranks: 12-1.
+[DIRT] Iter:  4 | Cum. Fevals: 1.26e+04 | Cum. Time: 2.09e+00 s | Beta: 0.0627 | ESS: 0.5412 | DHell: 0.0172
+[ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
+[ALS]     1 |        868 |       14 |     3.15719e-01 |      3.15719e-01 |     2.76007e-02 |      1.76338e-02
+[ALS]  ALS complete. Final TT ranks: 14-1.
+[DIRT] Iter:  5 | Cum. Fevals: 1.63e+04 | Cum. Time: 2.53e+00 s | Beta: 0.1303 | ESS: 0.5262 | DHell: 0.0149
+[ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
+[ALS]     1 |        992 |       16 |     1.73862e-01 |      1.73862e-01 |     3.09862e-02 |      1.33210e-02
+[ALS]  ALS complete. Final TT ranks: 16-1.
+[DIRT] Iter:  6 | Cum. Fevals: 2.03e+04 | Cum. Time: 3.03e+00 s | Beta: 0.3292 | ESS: 0.5158 | DHell: 0.0157
+[ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
+[ALS]     1 |       1116 |       18 |     4.13233e-01 |      4.13233e-01 |     8.46778e-03 |      7.16653e-03
+[ALS]  ALS complete. Final TT ranks: 18-1.
+[DIRT] Iter:  7 | Cum. Fevals: 2.45e+04 | Cum. Time: 3.49e+00 s | Beta: 1.0000 | ESS: 0.5663 | DHell: 0.0114
+[ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
+[ALS]     1 |       1023 |       13 |     3.34057e-01 |      3.34057e-01 |     1.14751e-02 |      5.64585e-03
+[ALS]  ALS complete. Final TT ranks: 13-1.
+[DIRT] DIRT construction complete.
+[DIRT]  • Layers: 7.
+[DIRT]  • Total function evaluations: 28586.
+[DIRT]  • Total time: 4.18 s.
+[DIRT]  • DHell: 0.0093</code></pre>
 </div>
-<p><a href="#fig-post" class="quarto-xref">Figure&nbsp;1</a> shows a plot of the DIRT approximation to the posterior, as well as the true posterior for comparison. The posterior is very concentrated in comparison to the prior (particularly for parameter <span class="math inline">\(\beta\)</span>).</p>
-<div id="cell-fig-post" class="cell" data-execution_count="8">
+</div>
+<p>Observe that a set of diagnostic information is printed at each stage of DIRT construction.</p>
+</section>
+</section>
+<section id="sampling-marginalisation-and-conditioning" class="level2">
+<h2 class="anchored" data-anchor-id="sampling-marginalisation-and-conditioning">Sampling, Marginalisation and Conditioning</h2>
+<p>We now illustrate how to use the DIRT approximation to carry out a range of tasks.</p>
+<section id="sampling" class="level3">
+<h3 class="anchored" data-anchor-id="sampling">Sampling</h3>
+<p>First, it is possible to evaluate the DIRT approximation to the target density pointwise. The below code evaluates the potential function associated with the DIRT approximation to the target density, on a grid of <span class="math inline">\(\beta\)</span> and <span class="math inline">\(\gamma\)</span> values.</p>
+<div id="f1f8c91d" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define grid to evaluate potential function on</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>n_grid <span class="op">=</span> <span class="dv">200</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>beta_grid <span class="op">=</span> torch.linspace(<span class="fl">0.05</span>, <span class="fl">0.14</span>, n_grid)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>gamma_grid <span class="op">=</span> torch.linspace(<span class="fl">0.80</span>, <span class="fl">1.40</span>, n_grid)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>grid <span class="op">=</span> torch.tensor([[b, g] <span class="cf">for</span> g <span class="kw">in</span> gamma_grid <span class="cf">for</span> b <span class="kw">in</span> beta_grid])</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate potential function</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>potentials_grid <span class="op">=</span> dirt.eval_potential(grid)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><a href="#fig-post" class="quarto-xref">Figure&nbsp;1</a> shows a plot of the DIRT density evaluated on the above grid and compares it to the true posterior. The posterior is very concentrated in comparison to the prior (particularly for parameter <span class="math inline">\(\beta\)</span>).</p>
+<div id="cell-fig-post" class="cell" data-execution_count="9">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>n_grid <span class="op">=</span> <span class="dv">300</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>b_grid <span class="op">=</span> torch.linspace(<span class="fl">0.05</span>, <span class="fl">0.14</span>, n_grid)</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>g_grid <span class="op">=</span> torch.linspace(<span class="fl">0.80</span>, <span class="fl">1.40</span>, n_grid)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>grid <span class="op">=</span> torch.tensor([[b, g] <span class="cf">for</span> g <span class="kw">in</span> g_grid <span class="cf">for</span> b <span class="kw">in</span> b_grid])</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="fl">3.5</span>), sharex<span class="op">=</span><span class="va">True</span>, sharey<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>pdf_true <span class="op">=</span> torch.exp(<span class="op">-</span>(negloglik(grid) <span class="op">+</span> neglogpri(grid)))</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>pdf_true <span class="op">=</span> pdf_true.reshape(n_grid, n_grid)</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>pdf_dirt <span class="op">=</span> dirt.eval_pdf(grid)</span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>pdf_dirt <span class="op">=</span> pdf_dirt.reshape(n_grid, n_grid)</span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].pcolormesh(b_grid, g_grid, pdf_true)</span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].pcolormesh(b_grid, g_grid, pdf_dirt)</span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">gamma</span><span class="dv">$</span><span class="vs">"</span>)</span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax <span class="kw">in</span> axes:</span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="vs">r"</span><span class="dv">$\b</span><span class="vs">eta</span><span class="dv">$</span><span class="vs">"</span>)</span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    ax.set_box_aspect(<span class="dv">1</span>)</span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="fl">3.5</span>), sharex<span class="op">=</span><span class="va">True</span>, sharey<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute true density</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>pdf_true <span class="op">=</span> torch.exp(<span class="op">-</span>(negloglik(grid) <span class="op">+</span> neglogpri(grid)))</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>pdf_true <span class="op">=</span> pdf_true.reshape(n_grid, n_grid)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Normalise true density</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>db <span class="op">=</span> beta_grid[<span class="dv">1</span>] <span class="op">-</span> beta_grid[<span class="dv">0</span>]</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>dg <span class="op">=</span> gamma_grid[<span class="dv">1</span>] <span class="op">-</span> gamma_grid[<span class="dv">0</span>]</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>pdf_true <span class="op">/=</span> (pdf_true.<span class="bu">sum</span>() <span class="op">*</span> db <span class="op">*</span> dg)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute DIRT approximation</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>pdf_dirt <span class="op">=</span> torch.exp(<span class="op">-</span>potentials_grid)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>pdf_dirt <span class="op">=</span> pdf_dirt.reshape(n_grid, n_grid)</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].pcolormesh(beta_grid, gamma_grid, pdf_true)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].pcolormesh(beta_grid, gamma_grid, pdf_dirt)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">gamma</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax <span class="kw">in</span> axes:</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="vs">r"</span><span class="dv">$\b</span><span class="vs">eta</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    ax.set_box_aspect(<span class="dv">1</span>)</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="fig-post" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -579,25 +628,24 @@ Figure&nbsp;1: A comparison between the true posterior density (left) and the DI
 </div>
 </div>
 </div>
-<p>We can sample from the approximation to the posterior by drawing a set of samples from the reference density and calling the <code>eval_irt</code> method of the DIRT object. Note that the <code>eval_irt</code> method also returns the potential function of the DIRT approximation to the target density evaluated at each sample.</p>
-<div id="9f81115b" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> dirt.reference.random(d<span class="op">=</span>dirt.dim, n<span class="op">=</span><span class="dv">20</span>)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>samples, potentials <span class="op">=</span> dirt.eval_irt(rs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>We can sample from the DIRT density by drawing a set of samples from the reference density and calling the <code>eval_irt</code> method of the DIRT object. Note that the <code>eval_irt</code> method also returns the potential function of the DIRT density evaluated at each sample.</p>
+<div id="5aa42602" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> dirt.reference.random(d<span class="op">=</span>dirt.dim, n<span class="op">=</span><span class="dv">20</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>samples, potentials <span class="op">=</span> dirt.eval_irt(rs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p><a href="#fig-samples" class="quarto-xref">Figure&nbsp;2</a> shows a plot of the samples.</p>
-<div id="cell-fig-samples" class="cell" data-execution_count="10">
+<div id="cell-fig-samples" class="cell" data-execution_count="11">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="fl">3.5</span>), sharex<span class="op">=</span><span class="va">True</span>, sharey<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>ax.pcolormesh(b_grid, g_grid, pdf_dirt)</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>ax.scatter(<span class="op">*</span>samples.T, c<span class="op">=</span><span class="st">"white"</span>, s<span class="op">=</span><span class="dv">4</span>)</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="vs">r"</span><span class="dv">$\b</span><span class="vs">eta</span><span class="dv">$</span><span class="vs">"</span>)</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">gamma</span><span class="dv">$</span><span class="vs">"</span>)</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>ax.set_box_aspect(<span class="dv">1</span>)</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="fl">3.5</span>), sharex<span class="op">=</span><span class="va">True</span>, sharey<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>ax.pcolormesh(beta_grid, gamma_grid, pdf_dirt)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>ax.scatter(<span class="op">*</span>samples.T, c<span class="op">=</span><span class="st">"white"</span>, s<span class="op">=</span><span class="dv">4</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="vs">r"</span><span class="dv">$\b</span><span class="vs">eta</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">gamma</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>ax.set_box_aspect(<span class="dv">1</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="fig-samples" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -613,68 +661,109 @@ Figure&nbsp;2: Samples from the DIRT approximation to the posterior.
 </div>
 </div>
 </section>
-</section>
-<section id="debiasing" class="level2">
-<h2 class="anchored" data-anchor-id="debiasing">Debiasing</h2>
-<p>While the DIRT approximation to the posterior density is quite accurate, we may still wish to correct for bias in the approximation results. We can do this by using the DIRT density as part of a Markov chain Monte Carlo (MCMC) sampler, or as a proposal density for importance sampling.</p>
-<section id="mcmc-sampling" class="level3">
-<h3 class="anchored" data-anchor-id="mcmc-sampling">MCMC Sampling</h3>
-<p>First, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density.</p>
-<div id="e79903e1" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> potential(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> negloglik(xs) <span class="op">+</span> neglogpri(xs)</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> dirt.reference.random(d<span class="op">=</span>dirt.dim, n<span class="op">=</span><span class="dv">1000</span>)</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>samples, potentials_irt <span class="op">=</span> dirt.eval_irt(rs)</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>potentials_true <span class="op">=</span> potential(samples)</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_independence_sampler(samples, potentials_irt, potentials_true)</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Acceptance rate: </span><span class="sc">{</span>res<span class="sc">.</span>acceptance_rate<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Acceptance rate: 0.9020</code></pre>
+<section id="marginalisation" class="level3">
+<h3 class="anchored" data-anchor-id="marginalisation">Marginalisation</h3>
+<p>We can also sample from and evaluate specific marginal densities. In the case of a multi-layered DIRT, we can evaluate the (normalised) DIRT approximation to the marginal density of the first <span class="math inline">\(k\)</span> variables, where <span class="math inline">\(1 \leq k \leq d\)</span> (where <span class="math inline">\(d\)</span> denotes the dimension of the target random variable).</p>
+<p>The below code generates a set of samples from the marginal density of parameter <span class="math inline">\(\beta\)</span>, and evaluates the marginal density on a grid of <span class="math inline">\(\beta\)</span> values.</p>
+<div id="cb51af0a" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate marginal samples of parameter beta</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>rs_beta <span class="op">=</span> dirt.reference.random(d<span class="op">=</span><span class="dv">1</span>, n<span class="op">=</span><span class="dv">1000</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>samples_beta, potentials_beta <span class="op">=</span> dirt.eval_irt(rs_beta, subset<span class="op">=</span><span class="st">"first"</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate marginal potential on the grid of beta values defined previously</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>potentials_grid <span class="op">=</span> dirt.eval_potential(beta_grid[:, <span class="va">None</span>], subset<span class="op">=</span><span class="st">"first"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-</div>
-<p><a href="#fig-chain" class="quarto-xref">Figure&nbsp;3</a> shows the first 20 points of the simulated Markov chain.</p>
-<div id="cell-fig-chain" class="cell" data-execution_count="12">
+<p><a href="#fig-marginal" class="quarto-xref">Figure&nbsp;3</a> plots the samples of <span class="math inline">\(\beta\)</span>, and provides a comparison between the DIRT approximation to the density and the true density.</p>
+<div id="cell-fig-marginal" class="cell" data-execution_count="13">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="fl">3.5</span>), sharex<span class="op">=</span><span class="va">True</span>, sharey<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>ax.pcolormesh(b_grid, g_grid, pdf_true)</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>ax.scatter(<span class="op">*</span>res.xs[:<span class="dv">20</span>].T, c<span class="op">=</span><span class="st">"white"</span>, s<span class="op">=</span><span class="dv">4</span>)</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>ax.plot(<span class="op">*</span>res.xs[:<span class="dv">20</span>].T, c<span class="op">=</span><span class="st">"white"</span>, lw<span class="op">=</span><span class="fl">0.4</span>)</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="vs">r"</span><span class="dv">$\b</span><span class="vs">eta</span><span class="dv">$</span><span class="vs">"</span>)</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">gamma</span><span class="dv">$</span><span class="vs">"</span>)</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>ax.set_box_aspect(<span class="dv">1</span>)</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>pdf_true_marg <span class="op">=</span> pdf_true.<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">0</span>) <span class="op">*</span> dg</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>pdf_dirt_marg <span class="op">=</span> torch.exp(<span class="op">-</span>potentials_grid)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="fl">6.5</span>, <span class="fl">3.5</span>))</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>ax.plot(beta_grid, pdf_true_marg, c<span class="op">=</span><span class="st">"k"</span>, label<span class="op">=</span><span class="vs">r"True density"</span>, zorder<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>ax.plot(beta_grid, pdf_dirt_marg, c<span class="op">=</span><span class="st">"tab:green"</span>, ls<span class="op">=</span><span class="st">"--"</span>, label<span class="op">=</span><span class="vs">r"DIRT density"</span>, zorder<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>ax.hist(samples_beta, color<span class="op">=</span><span class="st">"tab:green"</span>, density<span class="op">=</span><span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.5</span>, zorder<span class="op">=</span><span class="dv">1</span>, label<span class="op">=</span><span class="st">"Samples"</span>)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="vs">r"</span><span class="dv">$\b</span><span class="vs">eta</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">f</span><span class="kw">(</span><span class="dv">\b</span><span class="vs">eta</span><span class="kw">)</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>ax.set_box_aspect(<span class="dv">1</span>)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">"center left"</span>, bbox_to_anchor<span class="op">=</span>(<span class="dv">1</span>, <span class="fl">0.5</span>))</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>add_arrows(ax)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-display">
-<div id="fig-chain" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
+<div id="fig-marginal" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
-<div aria-describedby="fig-chain-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="sir_files/figure-html/fig-chain-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="350" height="336">
+<div aria-describedby="fig-marginal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="sir_files/figure-html/fig-marginal-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="521" height="336">
 </div>
-<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-chain-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Figure&nbsp;3: The first 20 points of the simulated Markov chain, plotted on top of the true posterior density.
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-marginal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: A comparison between the true marginal density of <span class="math inline">\(\beta\)</span> and the DIRT approximation.
 </figcaption>
 </figure>
 </div>
 </div>
 </div>
 </section>
-<section id="importance-sampling" class="level3">
-<h3 class="anchored" data-anchor-id="importance-sampling">Importance Sampling</h3>
-<p>As an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation appropriately.</p>
-<div id="5648ae44" class="cell" data-execution_count="13">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_importance_sampling(potentials_irt, potentials_true)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"ESS: </span><span class="sc">{</span>res<span class="sc">.</span>ess<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>ESS: 950.98</code></pre>
+<section id="conditioning" class="level3">
+<h3 class="anchored" data-anchor-id="conditioning">Conditioning</h3>
+<p>Finally, we can sample from and evaluate specific conditional densities. In the case of a multi-layered DIRT, we can evaluate the (normalised) DIRT approximation to the conditional density of the final <span class="math inline">\((d-k)\)</span> variables conditioned on the first <span class="math inline">\(k\)</span> variables, where <span class="math inline">\(1 \leq k &lt; d\)</span> (where <span class="math inline">\(d\)</span> denotes the dimension of the target random variable).</p>
+<p>The below code generates a set of samples from the density of <span class="math inline">\(\gamma\)</span> conditioned on a value of <span class="math inline">\(\beta=0.1\)</span>, and evaluates the conditional density on a grid of <span class="math inline">\(\gamma\)</span> values.</p>
+<div id="21cdf0a7" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define beta value to condition on</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>beta_cond <span class="op">=</span> torch.tensor([[<span class="fl">0.10</span>]])</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate conditional samples of gamma</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>rs_cond <span class="op">=</span> dirt.reference.random(d<span class="op">=</span><span class="dv">1</span>, n<span class="op">=</span><span class="dv">1000</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>samples_gamma, potentials_gamma <span class="op">=</span> dirt.eval_cirt(beta_cond, rs_cond, subset<span class="op">=</span><span class="st">"first"</span>)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate conditional potential on a grid of gamma values</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>gamma_grid <span class="op">=</span> torch.linspace(<span class="fl">0.9</span>, <span class="fl">1.1</span>, <span class="dv">200</span>)[:, <span class="va">None</span>]</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>potentials_grid <span class="op">=</span> dirt.eval_potential_cond(beta_cond, gamma_grid, subset<span class="op">=</span><span class="st">"first"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><a href="#fig-conditional" class="quarto-xref">Figure&nbsp;4</a> plots the conditional samples of <span class="math inline">\(\gamma\)</span>, and provides a comparison between the DIRT approximation to the conditional density and the true density.</p>
+<div id="cell-fig-conditional" class="cell" data-execution_count="15">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>beta_cond <span class="op">=</span> beta_cond.repeat(gamma_grid.shape[<span class="dv">0</span>], <span class="dv">1</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>grid_cond <span class="op">=</span> torch.hstack((beta_cond, gamma_grid))</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>dg <span class="op">=</span> gamma_grid[<span class="dv">1</span>] <span class="op">-</span> gamma_grid[<span class="dv">0</span>]</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate true conditional density</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>pdf_true_cond <span class="op">=</span> torch.exp(<span class="op">-</span>(negloglik(grid_cond) <span class="op">+</span> neglogpri(grid_cond))).flatten()</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>pdf_dirt_cond <span class="op">=</span> torch.exp(<span class="op">-</span>potentials_grid)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Normalise true conditional density</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>pdf_true_cond <span class="op">/=</span> (pdf_true_cond.<span class="bu">sum</span>() <span class="op">*</span> dg)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="fl">6.5</span>, <span class="fl">3.5</span>))</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>ax.plot(gamma_grid, pdf_true_cond, c<span class="op">=</span><span class="st">"k"</span>, label<span class="op">=</span><span class="vs">r"True density"</span>, zorder<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>ax.plot(gamma_grid, pdf_dirt_cond, c<span class="op">=</span><span class="st">"tab:purple"</span>, ls<span class="op">=</span><span class="st">"--"</span>, label<span class="op">=</span><span class="vs">r"DIRT density"</span>, zorder<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>ax.hist(samples_gamma, color<span class="op">=</span><span class="st">"tab:purple"</span>, density<span class="op">=</span><span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.5</span>, zorder<span class="op">=</span><span class="dv">1</span>, label<span class="op">=</span><span class="st">"Samples"</span>)</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">gamma</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">f</span><span class="kw">(</span><span class="er">\</span><span class="vs">gamma</span><span class="cf">|</span><span class="dv">\b</span><span class="vs">eta=0</span><span class="dv">.</span><span class="vs">1</span><span class="kw">)</span><span class="dv">$</span><span class="vs">"</span>)</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>ax.set_box_aspect(<span class="dv">1</span>)</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">"center left"</span>, bbox_to_anchor<span class="op">=</span>(<span class="dv">1</span>, <span class="fl">0.5</span>))</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>add_arrows(ax)</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-conditional" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-conditional-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="sir_files/figure-html/fig-conditional-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="533" height="336">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-conditional-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: A comparison between the true conditional density of <span class="math inline">\(\gamma | \beta = 0.1\)</span> and the DIRT approximation.
+</figcaption>
+</figure>
 </div>
 </div>
-<p>As expected, the effective sample size (ESS) is almost equal to the number of samples.</p>
+</div>
 
 
 

@@ -573,8 +573,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="deep_tensor.TTOptions" class="level1">
 <h1>TTOptions</h1>
 <div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>TTOptions(</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    max_cross: <span class="bu">int</span> <span class="op">=</span> <span class="dv">1</span>,</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    cross_tol: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.0001</span>,</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    max_als: <span class="bu">int</span> <span class="op">=</span> <span class="dv">1</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    als_tol: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.0001</span>,</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    init_rank: <span class="bu">int</span> <span class="op">=</span> <span class="dv">20</span>,</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    kick_rank: <span class="bu">int</span> <span class="op">=</span> <span class="dv">2</span>,</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    max_rank: <span class="bu">int</span> <span class="op">=</span> <span class="dv">30</span>,</span>
@@ -582,19 +582,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    cdf_tol: <span class="bu">float</span> <span class="op">=</span> <span class="fl">1e-10</span>,</span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    tt_method: <span class="bu">str</span> <span class="op">=</span> <span class="st">'amen'</span>,</span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    int_method: <span class="bu">str</span> <span class="op">=</span> <span class="st">'maxvol'</span>,</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    verbose: <span class="bu">bool</span> <span class="op">=</span> <span class="va">True</span>,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    verbose: <span class="bu">int</span> <span class="op">=</span> <span class="dv">1</span>,</span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Options for configuring the construction of an FTT object.</p>
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
-<dt><code><span class="parameter-name"><strong>max_cross</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1</span></code></dt>
+<dt><code><span class="parameter-name"><strong>max_als</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1</span></code></dt>
 <dd>
-<p>The maximum number of cross iterations to be carried out during the FTT construction.</p>
+<p>The maximum number of ALS iterations to be carried out during the FTT construction.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>cross_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.0001</span></code></dt>
+<dt><code><span class="parameter-name"><strong>als_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.0001</span></code></dt>
 <dd>
-<p>TODO</p>
+<p>The tolerance to use to determine whether the ALS iterations should be terminated.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>init_rank</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">20</span></code></dt>
 <dd>
@@ -602,7 +602,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dd>
 <dt><code><span class="parameter-name"><strong>kick_rank</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">2</span></code></dt>
 <dd>
-<p>The rank of the enrichment set of samples added at each cross iteration.</p>
+<p>The rank of the enrichment set of samples added at each ALS iteration.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>max_rank</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">30</span></code></dt>
 <dd>
@@ -624,9 +624,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <dd>
 <p>The interpolation method used when constructing the tensor cores. Can be <code>'maxvol'</code> (Goreinov <em>et al.</em>, 2010) or <code>'deim'</code> (Chaturantabut and Sorensen, 2010).</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>verbose</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`bool`">bool</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
+<dt><code><span class="parameter-name"><strong>verbose</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1</span></code></dt>
 <dd>
-<p>Whether to print the results of FTT construction to the screen at each iteration.</p>
+<p>If <code>verbose=0</code>, no information about the construction of the FTT will be printed to the screen. If <code>verbose=1</code>, diagnostic information will be prined at the end of each ALS iteration. If <code>verbose=2</code>, the tensor core currently being constructed during each ALS iteration will also be displayed.</p>
 </dd>
 </dl>
 </section>
