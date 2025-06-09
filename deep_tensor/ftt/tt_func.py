@@ -1212,8 +1212,10 @@ class TTFunc(AbstractTTFunc):
 
             if finished:
                 if self.options.verbose > 0:
+                    als_info("ALS complete.")
+                if self.options.verbose > 1:
                     ranks = "-".join([str(int(r)) for r in self.rank])
-                    msg = (f"ALS complete. Final TT ranks: {ranks}.")
+                    msg = (f"Final TT ranks: {ranks}.")
                     als_info(msg)
                 return
             else:

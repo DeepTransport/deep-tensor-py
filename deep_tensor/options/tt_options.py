@@ -25,7 +25,8 @@ class TTOptions():
         The rank of the enrichment set of samples added at each ALS 
         iteration.
     max_rank:
-        The maximum allowable rank of each tensor core.
+        The maximum allowable rank of each tensor core (prior to the 
+        enrichment set being added).
     local_tol:
         The threshold to use when applying truncated SVD to the tensor 
         cores when building the FTT.
