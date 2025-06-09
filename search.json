@@ -4,7 +4,7 @@
     "href": "index.html",
     "title": "Installation",
     "section": "",
-    "text": "The \\(\\texttt{deep\\_tensor}\\) package contains a PyTorch implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by Cui and Dolgov (2022).\n\nInstallation\nComing soon…\n\n\nGetting Started\nCheck out the examples page and API reference for help getting started with \\(\\texttt{deep\\_tensor}\\).\n\n\n\n\n\nReferences\n\nCui, Tiangang, and Sergey Dolgov. 2022. “Deep Composition of Tensor-Trains Using Squared Inverse Rosenblatt Transports.” Foundations of Computational Mathematics 22 (6): 1863–1922."
+    "text": "The \\(\\texttt{deep\\_tensor}\\) package contains a PyTorch implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by Cui and Dolgov (2022).\n\nInstallation\nComing soon…\n\n\nGetting Started\nCheck out the examples page and API reference for help getting started with \\(\\texttt{deep\\_tensor}\\).\n\n\n\n\n\nReferences\n\nCui, Tiangang, and Sergey Dolgov. 2022. “Deep Composition of Tensor-Trains Using Squared Inverse Rosenblatt Transports.” Foundations of Computational Mathematics 22 (6): 1863–1922. https://doi.org/10.1007/s10208-021-09537-5."
   },
   {
     "objectID": "reference/LogarithmicMapping.html",
@@ -357,7 +357,7 @@
     "href": "reference/TTOptions.html",
     "title": "TTOptions",
     "section": "",
-    "text": "TTOptions(\n    max_als: int = 1,\n    als_tol: float = 0.0001,\n    init_rank: int = 20,\n    kick_rank: int = 2,\n    max_rank: int = 30,\n    local_tol: float = 1e-10,\n    cdf_tol: float = 1e-10,\n    tt_method: str = 'amen',\n    int_method: str = 'maxvol',\n    verbose: int = 1,\n)\nOptions for configuring the construction of an FTT object.\n\n\n\nmax_als : int = 1\n\nThe maximum number of ALS iterations to be carried out during the FTT construction.\n\nals_tol : float = 0.0001\n\nThe tolerance to use to determine whether the ALS iterations should be terminated.\n\ninit_rank : int = 20\n\nThe initial rank of each tensor core.\n\nkick_rank : int = 2\n\nThe rank of the enrichment set of samples added at each ALS iteration.\n\nmax_rank : int = 30\n\nThe maximum allowable rank of each tensor core.\n\nlocal_tol : float = 1e-10\n\nThe threshold to use when applying truncated SVD to the tensor cores when building the FTT.\n\ncdf_tol : float = 1e-10\n\nThe tolerance used when solving the root-finding problem to invert the CDF.\n\ntt_method : str = 'amen'\n\nThe method used to construct the TT cores. Can be 'fixed', 'random', or 'amen'.\n\nint_method : str = 'maxvol'\n\nThe interpolation method used when constructing the tensor cores. Can be 'maxvol' (Goreinov et al., 2010) or 'deim' (Chaturantabut and Sorensen, 2010).\n\nverbose : int = 1\n\nIf verbose=0, no information about the construction of the FTT will be printed to the screen. If verbose=1, diagnostic information will be prined at the end of each ALS iteration. If verbose=2, the tensor core currently being constructed during each ALS iteration will also be displayed.\n\n\n\n\n\nChaturantabut, S and Sorensen, DC (2010). Nonlinear model reduction via discrete empirical interpolation. SIAM Journal on Scientific Computing 32, 2737–2764.\nGoreinov, SA, Oseledets, IV, Savostyanov, DV, Tyrtyshnikov, EE and Zamarashkin, NL (2010). How to find a good submatrix. In: Matrix Methods: Theory, Algorithms and Applications, 247–256.",
+    "text": "TTOptions(\n    max_als: int = 1,\n    als_tol: float = 0.0001,\n    init_rank: int = 20,\n    kick_rank: int = 2,\n    max_rank: int = 30,\n    local_tol: float = 1e-10,\n    cdf_tol: float = 1e-10,\n    tt_method: str = 'amen',\n    int_method: str = 'maxvol',\n    verbose: int = 1,\n)\nOptions for configuring the construction of an FTT object.\n\n\n\nmax_als : int = 1\n\nThe maximum number of ALS iterations to be carried out during the FTT construction.\n\nals_tol : float = 0.0001\n\nThe tolerance to use to determine whether the ALS iterations should be terminated.\n\ninit_rank : int = 20\n\nThe initial rank of each tensor core.\n\nkick_rank : int = 2\n\nThe rank of the enrichment set of samples added at each ALS iteration.\n\nmax_rank : int = 30\n\nThe maximum allowable rank of each tensor core (prior to the enrichment set being added).\n\nlocal_tol : float = 1e-10\n\nThe threshold to use when applying truncated SVD to the tensor cores when building the FTT.\n\ncdf_tol : float = 1e-10\n\nThe tolerance used when solving the root-finding problem to invert the CDF.\n\ntt_method : str = 'amen'\n\nThe method used to construct the TT cores. Can be 'fixed', 'random', or 'amen'.\n\nint_method : str = 'maxvol'\n\nThe interpolation method used when constructing the tensor cores. Can be 'maxvol' (Goreinov et al., 2010) or 'deim' (Chaturantabut and Sorensen, 2010).\n\nverbose : int = 1\n\nIf verbose=0, no information about the construction of the FTT will be printed to the screen. If verbose=1, diagnostic information will be prined at the end of each ALS iteration. If verbose=2, the tensor core currently being constructed during each ALS iteration will also be displayed.\n\n\n\n\n\nChaturantabut, S and Sorensen, DC (2010). Nonlinear model reduction via discrete empirical interpolation. SIAM Journal on Scientific Computing 32, 2737–2764.\nGoreinov, SA, Oseledets, IV, Savostyanov, DV, Tyrtyshnikov, EE and Zamarashkin, NL (2010). How to find a good submatrix. In: Matrix Methods: Theory, Algorithms and Applications, 247–256.",
     "crumbs": [
       "API Reference",
       "Options",
@@ -369,7 +369,7 @@
     "href": "reference/TTOptions.html#parameters",
     "title": "TTOptions",
     "section": "",
-    "text": "max_als : int = 1\n\nThe maximum number of ALS iterations to be carried out during the FTT construction.\n\nals_tol : float = 0.0001\n\nThe tolerance to use to determine whether the ALS iterations should be terminated.\n\ninit_rank : int = 20\n\nThe initial rank of each tensor core.\n\nkick_rank : int = 2\n\nThe rank of the enrichment set of samples added at each ALS iteration.\n\nmax_rank : int = 30\n\nThe maximum allowable rank of each tensor core.\n\nlocal_tol : float = 1e-10\n\nThe threshold to use when applying truncated SVD to the tensor cores when building the FTT.\n\ncdf_tol : float = 1e-10\n\nThe tolerance used when solving the root-finding problem to invert the CDF.\n\ntt_method : str = 'amen'\n\nThe method used to construct the TT cores. Can be 'fixed', 'random', or 'amen'.\n\nint_method : str = 'maxvol'\n\nThe interpolation method used when constructing the tensor cores. Can be 'maxvol' (Goreinov et al., 2010) or 'deim' (Chaturantabut and Sorensen, 2010).\n\nverbose : int = 1\n\nIf verbose=0, no information about the construction of the FTT will be printed to the screen. If verbose=1, diagnostic information will be prined at the end of each ALS iteration. If verbose=2, the tensor core currently being constructed during each ALS iteration will also be displayed.",
+    "text": "max_als : int = 1\n\nThe maximum number of ALS iterations to be carried out during the FTT construction.\n\nals_tol : float = 0.0001\n\nThe tolerance to use to determine whether the ALS iterations should be terminated.\n\ninit_rank : int = 20\n\nThe initial rank of each tensor core.\n\nkick_rank : int = 2\n\nThe rank of the enrichment set of samples added at each ALS iteration.\n\nmax_rank : int = 30\n\nThe maximum allowable rank of each tensor core (prior to the enrichment set being added).\n\nlocal_tol : float = 1e-10\n\nThe threshold to use when applying truncated SVD to the tensor cores when building the FTT.\n\ncdf_tol : float = 1e-10\n\nThe tolerance used when solving the root-finding problem to invert the CDF.\n\ntt_method : str = 'amen'\n\nThe method used to construct the TT cores. Can be 'fixed', 'random', or 'amen'.\n\nint_method : str = 'maxvol'\n\nThe interpolation method used when constructing the tensor cores. Can be 'maxvol' (Goreinov et al., 2010) or 'deim' (Chaturantabut and Sorensen, 2010).\n\nverbose : int = 1\n\nIf verbose=0, no information about the construction of the FTT will be printed to the screen. If verbose=1, diagnostic information will be prined at the end of each ALS iteration. If verbose=2, the tensor core currently being constructed during each ALS iteration will also be displayed.",
     "crumbs": [
       "API Reference",
       "Options",
@@ -477,6 +477,61 @@
     "crumbs": [
       "Examples",
       "SIR Model"
+    ]
+  },
+  {
+    "objectID": "examples/heat.html",
+    "href": "examples/heat.html",
+    "title": "Heat Equation",
+    "section": "",
+    "text": "Here, we characterise the posterior distribution of the diffusion coefficient of a two-dimensional heat equation. We will consider a similar setup to that described in Cui and Dolgov (2022).",
+    "crumbs": [
+      "Examples",
+      "Heat Equation"
+    ]
+  },
+  {
+    "objectID": "examples/heat.html#prior-density",
+    "href": "examples/heat.html#prior-density",
+    "title": "Heat Equation",
+    "section": "Prior Density",
+    "text": "Prior Density\nWe endow the logarithm of the unknown diffusion coefficient with a process convolution prior; that is,\n\\[\n    \\log(\\kappa(\\boldsymbol{x})) = \\log(\\bar{\\kappa}(\\boldsymbol{x})) + \\sum_{i=1}^{d} \\xi^{(i)} \\exp\\left(-\\frac{1}{2r^{2}}\\left\\lVert\\boldsymbol{x} - \\boldsymbol{x}^{(i)}\\right\\rVert^{2}\\right),\n\\]\nwhere \\(d=27\\), \\(\\log(\\bar{\\kappa}(\\boldsymbol{x}))=-5\\), \\(r=1/16\\), the coefficients \\(\\{\\xi^{(i)}\\}_{i=1}^{d}\\) are independent and follow the unit Gaussian distribution, and the centres of the kernel functions, \\(\\{\\boldsymbol{x}^{(i)}\\}_{i=1}^{d}\\), form a grid over the domain (see Figure 1).",
+    "crumbs": [
+      "Examples",
+      "Heat Equation"
+    ]
+  },
+  {
+    "objectID": "examples/heat.html#data",
+    "href": "examples/heat.html#data",
+    "title": "Heat Equation",
+    "section": "Data",
+    "text": "Data\nTo estimate the diffusivity coefficient, we assume that we have access to measurements of the temperature at 13 locations in the model domain (see Figure 2), recorded at one-second intervals. This gives a total of 130 measurements. All measurements are corrupted by i.i.d. Gaussian noise with zero mean and a standard deviation of \\(\\sigma=1.65 \\times 10^{-2}\\).",
+    "crumbs": [
+      "Examples",
+      "Heat Equation"
+    ]
+  },
+  {
+    "objectID": "examples/heat.html#building-the-dirt-object",
+    "href": "examples/heat.html#building-the-dirt-object",
+    "title": "Heat Equation",
+    "section": "Building the DIRT Object",
+    "text": "Building the DIRT Object\nNow we will build a DIRT object to approximate the posterior density of the log-diffusion coefficient for the reduced-order model. We begin by defining functions which return the potential associated with the likelihood and prior.\n\ndef neglogpri(xs: torch.Tensor) -&gt; torch.Tensor:\n    \"\"\"Returns the negative log prior density evaluated a given set of \n    samples.\n    \"\"\"\n    return 0.5 * xs.square().sum(dim=1)\n\ndef _negloglik(model, xs: torch.Tensor) -&gt; torch.Tensor:\n    \"\"\"Returns the negative log-likelihood, for a given model, \n    evaluated at each of a set of samples.\n    \"\"\"\n    neglogliks = torch.zeros(xs.shape[0])\n    for i, x in enumerate(xs):\n        k = prior.transform(x)\n        us = model.solve(k)\n        d = model.observe(us)\n        neglogliks[i] = 0.5 * (d - d_obs).square().sum() / var_error\n    return neglogliks\n\ndef negloglik(xs: torch.Tensor) -&gt; torch.Tensor:\n    \"\"\"Returns the negative log-likelihood for the full model (to be \n    used later).\n    \"\"\"\n    return _negloglik(model, xs)\n\ndef negloglik_rom(xs: torch.Tensor) -&gt; torch.Tensor:\n    \"\"\"Returns the negative log-likelihood for the reduced-order model.\"\"\"\n    return _negloglik(rom, xs)\n\nNext, we specify a preconditioner. Because the prior of the coefficients \\(\\{\\xi^{(i)}\\}_{i=1}^{d}\\) is the standard Gaussian, the mapping between a Gaussian reference and the prior is simply the identity mapping. This is an appropriate choice of preconditioner in the absence of any other information.\n\nreference = dt.GaussianReference()\npreconditioner = dt.IdentityMapping(prior.dim, reference)\n\nNext, we specify a polynomial basis.\n\npoly = dt.Legendre(order=20)\n\nFinally, we can construct the DIRT object.\n\n# Reduce the initial and maximum tensor ranks to reduce the cost of \n# each layer\ntt_options = dt.TTOptions(init_rank=12, max_rank=12)\n\ndirt = dt.DIRT(\n    negloglik_rom, \n    neglogpri,\n    preconditioner,\n    poly, \n    tt_options=tt_options\n)",
+    "crumbs": [
+      "Examples",
+      "Heat Equation"
+    ]
+  },
+  {
+    "objectID": "examples/heat.html#debiasing",
+    "href": "examples/heat.html#debiasing",
+    "title": "Heat Equation",
+    "section": "Debiasing",
+    "text": "Debiasing\nWe could use the DIRT object directly as an approximation to the target posterior. However, it is also possible to use the DIRT object to accelerate exact inference with the full model.\nWe will illustrate two possibilities to remove the bias from the inference results obtained using DIRT; using the DIRT density as part of a Markov chain Monte Carlo (MCMC) sampler, or as a proposal density for importance sampling.\n\nMCMC Sampling\nFirst, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density.\n\n# Generate a set of samples from the DIRT density\nrs = dirt.reference.random(d=dirt.dim, n=5000)\nxs, potentials_dirt = dirt.eval_irt(rs)\n\n# Evaluate the true potential function (for the full model) at each sample\npotentials_exact = neglogpri(xs) + negloglik(xs)\n\n# Run independence sampler\nres = dt.run_independence_sampler(xs, potentials_dirt, potentials_exact)\nprint(f\"Acceptance rate: {res.acceptance_rate:.4f}\")\n\nAcceptance rate: 0.8420\n\n\nThe acceptance rate is quite high, which suggests that the DIRT density is a good approximation to the true posterior.\n\n\nImportance Sampling\nAs an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation appropriately.\n\nres = dt.run_importance_sampling(potentials_dirt, potentials_exact)\nprint(f\"ESS: {res.ess:.4f}\")\n\nESS: 4600.3042\n\n\nAs expected, the effective sample size (ESS) is quite high.",
+    "crumbs": [
+      "Examples",
+      "Heat Equation"
     ]
   },
   {
