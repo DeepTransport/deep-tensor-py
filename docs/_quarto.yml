@@ -28,6 +28,8 @@ website:
           href: examples/index.qmd
         - title: SIR Model
           href: examples/sir.qmd
+        - title: Heat Equation
+          href: examples/heat.qmd
 
 
 execute:

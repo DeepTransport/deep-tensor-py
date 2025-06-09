@@ -37,7 +37,7 @@ Options for configuring the construction of an FTT object.
 
 <code>[**max_rank**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [30]{.parameter-default}</code>
 
-:   The maximum allowable rank of each tensor core.
+:   The maximum allowable rank of each tensor core (prior to the  enrichment set being added).
 
 <code>[**local_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-10]{.parameter-default}</code>
 
