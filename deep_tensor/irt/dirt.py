@@ -278,26 +278,14 @@ class AbstractDIRT(abc.ABC):
         Returns the conditional inverse Rosenblatt transport evaluated
         at a set of samples in the approximation domain. 
         
-        The conditional inverse Rosenblatt transport takes the form
-        
-        $$
-            X|Y = \mathcal{T}(\mathcal{R}_{k}(Y), R),
-        $$
-
-        where $Y$ is a $k$-dimensional random variable, $R$ is a 
-        $n-k$-dimensional reference random variable, 
-        $\mathcal{R}(\,\cdot\,)$ denotes the (full) Rosenblatt 
-        transport, $\mathcal{T}(\,\cdot\,) := \mathcal{R}^{-1}(\,\cdot\,)$, 
-        denotes its inverse, and $\mathcal{R}_{k}(\,\cdot\,)$ denotes 
-        the Rosenblatt transport for the first (or last) $k$ variables.
-        
         Parameters
         ----------
         ys:
-            A $1 \times k$ (if the same realisation of $Y$ is to be 
-            used for all samples in `rs`) or $n \times k$ matrix (if a 
-            different realisation of $Y$ is to be used for all samples 
-            in `rs`) containing samples from the approximation domain.
+            A matrix containing samples from the approximation domain.
+            The matrix should have dimensions $1 \times k$ (if the same 
+            realisation of $Y$ is to be used for all samples in `rs`) 
+            or $n \times k$ (if a different realisation of $Y$ is to be 
+            used for each samples in `rs`).
         rs:
             An $n \times (d-k)$ matrix containing samples from the 
             reference domain.
@@ -306,10 +294,9 @@ class AbstractDIRT(abc.ABC):
             (`subset='first'`) of the approximation, or the last $k$ 
             variables (`subset='last'`).
         n_layers:
-            The number of layers of the deep inverse Rosenblatt 
-            transport to push the samples forward under. If not 
-            specified, the samples will be pushed forward through all 
-            the layers.
+            The number of layers of the DIRT object to use when 
+            evaluating the CIRT. If not specified, all layers will be 
+            used.
         
         Returns
         -------
@@ -320,7 +307,7 @@ class AbstractDIRT(abc.ABC):
         neglogfxs:
             An $n$-dimensional vector containing the potential function 
             of the approximation to the conditional density of 
-            $X \textbar Y$ evaluated at each sample in `rs`.
+            $X \textbar Y$ evaluated at each sample in `xs`.
     
         """
         

@@ -206,8 +206,7 @@ Finally, we can construct the DIRT object.
 ```{python}
 #| eval: false
 
-# Reduce the initial and maximum tensor ranks to reduce the cost of 
-# each layer
+# Reduce the initial and maximum tensor ranks to reduce the cost of each layer
 tt_options = dt.TTOptions(init_rank=12, max_rank=12)
 
 dirt = dt.DIRT(

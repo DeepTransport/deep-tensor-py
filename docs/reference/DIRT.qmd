@@ -225,24 +225,11 @@ Evaluates the conditional inverse Rosenblatt transport.
 Returns the conditional inverse Rosenblatt transport evaluated
 at a set of samples in the approximation domain. 
 
-The conditional inverse Rosenblatt transport takes the form
-
-$$
-    X|Y = \mathcal{T}(\mathcal{R}_{k}(Y), R),
-$$
-
-where $Y$ is a $k$-dimensional random variable, $R$ is a 
-$n-k$-dimensional reference random variable, 
-$\mathcal{R}(\,\cdot\,)$ denotes the (full) Rosenblatt 
-transport, $\mathcal{T}(\,\cdot\,) := \mathcal{R}^{-1}(\,\cdot\,)$, 
-denotes its inverse, and $\mathcal{R}_{k}(\,\cdot\,)$ denotes 
-the Rosenblatt transport for the first (or last) $k$ variables.
-
 #### Parameters {.doc-section .doc-section-parameters}
 
 <code>[**ys**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
-:   A $1 \times k$ (if the same realisation of $Y$ is to be  used for all samples in `rs`) or $n \times k$ matrix (if a  different realisation of $Y$ is to be used for all samples  in `rs`) containing samples from the approximation domain.
+:   A matrix containing samples from the approximation domain. The matrix should have dimensions $1 \times k$ (if the same  realisation of $Y$ is to be used for all samples in `rs`)  or $n \times k$ (if a different realisation of $Y$ is to be  used for each samples in `rs`).
 
 <code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
@@ -254,7 +241,7 @@ the Rosenblatt transport for the first (or last) $k$ variables.
 
 <code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   The number of layers of the deep inverse Rosenblatt  transport to push the samples forward under. If not  specified, the samples will be pushed forward through all  the layers.
+:   The number of layers of the DIRT object to use when  evaluating the CIRT. If not specified, all layers will be  used.
 
 #### Returns {.doc-section .doc-section-returns}
 
@@ -264,7 +251,7 @@ the Rosenblatt transport for the first (or last) $k$ variables.
 
 <code>[**neglogfxs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
-:   An $n$-dimensional vector containing the potential function  of the approximation to the conditional density of  $X \textbar Y$ evaluated at each sample in `rs`.
+:   An $n$-dimensional vector containing the potential function  of the approximation to the conditional density of  $X \textbar Y$ evaluated at each sample in `xs`.
 
 ### eval_irt_pullback { #deep_tensor.DIRT.eval_irt_pullback }
 
