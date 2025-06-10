@@ -484,7 +484,7 @@ window.Quarto = {
 <section id="implementation-in-textttdeep_tensor" class="level1">
 <h1>Implementation in <span class="math inline">\(\texttt{deep\_tensor}\)</span></h1>
 <p>We will now use <span class="math inline">\(\texttt{deep\_tensor}\)</span> to construct a DIRT approximation to the posterior. To accelerate this process, we will use a reduced order model in place of the full model. Then, we will illustrate some debiasing techniques which use the DIRT approximation to the posterior, in combination with the full model, to accelerate the process of drawing exact posterior samples.</p>
-<div id="c970d131" class="cell" data-execution_count="1">
+<div id="bc0e66d9" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -492,14 +492,14 @@ window.Quarto = {
 </div>
 <p>We begin by defining the prior, (full) model and reduced order model.</p>
 <p>The full model is implemented in <a href="https://fenicsproject.org/download/archive/">FEniCS</a>, on a <span class="math inline">\(96 \times 32\)</span> grid, using piecwise linear basis functions. Timestepping is done using the backward Euler method. The reduced order model is constructed using the proper orthogonal decomposition <span class="citation" data-cites="Benner2015">(see, <em>e.g.</em>, <a href="#ref-Benner2015" role="doc-biblioref">Benner, Gugercin, and Willcox 2015</a>)</span>.</p>
-<div id="65e73428" class="cell" data-execution_count="3">
+<div id="624be0a2" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> models.heat <span class="im">import</span> setup_heat_problem</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Construct the prior, full model and reduced order model</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>prior, model, rom <span class="op">=</span> setup_heat_problem()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we will generate the true log-diffusion coefficient using a sample from the prior. The true log-diffusion coefficient is plotted in <a href="#fig-ktrue" class="quarto-xref">Figure&nbsp;1</a>.</p>
-<div id="8baea6f2" class="cell" data-execution_count="4">
+<div id="2ab4c3c2" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>xi_true <span class="op">=</span> torch.randn((prior.dim,))</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>logk_true <span class="op">=</span> prior.transform(xi_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -528,7 +528,7 @@ Figure&nbsp;1: The true log-diffusion coefficient, <span class="math inline">\(\
 </div>
 </div>
 <p>Next, we will solve the (full) model to obtain the modelled temperatures corresponding to the true diffusion coefficient, and use these to generate some synthetic data. <a href="#fig-utrue" class="quarto-xref">Figure&nbsp;2</a> shows the true temperature field at time <span class="math inline">\(T=10\)</span>, as well as the observation locations.</p>
-<div id="f5f017da" class="cell" data-execution_count="6">
+<div id="19af3e66" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate true temperature field</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>u_true <span class="op">=</span> model.solve(logk_true)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -569,7 +569,7 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <section id="building-the-dirt-object" class="level2">
 <h2 class="anchored" data-anchor-id="building-the-dirt-object">Building the DIRT Object</h2>
 <p>Now we will build a DIRT object to approximate the posterior density of the log-diffusion coefficient for the reduced-order model. We begin by defining functions which return the potential associated with the likelihood and prior.</p>
-<div id="20897a1b" class="cell" data-execution_count="8">
+<div id="30a8fa22" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> neglogpri(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Returns the negative log prior density evaluated a given set of </span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">    samples.</span></span>
@@ -599,27 +599,26 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> _negloglik(rom, xs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we specify a preconditioner. Because the prior of the coefficients <span class="math inline">\(\{\xi^{(i)}\}_{i=1}^{d}\)</span> is the standard Gaussian, the mapping between a Gaussian reference and the prior is simply the identity mapping. This is an appropriate choice of preconditioner in the absence of any other information.</p>
-<div id="0e787880" class="cell" data-execution_count="9">
+<div id="a61f24e6" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference()</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.IdentityMapping(prior.dim, reference)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we specify a polynomial basis.</p>
-<div id="d9f51550" class="cell" data-execution_count="10">
+<div id="29243200" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>poly <span class="op">=</span> dt.Legendre(order<span class="op">=</span><span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Finally, we can construct the DIRT object.</p>
-<div id="500852ef" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Reduce the initial and maximum tensor ranks to reduce the cost of </span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"># each layer</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(init_rank<span class="op">=</span><span class="dv">12</span>, max_rank<span class="op">=</span><span class="dv">12</span>)</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    negloglik_rom, </span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    neglogpri,</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    preconditioner,</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    poly, </span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    tt_options<span class="op">=</span>tt_options</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="1551107c" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Reduce the initial and maximum tensor ranks to reduce the cost of each layer</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(init_rank<span class="op">=</span><span class="dv">12</span>, max_rank<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    negloglik_rom, </span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    neglogpri,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    preconditioner,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    poly, </span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    tt_options<span class="op">=</span>tt_options</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="debiasing" class="level2">
@@ -629,7 +628,7 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <section id="mcmc-sampling" class="level3">
 <h3 class="anchored" data-anchor-id="mcmc-sampling">MCMC Sampling</h3>
 <p>First, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density.</p>
-<div id="a091d18e" class="cell" data-execution_count="13">
+<div id="a456cba8" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a set of samples from the DIRT density</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> dirt.reference.random(d<span class="op">=</span>dirt.dim, n<span class="op">=</span><span class="dv">5000</span>)</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>xs, potentials_dirt <span class="op">=</span> dirt.eval_irt(rs)</span>
@@ -649,7 +648,7 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <section id="importance-sampling" class="level3">
 <h3 class="anchored" data-anchor-id="importance-sampling">Importance Sampling</h3>
 <p>As an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation appropriately.</p>
-<div id="a4fbcc75" class="cell" data-execution_count="14">
+<div id="3977f219" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_importance_sampling(potentials_dirt, potentials_exact)</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"ESS: </span><span class="sc">{</span>res<span class="sc">.</span>ess<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">

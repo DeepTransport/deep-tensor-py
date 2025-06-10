@@ -854,17 +854,12 @@ window.Quarto = {
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Evaluates the conditional inverse Rosenblatt transport.</p>
 <p>Returns the conditional inverse Rosenblatt transport evaluated at a set of samples in the approximation domain.</p>
-<p>The conditional inverse Rosenblatt transport takes the form</p>
-<p><span class="math display">\[
-    X|Y = \mathcal{T}(\mathcal{R}_{k}(Y), R),
-\]</span></p>
-<p>where <span class="math inline">\(Y\)</span> is a <span class="math inline">\(k\)</span>-dimensional random variable, <span class="math inline">\(R\)</span> is a <span class="math inline">\(n-k\)</span>-dimensional reference random variable, <span class="math inline">\(\mathcal{R}(\,\cdot\,)\)</span> denotes the (full) Rosenblatt transport, <span class="math inline">\(\mathcal{T}(\,\cdot\,) := \mathcal{R}^{-1}(\,\cdot\,)\)</span>, denotes its inverse, and <span class="math inline">\(\mathcal{R}_{k}(\,\cdot\,)\)</span> denotes the Rosenblatt transport for the first (or last) <span class="math inline">\(k\)</span> variables.</p>
 <section id="parameters-5" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-5">Parameters</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>ys</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>A <span class="math inline">\(1 \times k\)</span> (if the same realisation of <span class="math inline">\(Y\)</span> is to be used for all samples in <code>rs</code>) or <span class="math inline">\(n \times k\)</span> matrix (if a different realisation of <span class="math inline">\(Y\)</span> is to be used for all samples in <code>rs</code>) containing samples from the approximation domain.</p>
+<p>A matrix containing samples from the approximation domain. The matrix should have dimensions <span class="math inline">\(1 \times k\)</span> (if the same realisation of <span class="math inline">\(Y\)</span> is to be used for all samples in <code>rs</code>) or <span class="math inline">\(n \times k\)</span> (if a different realisation of <span class="math inline">\(Y\)</span> is to be used for each samples in <code>rs</code>).</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>rs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
@@ -876,7 +871,7 @@ window.Quarto = {
 </dd>
 <dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
-<p>The number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.</p>
+<p>The number of layers of the DIRT object to use when evaluating the CIRT. If not specified, all layers will be used.</p>
 </dd>
 </dl>
 </section>
@@ -889,7 +884,7 @@ window.Quarto = {
 </dd>
 <dt><code><span class="parameter-name"><strong>neglogfxs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function of the approximation to the conditional density of <span class="math inline">\(X \textbar Y\)</span> evaluated at each sample in <code>rs</code>.</p>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function of the approximation to the conditional density of <span class="math inline">\(X \textbar Y\)</span> evaluated at each sample in <code>xs</code>.</p>
 </dd>
 </dl>
 </section>
