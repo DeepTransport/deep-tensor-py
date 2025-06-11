@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Callable
 
 import torch 
@@ -6,6 +5,7 @@ from torch import Tensor
 
 from ..irt import AbstractDIRT
 from ..references import GaussianReference
+from ..tools import estimate_iact
 
 
 class MarkovChain(object):
@@ -61,7 +61,6 @@ class MarkovChain(object):
         return
 
 
-@dataclass
 class MCMCResult(object):
     r"""An object containing a constructed Markov chain.
     
@@ -74,8 +73,14 @@ class MCMCResult(object):
         The acceptance rate of the sampler.
     
     """
-    xs: Tensor 
-    acceptance_rate: Tensor
+    def __init__(self, chain: MarkovChain):
+        self.xs = chain.xs
+        self.potentials = chain.potentials
+        self.acceptance_rate = chain.acceptance_rate
+        self.iacts = estimate_iact(chain.xs)
+        # import puwr
+        # print(2.0 * puwr.tauint(chain.potentials[None, None, :].numpy(), 0)[2])
+        return
 
 
 def _run_irt_pcn(
@@ -121,13 +126,13 @@ def _run_irt_pcn(
         if verbose and (i+1) % 100 == 0:
             chain.print_progress()
 
-    return MCMCResult(irt_func(chain.xs), chain.acceptance_rate)
+    return MCMCResult(chain)
 
 
 def run_dirt_pcn(
     potential: Callable[[Tensor], Tensor],
     dirt: AbstractDIRT,
-    n: float,
+    n: int,
     dt: float = 2.0,
     y_obs: Tensor | None = None,
     x0: Tensor | None = None,
@@ -144,9 +149,6 @@ def run_dirt_pcn(
 
     Note that the pCN proposal is only applicable to problems with a 
     Gaussian reference density.
-    
-    TODO: record IACT somewhere. Might need to use an external library 
-    for this one.
 
     Parameters
     ----------
@@ -313,4 +315,4 @@ def run_independence_sampler(
         else:
             chain.add_current_state()
     
-    return MCMCResult(chain.xs, chain.acceptance_rate)
+    return MCMCResult(chain)

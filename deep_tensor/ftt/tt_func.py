@@ -771,7 +771,7 @@ class AbstractTTFunc(object):
     ) -> Tuple[Tensor, Tensor, Tensor]:
 
         n_k = poly.cardinality
-        r_p = torch.tensor(U.shape[0] / n_k).round().int()
+        r_p = int(torch.tensor(U.shape[0] / n_k).round())
         
         nodes = poly.basis2node @ U.T.reshape(-1, n_k).T
         nodes = nodes.T.reshape(-1, n_k * r_p).T
@@ -1073,7 +1073,7 @@ class TTFunc(AbstractTTFunc):
         self.num_eval += ls.shape[0]
         return H
 
-    def _get_error_local(self, H: Tensor, k: Tensor) -> Tensor:
+    def _get_error_local(self, H: Tensor, k: int | Tensor) -> Tensor:
         """Returns the error between the current core and the tensor 
         formed by evaluating the target function at the current set of 
         interpolation points corresponding to the core.

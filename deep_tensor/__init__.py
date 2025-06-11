@@ -50,4 +50,4 @@ from .preconditioners import (
     UniformMapping
 )
 from .references import GaussianReference, UniformReference
-from .tools import compute_ess_ratio, compute_f_divergence
+from .tools import estimate_ess_ratio, compute_f_divergence

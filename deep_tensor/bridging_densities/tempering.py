@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 
 from .bridge import Bridge
-from ..tools import compute_ess_ratio, compute_f_divergence
+from ..tools import estimate_ess_ratio, compute_f_divergence
 
 
 class AbstractTempering(Bridge):
@@ -131,7 +131,7 @@ class Tempering(AbstractTempering):
         beta = self.min_beta
         while True:
             log_ratios = -beta*self.beta_factor*neglogliks
-            if compute_ess_ratio(log_ratios) < self.ess_tol:
+            if estimate_ess_ratio(log_ratios) < self.ess_tol:
                 beta = torch.minimum(torch.tensor(1.0), beta)
                 self.init_beta = beta
                 return
@@ -192,7 +192,7 @@ class Tempering(AbstractTempering):
                 neglogfxs_dirt
             )
             
-            if compute_ess_ratio(log_weights) < self.ess_tol:
+            if estimate_ess_ratio(log_weights) < self.ess_tol:
                 beta = torch.minimum(beta, torch.tensor(1.0))
                 self.betas = torch.cat((self.betas, beta.reshape(1)))
                 return
@@ -235,7 +235,7 @@ class Tempering(AbstractTempering):
         neglogfxs_dirt: Tensor
     ) -> List[str]:
 
-        ess = compute_ess_ratio(log_weights)
+        ess = estimate_ess_ratio(log_weights)
 
         msg = [
             f"Beta: {self.betas[self.n_layers]:.4f}", 

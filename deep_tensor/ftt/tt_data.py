@@ -9,11 +9,13 @@ class TTData():
 
     def __init__(
         self, 
-        direction: Direction | None = None,
+        direction: Direction = Direction.FORWARD,
         cores: dict[int, Tensor] | None = None
     ):
+        if cores is None:
+            cores = {}
         self.direction = direction
-        self.cores: dict[int, Tensor] = cores if cores is not None else {}
+        self.cores: dict[int, Tensor] = cores
         self.interp_ls: dict[int, Tensor] = {}
         self.res_x: dict[int, Tensor] = {}  # Residual coordinates for AMEN
         self.res_w: dict[int, Tensor] = {}  # Residual blocks for AMEN
