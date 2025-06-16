@@ -24,10 +24,6 @@ class Laguerre(Recurr):
     @property
     def constant_weight(self) -> bool:
         return False
-    
-    @property 
-    def nodes(self) -> Tensor:
-        return self._nodes
 
     @property
     def weights(self) -> Tensor:
@@ -42,7 +38,7 @@ class Laguerre(Recurr):
         return self.sample_measure(n)
     
     def sample_measure(self, n: int) -> Tensor:
-        return Exponential(rate=1.0).sample(n)
+        return Exponential(rate=1.0).sample((n,))
     
     def eval_measure(self, ls: Tensor) -> Tensor:
         return torch.exp(-ls)

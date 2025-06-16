@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch import Tensor
 
@@ -77,7 +79,7 @@ class Legendre(Recurr):
         return torch.zeros_like(ls)
 
     def eval_log_measure(self, ls: Tensor) -> Tensor:
-        return torch.full(ls.shape, torch.tensor(0.5).log())
+        return torch.full_like(ls, math.log(0.5))
         
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)

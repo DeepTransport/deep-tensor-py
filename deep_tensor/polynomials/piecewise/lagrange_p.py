@@ -184,15 +184,6 @@ class LagrangeP(Piecewise):
         self._int_W = value 
         return
     
-    @property 
-    def nodes(self) -> Tensor:
-        return self._nodes 
-
-    @nodes.setter 
-    def nodes(self, value: Tensor) -> None:
-        self._nodes = value 
-        return
-    
     @property
     def cardinality(self):
         return self.nodes.numel()

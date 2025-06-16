@@ -52,19 +52,10 @@ class Chebyshev1st(Spectral):
 
         self.norm = torch.hstack((
             torch.tensor([1.0]), 
-            torch.full((self.order,), torch.tensor(2.0).sqrt())
+            torch.full((self.order,), 2.0**0.5)
         ))
 
         self.__post_init__()
-        return
-    
-    @property 
-    def nodes(self) -> Tensor:
-        return self._nodes
-    
-    @nodes.setter
-    def nodes(self, value: Tensor) -> None:
-        self._nodes = value 
         return
     
     @property 
@@ -88,7 +79,7 @@ class Chebyshev1st(Spectral):
         self._check_in_domain(ls)
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
-        return 1.0 / (torch.pi * ts.sqrt())
+        return 1.0 / (torch.pi * ts**0.5)
     
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)

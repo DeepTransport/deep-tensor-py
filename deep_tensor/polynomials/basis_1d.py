@@ -14,13 +14,14 @@ class Basis1D(abc.ABC, object):
         """The (local) domain of the basis."""
         pass
 
-    @property
-    @abc.abstractmethod
+    @property 
     def nodes(self) -> Tensor:
-        """The nodes associated with the basis. For spectral 
-        polynomials, these are the collocation points.
-        """
-        pass
+        return self._nodes 
+
+    @nodes.setter 
+    def nodes(self, value: Tensor) -> None:
+        self._nodes = value 
+        return
 
     @property
     @abc.abstractmethod
@@ -37,7 +38,7 @@ class Basis1D(abc.ABC, object):
         inner products of each pair of basis functions over the 
         local domain.
         """
-        return 
+        pass 
     
     @property 
     @abc.abstractmethod
@@ -46,7 +47,7 @@ class Basis1D(abc.ABC, object):
         returns the values of the integrated function at each 
         collocation point.
         """
-        return
+        pass
 
     @abc.abstractmethod
     def eval_basis(self, ls: Tensor) -> Tensor:
@@ -68,7 +69,7 @@ class Basis1D(abc.ABC, object):
             element of ls.
         
         """
-        return
+        pass
     
     @abc.abstractmethod
     def eval_basis_deriv(self, ls: Tensor) -> Tensor:
@@ -90,7 +91,7 @@ class Basis1D(abc.ABC, object):
             ith element of ls.
 
         """
-        return 
+        pass 
     
     @abc.abstractmethod
     def eval_measure(self, ls: Tensor) -> Tensor:
@@ -110,7 +111,7 @@ class Basis1D(abc.ABC, object):
             weighting function evaluated at each point in ls.
                 
         """
-        return
+        pass
     
     @abc.abstractmethod
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
@@ -131,7 +132,7 @@ class Basis1D(abc.ABC, object):
             in ls.
 
         """
-        return
+        pass
     
     @abc.abstractmethod 
     def eval_log_measure(self, ls: Tensor) -> Tensor:
@@ -152,7 +153,7 @@ class Basis1D(abc.ABC, object):
             in ls.
         
         """
-        return 
+        pass 
 
     @abc.abstractmethod
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
@@ -174,7 +175,7 @@ class Basis1D(abc.ABC, object):
             in ls.
         
         """
-        return
+        pass
 
     @abc.abstractmethod
     def sample_measure(self, n: int) -> Tensor:
@@ -192,12 +193,12 @@ class Basis1D(abc.ABC, object):
             An n-dimensional vector containing the generated samples.
         
         """
-        return
+        pass
 
     @property
     def has_bounded_domain(self) -> bool:
         """Whether the domain of the basis is bounded."""
-        return self.domain.isinf().any()
+        return bool(self.domain.isinf().any())
 
     @property
     def n_nodes(self) -> int:
@@ -215,7 +216,7 @@ class Basis1D(abc.ABC, object):
         """
         return (ls < self.domain[0]) | (ls > self.domain[1])
     
-    def _check_in_domain(self, ls: Tensor) -> Tensor:
+    def _check_in_domain(self, ls: Tensor) -> None:
         """Checks whether a set of points are inside the domain, and 
         issues a warning if not.
         """

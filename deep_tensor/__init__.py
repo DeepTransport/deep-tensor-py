@@ -9,11 +9,6 @@ from .debiasing import (
     run_importance_sampling, 
     run_independence_sampler
 )
-from .density_estimators import (
-    EmpiricalMarginals, 
-    GaussianKDE, 
-    HistogramEstimator
-)
 from .domains import (
     AlgebraicMapping, 
     BoundedDomain, 
@@ -29,7 +24,6 @@ from .polynomials import (
     Chebyshev1stTrigoCDF,
     Chebyshev2nd,
     Chebyshev2ndTrigoCDF,
-    CubicHermite,
     Fourier,
     Hermite,
     Lagrange1, 

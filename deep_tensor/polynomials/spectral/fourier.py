@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch import Tensor
 
@@ -65,15 +67,6 @@ class Fourier(Spectral):
     def constant_weight(self) -> bool:
         return True
     
-    @property 
-    def nodes(self) -> Tensor:
-        return self._nodes
-    
-    @nodes.setter 
-    def nodes(self, value: Tensor) -> None:
-        self._nodes = value 
-        return
-
     @property
     def weights(self) -> Tensor:
         return self._weights
@@ -93,7 +86,7 @@ class Fourier(Spectral):
         return torch.full(ls.shape, 0.5)
     
     def eval_log_measure(self, ls: Tensor) -> Tensor:
-        return torch.full(ls.shape, torch.tensor(0.5).log())
+        return torch.full(ls.shape, math.log(0.5))
     
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)

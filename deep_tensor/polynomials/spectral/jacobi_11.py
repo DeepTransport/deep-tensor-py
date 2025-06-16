@@ -17,10 +17,6 @@ class Jacobi11(Recurr):
         return
     
     @property
-    def nodes(self) -> Tensor:
-        return self._nodes
-    
-    @property
     def weights(self) -> Tensor:
         return self._weights
 
@@ -34,7 +30,7 @@ class Jacobi11(Recurr):
     
     def sample_measure(self, n: int) -> Tensor:
         beta = Beta(2.0, 2.0)
-        ls = beta.sample(n)
+        ls = beta.sample((n,))
         ls = (2.0 * ls) - 1.0
         return ls
     

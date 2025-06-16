@@ -61,7 +61,7 @@ class ApproxBases():
     def local2approx(
         self, 
         ls: Tensor, 
-        indices: Tensor|None = None
+        indices: Tensor | None = None
     ) -> tuple[Tensor, Tensor]:
         """Maps a set of samples drawn distributed in (a subset of) the 
         local domain to the approximation domain.
@@ -101,7 +101,7 @@ class ApproxBases():
     def approx2local(
         self, 
         xs: Tensor, 
-        indices: Tensor|None = None
+        indices: Tensor | None = None
     ) -> Tuple[Tensor, Tensor]:
         """Maps a set of samples from (a subset of) the approximation 
         domain to the local domain.
@@ -142,7 +142,7 @@ class ApproxBases():
     def local2approx_log_density(
         self,
         ls: Tensor,
-        indices: Tensor|None = None
+        indices: Tensor | None = None
     ) -> Tuple[Tensor, Tensor]:
         """Computes the logarithm of the gradient, and derivative of 
         the gradient, of the transformation of a set of samples from 
@@ -183,7 +183,7 @@ class ApproxBases():
     def approx2local_log_density(
         self,
         xs: Tensor,
-        indices: Tensor|None = None
+        indices: Tensor | None = None
     ) -> Tuple[Tensor, Tensor]:
         """Computes the logarithm of the gradient, and derivative of 
         the gradient, of the transformation of a set of samples from 
@@ -254,7 +254,7 @@ class ApproxBases():
     def eval_measure_potential_local(
         self, 
         ls: Tensor, 
-        indices: Tensor|None = None
+        indices: Tensor | None = None
     ) -> Tensor:
         """Computes the negative logarithm of the weighting function 
         associated with (a subset of) the basis functions (defined in 
@@ -291,7 +291,7 @@ class ApproxBases():
     def eval_measure_potential_local_grad(
         self, 
         ls: Tensor,
-        indices: Tensor|None = None
+        indices: Tensor | None = None
     ):
         """Computes the gradient of the negative logarithm of the 
         weighting functions of (a subset of) the basis functions for a 
@@ -354,7 +354,7 @@ class ApproxBases():
     def eval_measure_potential(
         self, 
         xs: Tensor, 
-        indices: Tensor|None = None
+        indices: Tensor | None = None
     ) -> Tuple[Tensor, Tensor]:
         """Computes the target potential function and its gradient for 
         a set of samples from the approximation domain.

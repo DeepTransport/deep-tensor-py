@@ -52,15 +52,6 @@ class Chebyshev2nd(Spectral):
         return
     
     @property 
-    def nodes(self) -> Tensor:
-        return self._nodes
-    
-    @nodes.setter 
-    def nodes(self, value: Tensor) -> None:
-        self._nodes = value 
-        return
-    
-    @property 
     def domain(self) -> Tensor:
         return torch.tensor([-1.0, 1.0])
     
@@ -78,7 +69,7 @@ class Chebyshev2nd(Spectral):
         return False
     
     def sample_measure(self, n: int) -> Tensor:
-        ls = Beta(1.5, 1.5).sample(n)
+        ls = Beta(1.5, 1.5).sample((n,))
         return ls
     
     def sample_measure_skip(self, n: int) -> Tensor:

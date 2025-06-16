@@ -19,7 +19,7 @@ class SpectralCDF(CDF1D, abc.ABC):
     @property 
     @abc.abstractmethod 
     def node2basis(self) -> Tensor:
-        return
+        pass
 
     @abc.abstractmethod
     def grid_measure(self, n: int) -> Tensor:
@@ -37,7 +37,7 @@ class SpectralCDF(CDF1D, abc.ABC):
             The discretised domain.
         
         """
-        return
+        pass
 
     @abc.abstractmethod
     def eval_int_basis(self, ls: Tensor) -> Tensor:
@@ -60,7 +60,7 @@ class SpectralCDF(CDF1D, abc.ABC):
             single value of ls.
 
         """
-        return
+        pass
         
     @abc.abstractmethod
     def eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
@@ -85,7 +85,7 @@ class SpectralCDF(CDF1D, abc.ABC):
             ls.
         
         """
-        return
+        pass
     
     def get_left_inds(
         self, 

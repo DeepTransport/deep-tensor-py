@@ -44,7 +44,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
             evaluated at each element of ls.
         
         """
-        return
+        pass
 
     @abc.abstractmethod
     def eval_int_elem_deriv(
@@ -79,7 +79,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
             derivative of the CDF evaluated at each element of ls.
         
         """
-        return
+        pass
         
     @abc.abstractmethod
     def pdf2cdf(self, ps: Tensor) -> CDFData:
@@ -102,7 +102,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
             current basis.
 
         """
-        return
+        pass
         
     def eval_int(self, cdf_data: CDFData, ls: Tensor) -> Tensor:
 

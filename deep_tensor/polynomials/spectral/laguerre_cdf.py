@@ -21,7 +21,7 @@ class LaguerreCDF(Laguerre, SpectralCDF):
     
     def eval_int_basis(self, ls: Tensor) -> Tensor:
         ps = self.eval_basis(ls)
-        ws = self.eval_measure(self, ls)
+        ws = self.eval_measure(ls)
         ts = ps[:, :-1].cumsum(dim=1)
         ps[:, 0] = -ws
         ps[:, 1:] = (ts * (ws * ls)[:, None]) / torch.arange(1, self.order+1)

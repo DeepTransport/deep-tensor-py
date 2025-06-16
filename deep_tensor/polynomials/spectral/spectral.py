@@ -27,7 +27,7 @@ class Spectral(Basis1D, abc.ABC):
     def weights(self) -> Tensor:
         """The collocation weights.
         """
-        return
+        pass
 
     @property 
     def basis2node(self) -> Tensor:

@@ -16,7 +16,7 @@ class CDF1D(abc.ABC):
     def __init__(
         self, 
         error_tol: float = 1e-10, 
-        num_newton: int = 10,
+        num_newton: int = 100,
         num_regula_falsi: int = 100
     ):
         self.error_tol = error_tol
@@ -25,10 +25,13 @@ class CDF1D(abc.ABC):
         return
     
     @property 
-    @abc.abstractmethod 
-    def nodes(self) -> Tensor: 
-        """The nodes associated with the CDF."""
-        return 
+    def nodes(self) -> Tensor:
+        return self._nodes 
+
+    @nodes.setter 
+    def nodes(self, value: Tensor) -> None:
+        self._nodes = value 
+        return
     
     @property 
     @abc.abstractmethod 
@@ -36,7 +39,7 @@ class CDF1D(abc.ABC):
         """The number of nodes associated with the polynomial basis of
         the CDF.
         """
-        return
+        pass
     
     @property
     @abc.abstractmethod
@@ -44,7 +47,7 @@ class CDF1D(abc.ABC):
         """The domain on which polynomials used to form the CDF are 
         defined.
         """
-        return 
+        pass 
 
     @abc.abstractmethod
     def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
@@ -76,7 +79,7 @@ class CDF1D(abc.ABC):
             the CDF at each point in zs.
 
         """
-        return
+        pass
         
     @abc.abstractmethod
     def eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
@@ -105,7 +108,7 @@ class CDF1D(abc.ABC):
             corresponding to each value of ls.
         
         """
-        return
+        pass
     
     @abc.abstractmethod
     def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
@@ -140,7 +143,7 @@ class CDF1D(abc.ABC):
         used.
 
         """
-        return
+        pass
     
     @staticmethod
     def check_pdf_positive(ps: Tensor) -> None:
@@ -256,7 +259,7 @@ class CDF1D(abc.ABC):
         """
         error_fs = fs.abs()
         error_dls = dls.abs()
-        return torch.min(error_fs, error_dls).max() < self.error_tol
+        return float(torch.min(error_fs, error_dls).max()) < self.error_tol
     
     def print_unconverged(self, fs: Tensor, dls: Tensor, method: str) -> None:
         

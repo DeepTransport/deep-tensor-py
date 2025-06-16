@@ -36,12 +36,12 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         PiecewiseCDF.__init__(self, **kwargs)
         
         dl = self.elem_size / 2.0
-        num_nodes = 2 * self.num_elems + 1
-        self.nodes = torch.linspace(*self.domain, num_nodes)
+        n_nodes = 2 * self.num_elems + 1
+        self.nodes = torch.linspace(*self.domain, n_nodes)
 
         ii = torch.tensor([[3*i, 3*i+1, 3*i+2] for i in range(self.num_elems)]).flatten()
         jj = torch.tensor([[2*i, 2*i+1, 2*i+2] for i in range(self.num_elems)]).flatten()
-        self.node2elem = torch.zeros((3*self.num_elems, num_nodes))
+        self.node2elem = torch.zeros((3*self.num_elems, n_nodes))
         self.node2elem[ii, jj] = 1.0
 
         self.V_inv = torch.tensor([
@@ -50,15 +50,6 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
             [0.5/(dl**2), -1.0/(dl**2), 0.5/(dl**2)]
         ])
 
-        return
-
-    @property 
-    def nodes(self) -> Tensor:
-        return self._nodes
-    
-    @nodes.setter
-    def nodes(self, value: Tensor) -> None:
-        self._nodes = value 
         return
     
     @property

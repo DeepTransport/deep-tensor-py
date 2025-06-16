@@ -1106,10 +1106,10 @@ class TTFunc(AbstractTTFunc):
         max_iters = cross_iter == self.options.max_als
         max_error_tol = torch.max(self.errors[indices]) < self.options.als_tol
         l2_error_tol = self.l2_err < self.options.als_tol
-        return max_iters or max_error_tol or l2_error_tol
+        return bool(max_iters or max_error_tol or l2_error_tol)
 
     def _compute_cross_block_fixed(self, k: Tensor) -> None:
-                    
+        
         ls_left = self.tt_data.interp_ls[int(k-1)]
         ls_right = self.tt_data.interp_ls[int(k+1)]
         
@@ -1119,7 +1119,7 @@ class TTFunc(AbstractTTFunc):
         return
     
     def _compute_cross_block_random(self, k: Tensor) -> None:
-            
+        
         ls_left = self.tt_data.interp_ls[int(k-1)].clone()
         ls_right = self.tt_data.interp_ls[int(k+1)].clone()
         enrich = self.input_data.get_samples(self.options.kick_rank)

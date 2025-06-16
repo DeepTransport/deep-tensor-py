@@ -79,7 +79,7 @@ class MCMCResult(object):
         self.acceptance_rate = chain.acceptance_rate
         self.iacts = estimate_iact(chain.xs)
         # import puwr
-        # print(2.0 * puwr.tauint(chain.potentials[None, None, :].numpy(), 0)[2])
+        # print(2.0 * puwr.tauint(chain.xs.T[:, None, :].numpy(), 0)[2])
         return
 
 
