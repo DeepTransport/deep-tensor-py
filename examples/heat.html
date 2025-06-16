@@ -394,6 +394,12 @@ window.Quarto = {
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../examples/shock.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Shock Absorber</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../examples/heat.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Heat Equation</span></a>
   </div>
@@ -416,11 +422,7 @@ window.Quarto = {
   <li><a href="#implementation-in-textttdeep_tensor" id="toc-implementation-in-textttdeep_tensor" class="nav-link" data-scroll-target="#implementation-in-textttdeep_tensor">Implementation in <span class="math inline">\(\texttt{deep\_tensor}\)</span></a>
   <ul class="collapse">
   <li><a href="#building-the-dirt-object" id="toc-building-the-dirt-object" class="nav-link" data-scroll-target="#building-the-dirt-object">Building the DIRT Object</a></li>
-  <li><a href="#debiasing" id="toc-debiasing" class="nav-link" data-scroll-target="#debiasing">Debiasing</a>
-  <ul class="collapse">
-  <li><a href="#mcmc-sampling" id="toc-mcmc-sampling" class="nav-link" data-scroll-target="#mcmc-sampling">MCMC Sampling</a></li>
-  <li><a href="#importance-sampling" id="toc-importance-sampling" class="nav-link" data-scroll-target="#importance-sampling">Importance Sampling</a></li>
-  </ul></li>
+  <li><a href="#debiasing" id="toc-debiasing" class="nav-link" data-scroll-target="#debiasing">Debiasing</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -484,23 +486,23 @@ window.Quarto = {
 <section id="implementation-in-textttdeep_tensor" class="level1">
 <h1>Implementation in <span class="math inline">\(\texttt{deep\_tensor}\)</span></h1>
 <p>We will now use <span class="math inline">\(\texttt{deep\_tensor}\)</span> to construct a DIRT approximation to the posterior. To accelerate this process, we will use a reduced order model in place of the full model. Then, we will illustrate some debiasing techniques which use the DIRT approximation to the posterior, in combination with the full model, to accelerate the process of drawing exact posterior samples.</p>
-<div id="bc0e66d9" class="cell" data-execution_count="1">
+<div id="ca90de4f" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.heat <span class="im">import</span> setup_heat_problem</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We begin by defining the prior, (full) model and reduced order model.</p>
 <p>The full model is implemented in <a href="https://fenicsproject.org/download/archive/">FEniCS</a>, on a <span class="math inline">\(96 \times 32\)</span> grid, using piecwise linear basis functions. Timestepping is done using the backward Euler method. The reduced order model is constructed using the proper orthogonal decomposition <span class="citation" data-cites="Benner2015">(see, <em>e.g.</em>, <a href="#ref-Benner2015" role="doc-biblioref">Benner, Gugercin, and Willcox 2015</a>)</span>.</p>
-<div id="624be0a2" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> models.heat <span class="im">import</span> setup_heat_problem</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Construct the prior, full model and reduced order model</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>prior, model, rom <span class="op">=</span> setup_heat_problem()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="aefaf31c" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Construct the prior, full model and reduced order model</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>prior, model_full, model_rom <span class="op">=</span> setup_heat_problem()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we will generate the true log-diffusion coefficient using a sample from the prior. The true log-diffusion coefficient is plotted in <a href="#fig-ktrue" class="quarto-xref">Figure&nbsp;1</a>.</p>
-<div id="2ab4c3c2" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>xi_true <span class="op">=</span> torch.randn((prior.dim,))</span>
+<div id="a08c9d50" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>xi_true <span class="op">=</span> torch.randn(prior.dim)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>logk_true <span class="op">=</span> prior.transform(xi_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div id="cell-fig-ktrue" class="cell" data-execution_count="5">
@@ -508,7 +510,7 @@ window.Quarto = {
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="fl">6.0</span>, <span class="fl">2.0</span>))</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>cbar_label <span class="op">=</span> <span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">log</span><span class="kw">(</span><span class="er">\</span><span class="vs">kappa</span><span class="kw">(</span><span class="dv">\b</span><span class="vs">m{x}</span><span class="kw">))</span><span class="dv">$</span><span class="vs">"</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>plot_dl_function(fig, ax, model.vec2func(logk_true), cbar_label)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>plot_dl_function(fig, ax, model_full.vec2func(logk_true), cbar_label)</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>ax.scatter(<span class="op">*</span>prior.ss.T, s<span class="op">=</span><span class="dv">16</span>, c<span class="op">=</span><span class="st">"k"</span>, marker<span class="op">=</span><span class="st">"x"</span>)</span>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">x_</span><span class="op">{0}</span><span class="dv">$</span><span class="vs">"</span>)</span>
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">x_</span><span class="op">{1}</span><span class="dv">$</span><span class="vs">"</span>)</span>
@@ -518,7 +520,7 @@ window.Quarto = {
 <div id="fig-ktrue" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-ktrue-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="heat_files/figure-html/fig-ktrue-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="523" height="192">
+<img src="heat_files/figure-html/fig-ktrue-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="535" height="192">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ktrue-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1: The true log-diffusion coefficient, <span class="math inline">\(\log(\kappa(\boldsymbol{x}))\)</span>, and the centres of the kernel functions of the process convolution prior (black crosses).
@@ -528,9 +530,9 @@ Figure&nbsp;1: The true log-diffusion coefficient, <span class="math inline">\(\
 </div>
 </div>
 <p>Next, we will solve the (full) model to obtain the modelled temperatures corresponding to the true diffusion coefficient, and use these to generate some synthetic data. <a href="#fig-utrue" class="quarto-xref">Figure&nbsp;2</a> shows the true temperature field at time <span class="math inline">\(T=10\)</span>, as well as the observation locations.</p>
-<div id="19af3e66" class="cell" data-execution_count="6">
+<div id="442eb892" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate true temperature field</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>u_true <span class="op">=</span> model.solve(logk_true)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>u_true <span class="op">=</span> model_full.solve(logk_true)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Specify magnitude of observation noise</span></span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>std_error <span class="op">=</span> <span class="fl">1.65e-2</span></span>
@@ -538,7 +540,7 @@ Figure&nbsp;1: The true log-diffusion coefficient, <span class="math inline">\(\
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract true temperatures at the observation locations and add </span></span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co"># observation noise</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>d_obs <span class="op">=</span> model.observe(u_true)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>d_obs <span class="op">=</span> model_full.observe(u_true)</span>
 <span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>noise <span class="op">=</span> std_error <span class="op">*</span> torch.randn_like(d_obs)</span>
 <span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>d_obs <span class="op">+=</span> noise</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -547,8 +549,8 @@ Figure&nbsp;1: The true log-diffusion coefficient, <span class="math inline">\(\
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="fl">6.0</span>, <span class="fl">2.0</span>))</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>cbar_label <span class="op">=</span> <span class="vs">r"</span><span class="dv">$</span><span class="vs">u</span><span class="kw">(</span><span class="dv">\b</span><span class="vs">m{x}, 10</span><span class="kw">)</span><span class="dv">$</span><span class="vs">"</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>plot_dl_function(fig, ax, model.vec2func(u_true[:, <span class="op">-</span><span class="dv">1</span>]), cbar_label, vmin<span class="op">=-</span><span class="fl">0.15</span>, vmax<span class="op">=</span><span class="fl">0.1</span>)</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>ax.scatter(<span class="op">*</span>model.xs_obs.T, s<span class="op">=</span><span class="dv">16</span>, c<span class="op">=</span><span class="st">"k"</span>, marker<span class="op">=</span><span class="st">"."</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>plot_dl_function(fig, ax, model_full.vec2func(u_true[:, <span class="op">-</span><span class="dv">1</span>]), cbar_label, vmin<span class="op">=-</span><span class="fl">0.15</span>, vmax<span class="op">=</span><span class="fl">0.1</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>ax.scatter(<span class="op">*</span>model_full.xs_obs.T, s<span class="op">=</span><span class="dv">16</span>, c<span class="op">=</span><span class="st">"k"</span>, marker<span class="op">=</span><span class="st">"."</span>)</span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">x_</span><span class="op">{0}</span><span class="dv">$</span><span class="vs">"</span>)</span>
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">x_</span><span class="op">{1}</span><span class="dv">$</span><span class="vs">"</span>)</span>
 <span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -557,7 +559,7 @@ Figure&nbsp;1: The true log-diffusion coefficient, <span class="math inline">\(\
 <div id="fig-utrue" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-utrue-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="heat_files/figure-html/fig-utrue-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="535" height="192">
+<img src="heat_files/figure-html/fig-utrue-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="544" height="192">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-utrue-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;2: The true final temperature distribution, <span class="math inline">\(u(\boldsymbol{x}, 10)\)</span>, and the observation locations (black dots).
@@ -568,8 +570,8 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 </div>
 <section id="building-the-dirt-object" class="level2">
 <h2 class="anchored" data-anchor-id="building-the-dirt-object">Building the DIRT Object</h2>
-<p>Now we will build a DIRT object to approximate the posterior density of the log-diffusion coefficient for the reduced-order model. We begin by defining functions which return the potential associated with the likelihood and prior.</p>
-<div id="30a8fa22" class="cell" data-execution_count="8">
+<p>Now we will build a DIRT object to approximate the posterior density of the coefficients, <span class="math inline">\(\{\xi^{(i)}\}_{i=1}^{d}\)</span>, used to parametrise the log-diffusion coefficient, for the reduced-order model. We begin by defining functions which return the potential associated with the likelihood and prior.</p>
+<div id="90e2aa2f" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> neglogpri(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Returns the negative log prior density evaluated a given set of </span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">    samples.</span></span>
@@ -588,27 +590,27 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>        neglogliks[i] <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> (d <span class="op">-</span> d_obs).square().<span class="bu">sum</span>() <span class="op">/</span> var_error</span>
 <span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> neglogliks</span>
 <span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> negloglik(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> negloglik_full(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
 <span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Returns the negative log-likelihood for the full model (to be </span></span>
 <span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="co">    used later).</span></span>
 <span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> _negloglik(model, xs)</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> _negloglik(model_full, xs)</span>
 <span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> negloglik_rom(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
 <span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Returns the negative log-likelihood for the reduced-order model."""</span></span>
-<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> _negloglik(rom, xs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> _negloglik(model_rom, xs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we specify a preconditioner. Because the prior of the coefficients <span class="math inline">\(\{\xi^{(i)}\}_{i=1}^{d}\)</span> is the standard Gaussian, the mapping between a Gaussian reference and the prior is simply the identity mapping. This is an appropriate choice of preconditioner in the absence of any other information.</p>
-<div id="a61f24e6" class="cell" data-execution_count="9">
+<div id="2a244df1" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference()</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.IdentityMapping(prior.dim, reference)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we specify a polynomial basis.</p>
-<div id="29243200" class="cell" data-execution_count="10">
+<div id="ecb87656" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>poly <span class="op">=</span> dt.Legendre(order<span class="op">=</span><span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Finally, we can construct the DIRT object.</p>
-<div id="1551107c" class="cell" data-execution_count="11">
+<div id="a92720d5" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Reduce the initial and maximum tensor ranks to reduce the cost of each layer</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(init_rank<span class="op">=</span><span class="dv">12</span>, max_rank<span class="op">=</span><span class="dv">12</span>)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -623,43 +625,94 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 </section>
 <section id="debiasing" class="level2">
 <h2 class="anchored" data-anchor-id="debiasing">Debiasing</h2>
-<p>We could use the DIRT object directly as an approximation to the target posterior. However, it is also possible to use the DIRT object to accelerate exact inference with the full model.</p>
-<p>We will illustrate two possibilities to remove the bias from the inference results obtained using DIRT; using the DIRT density as part of a Markov chain Monte Carlo (MCMC) sampler, or as a proposal density for importance sampling.</p>
-<section id="mcmc-sampling" class="level3">
-<h3 class="anchored" data-anchor-id="mcmc-sampling">MCMC Sampling</h3>
-<p>First, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density.</p>
-<div id="a456cba8" class="cell" data-execution_count="13">
+<p>We will now use the DIRT density as the proposal density for an independence MCMC sampler. This will allow us to sample exactly from the posterior associated with the full model.</p>
+<div id="215ae02c" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a set of samples from the DIRT density</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> dirt.reference.random(d<span class="op">=</span>dirt.dim, n<span class="op">=</span><span class="dv">5000</span>)</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>xs, potentials_dirt <span class="op">=</span> dirt.eval_irt(rs)</span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate the true potential function (for the full model) at each sample</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>potentials_exact <span class="op">=</span> neglogpri(xs) <span class="op">+</span> negloglik(xs)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>potentials_exact <span class="op">=</span> neglogpri(xs) <span class="op">+</span> negloglik_full(xs)</span>
 <span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Run independence sampler</span></span>
 <span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_independence_sampler(xs, potentials_dirt, potentials_exact)</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Acceptance rate: </span><span class="sc">{</span>res<span class="sc">.</span>acceptance_rate<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Acceptance rate: </span><span class="sc">{</span>res<span class="sc">.</span>acceptance_rate<span class="sc">:.2f}</span><span class="ss">"</span>)</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Mean IACT (all parameters): </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span>mean()<span class="sc">:.2f}</span><span class="ss">"</span>)</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Maximum IACT (all parameters): </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Acceptance rate: 0.8420</code></pre>
+<pre><code>Acceptance rate: 0.84
+Mean IACT (all parameters): 1.47
+Maximum IACT (all parameters): 1.75</code></pre>
 </div>
 </div>
-<p>The acceptance rate is quite high, which suggests that the DIRT density is a good approximation to the true posterior.</p>
-</section>
-<section id="importance-sampling" class="level3">
-<h3 class="anchored" data-anchor-id="importance-sampling">Importance Sampling</h3>
-<p>As an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation appropriately.</p>
-<div id="3977f219" class="cell" data-execution_count="14">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_importance_sampling(potentials_dirt, potentials_exact)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"ESS: </span><span class="sc">{</span>res<span class="sc">.</span>ess<span class="sc">:.4f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>ESS: 4600.3042</code></pre>
+<p>For all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently. <a href="#fig-traces" class="quarto-xref">Figure&nbsp;3</a> shows trace plots for the log-posterior density and selected parameters, which reinforces this idea.</p>
+<div id="cell-fig-traces" class="cell" data-execution_count="14">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>parameters <span class="op">=</span> torch.hstack((res.potentials[:, <span class="va">None</span>], res.xs[:, <span class="dv">21</span>:<span class="dv">23</span>]))</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>ylabels <span class="op">=</span> [<span class="vs">r"</span><span class="dv">$</span><span class="vs">-</span><span class="er">\</span><span class="vs">log</span><span class="kw">(</span><span class="vs">f</span><span class="kw">(</span><span class="vs">x</span><span class="kw">))</span><span class="dv">$</span><span class="vs">"</span>, <span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">xi_</span><span class="op">{22}</span><span class="dv">$</span><span class="vs">"</span>, <span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">xi_</span><span class="op">{23}</span><span class="dv">$</span><span class="vs">"</span>]</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="fl">7.5</span>, <span class="dv">3</span>))</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, ax <span class="kw">in</span> <span class="bu">enumerate</span>(axes):</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    ax.plot(parameters[:, i], c<span class="op">=</span><span class="st">"tab:green"</span>, lw<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(ylabels[i])</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    ax.set_box_aspect(<span class="dv">1</span>)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    add_arrows(ax)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_xlabel(<span class="st">"Iteration"</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-traces" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-traces-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="heat_files/figure-html/fig-traces-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="720" height="235">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-traces-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Trace plots for the negative log-posterior density (left), and coefficients <span class="math inline">\(\xi_{22}\)</span> (centre) and <span class="math inline">\(\xi_{23}\)</span> (right).
+</figcaption>
+</figure>
 </div>
 </div>
-<p>As expected, the effective sample size (ESS) is quite high.</p>
+</div>
+<p>Finally, <a href="#fig-pairs" class="quarto-xref">Figure&nbsp;4</a> shows a set of prior and posterior samples for four selected coefficients. It is evident that the posterior is significantly different to the prior.</p>
+<div id="cell-fig-pairs" class="cell" data-execution_count="15">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>xs_pri <span class="op">=</span> dirt.reference.random(d<span class="op">=</span>dirt.dim, n<span class="op">=</span><span class="dv">1000</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>xs_post <span class="op">=</span> res.xs[::<span class="dv">10</span>]</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">xi_{"</span><span class="op">+</span><span class="ss">f"</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">"</span><span class="op">+</span><span class="vs">r"}</span><span class="dv">$</span><span class="vs">"</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">22</span>, <span class="dv">25</span>)]</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> torch.tensor([[<span class="op">-</span><span class="fl">4.0</span>, <span class="fl">4.0</span>], [<span class="op">-</span><span class="fl">4.0</span>, <span class="fl">4.0</span>], [<span class="op">-</span><span class="fl">4.0</span>, <span class="fl">4.0</span>]])</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>pairplot(</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    xs_post[:, <span class="dv">21</span>:<span class="dv">24</span>], </span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    xs_pri[:, <span class="dv">21</span>:<span class="dv">24</span>], </span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    truth<span class="op">=</span>xi_true[<span class="dv">21</span>:<span class="dv">24</span>],</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    labels<span class="op">=</span>labels, </span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    x_label<span class="op">=</span><span class="st">"Posterior"</span>,</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    y_label<span class="op">=</span><span class="st">"Prior"</span>, </span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    bounds<span class="op">=</span>bounds</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display">
+<div id="fig-pairs" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-pairs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="heat_files/figure-html/fig-pairs-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="578" height="578">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pairs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: A pair plot showing 1000 samples from the prior and posterior of three selected coefficients, as well as the true values.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
 
 
 
-</section>
 </section>
 </section>
 
