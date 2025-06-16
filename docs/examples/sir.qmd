@@ -31,23 +31,25 @@ To solve this inference problem using $\mathtt{deep\_tensor}$, we begin by impor
 
 ```{python}
 
+import math
 from matplotlib import pyplot as plt
 import torch
 
 import deep_tensor as dt
 
-from models import SIRModel
+from examples.sir import SIRModel
 model = SIRModel()
 
 ```
 
 ```{python}
 #| echo: false
-#| output: false
 
-from plotting import add_arrows
-plt.style.use("plotstyle.mplstyle")
+import os
+from examples.plotting import add_arrows
+
 torch.manual_seed(1)
+plt.style.use(os.sep.join(["..", "..", "examples", "plotstyle.mplstyle"]))
 
 ```
 
@@ -81,7 +83,7 @@ def negloglik(xs: torch.Tensor) -> torch.Tensor:
     return 0.5 * (ys - ys_obs).square().sum(dim=1)
 
 def neglogpri(xs: torch.Tensor) -> torch.Tensor:
-    neglogpris = torch.full((xs.shape[0],), -torch.tensor(0.25).log())
+    neglogpris = torch.full((xs.shape[0],), -math.log(0.25))
     neglogpris[xs[:, 0] < 0.0] = torch.inf 
     neglogpris[xs[:, 1] > 2.0] = torch.inf
     return neglogpris

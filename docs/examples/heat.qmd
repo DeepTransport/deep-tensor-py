@@ -62,15 +62,19 @@ import torch
 
 import deep_tensor as dt
 
+from examples.heat import setup_heat_problem
+
 ```
 
 ```{python}
 #| echo: false
 #| output: false
 
-plt.style.use("plotstyle.mplstyle")
+import os
+from examples.plotting import add_arrows, plot_dl_function, pairplot
+
 torch.manual_seed(1)
-from plotting import plot_dl_function
+plt.style.use(os.sep.join(["..", "..", "examples", "plotstyle.mplstyle"]))
 
 ```
 
@@ -81,10 +85,8 @@ The full model is implemented in [FEniCS](https://fenicsproject.org/download/arc
 ```{python}
 #| output: false
 
-from models.heat import setup_heat_problem
-
 # Construct the prior, full model and reduced order model
-prior, model, rom = setup_heat_problem()
+prior, model_full, model_rom = setup_heat_problem()
 
 ```
 
@@ -92,7 +94,7 @@ Next, we will generate the true log-diffusion coefficient using a sample from th
 
 ```{python}
 
-xi_true = torch.randn((prior.dim,))
+xi_true = torch.randn(prior.dim)
 logk_true = prior.transform(xi_true)
 
 ```
@@ -105,7 +107,7 @@ logk_true = prior.transform(xi_true)
 
 fig, ax = plt.subplots(figsize=(6.0, 2.0))
 cbar_label = r"$\log(\kappa(\bm{x}))$"
-plot_dl_function(fig, ax, model.vec2func(logk_true), cbar_label)
+plot_dl_function(fig, ax, model_full.vec2func(logk_true), cbar_label)
 ax.scatter(*prior.ss.T, s=16, c="k", marker="x")
 ax.set_xlabel(r"$x_{0}$")
 ax.set_ylabel(r"$x_{1}$")
@@ -118,7 +120,7 @@ Next, we will solve the (full) model to obtain the modelled temperatures corresp
 ```{python}
 
 # Generate true temperature field
-u_true = model.solve(logk_true)
+u_true = model_full.solve(logk_true)
 
 # Specify magnitude of observation noise
 std_error = 1.65e-2
@@ -126,7 +128,7 @@ var_error = std_error ** 2
 
 # Extract true temperatures at the observation locations and add 
 # observation noise
-d_obs = model.observe(u_true)
+d_obs = model_full.observe(u_true)
 noise = std_error * torch.randn_like(d_obs)
 d_obs += noise
 
@@ -140,8 +142,8 @@ d_obs += noise
 
 fig, ax = plt.subplots(figsize=(6.0, 2.0))
 cbar_label = r"$u(\bm{x}, 10)$"
-plot_dl_function(fig, ax, model.vec2func(u_true[:, -1]), cbar_label, vmin=-0.15, vmax=0.1)
-ax.scatter(*model.xs_obs.T, s=16, c="k", marker=".")
+plot_dl_function(fig, ax, model_full.vec2func(u_true[:, -1]), cbar_label, vmin=-0.15, vmax=0.1)
+ax.scatter(*model_full.xs_obs.T, s=16, c="k", marker=".")
 ax.set_xlabel(r"$x_{0}$")
 ax.set_ylabel(r"$x_{1}$")
 plt.show()
@@ -150,7 +152,7 @@ plt.show()
 
 ## Building the DIRT Object
 
-Now we will build a DIRT object to approximate the posterior density of the log-diffusion coefficient for the reduced-order model. We begin by defining functions which return the potential associated with the likelihood and prior.
+Now we will build a DIRT object to approximate the posterior density of the coefficients, $\{\xi^{(i)}\}_{i=1}^{d}$, used to parametrise the log-diffusion coefficient, for the reduced-order model. We begin by defining functions which return the potential associated with the likelihood and prior.
 
 ```{python}
 
@@ -172,15 +174,15 @@ def _negloglik(model, xs: torch.Tensor) -> torch.Tensor:
         neglogliks[i] = 0.5 * (d - d_obs).square().sum() / var_error
     return neglogliks
 
-def negloglik(xs: torch.Tensor) -> torch.Tensor:
+def negloglik_full(xs: torch.Tensor) -> torch.Tensor:
     """Returns the negative log-likelihood for the full model (to be 
     used later).
     """
-    return _negloglik(model, xs)
+    return _negloglik(model_full, xs)
 
 def negloglik_rom(xs: torch.Tensor) -> torch.Tensor:
     """Returns the negative log-likelihood for the reduced-order model."""
-    return _negloglik(rom, xs)
+    return _negloglik(model_rom, xs)
 
 ```
 
@@ -222,19 +224,14 @@ dirt = dt.DIRT(
 ```{python}
 #| echo: false 
 
-# dirt.save("dirt-rom-legendre")
-dirt = dt.SavedDIRT("dirt-rom-legendre", preconditioner)
+# dirt.save("dirt-rom")
+dirt = dt.SavedDIRT("dirt-rom", preconditioner)
+
 ```
 
 ## Debiasing
 
-We could use the DIRT object directly as an approximation to the target posterior. However, it is also possible to use the DIRT object to accelerate exact inference with the full model.
-
-We will illustrate two possibilities to remove the bias from the inference results obtained using DIRT; using the DIRT density as part of a Markov chain Monte Carlo (MCMC) sampler, or as a proposal density for importance sampling.
-
-### MCMC Sampling
-
-First, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density. 
+We will now use the DIRT density as the proposal density for an independence MCMC sampler. This will allow us to sample exactly from the posterior associated with the full model.
 
 ```{python}
 
@@ -243,25 +240,63 @@ rs = dirt.reference.random(d=dirt.dim, n=5000)
 xs, potentials_dirt = dirt.eval_irt(rs)
 
 # Evaluate the true potential function (for the full model) at each sample
-potentials_exact = neglogpri(xs) + negloglik(xs)
+potentials_exact = neglogpri(xs) + negloglik_full(xs)
 
 # Run independence sampler
 res = dt.run_independence_sampler(xs, potentials_dirt, potentials_exact)
-print(f"Acceptance rate: {res.acceptance_rate:.4f}")
+
+print(f"Acceptance rate: {res.acceptance_rate:.2f}")
+print(f"Mean IACT (all parameters): {res.iacts.mean():.2f}")
+print(f"Maximum IACT (all parameters): {res.iacts.max():.2f}")
 
 ```
 
-The acceptance rate is quite high, which suggests that the DIRT density is a good approximation to the true posterior.
-
-### Importance Sampling
-
-As an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation appropriately.
+For all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently. @fig-traces shows trace plots for the log-posterior density and selected parameters, which reinforces this idea.
 
 ```{python}
+#| code-fold: true
+#| fig-align: center
+#| fig-cap: Trace plots for the negative log-posterior density (left), and coefficients $\xi_{22}$ (centre) and $\xi_{23}$ (right).
+#| label: fig-traces
 
-res = dt.run_importance_sampling(potentials_dirt, potentials_exact)
-print(f"ESS: {res.ess:.4f}")
+parameters = torch.hstack((res.potentials[:, None], res.xs[:, 21:23]))
+ylabels = [r"$-\log(f(x))$", r"$\xi_{22}$", r"$\xi_{23}$"]
+
+fig, axes = plt.subplots(1, 3, figsize=(7.5, 3))
+
+for i, ax in enumerate(axes):
+    ax.plot(parameters[:, i], c="tab:green", lw=0.5)
+    ax.set_ylabel(ylabels[i])
+    ax.set_box_aspect(1)
+    add_arrows(ax)
+
+axes[1].set_xlabel("Iteration")
+plt.show()
 
 ```
 
-As expected, the effective sample size (ESS) is quite high.
+Finally, @fig-pairs shows a set of prior and posterior samples for four selected coefficients. It is evident that the posterior is significantly different to the prior.
+
+```{python}
+#| code-fold: true
+#| fig-align: center
+#| fig-cap: A pair plot showing 1000 samples from the prior and posterior of three selected coefficients, as well as the true values.
+#| label: fig-pairs
+
+xs_pri = dirt.reference.random(d=dirt.dim, n=1000)
+xs_post = res.xs[::10]
+
+labels = [r"$\xi_{"+f"{i}"+r"}$" for i in range(22, 25)]
+bounds = torch.tensor([[-4.0, 4.0], [-4.0, 4.0], [-4.0, 4.0]])
+
+pairplot(
+    xs_post[:, 21:24], 
+    xs_pri[:, 21:24], 
+    truth=xi_true[21:24],
+    labels=labels, 
+    x_label="Posterior",
+    y_label="Prior", 
+    bounds=bounds
+)
+
+```

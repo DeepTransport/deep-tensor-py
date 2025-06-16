@@ -1,0 +1,323 @@
+---
+title: "Shock Absorber"
+format: 
+    html: 
+        toc: true
+bibliography: "../references.bib"
+jupyter: python3
+---
+
+Here, we characterise the posterior distribution associated with a model of the time to failure for a shock absorber.
+
+# Problem Setup
+
+We consider the problem of estimating the parameters of a model of the time to failure for a type of shock absorber. For further information on the model, see @Dolgov2020 and the references therein.
+
+We will use an accelerated failure time Weibull regression model, in which the density of the distance to failure of a given shock absorber is given by
+
+$$
+f(t | \theta_{1}, \theta_{2}) = \frac{\theta_{2}}{\theta_{1}}\left(\frac{t}{\theta_{1}}\right)^{\theta_{2}-1}\exp\left(-\left(\frac{t}{\theta_{1}}\right)^{\theta_{2}}\right),
+$$
+
+where $\theta_{1} >0$ is a scale parameter and $\theta_{2} > 0$ is a shape parameter. The scale parameter, $\theta_{1}$, depends on a set of $D$ covariates, $\boldsymbol{x} := [x_{1}, x_{2}, \dots, x_{D}]^{\top}$ (which are specific to each shock absorber) through the standard logarithmic link function:
+
+$$
+\theta_{1}(\boldsymbol{\beta}) = \exp\left(\beta_{0} + \sum_{i=1}^{D}\beta_{i}x_{i}\right),
+$$
+
+where $\boldsymbol{\beta} := [\beta_{0}, \beta_{1}, \dots, \beta_{D}]^{\top}$ denote a set of unknown parameters.
+
+## Likelihood Function
+
+To estimate the unknown parameters, we use a dataset of 38 failure distances, $\boldsymbol{t} := [t_{1}, t_{2}, \dots, t_{38}]^{\top}$, some of which are subject to right censoring. We assume that these measurements are independent, which means that the likelihood takes the form
+
+$$
+\mathcal{L}(\boldsymbol{\beta}, \theta_{2}; \boldsymbol{t}) = \prod_{i=1}^{38} P(t_{i} | \theta_{1}(\boldsymbol{\beta}), \theta_{2}),
+$$
+
+where 
+
+$$
+P(t_{i} | \theta_{1}, \theta_{2}) = \begin{cases}
+    f(t_{i} | \theta_{1}, \theta_{2}), & \textrm{if } t_{i} \textrm{ is not censored}, \\
+    \exp\left(-\left(\frac{t_{i}}{\theta_{1}}\right)^{\theta_{2}}\right), & \textrm{if } t_{i} \textrm{ is censored}.
+\end{cases}
+$$
+
+The value for the right censored case is the probability that the failure time is greater than or equal to the observed value.
+
+## Prior Density
+
+As a prior, we use a normal-gamma density [see, *e.g.*, @Koch2007], which takes the form 
+
+$$
+\pi_{0}(\boldsymbol{\beta}, \theta_{2}) \propto \theta_{2}^{D/2+\alpha} \exp(-\gamma\theta_{2}) \prod_{i=0}^{D} \exp\left(-\frac{\theta_{2}(\beta_{i}-m_{i})^{2}}{2\sigma_{i}^{2}}\right),
+$$
+
+where $\gamma = 2.2932$, $\alpha = 6.8757$, $m_{0} = \log(30796)$, $m_{1} = \cdots = m_{D} = 0$, $\sigma_{0}^{2} = 0.1563$, and $\sigma_{1} = \cdots = \sigma_{D} = 1$.
+
+Note that, with this choice for prior, the marginal density for $\theta_{2}$ is a gamma density; that is, $\theta_{2} \sim \mathrm{Gamma}(\gamma, \alpha)$. The conditional density for each coefficient $\beta_{i}$ is a normal density with a variance depending on $\theta_{2}$; that is, $\beta_{i} | \theta_{2} \sim \mathcal{N}(m_{i}, \sigma^{2}_{i}/\theta_{2})$.
+
+# Implementation in $\texttt{deep\_tensor}$
+
+We begin by importing the relevant libraries and creating a tensor containing the failure distance data.
+
+```{python}
+
+from matplotlib import pyplot as plt
+import torch
+import deep_tensor as dt
+
+```
+
+```{python}
+#| echo: false
+
+import os
+from examples.plotting import pairplot
+
+torch.manual_seed(0)
+plt.style.use(os.sep.join(["..", "..", "examples", "plotstyle.mplstyle"]))
+
+```
+
+```{python}
+
+# Define failure distances (km)
+failure_dists = torch.tensor([
+    6700,  6950,  7820,  8790,  9120,
+    9660,  9820,  11310, 11690, 11850, 
+    11880, 12140, 12200, 12870, 13150, 
+    13330, 13470, 14040, 14300, 17520,
+    17540, 17890, 18420, 18960, 18980,
+    19410, 20100, 20100, 20150, 20320, 
+    20900, 22700, 23490, 26510, 27410, 
+    27490, 27890, 28100
+])
+
+# Define whether or not each observation is right-censored
+censored = torch.tensor([
+    False, True,  True,  True,  False, 
+    True,  True,  True,  True,  True, 
+    True,  True,  False, True,  False, 
+    True,  True,  True,  False, False, 
+    True,  True,  True,  True,  True, 
+    True,  False, True,  True,  True, 
+    False, False, True,  False, True, 
+    False, True,  True
+])
+
+```
+
+Next, we will generate a set of (synthetic) covariates for each shock absorber. We will assume there are two covariates. Following @Dolgov2020, we will generate these from a Gaussian distribution.
+
+```{python}
+
+# Generate covariates
+D = 2
+xs = torch.randn((failure_dists.numel(), D))
+
+```
+
+## DIRT Construction
+
+We now construct a DIRT approximation to the posterior density associated with the parameters.
+
+### Likelihood and Prior
+
+We begin by defining functions which return the potential functions associated with the likelihood and prior for a set of samples. 
+
+::: {.callout-note}
+In this example, the likelihood can take on very small values, so we shift the computed log-likelihood values to avoid numerical underflow.
+:::
+
+```{python}
+
+# Define prior coefficients
+alpha = 6.8757
+gamma = 2.2932
+
+# Define means and standard deviations of beta coefficients
+ms = torch.zeros((D+1,))
+ms[0] = torch.tensor(30796).log()
+sds = torch.ones((D+1,))
+sds[0] = torch.tensor(0.1563).sqrt()
+
+def negloglik(params: torch.Tensor) -> torch.Tensor:
+
+    bs, t2s = params[:, :-1], params[:, -1:]
+
+    # Compute theta_1 values
+    bxs = torch.sum(bs[:, 1:, None] * xs.T[None, :, :], dim=1)
+    t1s = torch.exp(bs[:, :1] + bxs)
+
+    # Add contribution of uncensored failure times
+    neglogliks = (
+        -torch.log(t2s / t1s[:, ~censored]) 
+        - (t2s - 1.0) * torch.log(failure_dists[~censored] / t1s[:, ~censored]) 
+        + (failure_dists[~censored] / t1s[:, ~censored]) ** t2s
+    ).sum(dim=1)
+    
+    # Add contribution of censored failure times
+    neglogliks += (
+        (failure_dists[censored] / t1s[:, censored]) ** t2s
+    ).sum(dim=1)
+    
+    neglogliks = neglogliks - 144.0  # To avoid underflow
+    return neglogliks
+
+def neglogpri(params: torch.Tensor) -> torch.Tensor:
+
+    bs, t2s = params[:, :-1], params[:, -1:]
+    
+    neglogpris = (
+        - (0.5*D + alpha) * t2s.log().flatten()
+        + gamma * t2s.flatten()
+        + 0.5 * torch.sum(t2s * (bs-ms)**2 / sds**2, dim=1)
+    )
+    
+    return neglogpris
+
+```
+
+### Preconditioner
+
+Next, we specify a preconditioner. In the absence of any other information, a suitable choice is a mapping between a Gaussian reference density and the prior. 
+
+In this case, the form of the prior means that, given a sample distributed according to the reference density, we can convert it to a sample distributed according to the prior by first transforming the element of the sample corresponding to $\theta_{2}$ such that it has a Gamma density, then transforming the remaining elements of the sample such that they are normally distributed with variance dependent on $\theta_{2}$. 
+
+Following @Dolgov2020, we will construct the mapping such that each coefficient $\beta_{i}$ is bounded within the interval $[m_{i}-3\sigma_{i}, m_{i}+3\sigma_{i}]$, and $\theta_{2}$ is bounded within the interval $[0, 13]$.
+
+```{python}
+
+from examples.shock import construct_preconditioner
+
+# Define bounds for parameters
+bounds = torch.zeros((D+2, 2))
+bounds[:-1] = torch.vstack((ms - 3.0*sds, ms + 3.0*sds)).T 
+bounds[-1] = torch.tensor([1e-8, 13.0])
+
+# Construct mapping from Gaussian reference to prior
+dim = D + 2
+reference = dt.GaussianReference()
+preconditioner = construct_preconditioner(
+    reference, bounds, 
+    alpha, gamma, 
+    ms, sds, dim
+)
+
+```
+
+### Approximation Bases
+
+Next, we specify a set of polynomial interpolants to use when building the functional tensor trains constructed during the DIRT algorithm. In this case, we will use a piecewise linear polynomial with 30 elements as the interpolant in each dimension.
+
+```{python}
+
+bases = dt.Lagrange1(num_elems=30)
+
+```
+
+### Bridging Densities
+
+Next, we specify the intermediate densities that are approximated during the DIRT algorithm. In this case, as shown in @Dolgov2020, the posterior is simple enough that it can be approximated directly with a high accuracy. 
+
+```{python}
+
+bridge = dt.SingleLayer()
+
+```
+
+Note that because we are using a single bridging density, the DIRT algorithm reduces to the SIRT (squared inverse Rosenblatt transport) algorithm [see @Cui2022].
+
+### Tensor Train Options
+
+Finally, we will modify some of the options used when building the functional tensor train as part of the construction of the DIRT. We will increase the maximum number of ALS iterations to two, and reduce the initial rank of the tensor cores that form the functional tensor train to 14.
+
+```{python}
+
+tt_options = dt.TTOptions(max_als=2, init_rank=14)
+
+```
+
+We now construct the DIRT object.
+
+```{python}
+
+dirt = dt.DIRT(
+    negloglik=negloglik,
+    neglogpri=neglogpri,
+    preconditioner=preconditioner,
+    bases=bases,
+    bridge=bridge,
+    tt_options=tt_options
+)
+
+```
+
+## Debiasing
+
+We could use the DIRT object directly as an approximation to the target posterior. However, it is also possible to use the DIRT object to accelerate exact inference.
+
+We will illustrate two possibilities to remove the bias from the inference results obtained using DIRT: using the DIRT density as part of a Markov chain Monte Carlo (MCMC) sampler, or as a proposal density for importance sampling.
+
+### MCMC Sampling
+
+First, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density. 
+
+```{python}
+
+# Generate a set of samples from the DIRT approximation to the posterior
+rs = reference.random(d=dirt.dim, n=50_000)
+samples_dirt, potentials_dirt = dirt.eval_irt(rs)
+
+# Run an independence MCMC sampler
+potentials_true = negloglik(samples_dirt) + neglogpri(samples_dirt)
+res = dt.run_independence_sampler(samples_dirt, potentials_dirt, potentials_true)
+
+print(f"Acceptance rate: {res.acceptance_rate:.2f}")
+print(f"Mean IACT: {res.iacts.mean():.2f}")
+print(f"Max IACT: {res.iacts.max():.2f}")
+
+```
+
+For all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently.
+
+@fig-pairs shows a set of prior and posterior samples.
+
+```{python}
+#| code-fold: true
+#| fig-align: center
+#| fig-cap: A pair plot showing 5000 samples from the prior and posterior.
+#| label: fig-pairs
+
+# Generate a set of posterior samples by thinning the chain
+samples_post = res.xs[::5, :]
+
+# Generate a set of samples from the prior
+samples_prior = preconditioner.Q(rs[::5, :])
+
+labels = [r"$\beta_{0}$", r"$\beta_{1}$", r"$\beta_{2}$", r"$\theta_{2}$"]
+pairplot(
+    samples_post, 
+    samples_prior,
+    labels=labels,
+    x_label="Posterior",
+    y_label="Prior"
+)
+
+```
+
+### Importance Sampling
+
+As an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation to the posterior appropriately.
+
+```{python}
+
+res = dt.run_importance_sampling(potentials_dirt, potentials_true)
+ess_ratio = res.ess / potentials_dirt.numel()
+print(f"ESS ratio: {ess_ratio:.2f}")
+
+```
+
+As expected, the ratio of the ESS (effective sample size) to the number of samples from the DIRT density is quite close to 1.

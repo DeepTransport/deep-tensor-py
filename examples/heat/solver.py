@@ -5,7 +5,7 @@ import torch
 from torch import Tensor
 import ufl
 
-from ..priors import ProcessConvolutionPrior
+from .prior import ProcessConvolutionPrior
 
 
 torch.set_default_dtype(torch.float64)

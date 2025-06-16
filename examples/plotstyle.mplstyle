@@ -2,29 +2,29 @@ lines.linewidth: 2.0
 lines.markersize: 8
 
 font.family: serif
-font.size: 16
+font.size: 14
 
 text.usetex: True
 text.latex.preamble: \usepackage{bm}
 
-axes.titlesize: 16
-axes.labelsize: 16
+axes.titlesize: 14
+axes.labelsize: 14
 axes.linewidth: 1.2
 
 xtick.major.size: 4.0
 xtick.minor.size: 4.0
 xtick.major.width: 1.2
 xtick.minor.width: 1.2   
-xtick.labelsize: 12
+xtick.labelsize: 10
 
 ytick.major.size: 4.0
 ytick.minor.size: 4.0
 ytick.major.width: 1.2
 ytick.minor.width: 1.2
-ytick.labelsize: 12
+ytick.labelsize: 10
 
 legend.frameon: False
-legend.fontsize: 14
+legend.fontsize: 12
 
 figure.figsize: 10.0, 6.8
 figure.constrained_layout.use: True

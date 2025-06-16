@@ -3,9 +3,9 @@ import hippylib as hl
 import torch 
 from torch import Tensor
 
-from .solver import HeatSolver, HeatSolverROM
+from .prior import ProcessConvolutionPrior
 from .reduced_order_modelling import compute_pod_basis, compute_rom_matrices
-from ..priors import ProcessConvolutionPrior
+from .solver import HeatSolver, HeatSolverROM
 
 
 # Not working...
