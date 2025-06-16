@@ -1114,9 +1114,9 @@ class DIRT(AbstractDIRT):
                     
                     dirt_info("DIRT construction complete.")
                     dirt_info(f" • Layers: {self.n_layers}.")
-                    dirt_info(f" • Total function evaluations: {self.num_eval}.")
-                    dirt_info(f" • Total time: {t1-t0:.2f} s.")
-                    dirt_info(f" • DHell: {dhell2.sqrt():.4f}")
+                    dirt_info(f" • Total function evaluations: {self.num_eval:,}.")
+                    dirt_info(f" • Total time: {t1-t0:,.2} s.")
+                    dirt_info(f" • DHell: {dhell2.sqrt():.4f}.")
 
                 return
 

@@ -38,10 +38,8 @@ from .polynomials import (
 )
 from .preconditioners import (
     Preconditioner, 
-    DIRTPreconditioner, 
     IdentityMapping,
-    SampleBasedPreconditioner,
     UniformMapping
 )
-from .references import GaussianReference, UniformReference
+from .references import Reference, GaussianReference, UniformReference
 from .tools import estimate_ess_ratio, compute_f_divergence
