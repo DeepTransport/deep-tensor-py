@@ -4,6 +4,7 @@
 
 [![Unit tests](https://github.com/alexgdebeer/deep-tensor-py/actions/workflows/run_tests.yaml/badge.svg)](https://github.com/alexgdebeer/deep-tensor-py/actions/workflows/run_tests.yaml)
 [![Docs build](https://github.com/DeepTransport/deep-tensor-py/actions/workflows/publish_docs.yaml/badge.svg)](https://github.com/DeepTransport/deep-tensor-py/actions/workflows/publish_docs.yaml)
+[![PyPI version](https://badge.fury.io/py/deep-tensor-py.svg)](https://badge.fury.io/py/deep-tensor-py)
 
 </div>
 
