@@ -11,7 +11,9 @@ This package contains a [PyTorch](https://pytorch.org) implementation of the dee
 
 ## Installation
 
-Coming soon...
+```
+pip install deep-tensor-py
+```
 
 ## Examples and Documentation
 
