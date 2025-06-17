@@ -3,7 +3,7 @@
 <div align="center">
 
 [![Unit tests](https://github.com/alexgdebeer/deep-tensor-py/actions/workflows/run_tests.yaml/badge.svg)](https://github.com/alexgdebeer/deep-tensor-py/actions/workflows/run_tests.yaml)
-[![Docs build](https://github.com/DeepTransport/deep-tensor-py/actions/workflows/publish.yaml/badge.svg)](https://github.com/DeepTransport/deep-tensor-py/actions/workflows/publish.yaml)
+[![Docs build](https://github.com/DeepTransport/deep-tensor-py/actions/workflows/publish_docs.yaml/badge.svg)](https://github.com/DeepTransport/deep-tensor-py/actions/workflows/publish_docs.yaml)
 
 </div>
 
