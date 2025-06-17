@@ -7,7 +7,9 @@ The $\texttt{deep\_tensor}$ package contains a [PyTorch](https://pytorch.org) im
 
 # Installation
 
-Coming soon...
+```
+pip install deep-tensor-py
+```
 
 # Getting Started
 
