@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deep-tensor-py"
+version = "0.0.1"
+authors = [
+  {name="Alex de Beer", email="adeb0907@uni.sydney.edu.au"},
+]
+description = "A PyTorch implementation of the deep inverse Rosenblatt transport (DIRT) algorithm."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "h5py",
+    "torch" 
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "GPL-3.0-or-later"
+license-files = ["COPYING"]
+
+[project.urls]
+Homepage = "https://github.com/DeepTransport/deep-tensor-py"
+Documentation = "https://deeptransport.github.io/deep-tensor-py/"
+Issues = "https://github.com/DeepTransport/deep-tensor-py/issues"
