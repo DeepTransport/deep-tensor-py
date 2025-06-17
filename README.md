@@ -12,7 +12,7 @@ This package contains a [PyTorch](https://pytorch.org) implementation of the dee
 
 ## Installation
 
-$\mathtt{deep\_tensor}$ can be installed using pip:
+To install the package, use pip:
 
 ```{python}
 pip install deep-tensor-py
