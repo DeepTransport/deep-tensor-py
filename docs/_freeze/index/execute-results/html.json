@@ -1,0 +1,12 @@
+{
+  "hash": "ff3ef0595f928199074d755fced6bbf1",
+  "result": {
+    "engine": "jupyter",
+    "markdown": "---\nformat: html\nbibliography: \"references.bib\"\nexecute: \n  eval: false\n---\n\n\n\n\nThe $\\texttt{deep\\_tensor}$ package contains a [PyTorch](https://pytorch.org) implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by @Cui2022.\n\n# Installation\n\n$\\texttt{deep\\_tensor}$ can be installed using pip:\n\n::: {#bdfbd8cd .cell execution_count=1}\n``` {.python .cell-code}\npip install deep-tensor-py\n```\n:::\n\n\nThe package can then be imported using\n\n::: {#b76c168f .cell execution_count=2}\n``` {.python .cell-code}\nimport deep_tensor as dt\n```\n:::\n\n\n# Getting Started\n\nCheck out the [examples page](/examples/index.qmd) and [API reference](/reference/index.qmd) for help getting started with $\\texttt{deep\\_tensor}$.\n\n",
+    "supporting": [
+      "index_files"
+    ],
+    "filters": [],
+    "includes": {}
+  }
+}
