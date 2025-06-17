@@ -47,7 +47,7 @@
     "href": "index.html",
     "title": "Installation",
     "section": "",
-    "text": "The \\(\\texttt{deep\\_tensor}\\) package contains a PyTorch implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by Cui and Dolgov (2022).\n\nInstallation\nComing soon…\n\n\nGetting Started\nCheck out the examples page and API reference for help getting started with \\(\\texttt{deep\\_tensor}\\).\n\n\n\n\n\nReferences\n\nCui, Tiangang, and Sergey Dolgov. 2022. “Deep Composition of Tensor-Trains Using Squared Inverse Rosenblatt Transports.” Foundations of Computational Mathematics 22 (6): 1863–1922. https://doi.org/10.1007/s10208-021-09537-5."
+    "text": "The \\(\\texttt{deep\\_tensor}\\) package contains a PyTorch implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by Cui and Dolgov (2022).\n\nInstallation\npip install deep-tensor-py\n\n\nGetting Started\nCheck out the examples page and API reference for help getting started with \\(\\texttt{deep\\_tensor}\\).\n\n\n\n\n\nReferences\n\nCui, Tiangang, and Sergey Dolgov. 2022. “Deep Composition of Tensor-Trains Using Squared Inverse Rosenblatt Transports.” Foundations of Computational Mathematics 22 (6): 1863–1922. https://doi.org/10.1007/s10208-021-09537-5."
   },
   {
     "objectID": "reference/GaussianReference.html",
