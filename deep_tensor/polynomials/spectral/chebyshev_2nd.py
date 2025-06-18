@@ -1,3 +1,5 @@
+import math
+
 import torch 
 from torch import Tensor
 from torch.distributions.beta import Beta
@@ -87,7 +89,7 @@ class Chebyshev2nd(Spectral):
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
         ts = 1.0 - ls.square()
-        logws = 0.5 * ts.log() + torch.tensor(2.0/torch.pi).log()
+        logws = 0.5 * ts.log() + math.log(2.0/torch.pi)
         return logws
     
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:

@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch 
 from torch import Tensor 
 
@@ -60,7 +62,7 @@ class Chebyshev2ndTrigoCDF(TrigoCDF, Chebyshev2nd):
 
         return ps
     
-    def eval_int_basis_newton(self, thetas: Tensor) -> Tensor:
+    def eval_int_basis_newton(self, thetas: Tensor) -> Tuple[Tensor, Tensor]:
         
         thetas = thetas[:, None]
 

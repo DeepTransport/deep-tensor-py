@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch import Tensor
 
@@ -91,7 +93,7 @@ class Chebyshev1st(Spectral):
         self._check_in_domain(ls)
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
-        return -0.5 * ts.log() - torch.tensor(torch.pi).log()
+        return -0.5 * torch.log(ts) - math.log(torch.pi)
 
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)

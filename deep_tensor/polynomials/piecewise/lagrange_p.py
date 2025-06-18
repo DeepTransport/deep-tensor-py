@@ -185,11 +185,11 @@ class LagrangeP(Piecewise):
         return
     
     @property
-    def cardinality(self):
+    def cardinality(self) -> int:
         return self.nodes.numel()
     
     @property
-    def domain(self):
+    def domain(self) -> Tensor:
         return torch.tensor([-1.0, 1.0])
     
     @property 

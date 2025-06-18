@@ -82,7 +82,7 @@ class Piecewise(Basis1D, abc.ABC):
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         return torch.full(ls.shape, -self.domain_size.log())
 
-    def eval_measure_deriv(obj, ls: Tensor) -> Tensor:
+    def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)
 
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:

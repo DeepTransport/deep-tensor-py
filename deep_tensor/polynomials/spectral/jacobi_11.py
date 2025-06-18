@@ -1,3 +1,5 @@
+import math
+
 import torch 
 from torch import Tensor 
 from torch.distributions.beta import Beta
@@ -45,7 +47,7 @@ class Jacobi11(Recurr):
         return ws
     
     def eval_log_measure(self, ls: Tensor) -> Tensor:
-        ws = (1.0 - ls.square()).log() + torch.tensor(0.75).log()
+        ws = (1.0 - ls.square()).log() + math.log(0.75)
         return ws
     
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:

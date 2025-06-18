@@ -1,5 +1,5 @@
 import abc
-from typing import Tuple
+from typing import Tuple, Union
 
 import torch
 from torch import Tensor
@@ -15,7 +15,7 @@ class Recurr(Spectral, abc.ABC):
         a: Tensor,
         b: Tensor,
         c: Tensor,
-        norm: float | Tensor
+        norm: Tensor
     ):
         """Class for spectral polynomials for which the three-term 
         recurrence relation is known. This relation takes the form

@@ -51,15 +51,6 @@ class Lagrange1(Piecewise):
         self.mass_R = torch.linalg.cholesky(mass).T
         return
     
-    # @property
-    # def nodes(self) -> Tensor:
-    #     return self._nodes
-    
-    # @nodes.setter 
-    # def nodes(self, value: Tensor) -> None:
-    #     self._nodes = value 
-    #     return
-    
     @property 
     def mass_R(self) -> Tensor:
         return self._mass_R

@@ -94,7 +94,7 @@ class SpectralCDF(CDF1D, abc.ABC):
     ) -> Tensor:
         left_inds = cdf_poly_nodes >= zs_unnorm 
         left_inds[-1, :] = True
-        left_inds = left_inds.int().argmax(axis=0) - 1
+        left_inds = left_inds.int().argmax(dim=0) - 1
         left_inds = left_inds.clamp(0, self.sampling_nodes.numel() - 2)
         return left_inds
     

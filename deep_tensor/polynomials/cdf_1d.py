@@ -34,12 +34,8 @@ class CDF1D(abc.ABC):
         return
     
     @property 
-    @abc.abstractmethod 
-    def cardinality(self) -> Tensor:
-        """The number of nodes associated with the polynomial basis of
-        the CDF.
-        """
-        pass
+    def cardinality(self) -> int:
+        return self.nodes.numel()
     
     @property
     @abc.abstractmethod
