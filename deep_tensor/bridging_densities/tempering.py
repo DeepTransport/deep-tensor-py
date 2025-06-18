@@ -40,7 +40,7 @@ class AbstractTempering(Bridge):
     def is_last(self) -> bool:
         max_layers_reached = self.n_layers == self.max_layers
         final_beta_reached = (self.betas[self.n_layers-1] - 1.0).abs() < 1e-6
-        return max_layers_reached or final_beta_reached
+        return bool(max_layers_reached or final_beta_reached)
     
     @property
     def params_dict(self) -> Dict:

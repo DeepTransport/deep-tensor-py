@@ -6,21 +6,16 @@ from torch import Tensor
 
 
 class Bridge(abc.ABC):
-
-    @property 
-    @abc.abstractmethod 
-    def is_adaptive(self) -> bool:
-        return
     
     @property
     @abc.abstractmethod
     def is_last(self) -> bool:
-        return
+        pass
     
     @property 
     @abc.abstractmethod
     def params_dict(self) -> Dict:
-        return
+        pass
 
     @property 
     def n_layers(self) -> int:
@@ -77,7 +72,7 @@ class Bridge(abc.ABC):
             function evaluated for each sample.
             
         """
-        return
+        pass
     
     @abc.abstractmethod
     def _compute_log_weights(
@@ -112,7 +107,7 @@ class Bridge(abc.ABC):
             previous bridging density evaluated at each sample.
         
         """
-        return
+        pass
     
     def _set_init(self, neglogliks: Tensor) -> None:
         """Computes the properties of the initial bridging density.

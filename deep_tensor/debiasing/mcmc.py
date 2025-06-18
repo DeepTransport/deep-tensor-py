@@ -134,8 +134,8 @@ def run_dirt_pcn(
     dirt: AbstractDIRT,
     n: int,
     dt: float = 2.0,
-    y_obs: Tensor | None = None,
     x0: Tensor | None = None,
+    ys: Tensor | None = None,
     subset: str = "first",
     verbose: bool = True
 ) -> MCMCResult:
@@ -157,8 +157,6 @@ def run_dirt_pcn(
         unnormalised) target density at a given sample.
     dirt:
         A previously-constructed DIRT object.
-    y_obs:
-        A tensor containing the observations.
     n: 
         The length of the Markov chain to construct.
     dt:
@@ -169,6 +167,12 @@ def run_dirt_pcn(
         be applied to it to generate the starting location for sampling 
         from the pullback of the target density. Otherwise, the mean of 
         the reference density will be used.
+    ys:
+        A tensor containing a set of values to condition on.
+    subset:
+        If `ys` are passed in, whether they correspond to the first 
+        $k$ variables (`subset='first'`) or the final $k$ variables 
+        (`subset='last'`).
     verbose:
         Whether to print diagnostic information during the sampling 
         process.
@@ -218,28 +222,8 @@ def run_dirt_pcn(
         msg = "Stepsize must be positive."
         raise Exception(msg)
     
-    if y_obs is not None:
-
-        y_obs = torch.atleast_2d(y_obs)
-        dim = dirt.dim - y_obs.shape[1]
+    if ys is None:
         
-        def negloglik_pullback(rs: Tensor) -> Tensor:
-            """Returns the difference between the negative logarithm of the 
-            pullback of the target function under the DIRT mapping and the 
-            negative log-prior density.
-            """
-            rs = torch.atleast_2d(rs)
-            neglogfr = dirt.eval_cirt_pullback(potential, y_obs, rs, subset=subset)
-            neglogref = dirt.reference.eval_potential(rs)[0]
-            return neglogfr - neglogref
-    
-        def irt_func(rs: Tensor) -> Tensor:
-            rs = torch.atleast_2d(rs)
-            ms = dirt.eval_cirt(y_obs, rs, subset=subset)[0]
-            return ms
-        
-    else:
-
         dim = dirt.dim
         
         def negloglik_pullback(rs: Tensor) -> Tensor:
@@ -255,6 +239,26 @@ def run_dirt_pcn(
         def irt_func(rs: Tensor) -> Tensor:
             rs = torch.atleast_2d(rs)
             ms = dirt.eval_irt(rs, subset=subset)[0]
+            return ms
+        
+    else:
+
+        ys = torch.atleast_2d(ys)
+        dim = dirt.dim - ys.shape[1]
+        
+        def negloglik_pullback(rs: Tensor) -> Tensor:
+            """Returns the difference between the negative logarithm of the 
+            pullback of the target function under the DIRT mapping and the 
+            negative log-prior density.
+            """
+            rs = torch.atleast_2d(rs)
+            neglogfr = dirt.eval_cirt_pullback(potential, ys, rs, subset=subset)
+            neglogref = dirt.reference.eval_potential(rs)[0]
+            return neglogfr - neglogref
+    
+        def irt_func(rs: Tensor) -> Tensor:
+            rs = torch.atleast_2d(rs)
+            ms = dirt.eval_cirt(ys, rs, subset=subset)[0]
             return ms
 
     res = _run_irt_pcn(
