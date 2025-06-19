@@ -163,6 +163,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         self,
         coefs: Tensor, 
         cdf_poly_base: Tensor, 
+        cdf_poly_norm,
         zs_unnorm: Tensor,
         l0s: Tensor,
         l1s: Tensor
@@ -177,7 +178,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         for _ in range(self.num_newton):  
             zs, dzs = self.eval_int_newton(coefs, cdf_poly_base, zs_unnorm, ls)
             ls, dls = self._newton_step(ls, zs, dzs, l0s, l1s)
-            if self.converged(zs, dls):
+            if self.converged(zs / cdf_poly_norm, dls / cdf_poly_norm):
                 return ls
         
         # self.print_unconverged(zs, dls, "Newton's method")
@@ -232,5 +233,5 @@ class SpectralCDF(CDF1D, abc.ABC):
         l0s = self.sampling_nodes[left_inds]
         l1s = self.sampling_nodes[left_inds+1]
         
-        ls = self.newton(coefs, cdf_poly_base, zs_cdf, l0s, l1s)
+        ls = self.newton(coefs, cdf_poly_base, cdf_poly_norm, zs_cdf, l0s, l1s)
         return ls

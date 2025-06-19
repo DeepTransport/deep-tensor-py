@@ -142,7 +142,7 @@ d_obs += noise
 
 fig, ax = plt.subplots(figsize=(6.0, 2.0))
 cbar_label = r"$u(\bm{x}, 10)$"
-plot_dl_function(fig, ax, model_full.vec2func(u_true[:, -1]), cbar_label, vmin=-0.15, vmax=0.1)
+plot_dl_function(fig, ax, model_full.vec2func(u_true[:, -1]), cbar_label, vmin=-0.15, vmax=0.10)
 ax.scatter(*model_full.xs_obs.T, s=16, c="k", marker=".")
 ax.set_xlabel(r"$x_{0}$")
 ax.set_ylabel(r"$x_{1}$")

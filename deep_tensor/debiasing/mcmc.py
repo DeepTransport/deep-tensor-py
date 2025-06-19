@@ -305,17 +305,19 @@ def run_independence_sampler(
     """
 
     n, d = xs.shape
-    potentials = neglogfxs_exact - neglogfxs_irt
     
     chain = MarkovChain(n, d)
-    chain.add_new_state(xs[0], potentials[0])
+    chain.add_new_state(xs[0], neglogfxs_exact[0])
+    i_cur = 0
 
     for i in range(n-1):
-        
-        alpha = chain.current_potential - potentials[i+1]
+
+        alpha = (neglogfxs_exact[i_cur] + neglogfxs_irt[i+1]
+                 - neglogfxs_exact[i+1] - neglogfxs_irt[i_cur])
         
         if alpha.exp() > torch.rand(1):
-            chain.add_new_state(xs[i+1], potentials[i+1])
+            chain.add_new_state(xs[i+1], neglogfxs_exact[i+1])
+            i_cur = i+1
         else:
             chain.add_current_state()
     

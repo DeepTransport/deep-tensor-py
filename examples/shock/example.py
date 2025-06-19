@@ -39,7 +39,7 @@ censored = torch.tensor([
 
 # Generate covariates
 D = 2
-xs = torch.randn((failure_dists.numel(), D)) / D
+xs = torch.randn((failure_dists.numel(), D))
 
 # Define prior coefficients
 alpha = 6.8757
@@ -72,7 +72,7 @@ def negloglik(params: torch.Tensor) -> torch.Tensor:
         (failure_dists[censored] / t1s[:, censored]) ** t2s
     ).sum(dim=1)
     
-    neglogliks = neglogliks - 144.0  # Numerical stability
+    neglogliks -= 120.0  # To avoid underflow
     return neglogliks
 
 
@@ -104,7 +104,7 @@ preconditioner = construct_preconditioner(
 )
 # preconditioner = dt.UniformMapping(bounds)
 
-bases = dt.Lagrange1(num_elems=20)
+bases = dt.Lagrange1(num_elems=30)
 bridge = dt.SingleLayer()
 tt_options = dt.TTOptions(verbose=2, max_als=2, init_rank=10, max_rank=14)
 
@@ -125,11 +125,29 @@ samples_dirt, potentials_dirt = dirt.eval_irt(rs)
 
 # Run an independence MCMC sampler
 potentials_true = negloglik(samples_dirt) + neglogpri(samples_dirt)
+print(negloglik(samples_dirt))
+print(neglogpri(samples_dirt))
+print(potentials_true)
 res = dt.run_independence_sampler(samples_dirt, potentials_dirt, potentials_true)
 
 print(f"Acceptance rate: {res.acceptance_rate:.2f}")
 print(f"Mean IACT: {res.iacts.mean():.2f}")
 print(f"Max IACT: {res.iacts.max():.2f}")
+
+# Generate trace plot
+parameters = torch.hstack((res.potentials[:, None], res.xs[:, [0, 3]]))
+ylabels = [r"$-\log(f(x))$", r"$\beta_{2}$", r"$\theta_{2}$"]
+
+fig, axes = plt.subplots(1, 3, figsize=(7.5, 3))
+
+for i, ax in enumerate(axes):
+    ax.plot(parameters[:, i], c="tab:red", lw=0.5)
+    ax.set_ylabel(ylabels[i])
+    ax.set_box_aspect(1)
+    add_arrows(ax)
+
+axes[1].set_xlabel("Iteration")
+plt.show()
 
 # Thin the chain
 samples_post = res.xs[::5, :]
@@ -159,9 +177,9 @@ bases_dict = {
 }
 
 args_dict = {
-    "Fourier": [7, 10, 12, 15],
-    "Legendre": [15, 20, 25, 30],
-    "Piecewise": [15, 20, 25, 30],
+    "Fourier": [15, 20, 25, 30],
+    "Legendre": [30, 40, 50, 60],
+    "Piecewise": [30, 40, 50, 60],
 }
 
 colours = {

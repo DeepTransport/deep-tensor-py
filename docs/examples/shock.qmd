@@ -115,7 +115,7 @@ Next, we will generate a set of (synthetic) covariates for each shock absorber. 
 
 # Generate covariates
 D = 2
-xs = torch.randn((failure_dists.numel(), D)) / D
+xs = torch.randn((failure_dists.numel(), D))
 
 ```
 
@@ -163,7 +163,7 @@ def negloglik(params: torch.Tensor) -> torch.Tensor:
         (failure_dists[censored] / t1s[:, censored]) ** t2s
     ).sum(dim=1)
     
-    neglogliks = neglogliks - 144.0  # To avoid underflow
+    neglogliks -= 120.0  # To avoid underflow
     return neglogliks
 
 def neglogpri(params: torch.Tensor) -> torch.Tensor:
@@ -210,11 +210,11 @@ preconditioner = construct_preconditioner(
 
 ### Approximation Bases
 
-Next, we specify a set of polynomial interpolants to use when building the functional tensor trains constructed during the DIRT algorithm. In this case, we will use a piecewise linear polynomial with 20 elements as the interpolant in each dimension.
+Next, we specify a set of polynomial interpolants to use when building the functional tensor trains constructed during the DIRT algorithm. In this case, we will use a piecewise linear polynomial with 30 elements as the interpolant in each dimension.
 
 ```{python}
 
-bases = dt.Lagrange1(num_elems=20)
+bases = dt.Lagrange1(num_elems=30)
 
 ```
 
@@ -346,12 +346,12 @@ As expected, the ratio of the ESS (effective sample size) to the number of sampl
 
 ## Comparison of Approximation Bases
 
-Finally, we show a comparison of different polynomial bases that can be used to construct the DIRT approximation to the target density. @fig-bases shows the relationship between the number of likelihood evaluations required to construct the DIRT approximation to the posterior, and the maximum IACT of the model parameters for an independence MCMC sampler that uses the DIRT approximation as the proposal density, when bases composed of Fourier, Legendre and piecewise linear polynomials are used. We modify the number of likelihood evaluations used to construct the DIRT approximation by changing the maximum order of the polynomials (Fourier and Legendre polynomials) or the number of linear functions used (piecewise linear polynomials). As before, we construct the DIRT in each case using a single layer. All other parameters are left at their default values.
+Finally, we show a comparison of different polynomial bases that can be used when constructing the DIRT approximation to the target density. @fig-bases shows the relationship between the number of likelihood evaluations required to construct the DIRT approximation to the posterior, and the maximum IACT of the model parameters for an independence MCMC sampler that uses the DIRT approximation as the proposal density, when bases composed of Fourier, Legendre and piecewise linear polynomials are used. We modify the number of likelihood evaluations used to construct the DIRT approximation by changing the maximum order of the polynomials (Fourier and Legendre polynomials) or the number of linear functions used (piecewise linear polynomials). As before, we construct the DIRT in each case using a single layer. All other parameters are left at their default values.
 
 ```{python}
 #| code-fold: true
 #| fig-align: center
-#| fig-cap: The relationship between the number of likelihood evaluations required to construct the DIRT, and the maximum IACT of the parameters, for Fourier, Legendre and piecewise linear polynomials.
+#| fig-cap: The relationship between the number of likelihood evaluations required to construct the DIRT and the maximum IACT of the parameters, for Fourier, Legendre and piecewise linear polynomials.
 #| label: fig-bases
 
 bases_dict = {
@@ -361,9 +361,9 @@ bases_dict = {
 }
 
 args_dict = {
-    "Fourier": [7, 10, 12, 15],
-    "Legendre": [15, 20, 25, 30],
-    "Piecewise": [15, 20, 25, 30],
+    "Fourier": [15, 20, 25, 30],
+    "Legendre": [30, 40, 50, 60],
+    "Piecewise": [30, 40, 50, 60],
 }
 
 colours = {
@@ -409,7 +409,7 @@ for i, name in enumerate(results):
     ax.scatter(num_eval, iact, c=colours[name], marker="s", label=name, zorder=i)
 
 ax.set_xlabel("Number of likelihood evaluations")
-ax.set_ylabel("Max. IACT")
+ax.set_ylabel("Max IACT")
 ax.set_box_aspect(1)
 ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
 add_arrows(ax)
