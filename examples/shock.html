@@ -503,12 +503,12 @@ P(t_{i} | \theta_{1}, \theta_{2}) = \begin{cases}
 <section id="implementation-in-textttdeep_tensor" class="level1">
 <h1>Implementation in <span class="math inline">\(\texttt{deep\_tensor}\)</span></h1>
 <p>We begin by importing the relevant libraries and creating a tensor containing the failure distance data.</p>
-<div id="8969407f" class="cell" data-execution_count="1">
+<div id="8eaaf132" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="12092ce1" class="cell" data-execution_count="3">
+<div id="6fd94c04" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define failure distances (km)</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>failure_dists <span class="op">=</span> torch.tensor([</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="dv">6700</span>,  <span class="dv">6950</span>,  <span class="dv">7820</span>,  <span class="dv">8790</span>,  <span class="dv">9120</span>,</span>
@@ -534,10 +534,10 @@ P(t_{i} | \theta_{1}, \theta_{2}) = \begin{cases}
 <span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we will generate a set of (synthetic) covariates for each shock absorber. We will assume there are two covariates. Following <span class="citation" data-cites="Dolgov2020">Dolgov et al. (<a href="#ref-Dolgov2020" role="doc-biblioref">2020</a>)</span>, we will generate these from a Gaussian distribution.</p>
-<div id="0bd2b092" class="cell" data-execution_count="4">
+<div id="7bb34254" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate covariates</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>D <span class="op">=</span> <span class="dv">2</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> torch.randn((failure_dists.numel(), D)) <span class="op">/</span> D</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> torch.randn((failure_dists.numel(), D))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <section id="dirt-construction" class="level2">
 <h2 class="anchored" data-anchor-id="dirt-construction">DIRT Construction</h2>
@@ -558,7 +558,7 @@ Note
 <p>In this example, the likelihood can take on very small values, so we shift the computed log-likelihood values to avoid numerical underflow.</p>
 </div>
 </div>
-<div id="cef1b865" class="cell" data-execution_count="5">
+<div id="bf4c201c" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define prior coefficients</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>alpha <span class="op">=</span> <span class="fl">6.8757</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>gamma <span class="op">=</span> <span class="fl">2.2932</span></span>
@@ -610,7 +610,7 @@ Note
 <p>Next, we specify a preconditioner. In the absence of any other information, a suitable choice is a mapping between a Gaussian reference density and the prior.</p>
 <p>In this case, the form of the prior means that, given a sample distributed according to the reference density, we can convert it to a sample distributed according to the prior by first transforming the element of the sample corresponding to <span class="math inline">\(\theta_{2}\)</span> such that it has a Gamma density, then transforming the remaining elements of the sample such that they are normally distributed with variance dependent on <span class="math inline">\(\theta_{2}\)</span>.</p>
 <p>Following <span class="citation" data-cites="Dolgov2020">Dolgov et al. (<a href="#ref-Dolgov2020" role="doc-biblioref">2020</a>)</span>, we will construct the mapping such that each coefficient <span class="math inline">\(\beta_{i}\)</span> is bounded within the interval <span class="math inline">\([m_{i}-3\sigma_{i}, m_{i}+3\sigma_{i}]\)</span>, and <span class="math inline">\(\theta_{2}\)</span> is bounded within the interval <span class="math inline">\([0, 13]\)</span>.</p>
-<div id="dd9bda87" class="cell" data-execution_count="6">
+<div id="b29aeb73" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.shock <span class="im">import</span> construct_preconditioner</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Define bounds for parameters</span></span>
@@ -630,15 +630,15 @@ Note
 </section>
 <section id="approximation-bases" class="level3">
 <h3 class="anchored" data-anchor-id="approximation-bases">Approximation Bases</h3>
-<p>Next, we specify a set of polynomial interpolants to use when building the functional tensor trains constructed during the DIRT algorithm. In this case, we will use a piecewise linear polynomial with 20 elements as the interpolant in each dimension.</p>
-<div id="6cbb6949" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>bases <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Next, we specify a set of polynomial interpolants to use when building the functional tensor trains constructed during the DIRT algorithm. In this case, we will use a piecewise linear polynomial with 30 elements as the interpolant in each dimension.</p>
+<div id="17aabaea" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>bases <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">30</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="bridging-densities" class="level3">
 <h3 class="anchored" data-anchor-id="bridging-densities">Bridging Densities</h3>
 <p>Next, we specify the intermediate densities that are approximated during the DIRT algorithm. In this case, as shown in <span class="citation" data-cites="Dolgov2020">Dolgov et al. (<a href="#ref-Dolgov2020" role="doc-biblioref">2020</a>)</span>, the posterior is simple enough that it can be approximated directly with a high accuracy.</p>
-<div id="b98d6bbf" class="cell" data-execution_count="8">
+<div id="3b5cb11f" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>bridge <span class="op">=</span> dt.SingleLayer()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Note that because we are using a single bridging density, the DIRT algorithm reduces to the SIRT (squared inverse Rosenblatt transport) algorithm <span class="citation" data-cites="Cui2022">(see <a href="#ref-Cui2022" role="doc-biblioref">Cui and Dolgov 2022</a>)</span>.</p>
@@ -646,11 +646,11 @@ Note
 <section id="tensor-train-options" class="level3">
 <h3 class="anchored" data-anchor-id="tensor-train-options">Tensor Train Options</h3>
 <p>Finally, we will modify some of the options used when building the functional tensor train as part of the construction of the DIRT. We will increase the maximum number of ALS iterations to two, and reduce the initial rank of the tensor cores that form the functional tensor train to 14.</p>
-<div id="3188886d" class="cell" data-execution_count="9">
+<div id="21cc358e" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(max_als<span class="op">=</span><span class="dv">2</span>, init_rank<span class="op">=</span><span class="dv">14</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We now construct the DIRT object.</p>
-<div id="5bbd512d" class="cell" data-execution_count="10">
+<div id="1ea8cac5" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    negloglik<span class="op">=</span>negloglik,</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    neglogpri<span class="op">=</span>neglogpri,</span>
@@ -660,16 +660,16 @@ Note
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    tt_options<span class="op">=</span>tt_options</span>
 <span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 2.00e+03 | Cum. Time: 5.41e-01 s
+<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 2.00e+03 | Cum. Time: 8.19e-01 s
 [ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
-[ALS]     1 |      11256 |       16 |     1.00000e+00 |      1.00000e+00 |     1.00000e+00 |      1.00000e+00
-[ALS]     2 |      24192 |       18 |     1.00000e+00 |      3.34463e-01 |     2.87414e+00 |      2.24541e+00
+[ALS]     1 |      16616 |       16 |     1.00000e+00 |      1.00000e+00 |     1.00000e+00 |      1.00000e+00
+[ALS]     2 |      35712 |       18 |     1.00000e+00 |      3.35191e-01 |     3.30998e+10 |      3.31457e+10
 [ALS]  ALS complete.
 [DIRT] DIRT construction complete.
 [DIRT]  • Layers: 1.
-[DIRT]  • Total function evaluations: 52,384.
-[DIRT]  • Total time: 2.6 s.
-[DIRT]  • DHell: 0.0661.</code></pre>
+[DIRT]  • Total function evaluations: 75,424.
+[DIRT]  • Total time: 2e+01 s.
+[DIRT]  • DHell: 0.0963.</code></pre>
 </div>
 </div>
 </section>
@@ -681,7 +681,7 @@ Note
 <section id="mcmc-sampling" class="level3">
 <h3 class="anchored" data-anchor-id="mcmc-sampling">MCMC Sampling</h3>
 <p>First, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density.</p>
-<div id="49127ecd" class="cell" data-execution_count="11">
+<div id="beb9b996" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a set of samples from the DIRT approximation to the posterior</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> reference.random(d<span class="op">=</span>dirt.dim, n<span class="op">=</span><span class="dv">50_000</span>)</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>samples_dirt, potentials_dirt <span class="op">=</span> dirt.eval_irt(rs)</span>
@@ -694,9 +694,9 @@ Note
 <span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Mean IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span>mean()<span class="sc">:.2f}</span><span class="ss">"</span>)</span>
 <span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Max IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Acceptance rate: 0.90
-Mean IACT: 1.17
-Max IACT: 1.21</code></pre>
+<pre><code>Acceptance rate: 0.86
+Mean IACT: 1.33
+Max IACT: 1.42</code></pre>
 </div>
 </div>
 <p>For all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently. <a href="#fig-traces" class="quarto-xref">Figure&nbsp;1</a> shows trace plots for the log-posterior density and selected parameters, which reinforces this idea.</p>
@@ -766,12 +766,12 @@ Figure&nbsp;2: A pair plot showing 5000 samples from the prior and posterior.
 <section id="importance-sampling" class="level3">
 <h3 class="anchored" data-anchor-id="importance-sampling">Importance Sampling</h3>
 <p>As an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation to the posterior appropriately.</p>
-<div id="7ca2edea" class="cell" data-execution_count="14">
+<div id="4ed3705f" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_importance_sampling(potentials_dirt, potentials_true)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>ess_ratio <span class="op">=</span> res.ess <span class="op">/</span> potentials_dirt.numel()</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"ESS ratio: </span><span class="sc">{</span>ess_ratio<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>ESS ratio: 0.97</code></pre>
+<pre><code>ESS ratio: 0.94</code></pre>
 </div>
 </div>
 <p>As expected, the ratio of the ESS (effective sample size) to the number of samples from the DIRT density is quite close to 1.</p>
@@ -790,9 +790,9 @@ Figure&nbsp;2: A pair plot showing 5000 samples from the prior and posterior.
 <span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>args_dict <span class="op">=</span> {</span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Fourier"</span>: [<span class="dv">7</span>, <span class="dv">10</span>, <span class="dv">12</span>, <span class="dv">15</span>],</span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Legendre"</span>: [<span class="dv">15</span>, <span class="dv">20</span>, <span class="dv">25</span>, <span class="dv">30</span>],</span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Piecewise"</span>: [<span class="dv">15</span>, <span class="dv">20</span>, <span class="dv">25</span>, <span class="dv">30</span>],</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Fourier"</span>: [<span class="dv">15</span>, <span class="dv">20</span>, <span class="dv">25</span>, <span class="dv">30</span>],</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Legendre"</span>: [<span class="dv">30</span>, <span class="dv">40</span>, <span class="dv">50</span>, <span class="dv">60</span>],</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Piecewise"</span>: [<span class="dv">30</span>, <span class="dv">40</span>, <span class="dv">50</span>, <span class="dv">60</span>],</span>
 <span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>colours <span class="op">=</span> {</span>
@@ -838,7 +838,7 @@ Figure&nbsp;2: A pair plot showing 5000 samples from the prior and posterior.
 <span id="cb17-53"><a href="#cb17-53" aria-hidden="true" tabindex="-1"></a>    ax.scatter(num_eval, iact, c<span class="op">=</span>colours[name], marker<span class="op">=</span><span class="st">"s"</span>, label<span class="op">=</span>name, zorder<span class="op">=</span>i)</span>
 <span id="cb17-54"><a href="#cb17-54" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-55"><a href="#cb17-55" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"Number of likelihood evaluations"</span>)</span>
-<span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Max. IACT"</span>)</span>
+<span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Max IACT"</span>)</span>
 <span id="cb17-57"><a href="#cb17-57" aria-hidden="true" tabindex="-1"></a>ax.set_box_aspect(<span class="dv">1</span>)</span>
 <span id="cb17-58"><a href="#cb17-58" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">"center left"</span>, bbox_to_anchor<span class="op">=</span>(<span class="dv">1</span>, <span class="fl">0.5</span>))</span>
 <span id="cb17-59"><a href="#cb17-59" aria-hidden="true" tabindex="-1"></a>add_arrows(ax)</span>

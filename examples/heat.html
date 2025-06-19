@@ -486,7 +486,7 @@ window.Quarto = {
 <section id="implementation-in-textttdeep_tensor" class="level1">
 <h1>Implementation in <span class="math inline">\(\texttt{deep\_tensor}\)</span></h1>
 <p>We will now use <span class="math inline">\(\texttt{deep\_tensor}\)</span> to construct a DIRT approximation to the posterior. To accelerate this process, we will use a reduced order model in place of the full model. Then, we will illustrate some debiasing techniques which use the DIRT approximation to the posterior, in combination with the full model, to accelerate the process of drawing exact posterior samples.</p>
-<div id="7addadf7" class="cell" data-execution_count="1">
+<div id="473e56aa" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -496,12 +496,12 @@ window.Quarto = {
 </div>
 <p>We begin by defining the prior, (full) model and reduced order model.</p>
 <p>The full model is implemented in <a href="https://fenicsproject.org/download/archive/">FEniCS</a>, on a <span class="math inline">\(96 \times 32\)</span> grid, using piecwise linear basis functions. Timestepping is done using the backward Euler method. The reduced order model is constructed using the proper orthogonal decomposition <span class="citation" data-cites="Benner2015">(see, <em>e.g.</em>, <a href="#ref-Benner2015" role="doc-biblioref">Benner, Gugercin, and Willcox 2015</a>)</span>.</p>
-<div id="4f6a0ffd" class="cell" data-execution_count="3">
+<div id="23a0c15a" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Construct the prior, full model and reduced order model</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>prior, model_full, model_rom <span class="op">=</span> setup_heat_problem()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we will generate the true log-diffusion coefficient using a sample from the prior. The true log-diffusion coefficient is plotted in <a href="#fig-ktrue" class="quarto-xref">Figure&nbsp;1</a>.</p>
-<div id="a9d77253" class="cell" data-execution_count="4">
+<div id="63fc5713" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>xi_true <span class="op">=</span> torch.randn(prior.dim)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>logk_true <span class="op">=</span> prior.transform(xi_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -530,7 +530,7 @@ Figure&nbsp;1: The true log-diffusion coefficient, <span class="math inline">\(\
 </div>
 </div>
 <p>Next, we will solve the (full) model to obtain the modelled temperatures corresponding to the true diffusion coefficient, and use these to generate some synthetic data. <a href="#fig-utrue" class="quarto-xref">Figure&nbsp;2</a> shows the true temperature field at time <span class="math inline">\(T=10\)</span>, as well as the observation locations.</p>
-<div id="fe37aca3" class="cell" data-execution_count="6">
+<div id="b111a721" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate true temperature field</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>u_true <span class="op">=</span> model_full.solve(logk_true)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -549,7 +549,7 @@ Figure&nbsp;1: The true log-diffusion coefficient, <span class="math inline">\(\
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="fl">6.0</span>, <span class="fl">2.0</span>))</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>cbar_label <span class="op">=</span> <span class="vs">r"</span><span class="dv">$</span><span class="vs">u</span><span class="kw">(</span><span class="dv">\b</span><span class="vs">m{x}, 10</span><span class="kw">)</span><span class="dv">$</span><span class="vs">"</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>plot_dl_function(fig, ax, model_full.vec2func(u_true[:, <span class="op">-</span><span class="dv">1</span>]), cbar_label, vmin<span class="op">=-</span><span class="fl">0.15</span>, vmax<span class="op">=</span><span class="fl">0.1</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>plot_dl_function(fig, ax, model_full.vec2func(u_true[:, <span class="op">-</span><span class="dv">1</span>]), cbar_label, vmin<span class="op">=-</span><span class="fl">0.15</span>, vmax<span class="op">=</span><span class="fl">0.10</span>)</span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>ax.scatter(<span class="op">*</span>model_full.xs_obs.T, s<span class="op">=</span><span class="dv">16</span>, c<span class="op">=</span><span class="st">"k"</span>, marker<span class="op">=</span><span class="st">"."</span>)</span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">x_</span><span class="op">{0}</span><span class="dv">$</span><span class="vs">"</span>)</span>
 <span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">x_</span><span class="op">{1}</span><span class="dv">$</span><span class="vs">"</span>)</span>
@@ -571,7 +571,7 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <section id="building-the-dirt-object" class="level2">
 <h2 class="anchored" data-anchor-id="building-the-dirt-object">Building the DIRT Object</h2>
 <p>Now we will build a DIRT object to approximate the posterior density of the coefficients, <span class="math inline">\(\{\xi^{(i)}\}_{i=1}^{d}\)</span>, used to parametrise the log-diffusion coefficient, for the reduced-order model. We begin by defining functions which return the potential associated with the likelihood and prior.</p>
-<div id="481b65b5" class="cell" data-execution_count="8">
+<div id="81a6d92f" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> neglogpri(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Returns the negative log prior density evaluated a given set of </span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">    samples.</span></span>
@@ -601,16 +601,16 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> _negloglik(model_rom, xs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we specify a preconditioner. Because the prior of the coefficients <span class="math inline">\(\{\xi^{(i)}\}_{i=1}^{d}\)</span> is the standard Gaussian, the mapping between a Gaussian reference and the prior is simply the identity mapping. This is an appropriate choice of preconditioner in the absence of any other information.</p>
-<div id="3febffc4" class="cell" data-execution_count="9">
+<div id="dc1b1f0e" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference()</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.IdentityMapping(prior.dim, reference)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Next, we specify a polynomial basis.</p>
-<div id="84a2008d" class="cell" data-execution_count="10">
+<div id="b1634f6f" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>poly <span class="op">=</span> dt.Legendre(order<span class="op">=</span><span class="dv">20</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Finally, we can construct the DIRT object.</p>
-<div id="979313b3" class="cell" data-execution_count="11">
+<div id="759ccd01" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Reduce the initial and maximum tensor ranks to reduce the cost of each layer</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(init_rank<span class="op">=</span><span class="dv">12</span>, max_rank<span class="op">=</span><span class="dv">12</span>)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -622,50 +622,50 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    tt_options<span class="op">=</span>tt_options</span>
 <span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 2.00e+03 | Cum. Time: 3.67e+00 s | Beta: 0.0001 | ESS: 0.9961
+<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 2.00e+03 | Cum. Time: 3.31e+00 s | Beta: 0.0001 | ESS: 0.9961
 [ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
 [ALS]     1 |     105252 |       14 |     1.00000e+00 |      1.00000e+00 |     2.75250e-04 |      2.46817e-04
 [ALS]  ALS complete.
-[DIRT] Iter:  2 | Cum. Fevals: 2.15e+05 | Cum. Time: 1.76e+02 s | Beta: 0.0098 | ESS: 0.5144 | DHell: 0.0008
+[DIRT] Iter:  2 | Cum. Fevals: 2.15e+05 | Cum. Time: 1.84e+02 s | Beta: 0.0098 | ESS: 0.5144 | DHell: 0.0008
 [ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
-[ALS]     1 |     105588 |       14 |     9.79286e-01 |      1.28998e-01 |     2.34392e-02 |      1.97314e-02
+[ALS]     1 |     105588 |       14 |     9.79286e-01 |      1.28998e-01 |     2.34390e-02 |      1.97313e-02
 [ALS]  ALS complete.
-[DIRT] Iter:  3 | Cum. Fevals: 4.28e+05 | Cum. Time: 3.59e+02 s | Beta: 0.0366 | ESS: 0.5183 | DHell: 0.0202
+[DIRT] Iter:  3 | Cum. Fevals: 4.28e+05 | Cum. Time: 3.72e+02 s | Beta: 0.0366 | ESS: 0.5183 | DHell: 0.0202
 [ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
-[ALS]     1 |     105588 |       14 |     7.23864e-01 |      1.54387e-01 |     1.12801e-02 |      1.41179e-02
+[ALS]     1 |     105588 |       14 |     7.23863e-01 |      1.54375e-01 |     1.12788e-02 |      1.41172e-02
 [ALS]  ALS complete.
-[DIRT] Iter:  4 | Cum. Fevals: 6.41e+05 | Cum. Time: 5.67e+02 s | Beta: 0.0972 | ESS: 0.5138 | DHell: 0.0427
+[DIRT] Iter:  4 | Cum. Fevals: 6.41e+05 | Cum. Time: 5.68e+02 s | Beta: 0.0972 | ESS: 0.5138 | DHell: 0.0427
 [ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
-[ALS]     1 |     105588 |       14 |     9.95572e-01 |      9.05398e-02 |     2.89238e-02 |      2.01883e-02
+[ALS]     1 |     105588 |       14 |     9.95568e-01 |      9.11834e-02 |     2.48469e-02 |      2.67500e-02
 [ALS]  ALS complete.
-[DIRT] Iter:  5 | Cum. Fevals: 8.54e+05 | Cum. Time: 7.81e+02 s | Beta: 0.2122 | ESS: 0.5108 | DHell: 0.0297
+[DIRT] Iter:  5 | Cum. Fevals: 8.54e+05 | Cum. Time: 7.68e+02 s | Beta: 0.2122 | ESS: 0.5119 | DHell: 0.0327
 [ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
-[ALS]     1 |     105588 |       14 |     1.54336e+00 |      1.23664e-01 |     4.06200e-02 |      3.04302e-02
+[ALS]     1 |     105588 |       14 |     1.95882e+00 |      1.27061e-01 |     3.21562e-02 |      2.97796e-02
 [ALS]  ALS complete.
-[DIRT] Iter:  6 | Cum. Fevals: 1.07e+06 | Cum. Time: 1.01e+03 s | Beta: 0.4001 | ESS: 0.5361 | DHell: 0.0387
+[DIRT] Iter:  6 | Cum. Fevals: 1.07e+06 | Cum. Time: 9.78e+02 s | Beta: 0.4001 | ESS: 0.5382 | DHell: 0.0400
 [ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
-[ALS]     1 |     105588 |       14 |     2.23818e+00 |      1.20009e-01 |     1.85003e-02 |      2.32004e-02
+[ALS]     1 |     105588 |       14 |     2.23520e+00 |      1.15147e-01 |     2.04326e-02 |      3.30888e-02
 [ALS]  ALS complete.
-[DIRT] Iter:  7 | Cum. Fevals: 1.28e+06 | Cum. Time: 1.26e+03 s | Beta: 0.7545 | ESS: 0.4952 | DHell: 0.0474
+[DIRT] Iter:  7 | Cum. Fevals: 1.28e+06 | Cum. Time: 1.22e+03 s | Beta: 0.7185 | ESS: 0.5394 | DHell: 0.0485
 [ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
-[ALS]     1 |     105588 |       14 |     1.53499e+01 |      6.17483e-01 |     4.70561e-02 |      3.59187e-02
+[ALS]     1 |     105588 |       14 |     7.65588e+00 |      3.24070e-01 |     3.16540e-02 |      2.91619e-02
 [ALS]  ALS complete.
-[DIRT] Iter:  8 | Cum. Fevals: 1.49e+06 | Cum. Time: 1.53e+03 s | Beta: 1.0000 | ESS: 0.8109 | DHell: 0.0837
+[DIRT] Iter:  8 | Cum. Fevals: 1.49e+06 | Cum. Time: 1.45e+03 s | Beta: 1.0000 | ESS: 0.7690 | DHell: 0.0643
 [ALS]  Iter | Func Evals | Max Rank | Max Local Error | Mean Local Error | Max Debug Error | Mean Debug Error
-[ALS]     1 |     105588 |       14 |     8.77946e-01 |      9.12101e-02 |     8.73332e-03 |      1.54953e-02
+[ALS]     1 |     105588 |       14 |     5.96450e-01 |      5.68127e-02 |     1.17163e-02 |      2.11140e-02
 [ALS]  ALS complete.
 [DIRT] DIRT construction complete.
 [DIRT]  • Layers: 8.
 [DIRT]  • Total function evaluations: 1,706,736.
-[DIRT]  • Total time: 1.8e+03 s.
-[DIRT]  • DHell: 0.0839.</code></pre>
+[DIRT]  • Total time: 1.7e+03 s.
+[DIRT]  • DHell: 0.0755.</code></pre>
 </div>
 </div>
 </section>
 <section id="debiasing" class="level2">
 <h2 class="anchored" data-anchor-id="debiasing">Debiasing</h2>
 <p>We will now use the DIRT density as the proposal density for an independence MCMC sampler. This will allow us to sample exactly from the posterior associated with the full model.</p>
-<div id="19dd810a" class="cell" data-execution_count="13">
+<div id="48c2209c" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a set of samples from the DIRT density</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> dirt.reference.random(d<span class="op">=</span>dirt.dim, n<span class="op">=</span><span class="dv">5000</span>)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>xs, potentials_dirt <span class="op">=</span> dirt.eval_irt(rs)</span>
@@ -680,9 +680,9 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Mean IACT (all parameters): </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span>mean()<span class="sc">:.2f}</span><span class="ss">"</span>)</span>
 <span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Maximum IACT (all parameters): </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Acceptance rate: 0.85
-Mean IACT (all parameters): 1.46
-Maximum IACT (all parameters): 1.99</code></pre>
+<pre><code>Acceptance rate: 0.86
+Mean IACT (all parameters): 1.38
+Maximum IACT (all parameters): 1.73</code></pre>
 </div>
 </div>
 <p>For all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently. <a href="#fig-traces" class="quarto-xref">Figure&nbsp;3</a> shows trace plots for the log-posterior density and selected parameters, which reinforces this idea.</p>
