@@ -362,13 +362,11 @@ class Basis1D(abc.ABC, object):
         dpdls = self.eval_basis_deriv(ls)
         wls = self.eval_measure(ls)[:, None]
         gradfwls = dpdls @ coeffs * wls
-
         # Compute second term of product rule
         if not self.constant_weight:
             basis_vals = self.eval_basis(ls)
             gradwls = self.eval_measure_deriv(ls)[:, None]
             gradfwls += (basis_vals @ coeffs) * gradwls
-
         return gradfwls
  
     def mass_r(self, interp_w: Tensor) -> Tensor:

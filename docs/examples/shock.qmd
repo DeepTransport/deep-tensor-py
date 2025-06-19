@@ -74,9 +74,9 @@ import deep_tensor as dt
 #| echo: false
 
 import os
-from examples.plotting import pairplot
+from examples.plotting import add_arrows, pairplot
 
-torch.manual_seed(0)
+torch.manual_seed(1)
 plt.style.use(os.sep.join(["..", "..", "examples", "plotstyle.mplstyle"]))
 
 ```
@@ -115,7 +115,7 @@ Next, we will generate a set of (synthetic) covariates for each shock absorber. 
 
 # Generate covariates
 D = 2
-xs = torch.randn((failure_dists.numel(), D))
+xs = torch.randn((failure_dists.numel(), D)) / D
 
 ```
 
@@ -210,11 +210,11 @@ preconditioner = construct_preconditioner(
 
 ### Approximation Bases
 
-Next, we specify a set of polynomial interpolants to use when building the functional tensor trains constructed during the DIRT algorithm. In this case, we will use a piecewise linear polynomial with 30 elements as the interpolant in each dimension.
+Next, we specify a set of polynomial interpolants to use when building the functional tensor trains constructed during the DIRT algorithm. In this case, we will use a piecewise linear polynomial with 20 elements as the interpolant in each dimension.
 
 ```{python}
 
-bases = dt.Lagrange1(num_elems=30)
+bases = dt.Lagrange1(num_elems=20)
 
 ```
 
@@ -281,9 +281,31 @@ print(f"Max IACT: {res.iacts.max():.2f}")
 
 ```
 
-For all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently.
+For all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently. @fig-traces shows trace plots for the log-posterior density and selected parameters, which reinforces this idea.
 
-@fig-pairs shows a set of prior and posterior samples.
+```{python}
+#| code-fold: true
+#| fig-align: center
+#| fig-cap: Trace plots for the negative log-posterior density (left), and coefficients $\xi_{22}$ (centre) and $\xi_{23}$ (right).
+#| label: fig-traces
+
+parameters = torch.hstack((res.potentials[:, None], res.xs[:, [0, 3]]))
+ylabels = [r"$-\log(f(x))$", r"$\beta_{2}$", r"$\theta_{2}$"]
+
+fig, axes = plt.subplots(1, 3, figsize=(7.5, 3))
+
+for i, ax in enumerate(axes):
+    ax.plot(parameters[:, i], c="tab:red", lw=0.5)
+    ax.set_ylabel(ylabels[i])
+    ax.set_box_aspect(1)
+    add_arrows(ax)
+
+axes[1].set_xlabel("Iteration")
+plt.show()
+
+```
+
+@fig-pairs shows a pair plot of prior and posterior samples.
 
 ```{python}
 #| code-fold: true
@@ -321,3 +343,79 @@ print(f"ESS ratio: {ess_ratio:.2f}")
 ```
 
 As expected, the ratio of the ESS (effective sample size) to the number of samples from the DIRT density is quite close to 1.
+
+## Comparison of Approximation Bases
+
+Finally, we show a comparison of different polynomial bases that can be used to construct the DIRT approximation to the target density. @fig-bases shows the relationship between the number of likelihood evaluations required to construct the DIRT approximation to the posterior, and the maximum IACT of the model parameters for an independence MCMC sampler that uses the DIRT approximation as the proposal density, when bases composed of Fourier, Legendre and piecewise linear polynomials are used. We modify the number of likelihood evaluations used to construct the DIRT approximation by changing the maximum order of the polynomials (Fourier and Legendre polynomials) or the number of linear functions used (piecewise linear polynomials). As before, we construct the DIRT in each case using a single layer. All other parameters are left at their default values.
+
+```{python}
+#| code-fold: true
+#| fig-align: center
+#| fig-cap: The relationship between the number of likelihood evaluations required to construct the DIRT, and the maximum IACT of the parameters, for Fourier, Legendre and piecewise linear polynomials.
+#| label: fig-bases
+
+bases_dict = {
+    "Fourier": dt.Fourier,
+    "Legendre": dt.Legendre,
+    "Piecewise": dt.Lagrange1
+}
+
+args_dict = {
+    "Fourier": [7, 10, 12, 15],
+    "Legendre": [15, 20, 25, 30],
+    "Piecewise": [15, 20, 25, 30],
+}
+
+colours = {
+    "Fourier": "tab:blue",
+    "Legendre": "tab:red",
+    "Piecewise": "tab:green"
+}
+
+results = {name: {"iact": [], "num_eval": []} for name in bases_dict}
+
+tt_options = dt.TTOptions(verbose=False)
+dirt_options = dt.DIRTOptions(verbose=False)
+
+for name in bases_dict:
+    for args in args_dict[name]:
+
+        bases = bases_dict[name](args)
+
+        dirt = dt.DIRT(
+            negloglik,
+            neglogpri, 
+            preconditioner,
+            bases,
+            bridge=dt.SingleLayer(),
+            tt_options=tt_options,
+            dirt_options=dirt_options
+        )
+
+        # Run independence MCMC sampler
+        samples_dirt, potentials_dirt = dirt.eval_irt(rs)
+        potentials_true = negloglik(samples_dirt) + neglogpri(samples_dirt)
+        res = dt.run_independence_sampler(samples_dirt, potentials_dirt, potentials_true)
+
+        results[name]["iact"].append(res.iacts.max())
+        results[name]["num_eval"].append(dirt.num_eval)
+
+fig, ax = plt.subplots(figsize=(6.5, 3.5))
+
+for i, name in enumerate(results):
+    num_eval = results[name]["num_eval"]
+    iact = results[name]["iact"]
+    ax.plot(num_eval, iact, color=colours[name], zorder=i)
+    ax.scatter(num_eval, iact, c=colours[name], marker="s", label=name, zorder=i)
+
+ax.set_xlabel("Number of likelihood evaluations")
+ax.set_ylabel("Max. IACT")
+ax.set_box_aspect(1)
+ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+add_arrows(ax)
+
+plt.show()
+
+```
+
+The results suggest that, for this particular problem, the Fourier basis produces the most accurate approximation to the posterior for a given computational budget.

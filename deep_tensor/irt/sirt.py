@@ -25,6 +25,15 @@ SUBSET2DIRECTION = {
 
 class AbstractSIRT():
 
+    @property 
+    def preconditioner(self) -> Preconditioner:
+        return self._preconditioner
+    
+    @preconditioner.setter
+    def preconditioner(self, value: Preconditioner) -> None:
+        self._preconditioner = value 
+        return
+
     @property
     def input_data(self) -> InputData:
         return self._input_data 
@@ -540,18 +549,18 @@ class AbstractSIRT():
         Bs = self.Bs_f
         cdfs = self.oned_cdfs
 
-        Gs: dict[int, Tensor] = {}
-        Gs_deriv: dict[int, Tensor] = {}
-        Ps: dict[int, Tensor] = {}
-        Ps_deriv: dict[int, Tensor] = {}
-        Ps_grid: dict[int, Tensor] = {}
+        Gs: Dict[int, Tensor] = {}
+        Gs_deriv: Dict[int, Tensor] = {}
+        Ps: Dict[int, Tensor] = {}
+        Ps_deriv: Dict[int, Tensor] = {}
+        Ps_grid: Dict[int, Tensor] = {}
 
-        ps_marg: dict[int, Tensor] = {}
+        ps_marg: Dict[int, Tensor] = {}
         ps_marg[-1] = self.z
-        ps_marg_deriv: dict[int, Tensor] = {}
-        ps_grid: dict[int, Tensor] = {}
-        ps_grid_deriv: dict[int, Tensor] = {}
-        wls: dict[int, Tensor] = {}
+        ps_marg_deriv: Dict[int, Dict[int, Tensor]] = {}
+        ps_grid: Dict[int, Tensor] = {}
+        ps_grid_deriv: Dict[int, Dict[int, Tensor]] = {}
+        wls: Dict[int, Tensor] = {}
 
         n_ls = ls.shape[0]
         Jacs = torch.zeros((self.dim, n_ls, self.dim))

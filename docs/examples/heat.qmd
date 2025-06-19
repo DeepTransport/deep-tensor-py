@@ -206,7 +206,6 @@ poly = dt.Legendre(order=20)
 Finally, we can construct the DIRT object.
 
 ```{python}
-#| eval: false
 
 # Reduce the initial and maximum tensor ranks to reduce the cost of each layer
 tt_options = dt.TTOptions(init_rank=12, max_rank=12)
@@ -225,7 +224,7 @@ dirt = dt.DIRT(
 #| echo: false 
 
 # dirt.save("dirt-rom")
-dirt = dt.SavedDIRT("dirt-rom", preconditioner)
+# dirt = dt.SavedDIRT("dirt-rom", preconditioner)
 
 ```
 
@@ -265,7 +264,7 @@ ylabels = [r"$-\log(f(x))$", r"$\xi_{22}$", r"$\xi_{23}$"]
 fig, axes = plt.subplots(1, 3, figsize=(7.5, 3))
 
 for i, ax in enumerate(axes):
-    ax.plot(parameters[:, i], c="tab:green", lw=0.5)
+    ax.plot(parameters[:, i], c="tab:red", lw=0.5)
     ax.set_ylabel(ylabels[i])
     ax.set_box_aspect(1)
     add_arrows(ax)
@@ -275,7 +274,7 @@ plt.show()
 
 ```
 
-Finally, @fig-pairs shows a set of prior and posterior samples for four selected coefficients. It is evident that the posterior is significantly different to the prior.
+Finally, @fig-pairs shows a set of prior and posterior samples for three selected coefficients. It is evident that the posterior is significantly different to the prior.
 
 ```{python}
 #| code-fold: true

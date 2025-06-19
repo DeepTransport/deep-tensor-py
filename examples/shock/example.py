@@ -6,7 +6,7 @@ import torch
 import deep_tensor as dt
 
 from preconditioner import construct_preconditioner
-from examples.plotting import pairplot
+from examples.plotting import add_arrows, pairplot
 
 
 torch.manual_seed(0)
@@ -149,3 +149,67 @@ pairplot(
 res = dt.run_importance_sampling(potentials_dirt, potentials_true)
 ess_ratio = res.ess / potentials_dirt.numel()
 print(f"ESS ratio: {ess_ratio:.2f}")
+
+#%% Comparison between different bases
+
+bases_dict = {
+    "Fourier": dt.Fourier,
+    "Legendre": dt.Legendre,
+    "Piecewise": dt.Lagrange1
+}
+
+args_dict = {
+    "Fourier": [7, 10, 12, 15],
+    "Legendre": [15, 20, 25, 30],
+    "Piecewise": [15, 20, 25, 30],
+}
+
+colours = {
+    "Fourier": "tab:blue",
+    "Legendre": "tab:red",
+    "Piecewise": "tab:green"
+}
+
+results = {name: {"iact": [], "num_eval": []} for name in bases_dict}
+
+tt_options = dt.TTOptions(verbose=False)
+dirt_options = dt.DIRTOptions(verbose=False)
+
+for name in bases_dict:
+    for args in args_dict[name]:
+
+        bases = bases_dict[name](args)
+
+        dirt = dt.DIRT(
+            negloglik,
+            neglogpri, 
+            preconditioner,
+            bases,
+            bridge=dt.SingleLayer(),
+            tt_options=tt_options,
+            dirt_options=dirt_options
+        )
+
+        # Run independence MCMC sampler
+        samples_dirt, potentials_dirt = dirt.eval_irt(rs)
+        potentials_true = negloglik(samples_dirt) + neglogpri(samples_dirt)
+        res = dt.run_independence_sampler(samples_dirt, potentials_dirt, potentials_true)
+
+        results[name]["iact"].append(res.iacts.max())
+        results[name]["num_eval"].append(dirt.num_eval)
+
+fig, ax = plt.subplots(figsize=(6.5, 3.5))
+
+for i, name in enumerate(results):
+    num_eval = results[name]["num_eval"]
+    iact = results[name]["iact"]
+    ax.plot(num_eval, iact, color=colours[name], zorder=i)
+    ax.scatter(num_eval, iact, c=colours[name], marker="s", label=name, zorder=i)
+
+ax.set_xlabel("Number of likelihood evaluations")
+ax.set_ylabel("Max. IACT")
+ax.set_box_aspect(1)
+ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
+add_arrows(ax)
+
+plt.show()

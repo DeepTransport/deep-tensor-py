@@ -94,7 +94,7 @@ def pairplot(
                 
                 xs_kde = torch.linspace(*bounds[j], steps=100)
                 density = gaussian_kde(xs[:, j])(xs_kde)
-                axes[i][j].plot(xs_kde, density, c="tab:green", lw=1.5, label=x_label)
+                axes[i][j].plot(xs_kde, density, c="tab:red", lw=1.5, label=x_label)
                 max_density = max(density)
                 
                 if ys is not None:
@@ -117,7 +117,7 @@ def pairplot(
 
                 axes[i][j].set_xlim(*bounds[j])
                 axes[i][j].set_ylim(*bounds[i])
-                axes[i][j].scatter(xs[:, j], xs[:, i], s=4, c="tab:green", alpha=0.5, zorder=1)
+                axes[i][j].scatter(xs[:, j], xs[:, i], s=4, c="tab:red", alpha=0.5, zorder=1)
                 
                 if j > 0:
                     axes[i][j].yaxis.set_ticklabels([])

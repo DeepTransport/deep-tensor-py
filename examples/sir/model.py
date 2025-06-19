@@ -35,7 +35,7 @@ class SIRModel():
         S, I, _ = y.reshape(3, -1)
         return np.array([-b*S*I, b*S*I - g*I, g*I]).flatten()
     
-    def _solve_fwd(self, params: ndarray) -> Tensor:
+    def _solve_fwd(self, params: Tensor) -> Tensor:
         """Solves the forward problem with given parameters, and 
         returns the number of infected people at the desired times.
         """
@@ -56,6 +56,6 @@ class SIRModel():
         # For an unknown reason, the ODE solver fails with a 
         # segmentation fault if the dimension of the state is quite 
         # large.
-        params = [params[i:i+n_batch] for i in range(0, params.shape[0], n_batch)]
-        ys = np.vstack([self._solve_fwd(p) for p in params])
+        param_batches = [params[i:i+n_batch] for i in range(0, params.shape[0], n_batch)]
+        ys = np.vstack([self._solve_fwd(p) for p in param_batches])
         return torch.tensor(ys)
