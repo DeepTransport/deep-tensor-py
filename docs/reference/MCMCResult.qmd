@@ -1,17 +1,25 @@
 # MCMCResult { #deep_tensor.MCMCResult }
 
 ```python
-MCMCResult(xs: Tensor, acceptance_rate: Tensor)
+MCMCResult(chain: MarkovChain)
 ```
 
 An object containing a constructed Markov chain.
 
-## Parameters {.doc-section .doc-section-parameters}
+## Attributes {.doc-section .doc-section-attributes}
 
 <code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
-:   An $n \times d$ matrix containing the samples that form the  Markov chain.
+:   An $n \times k$ matrix containing the samples that form the  Markov chain.
 
-<code>[**acceptance_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**potentials**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential function  associated with the target density evaluated at each sample in  the chain.
+
+<code>[**acceptance_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation}</code>
 
 :   The acceptance rate of the sampler.
+
+<code>[**iacts**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+
+:   A $k$-dimensional vector containing estimates of the integrated  autocorrelation time (IACT) for each parameter.

@@ -36,7 +36,8 @@ website:
     - contents:
       - reference/run_importance_sampling.qmd
       - reference/run_independence_sampler.qmd
-      - reference/run_dirt_pcn.qmd
+      - reference/run_irt_pcn.qmd
+      - reference/run_cirt_pcn.qmd
       - reference/ImportanceSamplingResult.qmd
       - reference/MCMCResult.qmd
       section: Debiasing

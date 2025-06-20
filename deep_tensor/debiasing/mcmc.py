@@ -64,13 +64,20 @@ class MarkovChain(object):
 class MCMCResult(object):
     r"""An object containing a constructed Markov chain.
     
-    Parameters
+    Attributes
     ----------
-    xs:
-        An $n \times d$ matrix containing the samples that form the 
+    xs: Tensor
+        An $n \times k$ matrix containing the samples that form the 
         Markov chain.
-    acceptance_rate:
+    potentials: Tensor
+        An $n$-dimensional vector containing the potential function 
+        associated with the target density evaluated at each sample in 
+        the chain.
+    acceptance_rate: float
         The acceptance rate of the sampler.
+    iacts: Tensor
+        A $k$-dimensional vector containing estimates of the integrated 
+        autocorrelation time (IACT) for each parameter.
     
     """
     def __init__(self, chain: MarkovChain):
@@ -153,13 +160,13 @@ def run_irt_pcn(
     subset: str = "first",
     verbose: bool = True
 ) -> MCMCResult:
-    r"""Runs a preconditioned Crank-Nicholson (pCN) sampler.
+    r"""Runs a pCN sampler using the DIRT mapping.
     
-    Runs a pCN sampler (Cotter *et al.*, 2013) to characterise the 
-    pullback of the target density under the DIRT mapping, then pushes 
-    the resulting samples forward under the DIRT mapping to obtain 
-    samples distributed according to the target. This idea was 
-    initially outlined by Cui *et al.* (2023).
+    Runs a preconditioned Crank-Nicholson sampler (Cotter *et al.*, 
+    2013) to characterise the pullback of the target density under the 
+    DIRT mapping, then pushes the resulting samples forward under the 
+    DIRT mapping to obtain samples distributed according to the target. 
+    This idea was initially outlined by Cui *et al.* (2023).
 
     Note that the pCN proposal is only applicable to problems with a 
     Gaussian reference density.
@@ -265,7 +272,7 @@ def run_cirt_pcn(
     subset: str = "first",
     verbose: bool = True
 ) -> MCMCResult:
-    r"""Runs a preconditioned Crank-Nicholson (pCN) sampler using a conditional of the DIRT mapping. 
+    r"""Runs a pCN sampler using a conditional of the DIRT mapping. 
     
     Runs a pCN sampler to characterise the pullback of the target 
     density under a conditional of the DIRT mapping, then pushes the 
@@ -296,7 +303,7 @@ def run_cirt_pcn(
         containing a sample from the reference domain. If not passed in, 
         the mean of the reference density will be used.
     subset:
-        Whether 'y' is a realisation of the first $k$ variables 
+        Whether `y` is a realisation of the first $k$ variables 
         (`subset='first'`) or the final $k$ variables (`subset='last'`).
     verbose:
         Whether to print diagnostic information during the sampling 

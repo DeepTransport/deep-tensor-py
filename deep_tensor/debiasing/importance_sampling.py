@@ -10,15 +10,15 @@ from ..tools import estimate_ess_ratio
 class ImportanceSamplingResult(object):
     r"""An object containing the results of importance sampling.
     
-    Parameters
+    Attributes
     ----------
-    log_weights:
+    log_weights: Tensor
         An $n$-dimensional vector containing the unnormalised 
         importance weights associated with a set of samples.
-    log_norm:
+    log_norm: Tensor
         An estimate of the logarithm of the normalising constant 
         associated with the target density.
-    ess:
+    ess: Tensor
         An estimate of the effective sample size of the samples. 
 
     """

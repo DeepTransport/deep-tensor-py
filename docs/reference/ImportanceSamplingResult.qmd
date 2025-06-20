@@ -6,7 +6,7 @@ ImportanceSamplingResult(log_weights: Tensor, log_norm: Tensor, ess: Tensor)
 
 An object containing the results of importance sampling.
 
-## Parameters {.doc-section .doc-section-parameters}
+## Attributes {.doc-section .doc-section-attributes}
 
 <code>[**log_weights**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
 
