@@ -568,8 +568,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/run_dirt_pcn.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">run_dirt_pcn</span></a>
+  <a href="../reference/run_irt_pcn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_irt_pcn</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_cirt_pcn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_cirt_pcn</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -601,18 +607,26 @@ window.Quarto = {
 
 <section id="deep_tensor.MCMCResult" class="level1">
 <h1>MCMCResult</h1>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>MCMCResult(xs: Tensor, acceptance_rate: Tensor)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>MCMCResult(chain: MarkovChain)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>An object containing a constructed Markov chain.</p>
-<section id="parameters" class="level2 doc-section doc-section-parameters">
-<h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
+<section id="attributes" class="level2 doc-section doc-section-attributes">
+<h2 class="doc-section doc-section-attributes anchored" data-anchor-id="attributes">Attributes</h2>
 <dl>
 <dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n \times d\)</span> matrix containing the samples that form the Markov chain.</p>
+<p>An <span class="math inline">\(n \times k\)</span> matrix containing the samples that form the Markov chain.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>acceptance_rate</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>potentials</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function associated with the target density evaluated at each sample in the chain.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>acceptance_rate</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`float`">float</a></span></code></dt>
 <dd>
 <p>The acceptance rate of the sampler.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>iacts</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dd>
+<p>A <span class="math inline">\(k\)</span>-dimensional vector containing estimates of the integrated autocorrelation time (IACT) for each parameter.</p>
 </dd>
 </dl>
 

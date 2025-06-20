@@ -110,239 +110,257 @@
     ]
   },
   {
-    "objectID": "reference/BoundedDomain.html",
-    "href": "reference/BoundedDomain.html",
-    "title": "BoundedDomain",
+    "objectID": "reference/TTOptions.html",
+    "href": "reference/TTOptions.html",
+    "title": "TTOptions",
     "section": "",
-    "text": "BoundedDomain(bounds: Tensor | None = None)\nMapping from a bounded domain to \\((-1, 1)\\).\nThis class provides a linear mapping from a bounded domain, \\((x_{0}, x_{1})\\), to \\((-1, 1)\\).\n\n\n\nbounds : Tensor | None = None\n\nA set of bounds, \\((x_{0}, x_{1})\\). The default choice is torch.tensor([-1.0, 1.0]).",
+    "text": "TTOptions(\n    max_als: int = 1,\n    als_tol: float = 0.0001,\n    init_rank: int = 20,\n    kick_rank: int = 2,\n    max_rank: int = 30,\n    local_tol: float = 1e-10,\n    cdf_tol: float = 1e-10,\n    tt_method: str = 'amen',\n    int_method: str = 'maxvol',\n    verbose: int = 1,\n)\nOptions for configuring the construction of an FTT object.\n\n\n\nmax_als : int = 1\n\nThe maximum number of ALS iterations to be carried out during the FTT construction.\n\nals_tol : float = 0.0001\n\nThe tolerance to use to determine whether the ALS iterations should be terminated.\n\ninit_rank : int = 20\n\nThe initial rank of each tensor core.\n\nkick_rank : int = 2\n\nThe rank of the enrichment set of samples added at each ALS iteration.\n\nmax_rank : int = 30\n\nThe maximum allowable rank of each tensor core (prior to the enrichment set being added).\n\nlocal_tol : float = 1e-10\n\nThe threshold to use when applying truncated SVD to the tensor cores when building the FTT.\n\ncdf_tol : float = 1e-10\n\nThe tolerance used when solving the root-finding problem to invert the CDF.\n\ntt_method : str = 'amen'\n\nThe method used to construct the TT cores. Can be 'fixed', 'random', or 'amen'.\n\nint_method : str = 'maxvol'\n\nThe interpolation method used when constructing the tensor cores. Can be 'maxvol' (Goreinov et al., 2010) or 'deim' (Chaturantabut and Sorensen, 2010).\n\nverbose : int = 1\n\nIf verbose=0, no information about the construction of the FTT will be printed to the screen. If verbose=1, diagnostic information will be prined at the end of each ALS iteration. If verbose=2, the tensor core currently being constructed during each ALS iteration will also be displayed.\n\n\n\n\n\nChaturantabut, S and Sorensen, DC (2010). Nonlinear model reduction via discrete empirical interpolation. SIAM Journal on Scientific Computing 32, 2737–2764.\nGoreinov, SA, Oseledets, IV, Savostyanov, DV, Tyrtyshnikov, EE and Zamarashkin, NL (2010). How to find a good submatrix. In: Matrix Methods: Theory, Algorithms and Applications, 247–256.",
     "crumbs": [
       "API Reference",
-      "Domain Mappings",
-      "BoundedDomain"
+      "Options",
+      "TTOptions"
     ]
   },
   {
-    "objectID": "reference/BoundedDomain.html#parameters",
-    "href": "reference/BoundedDomain.html#parameters",
-    "title": "BoundedDomain",
+    "objectID": "reference/TTOptions.html#parameters",
+    "href": "reference/TTOptions.html#parameters",
+    "title": "TTOptions",
     "section": "",
-    "text": "bounds : Tensor | None = None\n\nA set of bounds, \\((x_{0}, x_{1})\\). The default choice is torch.tensor([-1.0, 1.0]).",
+    "text": "max_als : int = 1\n\nThe maximum number of ALS iterations to be carried out during the FTT construction.\n\nals_tol : float = 0.0001\n\nThe tolerance to use to determine whether the ALS iterations should be terminated.\n\ninit_rank : int = 20\n\nThe initial rank of each tensor core.\n\nkick_rank : int = 2\n\nThe rank of the enrichment set of samples added at each ALS iteration.\n\nmax_rank : int = 30\n\nThe maximum allowable rank of each tensor core (prior to the enrichment set being added).\n\nlocal_tol : float = 1e-10\n\nThe threshold to use when applying truncated SVD to the tensor cores when building the FTT.\n\ncdf_tol : float = 1e-10\n\nThe tolerance used when solving the root-finding problem to invert the CDF.\n\ntt_method : str = 'amen'\n\nThe method used to construct the TT cores. Can be 'fixed', 'random', or 'amen'.\n\nint_method : str = 'maxvol'\n\nThe interpolation method used when constructing the tensor cores. Can be 'maxvol' (Goreinov et al., 2010) or 'deim' (Chaturantabut and Sorensen, 2010).\n\nverbose : int = 1\n\nIf verbose=0, no information about the construction of the FTT will be printed to the screen. If verbose=1, diagnostic information will be prined at the end of each ALS iteration. If verbose=2, the tensor core currently being constructed during each ALS iteration will also be displayed.",
     "crumbs": [
       "API Reference",
-      "Domain Mappings",
-      "BoundedDomain"
+      "Options",
+      "TTOptions"
     ]
   },
   {
-    "objectID": "reference/MCMCResult.html",
-    "href": "reference/MCMCResult.html",
-    "title": "MCMCResult",
+    "objectID": "reference/TTOptions.html#references",
+    "href": "reference/TTOptions.html#references",
+    "title": "TTOptions",
     "section": "",
-    "text": "MCMCResult(xs: Tensor, acceptance_rate: Tensor)\nAn object containing a constructed Markov chain.\n\n\n\nxs : Tensor\n\nAn \\(n \\times d\\) matrix containing the samples that form the Markov chain.\n\nacceptance_rate : Tensor\n\nThe acceptance rate of the sampler.",
+    "text": "Chaturantabut, S and Sorensen, DC (2010). Nonlinear model reduction via discrete empirical interpolation. SIAM Journal on Scientific Computing 32, 2737–2764.\nGoreinov, SA, Oseledets, IV, Savostyanov, DV, Tyrtyshnikov, EE and Zamarashkin, NL (2010). How to find a good submatrix. In: Matrix Methods: Theory, Algorithms and Applications, 247–256.",
     "crumbs": [
       "API Reference",
-      "Debiasing",
-      "MCMCResult"
+      "Options",
+      "TTOptions"
     ]
   },
   {
-    "objectID": "reference/MCMCResult.html#parameters",
-    "href": "reference/MCMCResult.html#parameters",
-    "title": "MCMCResult",
+    "objectID": "reference/DIRT.html",
+    "href": "reference/DIRT.html",
+    "title": "DIRT",
     "section": "",
-    "text": "xs : Tensor\n\nAn \\(n \\times d\\) matrix containing the samples that form the Markov chain.\n\nacceptance_rate : Tensor\n\nThe acceptance rate of the sampler.",
+    "text": "DIRT(\n    negloglik: Callable[[Tensor], Tensor],\n    neglogpri: Callable[[Tensor], Tensor],\n    preconditioner: Preconditioner,\n    bases: Basis1D | List[Basis1D],\n    bridge: Bridge | None = None,\n    tt_options: TTOptions | None = None,\n    dirt_options: DIRTOptions | None = None,\n    prev_approx: Dict[int, SIRT] | None = None,\n)\nDeep (squared) inverse Rosenblatt transport.\n\n\n\nnegloglik : Callable[[Tensor], Tensor]\n\nA function that receives an \\(n \\times d\\) matrix of samples and returns an \\(n\\)-dimensional vector containing the negative log-likelihood function evaluated at each sample.\n\nneglogpri : Callable[[Tensor], Tensor]\n\nA function that receives an \\(n \\times d\\) matrix of samples and returns an \\(n\\)-dimensional vector containing the negative log-prior density evaluated at each sample.\n\nbases : Basis1D | List[Basis1D]\n\nA list of sets of basis functions for each dimension, or a single set of basis functions (to be used in all dimensions), used to construct the functional tensor trains at each iteration.\n\nbridge : Bridge | None = None\n\nAn object used to generate the intermediate densities to approximate at each stage of the DIRT construction.\n\ntt_options : TTOptions | None = None\n\nOptions for constructing the FTT approximation to the square root of the ratio function (i.e., the pullback of the current bridging density under the existing composition of mappings) at each iteration.\n\ndirt_options : DIRTOptions | None = None\n\nOptions for constructing the DIRT approximation to the target density.\n\nprev_approx : Dict[int, SIRT] | None = None\n\nA dictionary containing a set of SIRTs generated as part of the construction of a previous DIRT object.\n\n\n\n\n\nCui, T and Dolgov, S (2022). Deep composition of tensor-trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.\n\n\n\n\n\n\nName\nDescription\n\n\n\n\neval_potential\nEvaluates the potential function.\n\n\neval_potential_cond\nEvaluates the conditional potential function.\n\n\neval_rt\nEvaluates the deep Rosenblatt transport.\n\n\neval_irt\nEvaluates the deep inverse Rosenblatt transport.\n\n\neval_cirt\nEvaluates the conditional inverse Rosenblatt transport.\n\n\neval_irt_pullback\nEvaluates the pullback of a density function under the DIRT mapping.\n\n\neval_cirt_pullback\nEvaluates the pullback of a conditional density function under the DIRT mapping.\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nDIRT.eval_potential(\n    xs: Tensor,\n    subset: str | None = None,\n    n_layers: int | None = None,\n)\nEvaluates the potential function.\nReturns the joint potential function, or the marginal potential function for the first \\(k\\) variables or the last \\(k\\) variables, corresponding to the pullback of the reference measure under a given number of layers of the DIRT.\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix containing a set of samples from the approximation domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the current DIRT construction to use when computing the potential. If not specified, all layers will be used when computing the potential.\n\n\n\n\n\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the target density evaluated at each element in xs.\n\n\n\n\n\n\nDIRT.eval_potential_cond(\n    ys: Tensor,\n    xs: Tensor,\n    subset: str = 'first',\n    n_layers: int | None = None,\n)\nEvaluates the conditional potential function.\nReturns the conditional potential function evaluated at a set of samples in the approximation domain.\n\n\n\nys : Tensor\n\nAn \\(n \\times k\\) matrix containing samples from the approximation domain.\n\nxs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing samples from the approximation domain.\n\nsubset : str = 'first'\n\nWhether ys corresponds to the first \\(k\\) variables (subset='first') of the approximation, or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.\n\n\n\n\n\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the approximation to the conditional density of \\(X \\textbar Y\\) evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_rt(xs: Tensor, subset: str | None = None, n_layers: int | None = None)\nEvaluates the deep Rosenblatt transport.\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix of samples from the approximation domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times k\\) matrix containing the composition of mappings evaluated at each value of xs.\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the pullback of the reference density under the current composition of mappings evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_irt(\n    rs: Tensor,\n    subset: str | None = None,\n    n_layers: int | None = None,\n)\nEvaluates the deep inverse Rosenblatt transport.\n\n\n\nrs : Tensor\n\nAn \\(n \\times k\\) matrix containing samples from the reference domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix containing the corresponding samples from the approximation domain, after applying the deep inverse Rosenblatt transport.\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the pullback of the reference density under the current composition of mappings, evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_cirt(\n    ys: Tensor,\n    rs: Tensor,\n    subset: str = 'first',\n    n_layers: int | None = None,\n)\nEvaluates the conditional inverse Rosenblatt transport.\nReturns the conditional inverse Rosenblatt transport evaluated at a set of samples in the approximation domain.\n\n\n\nys : Tensor\n\nA matrix containing samples from the approximation domain. The matrix should have dimensions \\(1 \\times k\\) (if the same realisation of \\(Y\\) is to be used for all samples in rs) or \\(n \\times k\\) (if a different realisation of \\(Y\\) is to be used for each samples in rs).\n\nrs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing samples from the reference domain.\n\nsubset : str = 'first'\n\nWhether ys corresponds to the first \\(k\\) variables (subset='first') of the approximation, or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the DIRT object to use when evaluating the CIRT. If not specified, all layers will be used.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing the realisations of \\(X\\) corresponding to the values of rs after applying the conditional inverse Rosenblatt transport.\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the approximation to the conditional density of \\(X \\textbar Y\\) evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_irt_pullback(\n    potential: Callable[[Tensor], Tensor],\n    rs: Tensor,\n    subset: str | None = None,\n    n_layers: int | None = None,\n)\nEvaluates the pullback of a density function under the DIRT mapping.\nThis function evaluates \\(\\mathcal{T}^{\\sharp}f(r)\\), where \\(\\mathcal{T}(\\cdot)\\) denotes the inverse Rosenblatt transport and \\(f(\\cdot)\\) denotes an arbitrary density function.\n\n\n\npotential : Callable[[Tensor], Tensor]\n\nA function that takes an \\(n \\times k\\) matrix of samples from the approximation domain, and returns an \\(n\\)-dimensional vector containing the potential function associated with \\(f(\\cdot)\\) evaluated at each sample.\n\nrs : Tensor\n\nAn \\(n \\times k\\) matrix containing a set of samples from the reference domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.\n\n\n\n\n\n\nneglogTfrs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential of the pullback function evaluated at each element in rs; that is, \\(-\\log(\\mathcal{T}^{\\sharp}f(r))\\).\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential of the target function evaluated at each element in rs, pushed forward under the IRT; that is, \\(-\\log(f(\\mathcal{T}(r)))\\).\n\n\n\n\n\n\nDIRT.eval_cirt_pullback(\n    potential: Callable[[Tensor], Tensor],\n    ys: Tensor,\n    rs: Tensor,\n    subset: str = 'first',\n    n_layers: int | None = None,\n)\nEvaluates the pullback of a conditional density function under the DIRT mapping.\nThis function evaluates \\(\\mathcal{T}^{\\sharp}f(r|y)\\), where \\(\\mathcal{T}(\\cdot)\\) denotes the inverse Rosenblatt transport and \\(f(\\cdot|y)\\) denotes an arbitrary conditional density function.\n\n\n\npotential : Callable[[Tensor], Tensor]\n\nA function that takes an \\(n \\times (d-k)\\) matrix of samples from the approximation domain, and returns an \\(n\\)-dimensional vector containing the potential function associated with \\(f(\\cdot\\|y)\\) evaluated at each sample.\n\nys : Tensor\n\nA matrix containing samples from the approximation domain. The matrix should have dimensions \\(1 \\times k\\) (if the same realisation of \\(Y\\) is to be used for all samples in rs) or \\(n \\times k\\) (if a different realisation of \\(Y\\) is to be used for each samples in rs).\n\nrs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing a set of samples from the reference domain.\n\nsubset : str = 'first'\n\nWhether ys corresponds to the first \\(k\\) variables (subset='first') of the approximation, or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.\n\n\n\n\n\n\nneglogTfrs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential of the pullback function evaluated at each element in rs; that is, \\(-\\log(\\mathcal{T}^{\\sharp}f(r\\|y))\\).\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential of the target function evaluated at each element in rs, pushed forward under the IRT; that is, \\(-\\log(f(\\mathcal{T}(r)\\|y))\\).\n\n\n\n\n\n\nDIRT.random(n: int)\nGenerates a set of random samples.\nThe samples are distributed according to the DIRT approximation to the target density.\n\n\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nDIRT.sobol(n: int)\nGenerates a set of QMC samples.\nThe samples are distributed according to the DIRT approximation to the target density.\n\n\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
     "crumbs": [
       "API Reference",
-      "Debiasing",
-      "MCMCResult"
+      "Deep Inverse Rosenblatt Transport",
+      "DIRT"
     ]
   },
   {
-    "objectID": "reference/index.html",
-    "href": "reference/index.html",
-    "title": "API Reference",
+    "objectID": "reference/DIRT.html#parameters",
+    "href": "reference/DIRT.html#parameters",
+    "title": "DIRT",
     "section": "",
-    "text": "An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.\n\n\n\nDIRT\nDeep (squared) inverse Rosenblatt transport.\n\n\n\n\n\n\nInitial guesses for the mapping between the reference random variable and the target random variable.\n\n\n\nPreconditioner\nA user-defined preconditioning function.\n\n\nIdentityMapping\nAn identity mapping.\n\n\nUniformMapping\nA mapping between the reference density and a uniform density.\n\n\n\n\n\n\nPolynomial bases used to construct a functional tensor train.\n\n\n\nLagrange1\nPiecewise linear polynomials.\n\n\nLagrangeP\nHigher-order piecewise Lagrange polynomials.\n\n\nChebyshev1st\nChebyshev polynomials of the first kind.\n\n\nChebyshev2nd\nChebyshev polynomials of the second kind.\n\n\nFourier\nFourier polynomials.\n\n\nLegendre\nLegendre polynomials.\n\n\n\n\n\n\nMappings between the approximation domain and the domain of the polynomial basis.\n\n\n\nBoundedDomain\nMapping from a bounded domain to \\((-1, 1)\\).\n\n\n\n\n\n\nOptions for configuring the FTT and DIRT construction.\n\n\n\nTTOptions\nOptions for configuring the construction of an FTT object.\n\n\nDIRTOptions\nOptions for configuring the construction of a DIRT object.\n\n\n\n\n\n\nProduct-form reference densities used as part of DIRT construction.\n\n\n\nGaussianReference\nThe standard \\(d\\)-dimensional Gaussian density, \\(\\mathcal{N}(\\boldsymbol{0}_{d}, \\boldsymbol{I}_{d})\\).\n\n\nUniformReference\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).\n\n\n\n\n\n\nObjects used to generate the intermediate densities approximated during DIRT construction.\n\n\n\nSingleLayer\nConstructs the DIRT using a single layer.\n\n\nTempering\nLikelihood tempering.\n\n\n\n\n\n\nFunctions used to remove the bias associated with the use of an approximation to the target density function.\n\n\n\nrun_importance_sampling\nComputes the importance weights associated with a set of samples.\n\n\nrun_independence_sampler\nRuns an independence MCMC sampler.\n\n\nrun_dirt_pcn\nRuns a preconditioned Crank-Nicholson (pCN) sampler.\n\n\nImportanceSamplingResult\nAn object containing the results of importance sampling.\n\n\nMCMCResult\nAn object containing a constructed Markov chain.",
-    "crumbs": [
-      "API Reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#deep-inverse-rosenblatt-transport",
-    "href": "reference/index.html#deep-inverse-rosenblatt-transport",
-    "title": "API Reference",
-    "section": "",
-    "text": "An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.\n\n\n\nDIRT\nDeep (squared) inverse Rosenblatt transport.",
-    "crumbs": [
-      "API Reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#preconditioners",
-    "href": "reference/index.html#preconditioners",
-    "title": "API Reference",
-    "section": "",
-    "text": "Initial guesses for the mapping between the reference random variable and the target random variable.\n\n\n\nPreconditioner\nA user-defined preconditioning function.\n\n\nIdentityMapping\nAn identity mapping.\n\n\nUniformMapping\nA mapping between the reference density and a uniform density.",
-    "crumbs": [
-      "API Reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#polynomial-bases",
-    "href": "reference/index.html#polynomial-bases",
-    "title": "API Reference",
-    "section": "",
-    "text": "Polynomial bases used to construct a functional tensor train.\n\n\n\nLagrange1\nPiecewise linear polynomials.\n\n\nLagrangeP\nHigher-order piecewise Lagrange polynomials.\n\n\nChebyshev1st\nChebyshev polynomials of the first kind.\n\n\nChebyshev2nd\nChebyshev polynomials of the second kind.\n\n\nFourier\nFourier polynomials.\n\n\nLegendre\nLegendre polynomials.",
-    "crumbs": [
-      "API Reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#domain-mappings",
-    "href": "reference/index.html#domain-mappings",
-    "title": "API Reference",
-    "section": "",
-    "text": "Mappings between the approximation domain and the domain of the polynomial basis.\n\n\n\nBoundedDomain\nMapping from a bounded domain to \\((-1, 1)\\).",
-    "crumbs": [
-      "API Reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#options",
-    "href": "reference/index.html#options",
-    "title": "API Reference",
-    "section": "",
-    "text": "Options for configuring the FTT and DIRT construction.\n\n\n\nTTOptions\nOptions for configuring the construction of an FTT object.\n\n\nDIRTOptions\nOptions for configuring the construction of a DIRT object.",
-    "crumbs": [
-      "API Reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#reference-densities",
-    "href": "reference/index.html#reference-densities",
-    "title": "API Reference",
-    "section": "",
-    "text": "Product-form reference densities used as part of DIRT construction.\n\n\n\nGaussianReference\nThe standard \\(d\\)-dimensional Gaussian density, \\(\\mathcal{N}(\\boldsymbol{0}_{d}, \\boldsymbol{I}_{d})\\).\n\n\nUniformReference\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).",
-    "crumbs": [
-      "API Reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#bridges",
-    "href": "reference/index.html#bridges",
-    "title": "API Reference",
-    "section": "",
-    "text": "Objects used to generate the intermediate densities approximated during DIRT construction.\n\n\n\nSingleLayer\nConstructs the DIRT using a single layer.\n\n\nTempering\nLikelihood tempering.",
-    "crumbs": [
-      "API Reference"
-    ]
-  },
-  {
-    "objectID": "reference/index.html#debiasing",
-    "href": "reference/index.html#debiasing",
-    "title": "API Reference",
-    "section": "",
-    "text": "Functions used to remove the bias associated with the use of an approximation to the target density function.\n\n\n\nrun_importance_sampling\nComputes the importance weights associated with a set of samples.\n\n\nrun_independence_sampler\nRuns an independence MCMC sampler.\n\n\nrun_dirt_pcn\nRuns a preconditioned Crank-Nicholson (pCN) sampler.\n\n\nImportanceSamplingResult\nAn object containing the results of importance sampling.\n\n\nMCMCResult\nAn object containing a constructed Markov chain.",
-    "crumbs": [
-      "API Reference"
-    ]
-  },
-  {
-    "objectID": "reference/run_importance_sampling.html",
-    "href": "reference/run_importance_sampling.html",
-    "title": "run_importance_sampling",
-    "section": "",
-    "text": "run_importance_sampling(\n    neglogfxs_irt: Tensor,\n    neglogfxs_exact: Tensor,\n    self_normalised: bool = False,\n)\nComputes the importance weights associated with a set of samples.\n\n\n\nneglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\nself_normalised : bool = False\n\nWhether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.\n\n\n\n\n\n\nres : ImportanceSamplingResult\n\nA structure containing the log-importance weights (normalised, if self_normalised=False), the estimate of the log-normalising constant of the target density (if self_normalised=False), and the effective sample size.",
+    "text": "negloglik : Callable[[Tensor], Tensor]\n\nA function that receives an \\(n \\times d\\) matrix of samples and returns an \\(n\\)-dimensional vector containing the negative log-likelihood function evaluated at each sample.\n\nneglogpri : Callable[[Tensor], Tensor]\n\nA function that receives an \\(n \\times d\\) matrix of samples and returns an \\(n\\)-dimensional vector containing the negative log-prior density evaluated at each sample.\n\nbases : Basis1D | List[Basis1D]\n\nA list of sets of basis functions for each dimension, or a single set of basis functions (to be used in all dimensions), used to construct the functional tensor trains at each iteration.\n\nbridge : Bridge | None = None\n\nAn object used to generate the intermediate densities to approximate at each stage of the DIRT construction.\n\ntt_options : TTOptions | None = None\n\nOptions for constructing the FTT approximation to the square root of the ratio function (i.e., the pullback of the current bridging density under the existing composition of mappings) at each iteration.\n\ndirt_options : DIRTOptions | None = None\n\nOptions for constructing the DIRT approximation to the target density.\n\nprev_approx : Dict[int, SIRT] | None = None\n\nA dictionary containing a set of SIRTs generated as part of the construction of a previous DIRT object.",
     "crumbs": [
       "API Reference",
-      "Debiasing",
-      "run_importance_sampling"
+      "Deep Inverse Rosenblatt Transport",
+      "DIRT"
     ]
   },
   {
-    "objectID": "reference/run_importance_sampling.html#parameters",
-    "href": "reference/run_importance_sampling.html#parameters",
-    "title": "run_importance_sampling",
+    "objectID": "reference/DIRT.html#references",
+    "href": "reference/DIRT.html#references",
+    "title": "DIRT",
     "section": "",
-    "text": "neglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\nself_normalised : bool = False\n\nWhether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.",
+    "text": "Cui, T and Dolgov, S (2022). Deep composition of tensor-trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
     "crumbs": [
       "API Reference",
-      "Debiasing",
-      "run_importance_sampling"
+      "Deep Inverse Rosenblatt Transport",
+      "DIRT"
     ]
   },
   {
-    "objectID": "reference/run_importance_sampling.html#returns",
-    "href": "reference/run_importance_sampling.html#returns",
-    "title": "run_importance_sampling",
+    "objectID": "reference/DIRT.html#methods",
+    "href": "reference/DIRT.html#methods",
+    "title": "DIRT",
     "section": "",
-    "text": "res : ImportanceSamplingResult\n\nA structure containing the log-importance weights (normalised, if self_normalised=False), the estimate of the log-normalising constant of the target density (if self_normalised=False), and the effective sample size.",
+    "text": "Name\nDescription\n\n\n\n\neval_potential\nEvaluates the potential function.\n\n\neval_potential_cond\nEvaluates the conditional potential function.\n\n\neval_rt\nEvaluates the deep Rosenblatt transport.\n\n\neval_irt\nEvaluates the deep inverse Rosenblatt transport.\n\n\neval_cirt\nEvaluates the conditional inverse Rosenblatt transport.\n\n\neval_irt_pullback\nEvaluates the pullback of a density function under the DIRT mapping.\n\n\neval_cirt_pullback\nEvaluates the pullback of a conditional density function under the DIRT mapping.\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nDIRT.eval_potential(\n    xs: Tensor,\n    subset: str | None = None,\n    n_layers: int | None = None,\n)\nEvaluates the potential function.\nReturns the joint potential function, or the marginal potential function for the first \\(k\\) variables or the last \\(k\\) variables, corresponding to the pullback of the reference measure under a given number of layers of the DIRT.\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix containing a set of samples from the approximation domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the current DIRT construction to use when computing the potential. If not specified, all layers will be used when computing the potential.\n\n\n\n\n\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the target density evaluated at each element in xs.\n\n\n\n\n\n\nDIRT.eval_potential_cond(\n    ys: Tensor,\n    xs: Tensor,\n    subset: str = 'first',\n    n_layers: int | None = None,\n)\nEvaluates the conditional potential function.\nReturns the conditional potential function evaluated at a set of samples in the approximation domain.\n\n\n\nys : Tensor\n\nAn \\(n \\times k\\) matrix containing samples from the approximation domain.\n\nxs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing samples from the approximation domain.\n\nsubset : str = 'first'\n\nWhether ys corresponds to the first \\(k\\) variables (subset='first') of the approximation, or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.\n\n\n\n\n\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the approximation to the conditional density of \\(X \\textbar Y\\) evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_rt(xs: Tensor, subset: str | None = None, n_layers: int | None = None)\nEvaluates the deep Rosenblatt transport.\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix of samples from the approximation domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times k\\) matrix containing the composition of mappings evaluated at each value of xs.\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the pullback of the reference density under the current composition of mappings evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_irt(\n    rs: Tensor,\n    subset: str | None = None,\n    n_layers: int | None = None,\n)\nEvaluates the deep inverse Rosenblatt transport.\n\n\n\nrs : Tensor\n\nAn \\(n \\times k\\) matrix containing samples from the reference domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix containing the corresponding samples from the approximation domain, after applying the deep inverse Rosenblatt transport.\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the pullback of the reference density under the current composition of mappings, evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_cirt(\n    ys: Tensor,\n    rs: Tensor,\n    subset: str = 'first',\n    n_layers: int | None = None,\n)\nEvaluates the conditional inverse Rosenblatt transport.\nReturns the conditional inverse Rosenblatt transport evaluated at a set of samples in the approximation domain.\n\n\n\nys : Tensor\n\nA matrix containing samples from the approximation domain. The matrix should have dimensions \\(1 \\times k\\) (if the same realisation of \\(Y\\) is to be used for all samples in rs) or \\(n \\times k\\) (if a different realisation of \\(Y\\) is to be used for each samples in rs).\n\nrs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing samples from the reference domain.\n\nsubset : str = 'first'\n\nWhether ys corresponds to the first \\(k\\) variables (subset='first') of the approximation, or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the DIRT object to use when evaluating the CIRT. If not specified, all layers will be used.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing the realisations of \\(X\\) corresponding to the values of rs after applying the conditional inverse Rosenblatt transport.\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the approximation to the conditional density of \\(X \\textbar Y\\) evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_irt_pullback(\n    potential: Callable[[Tensor], Tensor],\n    rs: Tensor,\n    subset: str | None = None,\n    n_layers: int | None = None,\n)\nEvaluates the pullback of a density function under the DIRT mapping.\nThis function evaluates \\(\\mathcal{T}^{\\sharp}f(r)\\), where \\(\\mathcal{T}(\\cdot)\\) denotes the inverse Rosenblatt transport and \\(f(\\cdot)\\) denotes an arbitrary density function.\n\n\n\npotential : Callable[[Tensor], Tensor]\n\nA function that takes an \\(n \\times k\\) matrix of samples from the approximation domain, and returns an \\(n\\)-dimensional vector containing the potential function associated with \\(f(\\cdot)\\) evaluated at each sample.\n\nrs : Tensor\n\nAn \\(n \\times k\\) matrix containing a set of samples from the reference domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.\n\n\n\n\n\n\nneglogTfrs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential of the pullback function evaluated at each element in rs; that is, \\(-\\log(\\mathcal{T}^{\\sharp}f(r))\\).\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential of the target function evaluated at each element in rs, pushed forward under the IRT; that is, \\(-\\log(f(\\mathcal{T}(r)))\\).\n\n\n\n\n\n\nDIRT.eval_cirt_pullback(\n    potential: Callable[[Tensor], Tensor],\n    ys: Tensor,\n    rs: Tensor,\n    subset: str = 'first',\n    n_layers: int | None = None,\n)\nEvaluates the pullback of a conditional density function under the DIRT mapping.\nThis function evaluates \\(\\mathcal{T}^{\\sharp}f(r|y)\\), where \\(\\mathcal{T}(\\cdot)\\) denotes the inverse Rosenblatt transport and \\(f(\\cdot|y)\\) denotes an arbitrary conditional density function.\n\n\n\npotential : Callable[[Tensor], Tensor]\n\nA function that takes an \\(n \\times (d-k)\\) matrix of samples from the approximation domain, and returns an \\(n\\)-dimensional vector containing the potential function associated with \\(f(\\cdot\\|y)\\) evaluated at each sample.\n\nys : Tensor\n\nA matrix containing samples from the approximation domain. The matrix should have dimensions \\(1 \\times k\\) (if the same realisation of \\(Y\\) is to be used for all samples in rs) or \\(n \\times k\\) (if a different realisation of \\(Y\\) is to be used for each samples in rs).\n\nrs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing a set of samples from the reference domain.\n\nsubset : str = 'first'\n\nWhether ys corresponds to the first \\(k\\) variables (subset='first') of the approximation, or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.\n\n\n\n\n\n\nneglogTfrs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential of the pullback function evaluated at each element in rs; that is, \\(-\\log(\\mathcal{T}^{\\sharp}f(r\\|y))\\).\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential of the target function evaluated at each element in rs, pushed forward under the IRT; that is, \\(-\\log(f(\\mathcal{T}(r)\\|y))\\).\n\n\n\n\n\n\nDIRT.random(n: int)\nGenerates a set of random samples.\nThe samples are distributed according to the DIRT approximation to the target density.\n\n\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nDIRT.sobol(n: int)\nGenerates a set of QMC samples.\nThe samples are distributed according to the DIRT approximation to the target density.\n\n\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
     "crumbs": [
       "API Reference",
-      "Debiasing",
-      "run_importance_sampling"
+      "Deep Inverse Rosenblatt Transport",
+      "DIRT"
     ]
   },
   {
-    "objectID": "reference/AlgebraicMapping.html",
-    "href": "reference/AlgebraicMapping.html",
-    "title": "AlgebraicMapping",
+    "objectID": "reference/Lagrange1.html",
+    "href": "reference/Lagrange1.html",
+    "title": "Lagrange1",
     "section": "",
-    "text": "AlgebraicMapping(scale: float | Tensor = 1.0)\nMapping from an unbounded domain to \\((-1, 1)\\).\nThis class provides a mapping from an unbounded domain, \\((-\\infty, \\infty)\\), to a bounded domain, \\((-1, 1)\\). This mapping is of the form \\[x \\mapsto \\frac{x/s}{\\sqrt{1 + (x/s)^{2}}},\\] where \\(s\\) is a scale parameter.\n\n\n\nscale : float | Tensor = 1.0\n\nThe scale parameter, \\(s\\)."
+    "text": "Lagrange1(num_elems: int)\nPiecewise linear polynomials.\n\n\n\nnum_elems : int\n\nThe number of elements to use.\n\n\n\n\n\nTo construct a piecewise linear basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements. Then, within each element a given function can be represented by \\[\n    f(x) \\approx f(x_{0})\n        + \\frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),\n\\] where \\(x_{0}\\) and \\(x_{1}\\) denote the endpoints of the element.\nWe use piecewise cubic polynomials to represent the (conditional) CDFs corresponding to the piecewise linear representation of (the square root of) the target density function.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Lagrange1"
+    ]
   },
   {
-    "objectID": "reference/AlgebraicMapping.html#parameters",
-    "href": "reference/AlgebraicMapping.html#parameters",
-    "title": "AlgebraicMapping",
+    "objectID": "reference/Lagrange1.html#parameters",
+    "href": "reference/Lagrange1.html#parameters",
+    "title": "Lagrange1",
+    "section": "",
+    "text": "num_elems : int\n\nThe number of elements to use.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Lagrange1"
+    ]
+  },
+  {
+    "objectID": "reference/Lagrange1.html#notes",
+    "href": "reference/Lagrange1.html#notes",
+    "title": "Lagrange1",
+    "section": "",
+    "text": "To construct a piecewise linear basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements. Then, within each element a given function can be represented by \\[\n    f(x) \\approx f(x_{0})\n        + \\frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),\n\\] where \\(x_{0}\\) and \\(x_{1}\\) denote the endpoints of the element.\nWe use piecewise cubic polynomials to represent the (conditional) CDFs corresponding to the piecewise linear representation of (the square root of) the target density function.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Lagrange1"
+    ]
+  },
+  {
+    "objectID": "reference/LagrangeP.html",
+    "href": "reference/LagrangeP.html",
+    "title": "LagrangeP",
+    "section": "",
+    "text": "LagrangeP(order: int, num_elems: int)\nHigher-order piecewise Lagrange polynomials.\n\n\n\norder : int\n\nThe degree of the polynomials, \\(n\\).\n\nnum_elems : int\n\nThe number of elements to use.\n\n\n\n\n\nTo construct a higher-order Lagrange basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements, and use a set of Lagrange polynomials of degree \\(n=\\,\\)order within each element.\nWithin a given element, we choose a set of interpolation points, \\(\\{x_{j}\\}_{j=0}^{n}\\), which consist of the endpoints of the element and the roots of the Jacobi polynomial of degree \\(n-3\\) (mapped into the domain of the element). Then, a given function can be approximated (within the element) as \\[\n    f(x) \\approx \\sum_{j=0}^{n} f(x_{j})p_{j}(x),\n\\] where the Lagrange polynomials \\(\\{p_{j}(x)\\}_{j=0}^{n}\\) are given by \\[\n    p_{j}(x) = \\frac{\\prod_{k = 0, k \\neq j}^{n}(x-x_{k})}\n        {\\prod_{k = 0, k \\neq j}^{n}(x_{j}-x_{k})}.\n\\] To evaluate the interpolant, we use the second (true) form of the Barycentric formula, which is more efficient and stable than the above formula.\nWe use piecewise Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the higher-order Lagrange representation of (the square root of) the target density function.\n\n\n\nBerrut, J and Trefethen, LN (2004). Barycentric Lagrange interpolation. SIAM Review 46, 501–517.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "LagrangeP"
+    ]
+  },
+  {
+    "objectID": "reference/LagrangeP.html#parameters",
+    "href": "reference/LagrangeP.html#parameters",
+    "title": "LagrangeP",
+    "section": "",
+    "text": "order : int\n\nThe degree of the polynomials, \\(n\\).\n\nnum_elems : int\n\nThe number of elements to use.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "LagrangeP"
+    ]
+  },
+  {
+    "objectID": "reference/LagrangeP.html#notes",
+    "href": "reference/LagrangeP.html#notes",
+    "title": "LagrangeP",
+    "section": "",
+    "text": "To construct a higher-order Lagrange basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements, and use a set of Lagrange polynomials of degree \\(n=\\,\\)order within each element.\nWithin a given element, we choose a set of interpolation points, \\(\\{x_{j}\\}_{j=0}^{n}\\), which consist of the endpoints of the element and the roots of the Jacobi polynomial of degree \\(n-3\\) (mapped into the domain of the element). Then, a given function can be approximated (within the element) as \\[\n    f(x) \\approx \\sum_{j=0}^{n} f(x_{j})p_{j}(x),\n\\] where the Lagrange polynomials \\(\\{p_{j}(x)\\}_{j=0}^{n}\\) are given by \\[\n    p_{j}(x) = \\frac{\\prod_{k = 0, k \\neq j}^{n}(x-x_{k})}\n        {\\prod_{k = 0, k \\neq j}^{n}(x_{j}-x_{k})}.\n\\] To evaluate the interpolant, we use the second (true) form of the Barycentric formula, which is more efficient and stable than the above formula.\nWe use piecewise Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the higher-order Lagrange representation of (the square root of) the target density function.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "LagrangeP"
+    ]
+  },
+  {
+    "objectID": "reference/LagrangeP.html#references",
+    "href": "reference/LagrangeP.html#references",
+    "title": "LagrangeP",
+    "section": "",
+    "text": "Berrut, J and Trefethen, LN (2004). Barycentric Lagrange interpolation. SIAM Review 46, 501–517.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "LagrangeP"
+    ]
+  },
+  {
+    "objectID": "reference/LogarithmicMapping.html",
+    "href": "reference/LogarithmicMapping.html",
+    "title": "LogarithmicMapping",
+    "section": "",
+    "text": "LogarithmicMapping(scale: float | Tensor = 1.0)\nMapping from an unbounded domain to \\((-1, 1)\\).\nThis class provides a mapping from an unbounded domain, \\((-\\infty, \\infty)\\), to a bounded domain, \\((-1, 1)\\). This mapping is of the form \\[x \\mapsto \\tanh\\left(\\frac{x}{s}\\right),\\] where \\(s\\) is a scale parameter.\n\n\n\nscale : float | Tensor = 1.0\n\nThe scale parameter, \\(s\\)."
+  },
+  {
+    "objectID": "reference/LogarithmicMapping.html#parameters",
+    "href": "reference/LogarithmicMapping.html#parameters",
+    "title": "LogarithmicMapping",
     "section": "",
     "text": "scale : float | Tensor = 1.0\n\nThe scale parameter, \\(s\\)."
   },
   {
-    "objectID": "reference/Fourier.html",
-    "href": "reference/Fourier.html",
-    "title": "Fourier",
+    "objectID": "reference/Chebyshev1st.html",
+    "href": "reference/Chebyshev1st.html",
+    "title": "Chebyshev1st",
     "section": "",
-    "text": "Fourier(order: int)\nFourier polynomials.\n\n\n\norder : int\n\nThe number of sine functions the basis is composed of. The total number of basis functions, \\(n\\), is equal to 2*order+2.\n\n\n\n\n\nThe Fourier basis for the interval \\([-1, 1]\\), with cardinality \\(n\\), is given by \\[\n    \\left\\{1, \\sqrt{2}\\sin(\\pi x), \\dots, \\sqrt{2}\\sin(k \\pi x),\n    \\sqrt{2}\\cos(\\pi x), \\dots, \\sqrt{2}\\cos(k \\pi x),\n    \\sqrt{2}\\cos(n \\pi x / 2)\\right\\},\n\\] where \\(k = 1, 2, \\dots, \\tfrac{n}{2}-1\\).\nThe basis functions are orthonormal with respect to the (normalised) weight function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]\n\n\n\nBoyd, JP (2001, Section 4.5). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T and Dolgov, S (2022). Deep composition of Tensor-Trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
+    "text": "Chebyshev1st(order: int)\nChebyshev polynomials of the first kind.\n\n\n\norder : int\n\nThe maximum order of the polynomials.\n\n\n\n\n\nThe (normalised) Chebyshev polynomials of the first kind, defined on \\((-1, 1)\\), are given by \\[\n\\begin{align}\n    p_{0}(x) &= 1, \\\\\n    p_{k}(x) &= \\sqrt{2}\\cos(k\\arccos(x)),\n        \\qquad k = 1, 2, \\dots, n.\n\\end{align}\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{\\pi\\sqrt{1-x^{2}}}.\n\\]\n\n\n\nBoyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T, Dolgov, S and Zahm, O (2023). Self-reinforced polynomial approximation methods for concentrated probability densities. arXiv preprint.",
     "crumbs": [
       "API Reference",
       "Polynomial Bases",
-      "Fourier"
+      "Chebyshev1st"
     ]
   },
   {
-    "objectID": "reference/Fourier.html#parameters",
-    "href": "reference/Fourier.html#parameters",
-    "title": "Fourier",
+    "objectID": "reference/Chebyshev1st.html#parameters",
+    "href": "reference/Chebyshev1st.html#parameters",
+    "title": "Chebyshev1st",
     "section": "",
-    "text": "order : int\n\nThe number of sine functions the basis is composed of. The total number of basis functions, \\(n\\), is equal to 2*order+2.",
+    "text": "order : int\n\nThe maximum order of the polynomials.",
     "crumbs": [
       "API Reference",
       "Polynomial Bases",
-      "Fourier"
+      "Chebyshev1st"
     ]
   },
   {
-    "objectID": "reference/Fourier.html#notes",
-    "href": "reference/Fourier.html#notes",
-    "title": "Fourier",
+    "objectID": "reference/Chebyshev1st.html#notes",
+    "href": "reference/Chebyshev1st.html#notes",
+    "title": "Chebyshev1st",
     "section": "",
-    "text": "The Fourier basis for the interval \\([-1, 1]\\), with cardinality \\(n\\), is given by \\[\n    \\left\\{1, \\sqrt{2}\\sin(\\pi x), \\dots, \\sqrt{2}\\sin(k \\pi x),\n    \\sqrt{2}\\cos(\\pi x), \\dots, \\sqrt{2}\\cos(k \\pi x),\n    \\sqrt{2}\\cos(n \\pi x / 2)\\right\\},\n\\] where \\(k = 1, 2, \\dots, \\tfrac{n}{2}-1\\).\nThe basis functions are orthonormal with respect to the (normalised) weight function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]",
+    "text": "The (normalised) Chebyshev polynomials of the first kind, defined on \\((-1, 1)\\), are given by \\[\n\\begin{align}\n    p_{0}(x) &= 1, \\\\\n    p_{k}(x) &= \\sqrt{2}\\cos(k\\arccos(x)),\n        \\qquad k = 1, 2, \\dots, n.\n\\end{align}\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{\\pi\\sqrt{1-x^{2}}}.\n\\]",
     "crumbs": [
       "API Reference",
       "Polynomial Bases",
-      "Fourier"
+      "Chebyshev1st"
     ]
   },
   {
-    "objectID": "reference/Fourier.html#references",
-    "href": "reference/Fourier.html#references",
-    "title": "Fourier",
+    "objectID": "reference/Chebyshev1st.html#references",
+    "href": "reference/Chebyshev1st.html#references",
+    "title": "Chebyshev1st",
     "section": "",
-    "text": "Boyd, JP (2001, Section 4.5). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T and Dolgov, S (2022). Deep composition of Tensor-Trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
+    "text": "Boyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T, Dolgov, S and Zahm, O (2023). Self-reinforced polynomial approximation methods for concentrated probability densities. arXiv preprint.",
     "crumbs": [
       "API Reference",
       "Polynomial Bases",
-      "Fourier"
+      "Chebyshev1st"
+    ]
+  },
+  {
+    "objectID": "reference/UniformReference.html",
+    "href": "reference/UniformReference.html",
+    "title": "UniformReference",
+    "section": "",
+    "text": "UniformReference()\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).\n\n\n\n\n\nName\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nUniformReference.random(d: int, n: int)\nGenerates a set of random samples.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to draw.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nUniformReference.sobol(d: int, n: int)\nGenerates a set of QMC samples.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "crumbs": [
+      "API Reference",
+      "Reference Densities",
+      "UniformReference"
+    ]
+  },
+  {
+    "objectID": "reference/UniformReference.html#methods",
+    "href": "reference/UniformReference.html#methods",
+    "title": "UniformReference",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nUniformReference.random(d: int, n: int)\nGenerates a set of random samples.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to draw.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nUniformReference.sobol(d: int, n: int)\nGenerates a set of QMC samples.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "crumbs": [
+      "API Reference",
+      "Reference Densities",
+      "UniformReference"
     ]
   },
   {
@@ -502,8 +520,8 @@
     ]
   },
   {
-    "objectID": "reference/ImportanceSamplingResult.html#parameters",
-    "href": "reference/ImportanceSamplingResult.html#parameters",
+    "objectID": "reference/ImportanceSamplingResult.html#attributes",
+    "href": "reference/ImportanceSamplingResult.html#attributes",
     "title": "ImportanceSamplingResult",
     "section": "",
     "text": "log_weights : Tensor\n\nAn \\(n\\)-dimensional vector containing the unnormalised importance weights associated with a set of samples.\n\nlog_norm : Tensor\n\nAn estimate of the logarithm of the normalising constant associated with the target density.\n\ness : Tensor\n\nAn estimate of the effective sample size of the samples.",
@@ -542,60 +560,35 @@
     "href": "reference/run_dirt_pcn.html",
     "title": "run_dirt_pcn",
     "section": "",
-    "text": "run_dirt_pcn(\n    potential: Callable[[Tensor], Tensor],\n    dirt: AbstractDIRT,\n    n: float,\n    dt: float = 2.0,\n    y_obs: Tensor | None = None,\n    x0: Tensor | None = None,\n    subset: str = 'first',\n    verbose: bool = True,\n)\nRuns a preconditioned Crank-Nicholson (pCN) sampler.\nRuns a pCN sampler (Cotter et al., 2013) to characterise the pullback of the target density under the DIRT mapping, then pushes the resulting samples forward under the DIRT mapping to obtain samples distributed according to the target. This idea was initially outlined by Cui et al. (2023).\nNote that the pCN proposal is only applicable to problems with a Gaussian reference density.\nTODO: record IACT somewhere. Might need to use an external library for this one.\n\n\n\npotential : Callable[[Tensor], Tensor]\n\nA function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.\n\ndirt : AbstractDIRT\n\nA previously-constructed DIRT object.\n\ny_obs : Tensor | None = None\n\nA tensor containing the observations.\n\nn : float\n\nThe length of the Markov chain to construct.\n\ndt : float = 2.0\n\npCN stepsize, \\(\\Delta t\\). If this is not specified, a value of \\(\\Delta t = 2\\) (independence sampler) will be used.\n\nx0 : Tensor | None = None\n\nThe starting state. If this is passed in, the DIRT mapping will be applied to it to generate the starting location for sampling from the pullback of the target density. Otherwise, the mean of the reference density will be used.\n\nverbose : bool = True\n\nWhether to print diagnostic information during the sampling process.\n\n\n\n\n\n\nres : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.\n\n\n\n\n\nWhen the reference density is the standard Gaussian density (that is, \\(\\rho(\\theta) = \\mathcal{N}(0_{d}, I_{d})\\)), the pCN proposal (given current state \\(\\theta^{(i)}\\)) takes the form \\[\n    \\theta' = \\frac{2-\\Delta t}{2+\\Delta t} \\theta^{(i)}\n        + \\frac{2\\sqrt{2\\Delta t}}{2 + \\Delta t} \\tilde{\\theta},\n\\] where \\(\\tilde{\\theta} \\sim \\rho(\\,\\cdot\\,)\\), and \\(\\Delta t\\) denotes the step size.\nWhen \\(\\Delta t = 2\\), the resulting sampler is an independence sampler. When \\(\\Delta t &gt; 2\\), the proposals are negatively correlated, and when \\(\\Delta t &lt; 2\\), the proposals are positively correlated.\n\n\n\nCotter, SL, Roberts, GO, Stuart, AM and White, D (2013). MCMC methods for functions: Modifying old algorithms to make them faster. Statistical Science 28, 424–446.\nCui, T, Dolgov, S and Zahm, O (2023). Scalable conditional deep inverse Rosenblatt transports using tensor trains and gradient-based dimension reduction. Journal of Computational Physics 485, 112103.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_dirt_pcn"
-    ]
+    "text": "run_dirt_pcn(\n    potential: Callable[[Tensor], Tensor],\n    dirt: AbstractDIRT,\n    n: float,\n    dt: float = 2.0,\n    y_obs: Tensor | None = None,\n    x0: Tensor | None = None,\n    subset: str = 'first',\n    verbose: bool = True,\n)\nRuns a preconditioned Crank-Nicholson (pCN) sampler.\nRuns a pCN sampler (Cotter et al., 2013) to characterise the pullback of the target density under the DIRT mapping, then pushes the resulting samples forward under the DIRT mapping to obtain samples distributed according to the target. This idea was initially outlined by Cui et al. (2023).\nNote that the pCN proposal is only applicable to problems with a Gaussian reference density.\nTODO: record IACT somewhere. Might need to use an external library for this one.\n\n\n\npotential : Callable[[Tensor], Tensor]\n\nA function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.\n\ndirt : AbstractDIRT\n\nA previously-constructed DIRT object.\n\ny_obs : Tensor | None = None\n\nA tensor containing the observations.\n\nn : float\n\nThe length of the Markov chain to construct.\n\ndt : float = 2.0\n\npCN stepsize, \\(\\Delta t\\). If this is not specified, a value of \\(\\Delta t = 2\\) (independence sampler) will be used.\n\nx0 : Tensor | None = None\n\nThe starting state. If this is passed in, the DIRT mapping will be applied to it to generate the starting location for sampling from the pullback of the target density. Otherwise, the mean of the reference density will be used.\n\nverbose : bool = True\n\nWhether to print diagnostic information during the sampling process.\n\n\n\n\n\n\nres : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.\n\n\n\n\n\nWhen the reference density is the standard Gaussian density (that is, \\(\\rho(\\theta) = \\mathcal{N}(0_{d}, I_{d})\\)), the pCN proposal (given current state \\(\\theta^{(i)}\\)) takes the form \\[\n    \\theta' = \\frac{2-\\Delta t}{2+\\Delta t} \\theta^{(i)}\n        + \\frac{2\\sqrt{2\\Delta t}}{2 + \\Delta t} \\tilde{\\theta},\n\\] where \\(\\tilde{\\theta} \\sim \\rho(\\,\\cdot\\,)\\), and \\(\\Delta t\\) denotes the step size.\nWhen \\(\\Delta t = 2\\), the resulting sampler is an independence sampler. When \\(\\Delta t &gt; 2\\), the proposals are negatively correlated, and when \\(\\Delta t &lt; 2\\), the proposals are positively correlated.\n\n\n\nCotter, SL, Roberts, GO, Stuart, AM and White, D (2013). MCMC methods for functions: Modifying old algorithms to make them faster. Statistical Science 28, 424–446.\nCui, T, Dolgov, S and Zahm, O (2023). Scalable conditional deep inverse Rosenblatt transports using tensor trains and gradient-based dimension reduction. Journal of Computational Physics 485, 112103."
   },
   {
     "objectID": "reference/run_dirt_pcn.html#parameters",
     "href": "reference/run_dirt_pcn.html#parameters",
     "title": "run_dirt_pcn",
     "section": "",
-    "text": "potential : Callable[[Tensor], Tensor]\n\nA function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.\n\ndirt : AbstractDIRT\n\nA previously-constructed DIRT object.\n\ny_obs : Tensor | None = None\n\nA tensor containing the observations.\n\nn : float\n\nThe length of the Markov chain to construct.\n\ndt : float = 2.0\n\npCN stepsize, \\(\\Delta t\\). If this is not specified, a value of \\(\\Delta t = 2\\) (independence sampler) will be used.\n\nx0 : Tensor | None = None\n\nThe starting state. If this is passed in, the DIRT mapping will be applied to it to generate the starting location for sampling from the pullback of the target density. Otherwise, the mean of the reference density will be used.\n\nverbose : bool = True\n\nWhether to print diagnostic information during the sampling process.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_dirt_pcn"
-    ]
+    "text": "potential : Callable[[Tensor], Tensor]\n\nA function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.\n\ndirt : AbstractDIRT\n\nA previously-constructed DIRT object.\n\ny_obs : Tensor | None = None\n\nA tensor containing the observations.\n\nn : float\n\nThe length of the Markov chain to construct.\n\ndt : float = 2.0\n\npCN stepsize, \\(\\Delta t\\). If this is not specified, a value of \\(\\Delta t = 2\\) (independence sampler) will be used.\n\nx0 : Tensor | None = None\n\nThe starting state. If this is passed in, the DIRT mapping will be applied to it to generate the starting location for sampling from the pullback of the target density. Otherwise, the mean of the reference density will be used.\n\nverbose : bool = True\n\nWhether to print diagnostic information during the sampling process."
   },
   {
     "objectID": "reference/run_dirt_pcn.html#returns",
     "href": "reference/run_dirt_pcn.html#returns",
     "title": "run_dirt_pcn",
     "section": "",
-    "text": "res : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_dirt_pcn"
-    ]
+    "text": "res : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information."
   },
   {
     "objectID": "reference/run_dirt_pcn.html#notes",
     "href": "reference/run_dirt_pcn.html#notes",
     "title": "run_dirt_pcn",
     "section": "",
-    "text": "When the reference density is the standard Gaussian density (that is, \\(\\rho(\\theta) = \\mathcal{N}(0_{d}, I_{d})\\)), the pCN proposal (given current state \\(\\theta^{(i)}\\)) takes the form \\[\n    \\theta' = \\frac{2-\\Delta t}{2+\\Delta t} \\theta^{(i)}\n        + \\frac{2\\sqrt{2\\Delta t}}{2 + \\Delta t} \\tilde{\\theta},\n\\] where \\(\\tilde{\\theta} \\sim \\rho(\\,\\cdot\\,)\\), and \\(\\Delta t\\) denotes the step size.\nWhen \\(\\Delta t = 2\\), the resulting sampler is an independence sampler. When \\(\\Delta t &gt; 2\\), the proposals are negatively correlated, and when \\(\\Delta t &lt; 2\\), the proposals are positively correlated.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_dirt_pcn"
-    ]
+    "text": "When the reference density is the standard Gaussian density (that is, \\(\\rho(\\theta) = \\mathcal{N}(0_{d}, I_{d})\\)), the pCN proposal (given current state \\(\\theta^{(i)}\\)) takes the form \\[\n    \\theta' = \\frac{2-\\Delta t}{2+\\Delta t} \\theta^{(i)}\n        + \\frac{2\\sqrt{2\\Delta t}}{2 + \\Delta t} \\tilde{\\theta},\n\\] where \\(\\tilde{\\theta} \\sim \\rho(\\,\\cdot\\,)\\), and \\(\\Delta t\\) denotes the step size.\nWhen \\(\\Delta t = 2\\), the resulting sampler is an independence sampler. When \\(\\Delta t &gt; 2\\), the proposals are negatively correlated, and when \\(\\Delta t &lt; 2\\), the proposals are positively correlated."
   },
   {
     "objectID": "reference/run_dirt_pcn.html#references",
     "href": "reference/run_dirt_pcn.html#references",
     "title": "run_dirt_pcn",
     "section": "",
-    "text": "Cotter, SL, Roberts, GO, Stuart, AM and White, D (2013). MCMC methods for functions: Modifying old algorithms to make them faster. Statistical Science 28, 424–446.\nCui, T, Dolgov, S and Zahm, O (2023). Scalable conditional deep inverse Rosenblatt transports using tensor trains and gradient-based dimension reduction. Journal of Computational Physics 485, 112103.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_dirt_pcn"
-    ]
+    "text": "Cotter, SL, Roberts, GO, Stuart, AM and White, D (2013). MCMC methods for functions: Modifying old algorithms to make them faster. Statistical Science 28, 424–446.\nCui, T, Dolgov, S and Zahm, O (2023). Scalable conditional deep inverse Rosenblatt transports using tensor trains and gradient-based dimension reduction. Journal of Computational Physics 485, 112103."
   },
   {
     "objectID": "reference/IdentityMapping.html",
@@ -622,257 +615,335 @@
     ]
   },
   {
-    "objectID": "reference/UniformReference.html",
-    "href": "reference/UniformReference.html",
-    "title": "UniformReference",
+    "objectID": "reference/run_irt_pcn.html",
+    "href": "reference/run_irt_pcn.html",
+    "title": "run_irt_pcn",
     "section": "",
-    "text": "UniformReference()\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).\n\n\n\n\n\nName\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nUniformReference.random(d: int, n: int)\nGenerates a set of random samples.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to draw.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nUniformReference.sobol(d: int, n: int)\nGenerates a set of QMC samples.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "text": "run_irt_pcn(\n    potential: Callable[[Tensor], Tensor],\n    dirt: AbstractDIRT,\n    n: int,\n    dt: float = 2.0,\n    r0: Tensor | None = None,\n    subset: str = 'first',\n    verbose: bool = True,\n)\nRuns a pCN sampler using the DIRT mapping.\nRuns a preconditioned Crank-Nicholson sampler (Cotter et al., 2013) to characterise the pullback of the target density under the DIRT mapping, then pushes the resulting samples forward under the DIRT mapping to obtain samples distributed according to the target. This idea was initially outlined by Cui et al. (2023).\nNote that the pCN proposal is only applicable to problems with a Gaussian reference density.\n\n\n\npotential : Callable[[Tensor], Tensor]\n\nA function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.\n\ndirt : AbstractDIRT\n\nA previously-constructed DIRT object.\n\nn : int\n\nThe length of the Markov chain to construct.\n\ndt : float = 2.0\n\npCN stepsize, \\(\\Delta t\\). If this is not specified, a value of \\(\\Delta t = 2\\) (independence sampler) will be used.\n\nr0 : Tensor | None = None\n\nThe starting state. This should be a \\(1 \\times k\\) matrix containing a sample from the reference domain. If not passed in, the mean of the reference density will be used.\n\nsubset : str = 'first'\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nverbose : bool = True\n\nWhether to print diagnostic information during the sampling process.\n\n\n\n\n\n\nres : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.\n\n\n\n\n\nWhen the reference density is the standard Gaussian density (that is, \\(\\rho(\\theta) = \\mathcal{N}(0_{d}, I_{d})\\)), the pCN proposal (given current state \\(\\theta^{(i)}\\)) takes the form \\[\n    \\theta' = \\frac{2-\\Delta t}{2+\\Delta t} \\theta^{(i)}\n        + \\frac{2\\sqrt{2\\Delta t}}{2 + \\Delta t} \\tilde{\\theta},\n\\] where \\(\\tilde{\\theta} \\sim \\rho(\\,\\cdot\\,)\\), and \\(\\Delta t\\) denotes the step size.\nWhen \\(\\Delta t = 2\\), the resulting sampler is an independence sampler. When \\(\\Delta t &gt; 2\\), the proposals are negatively correlated, and when \\(\\Delta t &lt; 2\\), the proposals are positively correlated.\n\n\n\nCotter, SL, Roberts, GO, Stuart, AM and White, D (2013). MCMC methods for functions: Modifying old algorithms to make them faster. Statistical Science 28, 424–446.\nCui, T, Dolgov, S and Zahm, O (2023). Scalable conditional deep inverse Rosenblatt transports using tensor trains and gradient-based dimension reduction. Journal of Computational Physics 485, 112103.",
     "crumbs": [
       "API Reference",
-      "Reference Densities",
-      "UniformReference"
+      "Debiasing",
+      "run_irt_pcn"
     ]
   },
   {
-    "objectID": "reference/UniformReference.html#methods",
-    "href": "reference/UniformReference.html#methods",
-    "title": "UniformReference",
+    "objectID": "reference/run_irt_pcn.html#parameters",
+    "href": "reference/run_irt_pcn.html#parameters",
+    "title": "run_irt_pcn",
     "section": "",
-    "text": "Name\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nUniformReference.random(d: int, n: int)\nGenerates a set of random samples.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to draw.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nUniformReference.sobol(d: int, n: int)\nGenerates a set of QMC samples.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "text": "potential : Callable[[Tensor], Tensor]\n\nA function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.\n\ndirt : AbstractDIRT\n\nA previously-constructed DIRT object.\n\nn : int\n\nThe length of the Markov chain to construct.\n\ndt : float = 2.0\n\npCN stepsize, \\(\\Delta t\\). If this is not specified, a value of \\(\\Delta t = 2\\) (independence sampler) will be used.\n\nr0 : Tensor | None = None\n\nThe starting state. This should be a \\(1 \\times k\\) matrix containing a sample from the reference domain. If not passed in, the mean of the reference density will be used.\n\nsubset : str = 'first'\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nverbose : bool = True\n\nWhether to print diagnostic information during the sampling process.",
     "crumbs": [
       "API Reference",
-      "Reference Densities",
-      "UniformReference"
+      "Debiasing",
+      "run_irt_pcn"
     ]
   },
   {
-    "objectID": "reference/Chebyshev1st.html",
-    "href": "reference/Chebyshev1st.html",
-    "title": "Chebyshev1st",
+    "objectID": "reference/run_irt_pcn.html#returns",
+    "href": "reference/run_irt_pcn.html#returns",
+    "title": "run_irt_pcn",
     "section": "",
-    "text": "Chebyshev1st(order: int)\nChebyshev polynomials of the first kind.\n\n\n\norder : int\n\nThe maximum order of the polynomials.\n\n\n\n\n\nThe (normalised) Chebyshev polynomials of the first kind, defined on \\((-1, 1)\\), are given by \\[\n\\begin{align}\n    p_{0}(x) &= 1, \\\\\n    p_{k}(x) &= \\sqrt{2}\\cos(k\\arccos(x)),\n        \\qquad k = 1, 2, \\dots, n.\n\\end{align}\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{\\pi\\sqrt{1-x^{2}}}.\n\\]\n\n\n\nBoyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T, Dolgov, S and Zahm, O (2023). Self-reinforced polynomial approximation methods for concentrated probability densities. arXiv preprint.",
+    "text": "res : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_irt_pcn"
+    ]
+  },
+  {
+    "objectID": "reference/run_irt_pcn.html#notes",
+    "href": "reference/run_irt_pcn.html#notes",
+    "title": "run_irt_pcn",
+    "section": "",
+    "text": "When the reference density is the standard Gaussian density (that is, \\(\\rho(\\theta) = \\mathcal{N}(0_{d}, I_{d})\\)), the pCN proposal (given current state \\(\\theta^{(i)}\\)) takes the form \\[\n    \\theta' = \\frac{2-\\Delta t}{2+\\Delta t} \\theta^{(i)}\n        + \\frac{2\\sqrt{2\\Delta t}}{2 + \\Delta t} \\tilde{\\theta},\n\\] where \\(\\tilde{\\theta} \\sim \\rho(\\,\\cdot\\,)\\), and \\(\\Delta t\\) denotes the step size.\nWhen \\(\\Delta t = 2\\), the resulting sampler is an independence sampler. When \\(\\Delta t &gt; 2\\), the proposals are negatively correlated, and when \\(\\Delta t &lt; 2\\), the proposals are positively correlated.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_irt_pcn"
+    ]
+  },
+  {
+    "objectID": "reference/run_irt_pcn.html#references",
+    "href": "reference/run_irt_pcn.html#references",
+    "title": "run_irt_pcn",
+    "section": "",
+    "text": "Cotter, SL, Roberts, GO, Stuart, AM and White, D (2013). MCMC methods for functions: Modifying old algorithms to make them faster. Statistical Science 28, 424–446.\nCui, T, Dolgov, S and Zahm, O (2023). Scalable conditional deep inverse Rosenblatt transports using tensor trains and gradient-based dimension reduction. Journal of Computational Physics 485, 112103.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_irt_pcn"
+    ]
+  },
+  {
+    "objectID": "reference/Fourier.html",
+    "href": "reference/Fourier.html",
+    "title": "Fourier",
+    "section": "",
+    "text": "Fourier(order: int)\nFourier polynomials.\n\n\n\norder : int\n\nThe number of sine functions the basis is composed of. The total number of basis functions, \\(n\\), is equal to 2*order+2.\n\n\n\n\n\nThe Fourier basis for the interval \\([-1, 1]\\), with cardinality \\(n\\), is given by \\[\n    \\left\\{1, \\sqrt{2}\\sin(\\pi x), \\dots, \\sqrt{2}\\sin(k \\pi x),\n    \\sqrt{2}\\cos(\\pi x), \\dots, \\sqrt{2}\\cos(k \\pi x),\n    \\sqrt{2}\\cos(n \\pi x / 2)\\right\\},\n\\] where \\(k = 1, 2, \\dots, \\tfrac{n}{2}-1\\).\nThe basis functions are orthonormal with respect to the (normalised) weight function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]\n\n\n\nBoyd, JP (2001, Section 4.5). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T and Dolgov, S (2022). Deep composition of Tensor-Trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
     "crumbs": [
       "API Reference",
       "Polynomial Bases",
-      "Chebyshev1st"
+      "Fourier"
     ]
   },
   {
-    "objectID": "reference/Chebyshev1st.html#parameters",
-    "href": "reference/Chebyshev1st.html#parameters",
-    "title": "Chebyshev1st",
+    "objectID": "reference/Fourier.html#parameters",
+    "href": "reference/Fourier.html#parameters",
+    "title": "Fourier",
     "section": "",
-    "text": "order : int\n\nThe maximum order of the polynomials.",
+    "text": "order : int\n\nThe number of sine functions the basis is composed of. The total number of basis functions, \\(n\\), is equal to 2*order+2.",
     "crumbs": [
       "API Reference",
       "Polynomial Bases",
-      "Chebyshev1st"
+      "Fourier"
     ]
   },
   {
-    "objectID": "reference/Chebyshev1st.html#notes",
-    "href": "reference/Chebyshev1st.html#notes",
-    "title": "Chebyshev1st",
+    "objectID": "reference/Fourier.html#notes",
+    "href": "reference/Fourier.html#notes",
+    "title": "Fourier",
     "section": "",
-    "text": "The (normalised) Chebyshev polynomials of the first kind, defined on \\((-1, 1)\\), are given by \\[\n\\begin{align}\n    p_{0}(x) &= 1, \\\\\n    p_{k}(x) &= \\sqrt{2}\\cos(k\\arccos(x)),\n        \\qquad k = 1, 2, \\dots, n.\n\\end{align}\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{\\pi\\sqrt{1-x^{2}}}.\n\\]",
+    "text": "The Fourier basis for the interval \\([-1, 1]\\), with cardinality \\(n\\), is given by \\[\n    \\left\\{1, \\sqrt{2}\\sin(\\pi x), \\dots, \\sqrt{2}\\sin(k \\pi x),\n    \\sqrt{2}\\cos(\\pi x), \\dots, \\sqrt{2}\\cos(k \\pi x),\n    \\sqrt{2}\\cos(n \\pi x / 2)\\right\\},\n\\] where \\(k = 1, 2, \\dots, \\tfrac{n}{2}-1\\).\nThe basis functions are orthonormal with respect to the (normalised) weight function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]",
     "crumbs": [
       "API Reference",
       "Polynomial Bases",
-      "Chebyshev1st"
+      "Fourier"
     ]
   },
   {
-    "objectID": "reference/Chebyshev1st.html#references",
-    "href": "reference/Chebyshev1st.html#references",
-    "title": "Chebyshev1st",
+    "objectID": "reference/Fourier.html#references",
+    "href": "reference/Fourier.html#references",
+    "title": "Fourier",
     "section": "",
-    "text": "Boyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T, Dolgov, S and Zahm, O (2023). Self-reinforced polynomial approximation methods for concentrated probability densities. arXiv preprint.",
+    "text": "Boyd, JP (2001, Section 4.5). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T and Dolgov, S (2022). Deep composition of Tensor-Trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
     "crumbs": [
       "API Reference",
       "Polynomial Bases",
-      "Chebyshev1st"
+      "Fourier"
     ]
   },
   {
-    "objectID": "reference/LogarithmicMapping.html",
-    "href": "reference/LogarithmicMapping.html",
-    "title": "LogarithmicMapping",
+    "objectID": "reference/AlgebraicMapping.html",
+    "href": "reference/AlgebraicMapping.html",
+    "title": "AlgebraicMapping",
     "section": "",
-    "text": "LogarithmicMapping(scale: float | Tensor = 1.0)\nMapping from an unbounded domain to \\((-1, 1)\\).\nThis class provides a mapping from an unbounded domain, \\((-\\infty, \\infty)\\), to a bounded domain, \\((-1, 1)\\). This mapping is of the form \\[x \\mapsto \\tanh\\left(\\frac{x}{s}\\right),\\] where \\(s\\) is a scale parameter.\n\n\n\nscale : float | Tensor = 1.0\n\nThe scale parameter, \\(s\\)."
+    "text": "AlgebraicMapping(scale: float | Tensor = 1.0)\nMapping from an unbounded domain to \\((-1, 1)\\).\nThis class provides a mapping from an unbounded domain, \\((-\\infty, \\infty)\\), to a bounded domain, \\((-1, 1)\\). This mapping is of the form \\[x \\mapsto \\frac{x/s}{\\sqrt{1 + (x/s)^{2}}},\\] where \\(s\\) is a scale parameter.\n\n\n\nscale : float | Tensor = 1.0\n\nThe scale parameter, \\(s\\)."
   },
   {
-    "objectID": "reference/LogarithmicMapping.html#parameters",
-    "href": "reference/LogarithmicMapping.html#parameters",
-    "title": "LogarithmicMapping",
+    "objectID": "reference/AlgebraicMapping.html#parameters",
+    "href": "reference/AlgebraicMapping.html#parameters",
+    "title": "AlgebraicMapping",
     "section": "",
     "text": "scale : float | Tensor = 1.0\n\nThe scale parameter, \\(s\\)."
   },
   {
-    "objectID": "reference/LagrangeP.html",
-    "href": "reference/LagrangeP.html",
-    "title": "LagrangeP",
+    "objectID": "reference/run_importance_sampling.html",
+    "href": "reference/run_importance_sampling.html",
+    "title": "run_importance_sampling",
     "section": "",
-    "text": "LagrangeP(order: int, num_elems: int)\nHigher-order piecewise Lagrange polynomials.\n\n\n\norder : int\n\nThe degree of the polynomials, \\(n\\).\n\nnum_elems : int\n\nThe number of elements to use.\n\n\n\n\n\nTo construct a higher-order Lagrange basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements, and use a set of Lagrange polynomials of degree \\(n=\\,\\)order within each element.\nWithin a given element, we choose a set of interpolation points, \\(\\{x_{j}\\}_{j=0}^{n}\\), which consist of the endpoints of the element and the roots of the Jacobi polynomial of degree \\(n-3\\) (mapped into the domain of the element). Then, a given function can be approximated (within the element) as \\[\n    f(x) \\approx \\sum_{j=0}^{n} f(x_{j})p_{j}(x),\n\\] where the Lagrange polynomials \\(\\{p_{j}(x)\\}_{j=0}^{n}\\) are given by \\[\n    p_{j}(x) = \\frac{\\prod_{k = 0, k \\neq j}^{n}(x-x_{k})}\n        {\\prod_{k = 0, k \\neq j}^{n}(x_{j}-x_{k})}.\n\\] To evaluate the interpolant, we use the second (true) form of the Barycentric formula, which is more efficient and stable than the above formula.\nWe use piecewise Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the higher-order Lagrange representation of (the square root of) the target density function.\n\n\n\nBerrut, J and Trefethen, LN (2004). Barycentric Lagrange interpolation. SIAM Review 46, 501–517.",
+    "text": "run_importance_sampling(\n    neglogfxs_irt: Tensor,\n    neglogfxs_exact: Tensor,\n    self_normalised: bool = False,\n)\nComputes the importance weights associated with a set of samples.\n\n\n\nneglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\nself_normalised : bool = False\n\nWhether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.\n\n\n\n\n\n\nres : ImportanceSamplingResult\n\nA structure containing the log-importance weights (normalised, if self_normalised=False), the estimate of the log-normalising constant of the target density (if self_normalised=False), and the effective sample size.",
     "crumbs": [
       "API Reference",
-      "Polynomial Bases",
-      "LagrangeP"
+      "Debiasing",
+      "run_importance_sampling"
     ]
   },
   {
-    "objectID": "reference/LagrangeP.html#parameters",
-    "href": "reference/LagrangeP.html#parameters",
-    "title": "LagrangeP",
+    "objectID": "reference/run_importance_sampling.html#parameters",
+    "href": "reference/run_importance_sampling.html#parameters",
+    "title": "run_importance_sampling",
     "section": "",
-    "text": "order : int\n\nThe degree of the polynomials, \\(n\\).\n\nnum_elems : int\n\nThe number of elements to use.",
+    "text": "neglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\nself_normalised : bool = False\n\nWhether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.",
     "crumbs": [
       "API Reference",
-      "Polynomial Bases",
-      "LagrangeP"
+      "Debiasing",
+      "run_importance_sampling"
     ]
   },
   {
-    "objectID": "reference/LagrangeP.html#notes",
-    "href": "reference/LagrangeP.html#notes",
-    "title": "LagrangeP",
+    "objectID": "reference/run_importance_sampling.html#returns",
+    "href": "reference/run_importance_sampling.html#returns",
+    "title": "run_importance_sampling",
     "section": "",
-    "text": "To construct a higher-order Lagrange basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements, and use a set of Lagrange polynomials of degree \\(n=\\,\\)order within each element.\nWithin a given element, we choose a set of interpolation points, \\(\\{x_{j}\\}_{j=0}^{n}\\), which consist of the endpoints of the element and the roots of the Jacobi polynomial of degree \\(n-3\\) (mapped into the domain of the element). Then, a given function can be approximated (within the element) as \\[\n    f(x) \\approx \\sum_{j=0}^{n} f(x_{j})p_{j}(x),\n\\] where the Lagrange polynomials \\(\\{p_{j}(x)\\}_{j=0}^{n}\\) are given by \\[\n    p_{j}(x) = \\frac{\\prod_{k = 0, k \\neq j}^{n}(x-x_{k})}\n        {\\prod_{k = 0, k \\neq j}^{n}(x_{j}-x_{k})}.\n\\] To evaluate the interpolant, we use the second (true) form of the Barycentric formula, which is more efficient and stable than the above formula.\nWe use piecewise Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the higher-order Lagrange representation of (the square root of) the target density function.",
+    "text": "res : ImportanceSamplingResult\n\nA structure containing the log-importance weights (normalised, if self_normalised=False), the estimate of the log-normalising constant of the target density (if self_normalised=False), and the effective sample size.",
     "crumbs": [
       "API Reference",
-      "Polynomial Bases",
-      "LagrangeP"
+      "Debiasing",
+      "run_importance_sampling"
     ]
   },
   {
-    "objectID": "reference/LagrangeP.html#references",
-    "href": "reference/LagrangeP.html#references",
-    "title": "LagrangeP",
+    "objectID": "reference/index.html",
+    "href": "reference/index.html",
+    "title": "API Reference",
     "section": "",
-    "text": "Berrut, J and Trefethen, LN (2004). Barycentric Lagrange interpolation. SIAM Review 46, 501–517.",
+    "text": "An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.\n\n\n\nDIRT\nDeep (squared) inverse Rosenblatt transport.\n\n\n\n\n\n\nInitial guesses for the mapping between the reference random variable and the target random variable.\n\n\n\nPreconditioner\nA user-defined preconditioning function.\n\n\nIdentityMapping\nAn identity mapping.\n\n\nUniformMapping\nA mapping between the reference density and a uniform density.\n\n\n\n\n\n\nPolynomial bases used to construct a functional tensor train.\n\n\n\nLagrange1\nPiecewise linear polynomials.\n\n\nLagrangeP\nHigher-order piecewise Lagrange polynomials.\n\n\nChebyshev1st\nChebyshev polynomials of the first kind.\n\n\nChebyshev2nd\nChebyshev polynomials of the second kind.\n\n\nFourier\nFourier polynomials.\n\n\nLegendre\nLegendre polynomials.\n\n\n\n\n\n\nMappings between the approximation domain and the domain of the polynomial basis.\n\n\n\nBoundedDomain\nMapping from a bounded domain to \\((-1, 1)\\).\n\n\n\n\n\n\nOptions for configuring the FTT and DIRT construction.\n\n\n\nTTOptions\nOptions for configuring the construction of an FTT object.\n\n\nDIRTOptions\nOptions for configuring the construction of a DIRT object.\n\n\n\n\n\n\nProduct-form reference densities used as part of DIRT construction.\n\n\n\nGaussianReference\nThe standard \\(d\\)-dimensional Gaussian density, \\(\\mathcal{N}(\\boldsymbol{0}_{d}, \\boldsymbol{I}_{d})\\).\n\n\nUniformReference\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).\n\n\n\n\n\n\nObjects used to generate the intermediate densities approximated during DIRT construction.\n\n\n\nSingleLayer\nConstructs the DIRT using a single layer.\n\n\nTempering\nLikelihood tempering.\n\n\n\n\n\n\nFunctions used to remove the bias associated with the use of an approximation to the target density function.\n\n\n\nrun_importance_sampling\nComputes the importance weights associated with a set of samples.\n\n\nrun_independence_sampler\nRuns an independence MCMC sampler.\n\n\nrun_irt_pcn\nRuns a pCN sampler using the DIRT mapping.\n\n\nrun_cirt_pcn\nRuns a pCN sampler using a conditional of the DIRT mapping.\n\n\nImportanceSamplingResult\nAn object containing the results of importance sampling.\n\n\nMCMCResult\nAn object containing a constructed Markov chain.",
     "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "LagrangeP"
+      "API Reference"
     ]
   },
   {
-    "objectID": "reference/Lagrange1.html",
-    "href": "reference/Lagrange1.html",
-    "title": "Lagrange1",
+    "objectID": "reference/index.html#deep-inverse-rosenblatt-transport",
+    "href": "reference/index.html#deep-inverse-rosenblatt-transport",
+    "title": "API Reference",
     "section": "",
-    "text": "Lagrange1(num_elems: int)\nPiecewise linear polynomials.\n\n\n\nnum_elems : int\n\nThe number of elements to use.\n\n\n\n\n\nTo construct a piecewise linear basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements. Then, within each element a given function can be represented by \\[\n    f(x) \\approx f(x_{0})\n        + \\frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),\n\\] where \\(x_{0}\\) and \\(x_{1}\\) denote the endpoints of the element.\nWe use piecewise cubic polynomials to represent the (conditional) CDFs corresponding to the piecewise linear representation of (the square root of) the target density function.",
+    "text": "An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.\n\n\n\nDIRT\nDeep (squared) inverse Rosenblatt transport.",
     "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Lagrange1"
+      "API Reference"
     ]
   },
   {
-    "objectID": "reference/Lagrange1.html#parameters",
-    "href": "reference/Lagrange1.html#parameters",
-    "title": "Lagrange1",
+    "objectID": "reference/index.html#preconditioners",
+    "href": "reference/index.html#preconditioners",
+    "title": "API Reference",
     "section": "",
-    "text": "num_elems : int\n\nThe number of elements to use.",
+    "text": "Initial guesses for the mapping between the reference random variable and the target random variable.\n\n\n\nPreconditioner\nA user-defined preconditioning function.\n\n\nIdentityMapping\nAn identity mapping.\n\n\nUniformMapping\nA mapping between the reference density and a uniform density.",
     "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Lagrange1"
+      "API Reference"
     ]
   },
   {
-    "objectID": "reference/Lagrange1.html#notes",
-    "href": "reference/Lagrange1.html#notes",
-    "title": "Lagrange1",
+    "objectID": "reference/index.html#polynomial-bases",
+    "href": "reference/index.html#polynomial-bases",
+    "title": "API Reference",
     "section": "",
-    "text": "To construct a piecewise linear basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements. Then, within each element a given function can be represented by \\[\n    f(x) \\approx f(x_{0})\n        + \\frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),\n\\] where \\(x_{0}\\) and \\(x_{1}\\) denote the endpoints of the element.\nWe use piecewise cubic polynomials to represent the (conditional) CDFs corresponding to the piecewise linear representation of (the square root of) the target density function.",
+    "text": "Polynomial bases used to construct a functional tensor train.\n\n\n\nLagrange1\nPiecewise linear polynomials.\n\n\nLagrangeP\nHigher-order piecewise Lagrange polynomials.\n\n\nChebyshev1st\nChebyshev polynomials of the first kind.\n\n\nChebyshev2nd\nChebyshev polynomials of the second kind.\n\n\nFourier\nFourier polynomials.\n\n\nLegendre\nLegendre polynomials.",
     "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Lagrange1"
+      "API Reference"
     ]
   },
   {
-    "objectID": "reference/DIRT.html",
-    "href": "reference/DIRT.html",
-    "title": "DIRT",
+    "objectID": "reference/index.html#domain-mappings",
+    "href": "reference/index.html#domain-mappings",
+    "title": "API Reference",
     "section": "",
-    "text": "DIRT(\n    negloglik: Callable[[Tensor], Tensor],\n    neglogpri: Callable[[Tensor], Tensor],\n    preconditioner: Preconditioner,\n    bases: Basis1D | List[Basis1D],\n    bridge: Bridge | None = None,\n    tt_options: TTOptions | None = None,\n    dirt_options: DIRTOptions | None = None,\n    prev_approx: Dict[int, SIRT] | None = None,\n)\nDeep (squared) inverse Rosenblatt transport.\n\n\n\nnegloglik : Callable[[Tensor], Tensor]\n\nA function that receives an \\(n \\times d\\) matrix of samples and returns an \\(n\\)-dimensional vector containing the negative log-likelihood function evaluated at each sample.\n\nneglogpri : Callable[[Tensor], Tensor]\n\nA function that receives an \\(n \\times d\\) matrix of samples and returns an \\(n\\)-dimensional vector containing the negative log-prior density evaluated at each sample.\n\nbases : Basis1D | List[Basis1D]\n\nA list of sets of basis functions for each dimension, or a single set of basis functions (to be used in all dimensions), used to construct the functional tensor trains at each iteration.\n\nbridge : Bridge | None = None\n\nAn object used to generate the intermediate densities to approximate at each stage of the DIRT construction.\n\ntt_options : TTOptions | None = None\n\nOptions for constructing the FTT approximation to the square root of the ratio function (i.e., the pullback of the current bridging density under the existing composition of mappings) at each iteration.\n\ndirt_options : DIRTOptions | None = None\n\nOptions for constructing the DIRT approximation to the target density.\n\nprev_approx : Dict[int, SIRT] | None = None\n\nA dictionary containing a set of SIRTs generated as part of the construction of a previous DIRT object.\n\n\n\n\n\nCui, T and Dolgov, S (2022). Deep composition of tensor-trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.\n\n\n\n\n\n\nName\nDescription\n\n\n\n\neval_potential\nEvaluates the potential function.\n\n\neval_potential_cond\nEvaluates the conditional potential function.\n\n\neval_rt\nEvaluates the deep Rosenblatt transport.\n\n\neval_irt\nEvaluates the deep inverse Rosenblatt transport.\n\n\neval_cirt\nEvaluates the conditional inverse Rosenblatt transport.\n\n\neval_irt_pullback\nEvaluates the pullback of a density function under the DIRT mapping.\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nDIRT.eval_potential(\n    xs: Tensor,\n    subset: str | None = None,\n    n_layers: int | None = None,\n)\nEvaluates the potential function.\nReturns the joint potential function, or the marginal potential function for the first \\(k\\) variables or the last \\(k\\) variables, corresponding to the pullback of the reference measure under a given number of layers of the DIRT.\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix containing a set of samples from the approximation domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the current DIRT construction to use when computing the potential. If not specified, all layers will be used when computing the potential.\n\n\n\n\n\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the target density evaluated at each element in xs.\n\n\n\n\n\n\nDIRT.eval_potential_cond(\n    ys: Tensor,\n    xs: Tensor,\n    subset: str = 'first',\n    n_layers: int | None = None,\n)\nEvaluates the conditional potential function.\nReturns the conditional potential function evaluated at a set of samples in the approximation domain.\n\n\n\nys : Tensor\n\nAn \\(n \\times k\\) matrix containing samples from the approximation domain.\n\nxs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing samples from the approximation domain.\n\nsubset : str = 'first'\n\nWhether ys corresponds to the first \\(k\\) variables (subset='first') of the approximation, or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.\n\n\n\n\n\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the approximation to the conditional density of \\(X \\textbar Y\\) evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_rt(xs: Tensor, subset: str | None = None, n_layers: int | None = None)\nEvaluates the deep Rosenblatt transport.\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix of samples from the approximation domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times k\\) matrix containing the composition of mappings evaluated at each value of xs.\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the pullback of the reference density under the current composition of mappings evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_irt(\n    rs: Tensor,\n    subset: str | None = None,\n    n_layers: int | None = None,\n)\nEvaluates the deep inverse Rosenblatt transport.\n\n\n\nrs : Tensor\n\nAn \\(n \\times k\\) matrix containing samples from the reference domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix containing the corresponding samples from the approximation domain, after applying the deep inverse Rosenblatt transport.\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the pullback of the reference density under the current composition of mappings, evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_cirt(\n    ys: Tensor,\n    rs: Tensor,\n    subset: str = 'first',\n    n_layers: int | None = None,\n)\nEvaluates the conditional inverse Rosenblatt transport.\nReturns the conditional inverse Rosenblatt transport evaluated at a set of samples in the approximation domain.\n\n\n\nys : Tensor\n\nA matrix containing samples from the approximation domain. The matrix should have dimensions \\(1 \\times k\\) (if the same realisation of \\(Y\\) is to be used for all samples in rs) or \\(n \\times k\\) (if a different realisation of \\(Y\\) is to be used for each samples in rs).\n\nrs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing samples from the reference domain.\n\nsubset : str = 'first'\n\nWhether ys corresponds to the first \\(k\\) variables (subset='first') of the approximation, or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the DIRT object to use when evaluating the CIRT. If not specified, all layers will be used.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing the realisations of \\(X\\) corresponding to the values of rs after applying the conditional inverse Rosenblatt transport.\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the approximation to the conditional density of \\(X \\textbar Y\\) evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_irt_pullback(\n    potential: Callable[[Tensor], Tensor],\n    rs: Tensor,\n    subset: str | None = None,\n    n_layers: int | None = None,\n)\nEvaluates the pullback of a density function under the DIRT mapping.\nThis function evaluates \\(\\mathcal{T}^{\\sharp}f(r)\\), where \\(\\mathcal{T}(\\cdot)\\) denotes the inverse Rosenblatt transport and \\(f(\\cdot)\\) denotes an arbitrary density function.\n\n\n\npotential : Callable[[Tensor], Tensor]\n\nA function that takes an \\(n \\times k\\) matrix of samples from the approximation domain, and returns an \\(n\\)-dimensional vector containing the potential function associated with \\(f(\\cdot)\\) evaluated at each sample.\n\nrs : Tensor\n\nAn \\(n \\times k\\) matrix containing a set of samples from the reference domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.\n\n\n\n\n\n\nneglogTfrs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential of the pullback function evaluated at each element in rs.\n\n\n\n\n\n\nDIRT.random(n: int)\nGenerates a set of random samples.\nThe samples are distributed according to the DIRT approximation to the target density.\n\n\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nDIRT.sobol(n: int)\nGenerates a set of QMC samples.\nThe samples are distributed according to the DIRT approximation to the target density.\n\n\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "text": "Mappings between the approximation domain and the domain of the polynomial basis.\n\n\n\nBoundedDomain\nMapping from a bounded domain to \\((-1, 1)\\).",
     "crumbs": [
-      "API Reference",
-      "Deep Inverse Rosenblatt Transport",
-      "DIRT"
+      "API Reference"
     ]
   },
   {
-    "objectID": "reference/DIRT.html#parameters",
-    "href": "reference/DIRT.html#parameters",
-    "title": "DIRT",
+    "objectID": "reference/index.html#options",
+    "href": "reference/index.html#options",
+    "title": "API Reference",
     "section": "",
-    "text": "negloglik : Callable[[Tensor], Tensor]\n\nA function that receives an \\(n \\times d\\) matrix of samples and returns an \\(n\\)-dimensional vector containing the negative log-likelihood function evaluated at each sample.\n\nneglogpri : Callable[[Tensor], Tensor]\n\nA function that receives an \\(n \\times d\\) matrix of samples and returns an \\(n\\)-dimensional vector containing the negative log-prior density evaluated at each sample.\n\nbases : Basis1D | List[Basis1D]\n\nA list of sets of basis functions for each dimension, or a single set of basis functions (to be used in all dimensions), used to construct the functional tensor trains at each iteration.\n\nbridge : Bridge | None = None\n\nAn object used to generate the intermediate densities to approximate at each stage of the DIRT construction.\n\ntt_options : TTOptions | None = None\n\nOptions for constructing the FTT approximation to the square root of the ratio function (i.e., the pullback of the current bridging density under the existing composition of mappings) at each iteration.\n\ndirt_options : DIRTOptions | None = None\n\nOptions for constructing the DIRT approximation to the target density.\n\nprev_approx : Dict[int, SIRT] | None = None\n\nA dictionary containing a set of SIRTs generated as part of the construction of a previous DIRT object.",
+    "text": "Options for configuring the FTT and DIRT construction.\n\n\n\nTTOptions\nOptions for configuring the construction of an FTT object.\n\n\nDIRTOptions\nOptions for configuring the construction of a DIRT object.",
     "crumbs": [
-      "API Reference",
-      "Deep Inverse Rosenblatt Transport",
-      "DIRT"
+      "API Reference"
     ]
   },
   {
-    "objectID": "reference/DIRT.html#references",
-    "href": "reference/DIRT.html#references",
-    "title": "DIRT",
+    "objectID": "reference/index.html#reference-densities",
+    "href": "reference/index.html#reference-densities",
+    "title": "API Reference",
     "section": "",
-    "text": "Cui, T and Dolgov, S (2022). Deep composition of tensor-trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
+    "text": "Product-form reference densities used as part of DIRT construction.\n\n\n\nGaussianReference\nThe standard \\(d\\)-dimensional Gaussian density, \\(\\mathcal{N}(\\boldsymbol{0}_{d}, \\boldsymbol{I}_{d})\\).\n\n\nUniformReference\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).",
     "crumbs": [
-      "API Reference",
-      "Deep Inverse Rosenblatt Transport",
-      "DIRT"
+      "API Reference"
     ]
   },
   {
-    "objectID": "reference/DIRT.html#methods",
-    "href": "reference/DIRT.html#methods",
-    "title": "DIRT",
+    "objectID": "reference/index.html#bridges",
+    "href": "reference/index.html#bridges",
+    "title": "API Reference",
     "section": "",
-    "text": "Name\nDescription\n\n\n\n\neval_potential\nEvaluates the potential function.\n\n\neval_potential_cond\nEvaluates the conditional potential function.\n\n\neval_rt\nEvaluates the deep Rosenblatt transport.\n\n\neval_irt\nEvaluates the deep inverse Rosenblatt transport.\n\n\neval_cirt\nEvaluates the conditional inverse Rosenblatt transport.\n\n\neval_irt_pullback\nEvaluates the pullback of a density function under the DIRT mapping.\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nDIRT.eval_potential(\n    xs: Tensor,\n    subset: str | None = None,\n    n_layers: int | None = None,\n)\nEvaluates the potential function.\nReturns the joint potential function, or the marginal potential function for the first \\(k\\) variables or the last \\(k\\) variables, corresponding to the pullback of the reference measure under a given number of layers of the DIRT.\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix containing a set of samples from the approximation domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the current DIRT construction to use when computing the potential. If not specified, all layers will be used when computing the potential.\n\n\n\n\n\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the target density evaluated at each element in xs.\n\n\n\n\n\n\nDIRT.eval_potential_cond(\n    ys: Tensor,\n    xs: Tensor,\n    subset: str = 'first',\n    n_layers: int | None = None,\n)\nEvaluates the conditional potential function.\nReturns the conditional potential function evaluated at a set of samples in the approximation domain.\n\n\n\nys : Tensor\n\nAn \\(n \\times k\\) matrix containing samples from the approximation domain.\n\nxs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing samples from the approximation domain.\n\nsubset : str = 'first'\n\nWhether ys corresponds to the first \\(k\\) variables (subset='first') of the approximation, or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.\n\n\n\n\n\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the approximation to the conditional density of \\(X \\textbar Y\\) evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_rt(xs: Tensor, subset: str | None = None, n_layers: int | None = None)\nEvaluates the deep Rosenblatt transport.\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix of samples from the approximation domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to push the samples forward under. If not specified, the samples will be pushed forward through all the layers.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times k\\) matrix containing the composition of mappings evaluated at each value of xs.\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the pullback of the reference density under the current composition of mappings evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_irt(\n    rs: Tensor,\n    subset: str | None = None,\n    n_layers: int | None = None,\n)\nEvaluates the deep inverse Rosenblatt transport.\n\n\n\nrs : Tensor\n\nAn \\(n \\times k\\) matrix containing samples from the reference domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix containing the corresponding samples from the approximation domain, after applying the deep inverse Rosenblatt transport.\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the pullback of the reference density under the current composition of mappings, evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_cirt(\n    ys: Tensor,\n    rs: Tensor,\n    subset: str = 'first',\n    n_layers: int | None = None,\n)\nEvaluates the conditional inverse Rosenblatt transport.\nReturns the conditional inverse Rosenblatt transport evaluated at a set of samples in the approximation domain.\n\n\n\nys : Tensor\n\nA matrix containing samples from the approximation domain. The matrix should have dimensions \\(1 \\times k\\) (if the same realisation of \\(Y\\) is to be used for all samples in rs) or \\(n \\times k\\) (if a different realisation of \\(Y\\) is to be used for each samples in rs).\n\nrs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing samples from the reference domain.\n\nsubset : str = 'first'\n\nWhether ys corresponds to the first \\(k\\) variables (subset='first') of the approximation, or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the DIRT object to use when evaluating the CIRT. If not specified, all layers will be used.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times (d-k)\\) matrix containing the realisations of \\(X\\) corresponding to the values of rs after applying the conditional inverse Rosenblatt transport.\n\nneglogfxs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function of the approximation to the conditional density of \\(X \\textbar Y\\) evaluated at each sample in xs.\n\n\n\n\n\n\nDIRT.eval_irt_pullback(\n    potential: Callable[[Tensor], Tensor],\n    rs: Tensor,\n    subset: str | None = None,\n    n_layers: int | None = None,\n)\nEvaluates the pullback of a density function under the DIRT mapping.\nThis function evaluates \\(\\mathcal{T}^{\\sharp}f(r)\\), where \\(\\mathcal{T}(\\cdot)\\) denotes the inverse Rosenblatt transport and \\(f(\\cdot)\\) denotes an arbitrary density function.\n\n\n\npotential : Callable[[Tensor], Tensor]\n\nA function that takes an \\(n \\times k\\) matrix of samples from the approximation domain, and returns an \\(n\\)-dimensional vector containing the potential function associated with \\(f(\\cdot)\\) evaluated at each sample.\n\nrs : Tensor\n\nAn \\(n \\times k\\) matrix containing a set of samples from the reference domain.\n\nsubset : str | None = None\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nn_layers : int | None = None\n\nThe number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.\n\n\n\n\n\n\nneglogTfrs : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential of the pullback function evaluated at each element in rs.\n\n\n\n\n\n\nDIRT.random(n: int)\nGenerates a set of random samples.\nThe samples are distributed according to the DIRT approximation to the target density.\n\n\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nDIRT.sobol(n: int)\nGenerates a set of QMC samples.\nThe samples are distributed according to the DIRT approximation to the target density.\n\n\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nxs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "text": "Objects used to generate the intermediate densities approximated during DIRT construction.\n\n\n\nSingleLayer\nConstructs the DIRT using a single layer.\n\n\nTempering\nLikelihood tempering.",
     "crumbs": [
-      "API Reference",
-      "Deep Inverse Rosenblatt Transport",
-      "DIRT"
+      "API Reference"
     ]
   },
   {
-    "objectID": "reference/TTOptions.html",
-    "href": "reference/TTOptions.html",
-    "title": "TTOptions",
+    "objectID": "reference/index.html#debiasing",
+    "href": "reference/index.html#debiasing",
+    "title": "API Reference",
     "section": "",
-    "text": "TTOptions(\n    max_als: int = 1,\n    als_tol: float = 0.0001,\n    init_rank: int = 20,\n    kick_rank: int = 2,\n    max_rank: int = 30,\n    local_tol: float = 1e-10,\n    cdf_tol: float = 1e-10,\n    tt_method: str = 'amen',\n    int_method: str = 'maxvol',\n    verbose: int = 1,\n)\nOptions for configuring the construction of an FTT object.\n\n\n\nmax_als : int = 1\n\nThe maximum number of ALS iterations to be carried out during the FTT construction.\n\nals_tol : float = 0.0001\n\nThe tolerance to use to determine whether the ALS iterations should be terminated.\n\ninit_rank : int = 20\n\nThe initial rank of each tensor core.\n\nkick_rank : int = 2\n\nThe rank of the enrichment set of samples added at each ALS iteration.\n\nmax_rank : int = 30\n\nThe maximum allowable rank of each tensor core (prior to the enrichment set being added).\n\nlocal_tol : float = 1e-10\n\nThe threshold to use when applying truncated SVD to the tensor cores when building the FTT.\n\ncdf_tol : float = 1e-10\n\nThe tolerance used when solving the root-finding problem to invert the CDF.\n\ntt_method : str = 'amen'\n\nThe method used to construct the TT cores. Can be 'fixed', 'random', or 'amen'.\n\nint_method : str = 'maxvol'\n\nThe interpolation method used when constructing the tensor cores. Can be 'maxvol' (Goreinov et al., 2010) or 'deim' (Chaturantabut and Sorensen, 2010).\n\nverbose : int = 1\n\nIf verbose=0, no information about the construction of the FTT will be printed to the screen. If verbose=1, diagnostic information will be prined at the end of each ALS iteration. If verbose=2, the tensor core currently being constructed during each ALS iteration will also be displayed.\n\n\n\n\n\nChaturantabut, S and Sorensen, DC (2010). Nonlinear model reduction via discrete empirical interpolation. SIAM Journal on Scientific Computing 32, 2737–2764.\nGoreinov, SA, Oseledets, IV, Savostyanov, DV, Tyrtyshnikov, EE and Zamarashkin, NL (2010). How to find a good submatrix. In: Matrix Methods: Theory, Algorithms and Applications, 247–256.",
+    "text": "Functions used to remove the bias associated with the use of an approximation to the target density function.\n\n\n\nrun_importance_sampling\nComputes the importance weights associated with a set of samples.\n\n\nrun_independence_sampler\nRuns an independence MCMC sampler.\n\n\nrun_irt_pcn\nRuns a pCN sampler using the DIRT mapping.\n\n\nrun_cirt_pcn\nRuns a pCN sampler using a conditional of the DIRT mapping.\n\n\nImportanceSamplingResult\nAn object containing the results of importance sampling.\n\n\nMCMCResult\nAn object containing a constructed Markov chain.",
     "crumbs": [
-      "API Reference",
-      "Options",
-      "TTOptions"
+      "API Reference"
     ]
   },
   {
-    "objectID": "reference/TTOptions.html#parameters",
-    "href": "reference/TTOptions.html#parameters",
-    "title": "TTOptions",
+    "objectID": "reference/MCMCResult.html",
+    "href": "reference/MCMCResult.html",
+    "title": "MCMCResult",
     "section": "",
-    "text": "max_als : int = 1\n\nThe maximum number of ALS iterations to be carried out during the FTT construction.\n\nals_tol : float = 0.0001\n\nThe tolerance to use to determine whether the ALS iterations should be terminated.\n\ninit_rank : int = 20\n\nThe initial rank of each tensor core.\n\nkick_rank : int = 2\n\nThe rank of the enrichment set of samples added at each ALS iteration.\n\nmax_rank : int = 30\n\nThe maximum allowable rank of each tensor core (prior to the enrichment set being added).\n\nlocal_tol : float = 1e-10\n\nThe threshold to use when applying truncated SVD to the tensor cores when building the FTT.\n\ncdf_tol : float = 1e-10\n\nThe tolerance used when solving the root-finding problem to invert the CDF.\n\ntt_method : str = 'amen'\n\nThe method used to construct the TT cores. Can be 'fixed', 'random', or 'amen'.\n\nint_method : str = 'maxvol'\n\nThe interpolation method used when constructing the tensor cores. Can be 'maxvol' (Goreinov et al., 2010) or 'deim' (Chaturantabut and Sorensen, 2010).\n\nverbose : int = 1\n\nIf verbose=0, no information about the construction of the FTT will be printed to the screen. If verbose=1, diagnostic information will be prined at the end of each ALS iteration. If verbose=2, the tensor core currently being constructed during each ALS iteration will also be displayed.",
+    "text": "MCMCResult(chain: MarkovChain)\nAn object containing a constructed Markov chain.\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix containing the samples that form the Markov chain.\n\npotentials : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample in the chain.\n\nacceptance_rate : float\n\nThe acceptance rate of the sampler.\n\niacts : Tensor\n\nA \\(k\\)-dimensional vector containing estimates of the integrated autocorrelation time (IACT) for each parameter.",
     "crumbs": [
       "API Reference",
-      "Options",
-      "TTOptions"
+      "Debiasing",
+      "MCMCResult"
     ]
   },
   {
-    "objectID": "reference/TTOptions.html#references",
-    "href": "reference/TTOptions.html#references",
-    "title": "TTOptions",
+    "objectID": "reference/MCMCResult.html#attributes",
+    "href": "reference/MCMCResult.html#attributes",
+    "title": "MCMCResult",
     "section": "",
-    "text": "Chaturantabut, S and Sorensen, DC (2010). Nonlinear model reduction via discrete empirical interpolation. SIAM Journal on Scientific Computing 32, 2737–2764.\nGoreinov, SA, Oseledets, IV, Savostyanov, DV, Tyrtyshnikov, EE and Zamarashkin, NL (2010). How to find a good submatrix. In: Matrix Methods: Theory, Algorithms and Applications, 247–256.",
+    "text": "xs : Tensor\n\nAn \\(n \\times k\\) matrix containing the samples that form the Markov chain.\n\npotentials : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample in the chain.\n\nacceptance_rate : float\n\nThe acceptance rate of the sampler.\n\niacts : Tensor\n\nA \\(k\\)-dimensional vector containing estimates of the integrated autocorrelation time (IACT) for each parameter.",
     "crumbs": [
       "API Reference",
-      "Options",
-      "TTOptions"
+      "Debiasing",
+      "MCMCResult"
+    ]
+  },
+  {
+    "objectID": "reference/BoundedDomain.html",
+    "href": "reference/BoundedDomain.html",
+    "title": "BoundedDomain",
+    "section": "",
+    "text": "BoundedDomain(bounds: Tensor | None = None)\nMapping from a bounded domain to \\((-1, 1)\\).\nThis class provides a linear mapping from a bounded domain, \\((x_{0}, x_{1})\\), to \\((-1, 1)\\).\n\n\n\nbounds : Tensor | None = None\n\nA set of bounds, \\((x_{0}, x_{1})\\). The default choice is torch.tensor([-1.0, 1.0]).",
+    "crumbs": [
+      "API Reference",
+      "Domain Mappings",
+      "BoundedDomain"
+    ]
+  },
+  {
+    "objectID": "reference/BoundedDomain.html#parameters",
+    "href": "reference/BoundedDomain.html#parameters",
+    "title": "BoundedDomain",
+    "section": "",
+    "text": "bounds : Tensor | None = None\n\nA set of bounds, \\((x_{0}, x_{1})\\). The default choice is torch.tensor([-1.0, 1.0]).",
+    "crumbs": [
+      "API Reference",
+      "Domain Mappings",
+      "BoundedDomain"
+    ]
+  },
+  {
+    "objectID": "reference/run_cirt_pcn.html",
+    "href": "reference/run_cirt_pcn.html",
+    "title": "run_cirt_pcn",
+    "section": "",
+    "text": "run_cirt_pcn(\n    potential: Callable[[Tensor], Tensor],\n    dirt: AbstractDIRT,\n    y: Tensor,\n    n: int,\n    dt: float = 2.0,\n    r0: Tensor | None = None,\n    subset: str = 'first',\n    verbose: bool = True,\n)\nRuns a pCN sampler using a conditional of the DIRT mapping.\nRuns a pCN sampler to characterise the pullback of the target density under a conditional of the DIRT mapping, then pushes the resulting samples forward under the DIRT mapping to obtain samples distributed according to the target. This idea was initially outlined by Cui et al. (2023).\nNote that the pCN proposal is only applicable to problems with a Gaussian reference density.\n\n\n\npotential : Callable[[Tensor], Tensor]\n\nA function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.\n\ndirt : AbstractDIRT\n\nA previously-constructed DIRT object.\n\ny : Tensor\n\nA \\(1 \\times k\\) matrix containing a sample from the approximation domain to condition on.\n\nn : int\n\nThe length of the Markov chain to construct.\n\ndt : float = 2.0\n\npCN stepsize, \\(\\Delta t\\). If this is not specified, a value of \\(\\Delta t = 2\\) (independence sampler) will be used.\n\nr0 : Tensor | None = None\n\nThe starting state. This should be a \\(1 \\times (d-k)\\) matrix containing a sample from the reference domain. If not passed in, the mean of the reference density will be used.\n\nsubset : str = 'first'\n\nWhether y is a realisation of the first \\(k\\) variables (subset='first') or the final \\(k\\) variables (subset='last').\n\nverbose : bool = True\n\nWhether to print diagnostic information during the sampling process.\n\n\n\n\n\n\nres : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_cirt_pcn"
+    ]
+  },
+  {
+    "objectID": "reference/run_cirt_pcn.html#parameters",
+    "href": "reference/run_cirt_pcn.html#parameters",
+    "title": "run_cirt_pcn",
+    "section": "",
+    "text": "potential : Callable[[Tensor], Tensor]\n\nA function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.\n\ndirt : AbstractDIRT\n\nA previously-constructed DIRT object.\n\ny : Tensor\n\nA \\(1 \\times k\\) matrix containing a sample from the approximation domain to condition on.\n\nn : int\n\nThe length of the Markov chain to construct.\n\ndt : float = 2.0\n\npCN stepsize, \\(\\Delta t\\). If this is not specified, a value of \\(\\Delta t = 2\\) (independence sampler) will be used.\n\nr0 : Tensor | None = None\n\nThe starting state. This should be a \\(1 \\times (d-k)\\) matrix containing a sample from the reference domain. If not passed in, the mean of the reference density will be used.\n\nsubset : str = 'first'\n\nWhether y is a realisation of the first \\(k\\) variables (subset='first') or the final \\(k\\) variables (subset='last').\n\nverbose : bool = True\n\nWhether to print diagnostic information during the sampling process.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_cirt_pcn"
+    ]
+  },
+  {
+    "objectID": "reference/run_cirt_pcn.html#returns",
+    "href": "reference/run_cirt_pcn.html#returns",
+    "title": "run_cirt_pcn",
+    "section": "",
+    "text": "res : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_cirt_pcn"
     ]
   },
   {

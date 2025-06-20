@@ -568,8 +568,14 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/run_dirt_pcn.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">run_dirt_pcn</span></a>
+  <a href="../reference/run_irt_pcn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_irt_pcn</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_cirt_pcn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_cirt_pcn</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -684,10 +690,14 @@ window.Quarto = {
 <td>Evaluates the pullback of a density function under the DIRT mapping.</td>
 </tr>
 <tr class="odd">
+<td><a href="#deep_tensor.DIRT.eval_cirt_pullback">eval_cirt_pullback</a></td>
+<td>Evaluates the pullback of a conditional density function under the DIRT mapping.</td>
+</tr>
+<tr class="even">
 <td><a href="#deep_tensor.DIRT.random">random</a></td>
 <td>Generates a set of random samples.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><a href="#deep_tensor.DIRT.sobol">sobol</a></td>
 <td>Generates a set of QMC samples.</td>
 </tr>
@@ -925,39 +935,69 @@ window.Quarto = {
 <dl>
 <dt><code><span class="parameter-name"><strong>neglogTfrs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential of the pullback function evaluated at each element in <code>rs</code>.</p>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential of the pullback function evaluated at each element in <code>rs</code>; that is, <span class="math inline">\(-\log(\mathcal{T}^{\sharp}f(r))\)</span>.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>neglogfxs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential of the target function evaluated at each element in <code>rs</code>, pushed forward under the IRT; that is, <span class="math inline">\(-\log(f(\mathcal{T}(r)))\)</span>.</p>
 </dd>
 </dl>
 </section>
 </section>
-<section id="deep_tensor.DIRT.random" class="level3">
-<h3 class="anchored" data-anchor-id="deep_tensor.DIRT.random">random</h3>
-<div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>DIRT.random(n: <span class="bu">int</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Generates a set of random samples.</p>
-<p>The samples are distributed according to the DIRT approximation to the target density.</p>
+<section id="deep_tensor.DIRT.eval_cirt_pullback" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.DIRT.eval_cirt_pullback">eval_cirt_pullback</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>DIRT.eval_cirt_pullback(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    potential: Callable[[Tensor], Tensor],</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    ys: Tensor,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    rs: Tensor,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">=</span> <span class="st">'first'</span>,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    n_layers: <span class="bu">int</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Evaluates the pullback of a conditional density function under the DIRT mapping.</p>
+<p>This function evaluates <span class="math inline">\(\mathcal{T}^{\sharp}f(r|y)\)</span>, where <span class="math inline">\(\mathcal{T}(\cdot)\)</span> denotes the inverse Rosenblatt transport and <span class="math inline">\(f(\cdot|y)\)</span> denotes an arbitrary conditional density function.</p>
 <section id="parameters-7" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-7">Parameters</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>n</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>potential</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
 <dd>
-<p>The number of samples to generate.</p>
+<p>A function that takes an <span class="math inline">\(n \times (d-k)\)</span> matrix of samples from the approximation domain, and returns an <span class="math inline">\(n\)</span>-dimensional vector containing the potential function associated with <span class="math inline">\(f(\cdot\|y)\)</span> evaluated at each sample.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>ys</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dd>
+<p>A matrix containing samples from the approximation domain. The matrix should have dimensions <span class="math inline">\(1 \times k\)</span> (if the same realisation of <span class="math inline">\(Y\)</span> is to be used for all samples in <code>rs</code>) or <span class="math inline">\(n \times k\)</span> (if a different realisation of <span class="math inline">\(Y\)</span> is to be used for each samples in <code>rs</code>).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>rs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times (d-k)\)</span> matrix containing a set of samples from the reference domain.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'first'</span></code></dt>
+<dd>
+<p>Whether <code>ys</code> corresponds to the first <span class="math inline">\(k\)</span> variables (<code>subset='first'</code>) of the approximation, or the last <span class="math inline">\(k\)</span> variables (<code>subset='last'</code>).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>n_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>The number of layers of the deep inverse Rosenblatt transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.</p>
 </dd>
 </dl>
 </section>
 <section id="returns-6" class="level4 doc-section doc-section-returns">
 <h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-6">Returns</h4>
 <dl>
-<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>neglogTfrs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>
-<p>An <span class="math inline">\(n \times d\)</span> matrix containing the generated samples.</p>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential of the pullback function evaluated at each element in <code>rs</code>; that is, <span class="math inline">\(-\log(\mathcal{T}^{\sharp}f(r\|y))\)</span>.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>neglogfxs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential of the target function evaluated at each element in <code>rs</code>, pushed forward under the IRT; that is, <span class="math inline">\(-\log(f(\mathcal{T}(r)\|y))\)</span>.</p>
 </dd>
 </dl>
 </section>
 </section>
-<section id="deep_tensor.DIRT.sobol" class="level3">
-<h3 class="anchored" data-anchor-id="deep_tensor.DIRT.sobol">sobol</h3>
-<div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>DIRT.sobol(n: <span class="bu">int</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Generates a set of QMC samples.</p>
+<section id="deep_tensor.DIRT.random" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.DIRT.random">random</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>DIRT.random(n: <span class="bu">int</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Generates a set of random samples.</p>
 <p>The samples are distributed according to the DIRT approximation to the target density.</p>
 <section id="parameters-8" class="level4 doc-section doc-section-parameters">
 <h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-8">Parameters</h4>
@@ -970,6 +1010,30 @@ window.Quarto = {
 </section>
 <section id="returns-7" class="level4 doc-section doc-section-returns">
 <h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-7">Returns</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times d\)</span> matrix containing the generated samples.</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="deep_tensor.DIRT.sobol" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.DIRT.sobol">sobol</h3>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>DIRT.sobol(n: <span class="bu">int</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Generates a set of QMC samples.</p>
+<p>The samples are distributed according to the DIRT approximation to the target density.</p>
+<section id="parameters-9" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-9">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>n</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span></code></dt>
+<dd>
+<p>The number of samples to generate.</p>
+</dd>
+</dl>
+</section>
+<section id="returns-8" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-8">Returns</h4>
 <dl>
 <dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
 <dd>

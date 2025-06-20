@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>tempering – deep_tensor</title>
+<title>run_irt_pcn – deep_tensor</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -348,7 +348,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/SingleLayer.html">Bridges</a></li><li class="breadcrumb-item"><a href="../reference/Tempering.html">Tempering</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/run_importance_sampling.html">Debiasing</a></li><li class="breadcrumb-item"><a href="../reference/run_irt_pcn.html">run_irt_pcn</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -524,13 +524,13 @@ window.Quarto = {
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="false">
  <span class="menu-text">Bridges</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="false" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/SingleLayer.html" class="sidebar-item-text sidebar-link">
@@ -539,7 +539,7 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/Tempering.html" class="sidebar-item-text sidebar-link active">
+  <a href="../reference/Tempering.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Tempering</span></a>
   </div>
 </li>
@@ -547,13 +547,13 @@ window.Quarto = {
   </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="false">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
  <span class="menu-text">Debiasing</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="false" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 ">  
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../reference/run_importance_sampling.html" class="sidebar-item-text sidebar-link">
@@ -568,7 +568,7 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../reference/run_irt_pcn.html" class="sidebar-item-text sidebar-link">
+  <a href="../reference/run_irt_pcn.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">run_irt_pcn</span></a>
   </div>
 </li>
@@ -599,53 +599,80 @@ window.Quarto = {
 <!-- margin-sidebar -->
     
 <!-- main -->
-<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/SingleLayer.html">Bridges</a></li><li class="breadcrumb-item"><a href="../reference/Tempering.html">Tempering</a></li></ol></nav></header>
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/run_importance_sampling.html">Debiasing</a></li><li class="breadcrumb-item"><a href="../reference/run_irt_pcn.html">run_irt_pcn</a></li></ol></nav></header>
 
 
 
 
 
-<section id="deep_tensor.Tempering" class="level1">
-<h1>Tempering</h1>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>Tempering(</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    betas: Tensor <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    ess_tol: Tensor <span class="op">|</span> <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.5</span>,</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    ess_tol_init: Tensor <span class="op">|</span> <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.5</span>,</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    beta_factor: Tensor <span class="op">|</span> <span class="bu">float</span> <span class="op">=</span> <span class="fl">1.05</span>,</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    min_beta: Tensor <span class="op">|</span> <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.0001</span>,</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    max_layers: <span class="bu">int</span> <span class="op">=</span> <span class="dv">20</span>,</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Likelihood tempering.</p>
-<p>The intermediate densities, <span class="math inline">\(\{\pi_{k}(\theta)\}_{k=1}^{N}\)</span>, generated using this approach take the form <span class="math display">\[\pi_{k}(\theta) \propto (Q_{\sharp}\rho(\theta))^{1-\beta_{k}}\pi(\theta)^{\beta_{k}},\]</span> where <span class="math inline">\(Q_{\sharp}\rho(\cdot)\)</span> denotes the pushforward of the reference density, <span class="math inline">\(\rho(\cdot)\)</span>, under the preconditioner, <span class="math inline">\(Q(\cdot)\)</span>, <span class="math inline">\(\pi(\cdot)\)</span> denotes the target density, and <span class="math inline">\(0 \leq \beta_{1} &lt; \cdots &lt; \beta_{N} = 1\)</span>.</p>
-<p>It is possible to provide this class with a set of <span class="math inline">\(\beta\)</span> values to use. If these are not provided, they will be determined automatically by finding the largest possible <span class="math inline">\(\beta\)</span>, at each iteration, such that the ESS of a reweighted set of samples distributed according to (a TT approximation to) the previous bridging density does not fall below a given value.</p>
+<section id="deep_tensor.run_irt_pcn" class="level1">
+<h1>run_irt_pcn</h1>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>run_irt_pcn(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    potential: Callable[[Tensor], Tensor],</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    dirt: AbstractDIRT,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    n: <span class="bu">int</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    dt: <span class="bu">float</span> <span class="op">=</span> <span class="fl">2.0</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    r0: Tensor <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    subset: <span class="bu">str</span> <span class="op">=</span> <span class="st">'first'</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    verbose: <span class="bu">bool</span> <span class="op">=</span> <span class="va">True</span>,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Runs a pCN sampler using the DIRT mapping.</p>
+<p>Runs a preconditioned Crank-Nicholson sampler (Cotter <em>et al.</em>, 2013) to characterise the pullback of the target density under the DIRT mapping, then pushes the resulting samples forward under the DIRT mapping to obtain samples distributed according to the target. This idea was initially outlined by Cui <em>et al.</em> (2023).</p>
+<p>Note that the pCN proposal is only applicable to problems with a Gaussian reference density.</p>
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
-<dt><code><span class="parameter-name"><strong>betas</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dt><code><span class="parameter-name"><strong>potential</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
 <dd>
-<p>A set of <span class="math inline">\(\beta\)</span> values to use for the intermediate distributions. If not specified, these will be determined automatically.</p>
+<p>A function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>ess_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a> | <a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.5</span></code></dt>
+<dt><code><span class="parameter-name"><strong>dirt</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`deep_tensor.irt.AbstractDIRT`">AbstractDIRT</a></span></code></dt>
 <dd>
-<p>If selecting the <span class="math inline">\(\beta\)</span> values adaptively, the minimum allowable ESS of the samples (distributed according to an approximation of the previous bridging density) when selecting the next bridging density.</p>
+<p>A previously-constructed DIRT object.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>ess_tol_init</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a> | <a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.5</span></code></dt>
+<dt><code><span class="parameter-name"><strong>n</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span></code></dt>
 <dd>
-<p>If selecting the <span class="math inline">\(\beta\)</span> values adaptively, the minimum allowable ESS of the samples when selecting the initial bridging density.</p>
+<p>The length of the Markov chain to construct.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>beta_factor</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a> | <a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1.05</span></code></dt>
+<dt><code><span class="parameter-name"><strong>dt</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">2.0</span></code></dt>
 <dd>
-<p>If selecting the <span class="math inline">\(\beta\)</span> values adaptively, the factor by which to increase the current <span class="math inline">\(\beta\)</span> value by prior to checking whether the ESS of the reweighted samples is sufficiently high.</p>
+<p>pCN stepsize, <span class="math inline">\(\Delta t\)</span>. If this is not specified, a value of <span class="math inline">\(\Delta t = 2\)</span> (independence sampler) will be used.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>min_beta</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a> | <a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.0001</span></code></dt>
+<dt><code><span class="parameter-name"><strong>r0</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
-<p>If selecting the <span class="math inline">\(\beta\)</span> values adaptively, the minimum allowable <span class="math inline">\(\beta\)</span> value.</p>
+<p>The starting state. This should be a <span class="math inline">\(1 \times k\)</span> matrix containing a sample from the reference domain. If not passed in, the mean of the reference density will be used.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>max_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">20</span></code></dt>
+<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'first'</span></code></dt>
 <dd>
-<p>If selecting the <span class="math inline">\(\beta\)</span> values adaptively, the maximum number of layers to construct. Note that, if the maximum number of layers is reached, the final bridging density may not be the target density.</p>
+<p>If the samples contain a subset of the variables, (<em>i.e.,</em> <span class="math inline">\(k &lt; d\)</span>), whether they correspond to the first <span class="math inline">\(k\)</span> variables (<code>subset='first'</code>) or the last <span class="math inline">\(k\)</span> variables (<code>subset='last'</code>).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>verbose</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`bool`">bool</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
+<dd>
+<p>Whether to print diagnostic information during the sampling process.</p>
 </dd>
 </dl>
+</section>
+<section id="returns" class="level2 doc-section doc-section-returns">
+<h2 class="doc-section doc-section-returns anchored" data-anchor-id="returns">Returns</h2>
+<dl>
+<dt><code><span class="parameter-name"><strong>res</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`deep_tensor.debiasing.mcmc.MCMCResult`">MCMCResult</a></span></code></dt>
+<dd>
+<p>An object containing the constructed Markov chain and some diagnostic information.</p>
+</dd>
+</dl>
+</section>
+<section id="notes" class="level2 doc-section doc-section-notes">
+<h2 class="doc-section doc-section-notes anchored" data-anchor-id="notes">Notes</h2>
+<p>When the reference density is the standard Gaussian density (that is, <span class="math inline">\(\rho(\theta) = \mathcal{N}(0_{d}, I_{d})\)</span>), the pCN proposal (given current state <span class="math inline">\(\theta^{(i)}\)</span>) takes the form <span class="math display">\[
+    \theta' = \frac{2-\Delta t}{2+\Delta t} \theta^{(i)}
+        + \frac{2\sqrt{2\Delta t}}{2 + \Delta t} \tilde{\theta},
+\]</span> where <span class="math inline">\(\tilde{\theta} \sim \rho(\,\cdot\,)\)</span>, and <span class="math inline">\(\Delta t\)</span> denotes the step size.</p>
+<p>When <span class="math inline">\(\Delta t = 2\)</span>, the resulting sampler is an independence sampler. When <span class="math inline">\(\Delta t &gt; 2\)</span>, the proposals are negatively correlated, and when <span class="math inline">\(\Delta t &lt; 2\)</span>, the proposals are positively correlated.</p>
+</section>
+<section id="references" class="level2 doc-section doc-section-references">
+<h2 class="doc-section doc-section-references anchored" data-anchor-id="references">References</h2>
+<p>Cotter, SL, Roberts, GO, Stuart, AM and White, D (2013). <em><a href="https://doi.org/10.1214/13-STS421">MCMC methods for functions: Modifying old algorithms to make them faster</a>.</em> Statistical Science <strong>28</strong>, 424–446.</p>
+<p>Cui, T, Dolgov, S and Zahm, O (2023). <em><a href="https://doi.org/10.1016/j.jcp.2023.112103">Scalable conditional deep inverse Rosenblatt transports using tensor trains and gradient-based dimension reduction</a>.</em> Journal of Computational Physics <strong>485</strong>, 112103.</p>
 
 
 </section>
