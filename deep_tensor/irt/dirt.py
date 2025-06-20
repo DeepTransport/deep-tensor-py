@@ -1,7 +1,7 @@
 import abc
 from copy import deepcopy
 import time
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -361,12 +361,12 @@ class AbstractDIRT(abc.ABC):
         rs: Tensor, 
         subset: str | None = None,
         n_layers: int | None = None
-    ) -> Tensor:
+    ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the pullback of a density function under the DIRT mapping.
 
         This function evaluates $\mathcal{T}^{\sharp}f(r)$, where 
-        $\mathcal{T}(\cdot)$ denotes the inverse Rosenblatt transport and 
-        $f(\cdot)$ denotes an arbitrary density function.
+        $\mathcal{T}(\cdot)$ denotes the inverse Rosenblatt transport 
+        and $f(\cdot)$ denotes an arbitrary density function.
 
         Parameters
         ----------
@@ -392,14 +392,19 @@ class AbstractDIRT(abc.ABC):
         -------
         neglogTfrs:
             An $n$-dimensional vector containing the potential of the 
-            pullback function evaluated at each element in `rs`.
+            pullback function evaluated at each element in `rs`; that 
+            is, $-\log(\mathcal{T}^{\sharp}f(r))$.
+        neglogfxs:
+            An $n$-dimensional vector containing the potential of the 
+            target function evaluated at each element in `rs`, pushed 
+            forward under the IRT; that is, $-\log(f(\mathcal{T}(r)))$.
         
         """
         neglogrefs = self.reference.eval_potential(rs)[0]
-        xs, neglogfxs_dirt = self.eval_irt(rs, subset, n_layers)
+        xs, neglogfxs_irt = self.eval_irt(rs, subset, n_layers)
         neglogfxs = potential(xs)
-        neglogTfrs = neglogfxs + neglogrefs - neglogfxs_dirt
-        return neglogTfrs
+        neglogTfrs = neglogfxs + neglogrefs - neglogfxs_irt
+        return neglogTfrs, neglogfxs
     
     def eval_cirt_pullback(
         self, 
@@ -408,17 +413,56 @@ class AbstractDIRT(abc.ABC):
         rs: Tensor,
         subset: str = "first",
         n_layers: int | None = None
-    ) -> Tensor:
-        r"""TODO: write docstring.
-        
-        Potential needs to return $f(x|y)$ (adjust notation).
+    ) -> Tuple[Tensor, Tensor]:
+        r"""Evaluates the pullback of a conditional density function under the DIRT mapping.
+
+        This function evaluates $\mathcal{T}^{\sharp}f(r|y)$, where 
+        $\mathcal{T}(\cdot)$ denotes the inverse Rosenblatt transport 
+        and $f(\cdot|y)$ denotes an arbitrary conditional density 
+        function.
+
+        Parameters
+        ----------
+        potential:
+            A function that takes an $n \times (d-k)$ matrix of samples 
+            from the approximation domain, and returns an 
+            $n$-dimensional vector containing the potential function 
+            associated with $f(\cdot|y)$ evaluated at each sample.
+        ys:
+            A matrix containing samples from the approximation domain.
+            The matrix should have dimensions $1 \times k$ (if the same 
+            realisation of $Y$ is to be used for all samples in `rs`) 
+            or $n \times k$ (if a different realisation of $Y$ is to be 
+            used for each samples in `rs`).
+        rs:
+            An $n \times (d-k)$ matrix containing a set of samples from 
+            the reference domain.
+        subset: 
+            Whether `ys` corresponds to the first $k$ variables 
+            (`subset='first'`) of the approximation, or the last $k$ 
+            variables (`subset='last'`).
+        n_layers: 
+            The number of layers of the deep inverse Rosenblatt 
+            transport to pull the samples back under. If not specified,
+            the samples will be pulled back through all the layers.
+
+        Returns
+        -------
+        neglogTfrs:
+            An $n$-dimensional vector containing the potential of the 
+            pullback function evaluated at each element in `rs`; that 
+            is, $-\log(\mathcal{T}^{\sharp}f(r|y))$.
+        neglogfxs:
+            An $n$-dimensional vector containing the potential of the 
+            target function evaluated at each element in `rs`, pushed 
+            forward under the IRT; that is, $-\log(f(\mathcal{T}(r)|y))$.
         
         """
         neglogrefs = self.reference.eval_potential(rs)[0]
-        ys, neglogfys_cirt = self.eval_cirt(ys, rs, subset, n_layers)
-        neglogfys = potential(ys)
-        neglogTfrs = neglogfys + neglogrefs - neglogfys_cirt
-        return neglogTfrs
+        xs, neglogfxs_cirt = self.eval_cirt(ys, rs, subset, n_layers)
+        neglogfxs = potential(xs)
+        neglogTfrs = neglogfxs + neglogrefs - neglogfxs_cirt
+        return neglogTfrs, neglogfxs
 
     def eval_potential(
         self, 

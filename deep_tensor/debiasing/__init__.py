@@ -4,6 +4,7 @@ from .importance_sampling import (
 )
 from .mcmc import (
     MCMCResult, 
-    run_dirt_pcn, 
+    run_irt_pcn, 
+    run_cirt_pcn,
     run_independence_sampler
 )

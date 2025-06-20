@@ -1,10 +1,10 @@
-from typing import Callable
+from typing import Callable, Tuple
 
 import torch 
 from torch import Tensor
 
 from ..irt import AbstractDIRT
-from ..references import GaussianReference
+from ..references import GaussianReference, Reference
 from ..tools import estimate_iact
 
 
@@ -42,7 +42,7 @@ class MarkovChain(object):
     
     def add_new_state(self, x_i: Tensor, potential_i: Tensor) -> None:
         """Adds a new state to the end of the Markov chain."""
-        self.xs[self.n_steps] = x_i
+        self.xs[self.n_steps] = x_i.flatten()
         self.potentials[self.n_steps] = potential_i
         self.n_steps += 1
         self.n_accept += 1
@@ -57,7 +57,7 @@ class MarkovChain(object):
     
     def print_progress(self) -> None:
         # TODO: finish this.
-        # print(self.acceptance_rate)
+        print(self.acceptance_rate)
         return
 
 
@@ -84,42 +84,57 @@ class MCMCResult(object):
 
 
 def _run_irt_pcn(
-    negloglik_pullback: Callable[[Tensor], Tensor],
+    negloglik_pullback: Callable[[Tensor], Tuple[Tensor, Tensor]],
     irt_func: Callable[[Tensor], Tensor],
-    reference: GaussianReference,
+    reference: Reference,
     dim: int,
     n: int,
     dt: float,
-    x0: Tensor | None = None, 
+    r0: Tensor | None = None, 
     verbose: bool = True
 ) -> MCMCResult:
-
-    r0 = irt_func(x0) if x0 is not None else torch.zeros((1, dim))
-    negloglik0 = negloglik_pullback(r0)
+    
+    if not isinstance(reference, GaussianReference):
+        msg = "DIRT object must have a Gaussian reference density."
+        raise Exception(msg)
+    
+    if dt <= 0.0:
+        msg = "Stepsize must be positive."
+        raise Exception(msg)
 
     a = 2.0 * (2.0*dt)**0.5 / (2.0+dt)
     b = (2.0-dt) / (2.0+dt)
 
-    chain = MarkovChain(n, dim)
-    chain.add_new_state(r0, negloglik0)
+    r_c = r0.clone() if r0 is not None else torch.zeros((1, dim))
+    x_c = irt_func(r_c)
+    negloglik_pull_c, neglogfx_c = negloglik_pullback(r_c)
 
-    # Sample a set of perturbations
-    ps = torch.randn((n, dim))
+    chain = MarkovChain(n, dim)
+    chain.add_new_state(x_c, neglogfx_c)
+
+    # Sample a set of perturbations and acceptance probabilities
+    ps = torch.randn((n-1, dim))
+    probs = torch.rand(n-1)
 
     for i in range(n-1):
         
         # Propose a new state
-        r_p = b * chain.current_state + a * ps[i]
+        r_p = b * r_c + a * ps[i]
 
         if reference._out_domain(torch.atleast_2d(r_p)).any():
-            negloglik_p = torch.tensor(torch.inf)
+            negloglik_pull_p = torch.tensor(torch.inf)
+            neglogfx_p = torch.tensor(torch.inf)
             alpha = -torch.tensor(torch.inf)
         else:
-            negloglik_p = negloglik_pullback(r_p)
-            alpha = chain.current_potential - negloglik_p
+            negloglik_pull_p, neglogfx_p = negloglik_pullback(r_p)
+            alpha = negloglik_pull_c - negloglik_pull_p
 
-        if alpha.exp() > torch.rand(1):
-            chain.add_new_state(r_p, negloglik_p)
+        if torch.exp(alpha) > probs[i]:
+            r_c = r_p.clone()
+            x_c = irt_func(r_c)
+            negloglik_pull_c = negloglik_pull_p.clone()
+            neglogfx_c = neglogfx_p.clone()
+            chain.add_new_state(x_c, neglogfx_c)
         else:
             chain.add_current_state()
 
@@ -129,13 +144,12 @@ def _run_irt_pcn(
     return MCMCResult(chain)
 
 
-def run_dirt_pcn(
+def run_irt_pcn(
     potential: Callable[[Tensor], Tensor],
     dirt: AbstractDIRT,
     n: int,
     dt: float = 2.0,
-    x0: Tensor | None = None,
-    ys: Tensor | None = None,
+    r0: Tensor | None = None,
     subset: str = "first",
     verbose: bool = True
 ) -> MCMCResult:
@@ -162,17 +176,14 @@ def run_dirt_pcn(
     dt:
         pCN stepsize, $\Delta t$. If this is not specified, a value of 
         $\Delta t = 2$ (independence sampler) will be used.
-    x0:
-        The starting state. If this is passed in, the DIRT mapping will 
-        be applied to it to generate the starting location for sampling 
-        from the pullback of the target density. Otherwise, the mean of 
-        the reference density will be used.
-    ys:
-        A tensor containing a set of values to condition on.
+    r0:
+        The starting state. This should be a $1 \times k$ matrix 
+        containing a sample from the reference domain. If not passed in, 
+        the mean of the reference density will be used.
     subset:
-        If `ys` are passed in, whether they correspond to the first 
-        $k$ variables (`subset='first'`) or the final $k$ variables 
-        (`subset='last'`).
+        If the samples contain a subset of the variables, (*i.e.,* 
+        $k < d$), whether they correspond to the first $k$ variables 
+        (`subset='first'`) or the last $k$ variables (`subset='last'`).
     verbose:
         Whether to print diagnostic information during the sampling 
         process.
@@ -213,53 +224,23 @@ def run_dirt_pcn(
     Journal of Computational Physics **485**, 112103.
 
     """
-
-    if not isinstance(dirt.reference, GaussianReference):
-        msg = "DIRT object must have a Gaussian reference density."
-        raise Exception(msg)
+        
+    dim = dirt.dim
     
-    if dt <= 0.0:
-        msg = "Stepsize must be positive."
-        raise Exception(msg)
+    def negloglik_pullback(rs: Tensor) -> Tuple[Tensor, Tensor]:
+        """Returns the difference between the negative logarithm of the 
+        pullback of the target function under the DIRT mapping and the 
+        negative log-reference density.
+        """
+        rs = torch.atleast_2d(rs)
+        neglogfr, neglogfx = dirt.eval_irt_pullback(potential, rs, subset=subset)
+        neglogref = dirt.reference.eval_potential(rs)[0]
+        return neglogfr - neglogref, neglogfx
     
-    if ys is None:
-        
-        dim = dirt.dim
-        
-        def negloglik_pullback(rs: Tensor) -> Tensor:
-            """Returns the difference between the negative logarithm of the 
-            pullback of the target function under the DIRT mapping and the 
-            negative log-prior density.
-            """
-            rs = torch.atleast_2d(rs)
-            neglogfr = dirt.eval_irt_pullback(potential, rs, subset=subset)
-            neglogref = dirt.reference.eval_potential(rs)[0]
-            return neglogfr - neglogref
-        
-        def irt_func(rs: Tensor) -> Tensor:
-            rs = torch.atleast_2d(rs)
-            ms = dirt.eval_irt(rs, subset=subset)[0]
-            return ms
-        
-    else:
-
-        ys = torch.atleast_2d(ys)
-        dim = dirt.dim - ys.shape[1]
-        
-        def negloglik_pullback(rs: Tensor) -> Tensor:
-            """Returns the difference between the negative logarithm of the 
-            pullback of the target function under the DIRT mapping and the 
-            negative log-prior density.
-            """
-            rs = torch.atleast_2d(rs)
-            neglogfr = dirt.eval_cirt_pullback(potential, ys, rs, subset=subset)
-            neglogref = dirt.reference.eval_potential(rs)[0]
-            return neglogfr - neglogref
-    
-        def irt_func(rs: Tensor) -> Tensor:
-            rs = torch.atleast_2d(rs)
-            ms = dirt.eval_cirt(ys, rs, subset=subset)[0]
-            return ms
+    def irt_func(rs: Tensor) -> Tensor:
+        rs = torch.atleast_2d(rs)
+        xs = dirt.eval_irt(rs, subset=subset)[0]
+        return xs
 
     res = _run_irt_pcn(
         negloglik_pullback, 
@@ -268,7 +249,93 @@ def run_dirt_pcn(
         dim=dim,
         n=n, 
         dt=dt,
-        x0=x0, 
+        r0=r0, 
+        verbose=verbose
+    )
+    return res
+
+
+def run_cirt_pcn(
+    potential: Callable[[Tensor], Tensor],
+    dirt: AbstractDIRT,
+    y: Tensor,
+    n: int,
+    dt: float = 2.0,
+    r0: Tensor | None = None,
+    subset: str = "first",
+    verbose: bool = True
+) -> MCMCResult:
+    r"""Runs a preconditioned Crank-Nicholson (pCN) sampler using a conditional of the DIRT mapping. 
+    
+    Runs a pCN sampler to characterise the pullback of the target 
+    density under a conditional of the DIRT mapping, then pushes the 
+    resulting samples forward under the DIRT mapping to obtain samples 
+    distributed according to the target. This idea was initially 
+    outlined by Cui *et al.* (2023).
+
+    Note that the pCN proposal is only applicable to problems with a 
+    Gaussian reference density.
+
+    Parameters
+    ----------
+    potential:
+        A function that returns the negative logarithm of the (possibly 
+        unnormalised) target density at a given sample.
+    dirt:
+        A previously-constructed DIRT object.
+    y:
+        A $1 \times k$ matrix containing a sample from the 
+        approximation domain to condition on.
+    n: 
+        The length of the Markov chain to construct.
+    dt:
+        pCN stepsize, $\Delta t$. If this is not specified, a value of 
+        $\Delta t = 2$ (independence sampler) will be used.
+    r0:
+        The starting state. This should be a $1 \times (d-k)$ matrix 
+        containing a sample from the reference domain. If not passed in, 
+        the mean of the reference density will be used.
+    subset:
+        Whether 'y' is a realisation of the first $k$ variables 
+        (`subset='first'`) or the final $k$ variables (`subset='last'`).
+    verbose:
+        Whether to print diagnostic information during the sampling 
+        process.
+
+    Returns
+    -------
+    res:
+        An object containing the constructed Markov chain and some 
+        diagnostic information.
+
+    """
+
+    y = torch.atleast_2d(y)
+    dim = dirt.dim - y.shape[1]
+    
+    def negloglik_pullback(rs: Tensor) -> Tuple[Tensor, Tensor]:
+        """Returns the difference between the negative logarithm of the 
+        pullback of the target function under the DIRT mapping and the 
+        negative log-prior density.
+        """
+        rs = torch.atleast_2d(rs)
+        neglogfr, neglogfx = dirt.eval_cirt_pullback(potential, y, rs, subset=subset)
+        neglogref = dirt.reference.eval_potential(rs)[0]
+        return neglogfr - neglogref, neglogfx
+
+    def irt_func(rs: Tensor) -> Tensor:
+        rs = torch.atleast_2d(rs)
+        xs = dirt.eval_cirt(y, rs, subset=subset)[0]
+        return xs
+
+    res = _run_irt_pcn(
+        negloglik_pullback, 
+        irt_func, 
+        reference=dirt.reference,
+        dim=dim,
+        n=n, 
+        dt=dt,
+        r0=r0, 
         verbose=verbose
     )
     return res

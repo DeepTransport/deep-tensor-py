@@ -5,7 +5,8 @@ from .bridging_densities import SingleLayer, Tempering
 from .debiasing import (
     ImportanceSamplingResult,
     MCMCResult,
-    run_dirt_pcn, 
+    run_irt_pcn, 
+    run_cirt_pcn,
     run_importance_sampling, 
     run_independence_sampler
 )
