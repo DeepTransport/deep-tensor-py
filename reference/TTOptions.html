@@ -594,43 +594,43 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
-<dt><code><span class="parameter-name"><strong>max_als</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1</span></code></dt>
+<dt><code><span class="parameter-name"><strong>max_als</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1</span></code></dt>
 <dd>
 <p>The maximum number of ALS iterations to be carried out during the FTT construction.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>als_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.0001</span></code></dt>
+<dt><code><span class="parameter-name"><strong>als_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.0001</span></code></dt>
 <dd>
 <p>The tolerance to use to determine whether the ALS iterations should be terminated.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>init_rank</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">20</span></code></dt>
+<dt><code><span class="parameter-name"><strong>init_rank</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">20</span></code></dt>
 <dd>
 <p>The initial rank of each tensor core.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>kick_rank</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">2</span></code></dt>
+<dt><code><span class="parameter-name"><strong>kick_rank</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">2</span></code></dt>
 <dd>
 <p>The rank of the enrichment set of samples added at each ALS iteration.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>max_rank</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">30</span></code></dt>
+<dt><code><span class="parameter-name"><strong>max_rank</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">30</span></code></dt>
 <dd>
 <p>The maximum allowable rank of each tensor core (prior to the enrichment set being added).</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>local_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1e-10</span></code></dt>
+<dt><code><span class="parameter-name"><strong>local_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1e-10</span></code></dt>
 <dd>
 <p>The threshold to use when applying truncated SVD to the tensor cores when building the FTT.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>cdf_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1e-10</span></code></dt>
+<dt><code><span class="parameter-name"><strong>cdf_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1e-10</span></code></dt>
 <dd>
 <p>The tolerance used when solving the root-finding problem to invert the CDF.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>tt_method</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'amen'</span></code></dt>
+<dt><code><span class="parameter-name"><strong>tt_method</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'amen'</span></code></dt>
 <dd>
 <p>The method used to construct the TT cores. Can be <code>'fixed'</code>, <code>'random'</code>, or <code>'amen'</code>.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>int_method</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'maxvol'</span></code></dt>
+<dt><code><span class="parameter-name"><strong>int_method</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'maxvol'</span></code></dt>
 <dd>
 <p>The interpolation method used when constructing the tensor cores. Can be <code>'maxvol'</code> (Goreinov <em>et al.</em>, 2010) or <code>'deim'</code> (Chaturantabut and Sorensen, 2010).</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>verbose</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1</span></code></dt>
+<dt><code><span class="parameter-name"><strong>verbose</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1</span></code></dt>
 <dd>
 <p>If <code>verbose=0</code>, no information about the construction of the FTT will be printed to the screen. If <code>verbose=1</code>, diagnostic information will be prined at the end of each ALS iteration. If <code>verbose=2</code>, the tensor core currently being constructed during each ALS iteration will also be displayed.</p>
 </dd>

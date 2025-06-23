@@ -616,15 +616,15 @@ window.Quarto = {
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
-<dt><code><span class="parameter-name"><strong>neglogfxs_irt</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>neglogfxs_irt</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
 <dd>
 <p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>neglogfxs_exact</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>neglogfxs_exact</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
 <dd>
 <p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function associated with the target density evaluated at each sample.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>self_normalised</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`bool`">bool</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
+<dt><code><span class="parameter-name"><strong>self_normalised</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">bool</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">False</span></code></dt>
 <dd>
 <p>Whether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.</p>
 </dd>
@@ -633,7 +633,7 @@ window.Quarto = {
 <section id="returns" class="level2 doc-section doc-section-returns">
 <h2 class="doc-section doc-section-returns anchored" data-anchor-id="returns">Returns</h2>
 <dl>
-<dt><code><span class="parameter-name"><strong>res</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`deep_tensor.debiasing.importance_sampling.ImportanceSamplingResult`">ImportanceSamplingResult</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>res</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">ImportanceSamplingResult</span></code></dt>
 <dd>
 <p>A structure containing the log-importance weights (normalised, if <code>self_normalised=False</code>), the estimate of the log-normalising constant of the target density (if <code>self_normalised=False</code>), and the effective sample size.</p>
 </dd>

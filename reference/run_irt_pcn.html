@@ -622,31 +622,31 @@ window.Quarto = {
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
-<dt><code><span class="parameter-name"><strong>potential</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
+<dt><code><span class="parameter-name"><strong>potential</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Callable[[Tensor], Tensor]</span></code></dt>
 <dd>
 <p>A function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>dirt</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`deep_tensor.irt.AbstractDIRT`">AbstractDIRT</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>dirt</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">AbstractDIRT</span></code></dt>
 <dd>
 <p>A previously-constructed DIRT object.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>n</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>n</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span></code></dt>
 <dd>
 <p>The length of the Markov chain to construct.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>dt</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">2.0</span></code></dt>
+<dt><code><span class="parameter-name"><strong>dt</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">2.0</span></code></dt>
 <dd>
 <p>pCN stepsize, <span class="math inline">\(\Delta t\)</span>. If this is not specified, a value of <span class="math inline">\(\Delta t = 2\)</span> (independence sampler) will be used.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>r0</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dt><code><span class="parameter-name"><strong>r0</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
 <p>The starting state. This should be a <span class="math inline">\(1 \times k\)</span> matrix containing a sample from the reference domain. If not passed in, the mean of the reference density will be used.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`str`">str</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'first'</span></code></dt>
+<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'first'</span></code></dt>
 <dd>
 <p>If the samples contain a subset of the variables, (<em>i.e.,</em> <span class="math inline">\(k &lt; d\)</span>), whether they correspond to the first <span class="math inline">\(k\)</span> variables (<code>subset='first'</code>) or the last <span class="math inline">\(k\)</span> variables (<code>subset='last'</code>).</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>verbose</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`bool`">bool</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
+<dt><code><span class="parameter-name"><strong>verbose</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">bool</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">True</span></code></dt>
 <dd>
 <p>Whether to print diagnostic information during the sampling process.</p>
 </dd>
@@ -655,7 +655,7 @@ window.Quarto = {
 <section id="returns" class="level2 doc-section doc-section-returns">
 <h2 class="doc-section doc-section-returns anchored" data-anchor-id="returns">Returns</h2>
 <dl>
-<dt><code><span class="parameter-name"><strong>res</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`deep_tensor.debiasing.mcmc.MCMCResult`">MCMCResult</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>res</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">MCMCResult</span></code></dt>
 <dd>
 <p>An object containing the constructed Markov chain and some diagnostic information.</p>
 </dd>

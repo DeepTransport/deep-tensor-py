@@ -621,27 +621,27 @@ window.Quarto = {
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
-<dt><code><span class="parameter-name"><strong>betas</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a> | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dt><code><span class="parameter-name"><strong>betas</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
 <dd>
 <p>A set of <span class="math inline">\(\beta\)</span> values to use for the intermediate distributions. If not specified, these will be determined automatically.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>ess_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a> | <a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.5</span></code></dt>
+<dt><code><span class="parameter-name"><strong>ess_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor | float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.5</span></code></dt>
 <dd>
 <p>If selecting the <span class="math inline">\(\beta\)</span> values adaptively, the minimum allowable ESS of the samples (distributed according to an approximation of the previous bridging density) when selecting the next bridging density.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>ess_tol_init</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a> | <a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.5</span></code></dt>
+<dt><code><span class="parameter-name"><strong>ess_tol_init</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor | float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.5</span></code></dt>
 <dd>
 <p>If selecting the <span class="math inline">\(\beta\)</span> values adaptively, the minimum allowable ESS of the samples when selecting the initial bridging density.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>beta_factor</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a> | <a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1.05</span></code></dt>
+<dt><code><span class="parameter-name"><strong>beta_factor</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor | float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1.05</span></code></dt>
 <dd>
 <p>If selecting the <span class="math inline">\(\beta\)</span> values adaptively, the factor by which to increase the current <span class="math inline">\(\beta\)</span> value by prior to checking whether the ESS of the reweighted samples is sufficiently high.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>min_beta</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a> | <a href="`float`">float</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.0001</span></code></dt>
+<dt><code><span class="parameter-name"><strong>min_beta</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor | float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.0001</span></code></dt>
 <dd>
 <p>If selecting the <span class="math inline">\(\beta\)</span> values adaptively, the minimum allowable <span class="math inline">\(\beta\)</span> value.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>max_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span> <span class="parameter-default-sep">=</span> <span class="parameter-default">20</span></code></dt>
+<dt><code><span class="parameter-name"><strong>max_layers</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">20</span></code></dt>
 <dd>
 <p>If selecting the <span class="math inline">\(\beta\)</span> values adaptively, the maximum number of layers to construct. Note that, if the maximum number of layers is reached, the final bridging density may not be the target density.</p>
 </dd>

@@ -612,23 +612,36 @@ window.Quarto = {
 <section id="attributes" class="level2 doc-section doc-section-attributes">
 <h2 class="doc-section doc-section-attributes anchored" data-anchor-id="attributes">Attributes</h2>
 <dl>
-<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
 <dd>
 <p>An <span class="math inline">\(n \times k\)</span> matrix containing the samples that form the Markov chain.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>potentials</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>potentials</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
 <dd>
 <p>An <span class="math inline">\(n\)</span>-dimensional vector containing the potential function associated with the target density evaluated at each sample in the chain.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>acceptance_rate</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`float`">float</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>acceptance_rate</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span></code></dt>
 <dd>
 <p>The acceptance rate of the sampler.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>iacts</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`torch.Tensor`">Tensor</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>iacts</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
 <dd>
 <p>A <span class="math inline">\(k\)</span>-dimensional vector containing estimates of the integrated autocorrelation time (IACT) for each parameter.</p>
 </dd>
+<dt><code><span class="parameter-name"><strong>ess</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
+<dd>
+<p>A <span class="math inline">\(k\)</span>-dimensional vector containing estimates of the effective sample size (ESS) of each parameter.</p>
+</dd>
 </dl>
+</section>
+<section id="notes" class="level2 doc-section doc-section-notes">
+<h2 class="doc-section doc-section-notes anchored" data-anchor-id="notes">Notes</h2>
+<p>The IACT for a given parameter is estimated according to <span class="math display">\[
+    \hat{\tau}(M) = 1 + 2 \sum_{i=1}^{M} \hat{\rho}(i),
+\]</span> where <span class="math inline">\(\hat{\rho}(i)\)</span> denotes an estimate of the normalised autocorrelation function of the parameter for a lag of <span class="math inline">\(i\)</span>, <span class="math inline">\(M\)</span> is the smallest integer such that <span class="math inline">\(M \geq C\hat{\tau}(M)\)</span>, and <span class="math inline">\(C=5\)</span>. For further information, see the <a href="https://emcee.readthedocs.io/en/stable/tutorials/autocorr/#computing-autocorrelation-times">emcee docs</a>.</p>
+<p>The ESS for a given parameter is estimated according to <span class="math display">\[
+    N_{\mathrm{eff}} = \frac{1}{\hat{\tau}(M)}.
+\]</span></p>
 
 
 </section>

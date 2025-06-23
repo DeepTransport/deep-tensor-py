@@ -624,27 +624,27 @@ window.Quarto = {
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
-<dt><code><span class="parameter-name"><strong>reference</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`deep_tensor.references.Reference`">Reference</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>reference</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Reference</span></code></dt>
 <dd>
 <p>The density of the reference random variable.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>Q</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>, <a href="`str`">str</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
+<dt><code><span class="parameter-name"><strong>Q</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Callable[[Tensor, str], Tensor]</span></code></dt>
 <dd>
 <p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain and a string indicating whether these are samples of the first (<code>subset='first'</code>) or last (<code>subset='last'</code>) <span class="math inline">\(k\)</span> variables, and returns an <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain, after applying the mapping <span class="math inline">\(Q(\cdot)\)</span> to each sample.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>Q_inv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>, <a href="`str`">str</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
+<dt><code><span class="parameter-name"><strong>Q_inv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Callable[[Tensor, str], Tensor]</span></code></dt>
 <dd>
 <p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain and a string indicating whether these are samples of the first (<code>subset='first'</code>) or last (<code>subset='last'</code>) <span class="math inline">\(k\)</span> variables, and returns an <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain, after applying the mapping <span class="math inline">\(Q^{-1}(\cdot)\)</span> to each sample.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>neglogdet_Q</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>, <a href="`str`">str</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
+<dt><code><span class="parameter-name"><strong>neglogdet_Q</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Callable[[Tensor, str], Tensor]</span></code></dt>
 <dd>
 <p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain and a string indicating whether these are samples of the first (<code>subset='first'</code>) or last (<code>subset='last'</code>) <span class="math inline">\(k\)</span> variables, and returns an <span class="math inline">\(n\)</span>-dimensional vector containing the negative log-determinant of <span class="math inline">\(Q(\cdot)\)</span> evaluated at each sample.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>neglogdet_Q_inv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`typing.Callable`">Callable</a>[[<a href="`torch.Tensor`">Tensor</a>, <a href="`str`">str</a>], <a href="`torch.Tensor`">Tensor</a>]</span></code></dt>
+<dt><code><span class="parameter-name"><strong>neglogdet_Q_inv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Callable[[Tensor, str], Tensor]</span></code></dt>
 <dd>
 <p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain and a string indicating whether these are samples of the first (<code>subset='first'</code>) or last (<code>subset='last'</code>) <span class="math inline">\(k\)</span> variables, and returns an <span class="math inline">\(n\)</span>-dimensional vector containing the negative log-determinant of <span class="math inline">\(Q^{-1}(\cdot)\)</span> evaluated at each sample.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>dim</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation"><a href="`int`">int</a></span></code></dt>
+<dt><code><span class="parameter-name"><strong>dim</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span></code></dt>
 <dd>
 <p>The dimension, <span class="math inline">\(d\)</span>, of the target (and reference) random variable.</p>
 </dd>

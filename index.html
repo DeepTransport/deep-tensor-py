@@ -380,17 +380,22 @@ window.Quarto = {
 <section id="installation" class="level1">
 <h1>Installation</h1>
 <p><span class="math inline">\(\texttt{deep\_tensor}\)</span> can be installed using pip:</p>
-<div id="bdfbd8cd" class="cell" data-execution_count="1">
+<div id="5183d7ee" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>pip install deep<span class="op">-</span>tensor<span class="op">-</span>py</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>The package can then be imported using</p>
-<div id="b76c168f" class="cell" data-execution_count="2">
+<div id="f8a3f6df" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="getting-started" class="level1">
 <h1>Getting Started</h1>
 <p>Check out the <a href="./examples/index.html">examples page</a> and <a href="./reference/index.html">API reference</a> for help getting started with <span class="math inline">\(\texttt{deep\_tensor}\)</span>.</p>
+</section>
+<section id="further-reading" class="level1">
+<h1>Further Reading</h1>
+<p>The deep inverse Rosenblatt transport (DIRT) algorithm <span class="citation" data-cites="Cui2022">(<a href="#ref-Cui2022" role="doc-biblioref">Cui and Dolgov 2022</a>)</span> uses a composition of mappings, constructed using functional tensor trains, to approximate the Rosenblatt transport between an arbitrary target density function and a simple product-form reference density. Early work on functional tensor train (FTT) approximations to probability density functions was conducted by <span class="citation" data-cites="Dolgov2020">Dolgov et al. (<a href="#ref-Dolgov2020" role="doc-biblioref">2020</a>)</span>. <span class="citation" data-cites="Cui2022">Cui and Dolgov (<a href="#ref-Cui2022" role="doc-biblioref">2022</a>)</span> introduced the idea of using a composition of FTT-based mappings to provide a more accurate characterisation of highly correlated or concentrated probability densities.</p>
+<p>The DIRT methodology has also been used for problems including amortised inference <span class="citation" data-cites="Cui2023">(<a href="#ref-Cui2023" role="doc-biblioref">Cui, Dolgov, and Zahm 2023</a>)</span>, rare event estimation <span class="citation" data-cites="Cui2024">(<a href="#ref-Cui2024" role="doc-biblioref">Cui, Dolgov, and Scheichl 2024</a>)</span>, sequential inference <span class="citation" data-cites="Zhao2024">(<a href="#ref-Zhao2024" role="doc-biblioref">Zhao and Cui 2024</a>)</span>, and optimal experimental design <span class="citation" data-cites="Koval2024">(<a href="#ref-Koval2024" role="doc-biblioref">Koval, Herzog, and Scheichl 2024</a>)</span>.</p>
 
 
 
@@ -399,6 +404,21 @@ window.Quarto = {
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
 <div id="ref-Cui2022" class="csl-entry" role="listitem">
 Cui, Tiangang, and Sergey Dolgov. 2022. <span>“Deep Composition of Tensor-Trains Using Squared Inverse Rosenblatt Transports.”</span> <em>Foundations of Computational Mathematics</em> 22 (6): 1863–1922. <a href="https://doi.org/10.1007/s10208-021-09537-5">https://doi.org/10.1007/s10208-021-09537-5</a>.
+</div>
+<div id="ref-Cui2024" class="csl-entry" role="listitem">
+Cui, Tiangang, Sergey Dolgov, and Robert Scheichl. 2024. <span>“Deep Importance Sampling Using Tensor Trains with Application to a Priori and a Posteriori Rare Events.”</span> <em>SIAM Journal on Scientific Computing</em> 46 (1): C1–29. <a href="https://doi.org/10.1137/23M1546981">https://doi.org/10.1137/23M1546981</a>.
+</div>
+<div id="ref-Cui2023" class="csl-entry" role="listitem">
+Cui, Tiangang, Sergey Dolgov, and Olivier Zahm. 2023. <span>“Scalable Conditional Deep Inverse Rosenblatt Transports Using Tensor Trains and Gradient-Based Dimension Reduction.”</span> <em>Journal of Computational Physics</em> 485: 112103. <a href="https://doi.org/10.1016/j.jcp.2023.112103">https://doi.org/10.1016/j.jcp.2023.112103</a>.
+</div>
+<div id="ref-Dolgov2020" class="csl-entry" role="listitem">
+Dolgov, Sergey, Karim Anaya-Izquierdo, Colin Fox, and Robert Scheichl. 2020. <span>“Approximation and Sampling of Multivariate Probability Distributions in the Tensor Train Decomposition.”</span> <em>Statistics and Computing</em> 30: 603–25. <a href="https://doi.org/10.1007/s11222-019-09910-z">https://doi.org/10.1007/s11222-019-09910-z</a>.
+</div>
+<div id="ref-Koval2024" class="csl-entry" role="listitem">
+Koval, Karina, Roland Herzog, and Robert Scheichl. 2024. <span>“Tractable Optimal Experimental Design Using Transport Maps.”</span> <em>Inverse Problems</em> 40 (12): 125002. <a href="https://doi.org/10.1088/1361-6420/ad8260">https://doi.org/10.1088/1361-6420/ad8260</a>.
+</div>
+<div id="ref-Zhao2024" class="csl-entry" role="listitem">
+Zhao, Yiran, and Tiangang Cui. 2024. <span>“Tensor-Train Methods for Sequential State and Parameter Learning in State-Space Models.”</span> <em>Journal of Machine Learning Research</em> 25 (244): 1–51. <a href="http://jmlr.org/papers/v25/23-0743.html">http://jmlr.org/papers/v25/23-0743.html</a>.
 </div>
 </div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
