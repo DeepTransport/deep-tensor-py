@@ -2,7 +2,9 @@ import abc
 from typing import Tuple
 import warnings
 
+import torch
 from torch import Tensor
+from torch.quasirandom import SobolEngine
 
 from ..domains import Domain
 
@@ -110,10 +112,10 @@ class Reference(abc.ABC):
         """
         pass
     
-    @abc.abstractmethod
     def random(self, d: int, n: int) -> Tensor:
-        """Generates a set of samples from the reference density using
-        the inverse CDF method.
+        r"""Generates a set of random samples.
+
+        Generates a set of random samples from the reference density.
         
         Parameters
         ----------
@@ -125,15 +127,18 @@ class Reference(abc.ABC):
         Returns
         -------
         rs:
-            An n * d matrix containing the generated samples.
+            An $n \times d$ matrix containing the generated samples.
 
         """
-        pass
-    
-    @abc.abstractmethod
+        zs = torch.rand(n, d)
+        rs = self.invert_cdf(zs)
+        return rs
+        
     def sobol(self, d: int, n: int) -> Tensor:
-        """Generates a set of QMC samples from the reference density 
-        using a Sobol sequence.
+        r"""Generates a set of QMC samples.
+
+        Generates a set of QMC samples from the reference density using 
+        a Sobol sequence.
         
         Parameters
         ----------
@@ -145,10 +150,13 @@ class Reference(abc.ABC):
         Returns
         -------
         rs:
-            An n * d matrix containing the generated samples.
+            An $n \times d$ matrix containing the generated samples.
         
         """
-        pass
+        S = SobolEngine(dimension=d)
+        zs = S.draw(n)
+        rs = self.invert_cdf(zs)
+        return rs
     
     def _out_domain(self, rs: Tensor) -> Tensor:
         outside = (rs < self.domain.left) | (self.domain.right < rs)

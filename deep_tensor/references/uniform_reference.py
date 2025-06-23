@@ -2,7 +2,6 @@ from typing import Tuple
 
 import torch
 from torch import Tensor 
-from torch.quasirandom import SobolEngine
 
 from .reference import Reference
 from ..domains import BoundedDomain
@@ -38,12 +37,3 @@ class UniformReference(Reference):
         log_ps = torch.zeros(n_rs)
         log_dpdrs = torch.zeros(n_rs)  # TODO: look at this more closely.
         return log_ps, log_dpdrs
-    
-    def random(self, d: int, n: int) -> Tensor:
-        rs = torch.rand(n, d)
-        return rs
-    
-    def sobol(self, d: int, n: int) -> Tensor:
-        S = SobolEngine(dimension=d)
-        rs = S.draw(n)
-        return rs

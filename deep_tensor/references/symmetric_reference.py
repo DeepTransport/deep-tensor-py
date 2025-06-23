@@ -4,7 +4,6 @@ from typing import Tuple
 
 import torch
 from torch import Tensor
-from torch.quasirandom import SobolEngine
 
 from .reference import Reference
 from ..domains import BoundedDomain, Domain
@@ -163,14 +162,3 @@ class SymmetricReference(Reference, abc.ABC):
         log_ps, log_dpdrs = self.eval_unit_potential(rs)
         log_ps = log_ps + d_rs * math.log(self.norm)
         return log_ps, log_dpdrs
-    
-    def random(self, d: int, n: int) -> Tensor:
-        zs = torch.rand(n, d)
-        rs = self.invert_cdf(zs)
-        return rs
-        
-    def sobol(self, d: int, n: int) -> Tensor:
-        S = SobolEngine(dimension=d)
-        zs = S.draw(n)
-        rs = self.invert_cdf(zs)
-        return rs

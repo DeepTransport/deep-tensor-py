@@ -21,6 +21,8 @@ UniformReference.random(d: int, n: int)
 
 Generates a set of random samples.
 
+Generates a set of random samples from the reference density.
+
 #### Parameters {.doc-section .doc-section-parameters}
 
 <code>[**d**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
@@ -44,6 +46,9 @@ UniformReference.sobol(d: int, n: int)
 ```
 
 Generates a set of QMC samples.
+
+Generates a set of QMC samples from the reference density using 
+a Sobol sequence.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
