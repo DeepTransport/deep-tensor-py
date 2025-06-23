@@ -8,18 +8,38 @@ An object containing a constructed Markov chain.
 
 ## Attributes {.doc-section .doc-section-attributes}
 
-<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
 :   An $n \times k$ matrix containing the samples that form the  Markov chain.
 
-<code>[**potentials**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**potentials**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
 :   An $n$-dimensional vector containing the potential function  associated with the target density evaluated at each sample in  the chain.
 
-<code>[**acceptance_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation}</code>
+<code>[**acceptance_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation}</code>
 
 :   The acceptance rate of the sampler.
 
-<code>[**iacts**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**iacts**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
 :   A $k$-dimensional vector containing estimates of the integrated  autocorrelation time (IACT) for each parameter.
+
+<code>[**ess**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A $k$-dimensional vector containing estimates of the effective  sample size (ESS) of each parameter.
+
+## Notes {.doc-section .doc-section-notes}
+
+The IACT for a given parameter is estimated according to
+$$
+    \hat{\tau}(M) = 1 + 2 \sum_{i=1}^{M} \hat{\rho}(i),
+$$
+where $\hat{\rho}(i)$ denotes an estimate of the normalised 
+autocorrelation function of the parameter for a lag of $i$,
+$M$ is the smallest integer such that $M \geq C\hat{\tau}(M)$,
+and $C=5$. For further information, see the [emcee docs](https://emcee.readthedocs.io/en/stable/tutorials/autocorr/#computing-autocorrelation-times).
+
+The ESS for a given parameter is estimated according to
+$$
+    N_{\mathrm{eff}} = \frac{1}{\hat{\tau}(M)}.
+$$

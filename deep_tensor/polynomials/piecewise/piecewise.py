@@ -1,4 +1,5 @@
 import abc
+import math
 
 import torch
 from torch import Tensor
@@ -80,7 +81,7 @@ class Piecewise(Basis1D, abc.ABC):
         return torch.full(ls.shape, 1.0 / self.domain_size)
 
     def eval_log_measure(self, ls: Tensor) -> Tensor:
-        return torch.full(ls.shape, -self.domain_size.log())
+        return torch.full(ls.shape, -math.log(self.domain_size))
 
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)

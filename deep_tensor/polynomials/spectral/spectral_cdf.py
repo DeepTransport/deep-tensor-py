@@ -163,7 +163,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         self,
         coefs: Tensor, 
         cdf_poly_base: Tensor, 
-        cdf_poly_norm,
+        cdf_poly_norm: Tensor,
         zs_unnorm: Tensor,
         l0s: Tensor,
         l1s: Tensor
@@ -182,12 +182,13 @@ class SpectralCDF(CDF1D, abc.ABC):
                 return ls
         
         # self.print_unconverged(zs, dls, "Newton's method")
-        return self.regula_falsi(coefs, cdf_poly_base, zs_unnorm, l0s, l1s)
+        return self.regula_falsi(coefs, cdf_poly_base, cdf_poly_norm, zs_unnorm, l0s, l1s)
     
     def regula_falsi(
         self, 
         coefs: Tensor,
         cdf_poly_base: Tensor,
+        cdf_poly_norm: Tensor,
         zs_cdf: Tensor, 
         l0s: Tensor, 
         l1s: Tensor
@@ -201,7 +202,7 @@ class SpectralCDF(CDF1D, abc.ABC):
 
             ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
             zs = self.eval_int_diff(coefs, cdf_poly_base, zs_cdf, ls)
-            if self.converged(zs, dls):
+            if self.converged(zs / cdf_poly_norm, dls / cdf_poly_norm):
                 return ls 
 
             # Update intervals (note: the CDF is monotone increasing)

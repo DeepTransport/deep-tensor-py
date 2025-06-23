@@ -11,6 +11,6 @@ $(x_{0}, x_{1})$, to $(-1, 1)$.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**bounds**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**bounds**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   A set of bounds, $(x_{0}, x_{1})$. The default choice is  `torch.tensor([-1.0, 1.0])`.

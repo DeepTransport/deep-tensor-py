@@ -153,7 +153,7 @@ plt.show()
 samples_post = res.xs[::5, :]
 
 # Generate a set of samples from the prior
-samples_prior = preconditioner.Q(rs[::5, :])
+samples_prior = preconditioner.Q(rs[::5, :], "first")
 
 labels = [r"$\beta_{0}$", r"$\beta_{1}$", r"$\beta_{2}$", r"$\theta_{2}$"]
 pairplot(
@@ -184,8 +184,8 @@ args_dict = {
 
 colours = {
     "Fourier": "tab:blue",
-    "Legendre": "tab:red",
-    "Piecewise": "tab:green"
+    "Legendre": "tab:green",
+    "Piecewise": "tab:red"
 }
 
 results = {name: {"iact": [], "num_eval": []} for name in bases_dict}

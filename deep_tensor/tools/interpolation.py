@@ -122,7 +122,7 @@ def maxvol(
 
     for _ in range(max_iter):
 
-        ij_max = B.abs().argmax(axis=None)
+        ij_max = B.abs().argmax(dim=None)
         i, j = torch.unravel_index(ij_max, B.shape)
         i_old = inds[j]
 

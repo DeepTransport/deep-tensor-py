@@ -1,3 +1,4 @@
+import math
 from typing import Tuple
 
 import torch
@@ -19,16 +20,12 @@ class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
         return ls
 
     def eval_int_basis(self, ls: Tensor) -> Tensor:
-        
         thetas = self.l2theta(ls)[:, None]
-
         basis_vals = -torch.hstack((
             thetas / torch.pi, 
-            ((torch.tensor(2).sqrt() / torch.pi) 
-                * (thetas * self.n[1:]).sin()
-                / self.n[1:])
+            ((math.sqrt(2.0) / torch.pi) 
+                * torch.sin(thetas * self.n[1:]) / self.n[1:])
         ))
-
         return basis_vals
     
     def eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:

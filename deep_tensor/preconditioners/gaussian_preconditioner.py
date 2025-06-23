@@ -6,7 +6,12 @@ from ..references import GaussianReference
 
 
 class GaussianPreconditioner(Preconditioner):
-    r"""Gaussian preconditioner..."""
+    r"""A mapping between two Gaussian densities.
+    
+    This preconditioner provides a mapping between the standard 
+    Gaussian density and a 
+
+    """
 
     def __init__(
         self,
@@ -21,29 +26,38 @@ class GaussianPreconditioner(Preconditioner):
             msg = "Reference density should be Gaussian."
             raise Exception(msg)
 
-        self.mean = mean
-        self.cov = cov 
-        self.L: Tensor = linalg.cholesky(self.cov)
-        self.R: Tensor = linalg.inv(self.L)
+        L: Tensor = linalg.cholesky(cov)
+        R: Tensor = linalg.inv(L)
+        dim = mean.numel()
 
-        def Q(xs: Tensor) -> Tensor:
-            d_xs = xs.shape[1]
-            ms = self.mean[:d_xs] + (xs @ self.L[:d_xs, :d_xs].T)
-            return ms 
+        def _check_subset(subset: str) -> None:
+            if subset == "last":
+                msg = "Preconditioner is only well-defined when subset=='first'"
+                raise Exception(msg)
+            return
+
+        def Q(us: Tensor, subset: str) -> Tensor:
+            _check_subset(subset)
+            d_us = us.shape[1]
+            xs = mean[:d_us] + (us @ L[:d_us, :d_us].T)
+            return xs
         
-        def Q_inv(ms: Tensor) -> Tensor:
-            d_ms = ms.shape[1]
-            xs = (ms - self.mean[:d_ms]) @ self.R[:d_ms, :d_ms].T
-            return xs 
-        
-        def neglogdet_Q(xs: Tensor) -> Tensor:
+        def Q_inv(xs: Tensor, subset: str) -> Tensor:
+            _check_subset(subset)
             d_xs = xs.shape[1]
-            neglogdets = -self.L.diag()[:d_xs].log().sum()
+            us = (xs - mean[:d_xs]) @ R[:d_xs, :d_xs].T
+            return us
+        
+        def neglogdet_Q(us: Tensor, subset: str) -> Tensor:
+            _check_subset(subset)
+            d_us = us.shape[1]
+            neglogdets = -L.diag()[:d_us].log().sum()
             return neglogdets 
         
-        def neglogdet_Q_inv(ms: Tensor) -> Tensor: 
-            d_ms = ms.shape[1]
-            neglogdets = -self.R.diag()[:d_ms].log().sum()
+        def neglogdet_Q_inv(xs: Tensor, subset: str) -> Tensor: 
+            _check_subset(subset)
+            d_xs = xs.shape[1]
+            neglogdets = -R.diag()[:d_xs].log().sum()
             return neglogdets 
         
         Preconditioner.__init__(
@@ -53,7 +67,6 @@ class GaussianPreconditioner(Preconditioner):
             Q_inv=Q_inv,
             neglogdet_Q=neglogdet_Q,
             neglogdet_Q_inv=neglogdet_Q_inv,
-            dim=mean.numel()
+            dim=dim
         )
-
         return

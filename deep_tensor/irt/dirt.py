@@ -1,7 +1,7 @@
 import abc
 from copy import deepcopy
 import time
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Tuple
 
 import torch
 from torch import Tensor
@@ -362,7 +362,7 @@ class AbstractDIRT(abc.ABC):
         subset: str | None = None,
         n_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
-        r"""Evaluates the pullback of a density function under the DIRT mapping.
+        r"""Evaluates the pullback of a density function.
 
         This function evaluates $\mathcal{T}^{\sharp}f(r)$, where 
         $\mathcal{T}(\cdot)$ denotes the inverse Rosenblatt transport 
@@ -414,11 +414,11 @@ class AbstractDIRT(abc.ABC):
         subset: str = "first",
         n_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
-        r"""Evaluates the pullback of a conditional density function under the DIRT mapping.
+        r"""Evaluates the pullback of a conditional density function.
 
-        This function evaluates $\mathcal{T}^{\sharp}f(r|y)$, where 
+        This function evaluates $\mathcal{T}^{\sharp}f(r\|y)$, where 
         $\mathcal{T}(\cdot)$ denotes the inverse Rosenblatt transport 
-        and $f(\cdot|y)$ denotes an arbitrary conditional density 
+        and $f(\cdot\|y)$ denotes an arbitrary conditional density 
         function.
 
         Parameters
@@ -427,7 +427,7 @@ class AbstractDIRT(abc.ABC):
             A function that takes an $n \times (d-k)$ matrix of samples 
             from the approximation domain, and returns an 
             $n$-dimensional vector containing the potential function 
-            associated with $f(\cdot|y)$ evaluated at each sample.
+            associated with $f(\cdot\|y)$ evaluated at each sample.
         ys:
             A matrix containing samples from the approximation domain.
             The matrix should have dimensions $1 \times k$ (if the same 
@@ -451,11 +451,11 @@ class AbstractDIRT(abc.ABC):
         neglogTfrs:
             An $n$-dimensional vector containing the potential of the 
             pullback function evaluated at each element in `rs`; that 
-            is, $-\log(\mathcal{T}^{\sharp}f(r|y))$.
+            is, $-\log(\mathcal{T}^{\sharp}f(r\|y))$.
         neglogfxs:
             An $n$-dimensional vector containing the potential of the 
             target function evaluated at each element in `rs`, pushed 
-            forward under the IRT; that is, $-\log(f(\mathcal{T}(r)|y))$.
+            forward under the IRT; that is, $-\log(f(\mathcal{T}(r)\|y))$.
         
         """
         neglogrefs = self.reference.eval_potential(rs)[0]

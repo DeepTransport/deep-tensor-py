@@ -26,40 +26,40 @@ Gaussian reference density.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**potential**]{.parameter-name} [:]{.parameter-annotation-sep} [[Callable](`typing.Callable`)\[\[[Tensor](`torch.Tensor`)\], [Tensor](`torch.Tensor`)\]]{.parameter-annotation}</code>
+<code>[**potential**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor\], Tensor\]]{.parameter-annotation}</code>
 
 :   A function that returns the negative logarithm of the (possibly  unnormalised) target density at a given sample.
 
-<code>[**dirt**]{.parameter-name} [:]{.parameter-annotation-sep} [[AbstractDIRT](`deep_tensor.irt.AbstractDIRT`)]{.parameter-annotation}</code>
+<code>[**dirt**]{.parameter-name} [:]{.parameter-annotation-sep} [AbstractDIRT]{.parameter-annotation}</code>
 
 :   A previously-constructed DIRT object.
 
-<code>[**y**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**y**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
 :   A $1 \times k$ matrix containing a sample from the  approximation domain to condition on.
 
-<code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+<code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
 
 :   The length of the Markov chain to construct.
 
-<code>[**dt**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [2.0]{.parameter-default}</code>
+<code>[**dt**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [2.0]{.parameter-default}</code>
 
 :   pCN stepsize, $\Delta t$. If this is not specified, a value of  $\Delta t = 2$ (independence sampler) will be used.
 
-<code>[**r0**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**r0**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   The starting state. This should be a $1 \times (d-k)$ matrix  containing a sample from the reference domain. If not passed in,  the mean of the reference density will be used.
 
-<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'first\']{.parameter-default}</code>
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'first\']{.parameter-default}</code>
 
 :   Whether `y` is a realisation of the first $k$ variables  (`subset='first'`) or the final $k$ variables (`subset='last'`).
 
-<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
 
 :   Whether to print diagnostic information during the sampling  process.
 
 ## Returns {.doc-section .doc-section-returns}
 
-<code>[**res**]{.parameter-name} [:]{.parameter-annotation-sep} [[MCMCResult](`deep_tensor.debiasing.mcmc.MCMCResult`)]{.parameter-annotation}</code>
+<code>[**res**]{.parameter-name} [:]{.parameter-annotation-sep} [MCMCResult]{.parameter-annotation}</code>
 
 :   An object containing the constructed Markov chain and some  diagnostic information.

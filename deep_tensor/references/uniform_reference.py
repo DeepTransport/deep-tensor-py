@@ -40,40 +40,10 @@ class UniformReference(Reference):
         return log_ps, log_dpdrs
     
     def random(self, d: int, n: int) -> Tensor:
-        r"""Generates a set of random samples.
-        
-        Parameters
-        ----------
-        d:
-            The dimension of the samples.
-        n:
-            The number of samples to draw.
-
-        Returns
-        -------
-        rs:
-            An $n \times d$ matrix containing the generated samples.
-
-        """
         rs = torch.rand(n, d)
         return rs
     
     def sobol(self, d: int, n: int) -> Tensor:
-        r"""Generates a set of QMC samples.
-        
-        Parameters
-        ----------
-        d: 
-            The dimension of the samples.
-        n:
-            The number of samples to generate.
-
-        Returns
-        -------
-        rs:
-            An $n \times d$ matrix containing the generated samples.
-        
-        """
         S = SobolEngine(dimension=d)
         rs = S.draw(n)
         return rs

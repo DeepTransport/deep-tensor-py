@@ -368,8 +368,8 @@ args_dict = {
 
 colours = {
     "Fourier": "tab:blue",
-    "Legendre": "tab:red",
-    "Piecewise": "tab:green"
+    "Legendre": "tab:green",
+    "Piecewise": "tab:red"
 }
 
 results = {name: {"iact": [], "num_eval": []} for name in bases_dict}

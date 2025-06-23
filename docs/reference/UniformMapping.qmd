@@ -13,10 +13,10 @@ This preconditioner is diagonal.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**bounds**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**bounds**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
 :   A $d \times 2$ matrix, where each row contains the lower and  upper bounds of the uniform density in each dimension.
 
-<code>[**reference**]{.parameter-name} [:]{.parameter-annotation-sep} [[Reference](`deep_tensor.references.Reference`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**reference**]{.parameter-name} [:]{.parameter-annotation-sep} [Reference \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   The reference density. If this is not specified, it will  default to the unit Gaussian in $d$ dimensions with support  truncated to $[-4, 4]^{d}$.

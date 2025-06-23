@@ -45,13 +45,13 @@ class Hermite(Recurr):
         return self.sample_measure(n)
     
     def eval_measure(self, ls: Tensor) -> Tensor:
-        return torch.exp(-0.5 * ls.square()) / torch.tensor(2.0*torch.pi).sqrt()
+        return torch.exp(-0.5 * ls.square()) / math.sqrt(2.0*torch.pi)
 
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         return -0.5 * (ls.square() + math.log(2.0*torch.pi))
     
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
-        return -ls * torch.exp(-0.5 * ls.square()) / (2.0*torch.pi) ** 0.5
+        return -ls * torch.exp(-0.5 * ls.square()) / math.sqrt(2.0*torch.pi)
     
     def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         return -ls

@@ -8,7 +8,7 @@ Chebyshev polynomials of the second kind.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**order**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+<code>[**order**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
 
 :   The maximum order of the polynomials.
 

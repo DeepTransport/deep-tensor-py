@@ -2,12 +2,14 @@ import torch
 torch.set_default_dtype(torch.float64)
 
 from .bridging_densities import SingleLayer, Tempering
-from .debiasing import (
-    ImportanceSamplingResult,
-    MCMCResult,
+from .debiasing.importance_sampling import (
+    ImportanceSamplingResult, 
+    run_importance_sampling
+)
+from .debiasing.mcmc import (
+    MCMCResult, 
     run_irt_pcn, 
     run_cirt_pcn,
-    run_importance_sampling, 
     run_independence_sampler
 )
 from .domains import (
@@ -43,4 +45,4 @@ from .preconditioners import (
     UniformMapping
 )
 from .references import Reference, GaussianReference, UniformReference
-from .tools import estimate_ess_ratio, compute_f_divergence
+from .tools import compute_f_divergence

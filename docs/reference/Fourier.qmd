@@ -8,7 +8,7 @@ Fourier polynomials.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**order**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+<code>[**order**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
 
 :   The number of sine functions the basis is composed of. The  total number of basis functions, $n$, is equal to `2*order+2`.
 

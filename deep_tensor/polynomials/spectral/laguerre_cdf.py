@@ -11,7 +11,7 @@ from ...constants import EPS
 class LaguerreCDF(Laguerre, SpectralCDF):
 
     def __init__(self, poly: Laguerre, **kwargs):
-        Laguerre.__init__(self, 2*poly.order)
+        Laguerre.__init__(self, 2 * poly.order)
         SpectralCDF.__init__(**kwargs)
     
     def grid_measure(self, n: int) -> Tensor:

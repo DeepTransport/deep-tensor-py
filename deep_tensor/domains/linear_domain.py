@@ -1,4 +1,5 @@
 import abc
+import math
 from typing import Tuple
 
 import torch
@@ -11,17 +12,17 @@ class LinearDomain(Domain, abc.ABC):
 
     @property 
     @abc.abstractmethod
-    def mean(self):
+    def mean(self) -> float:
         """The midpoint of the approximation domain."""
-        return
+        pass
     
     @property 
     @abc.abstractmethod
-    def dxdl(self):
+    def dxdl(self) -> float:
         """The gradient of the mapping from the reference domain to 
         the approximation domain.
         """
-        return
+        pass
 
     def local2approx(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         xs = ls * self.dxdl + self.mean
@@ -34,11 +35,11 @@ class LinearDomain(Domain, abc.ABC):
         return ls, dldxs
     
     def local2approx_log_density(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
-        logdxdls = torch.full(ls.shape, torch.log(self.dxdl))
+        logdxdls = torch.full(ls.shape, math.log(self.dxdl))
         logdxdl2s = torch.zeros_like(ls)
         return logdxdls, logdxdl2s
     
     def approx2local_log_density(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
-        logdldxs = torch.full(xs.shape, -torch.log(self.dxdl))
+        logdldxs = torch.full(xs.shape, -math.log(self.dxdl))
         logdldx2s = torch.zeros_like(xs)
         return logdldxs, logdldx2s

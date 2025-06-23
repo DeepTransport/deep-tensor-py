@@ -8,14 +8,28 @@ An object containing the results of importance sampling.
 
 ## Attributes {.doc-section .doc-section-attributes}
 
-<code>[**log_weights**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**log_weights**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
 :   An $n$-dimensional vector containing the unnormalised  importance weights associated with a set of samples.
 
-<code>[**log_norm**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**log_norm**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
 :   An estimate of the logarithm of the normalising constant  associated with the target density.
 
-<code>[**ess**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`)]{.parameter-annotation}</code>
+<code>[**ess**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
-:   An estimate of the effective sample size of the samples.
+:   An estimate of the effective sample size.
+
+## Notes {.doc-section .doc-section-notes}
+
+The effective sample size is computed using the formula
+$$
+    N_{\mathrm{eff}} = \frac{(\sum_{i=1}^{n}w_{i})^{2}}{\sum_{i=1}^{n}w_{i}^{2}},
+$$
+where $w_{i}$ denotes the importance weight associated with 
+particle $i$ (Owen, 2013).
+
+## References {.doc-section .doc-section-references}
+
+Owen, AB (2013, Chapter 6). *[Monte Carlo theory, methods and 
+examples](https://artowen.su.domains/mc/)*.

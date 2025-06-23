@@ -8,11 +8,11 @@ Higher-order piecewise Lagrange polynomials.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**order**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+<code>[**order**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
 
 :   The degree of the polynomials, $n$.
 
-<code>[**num_elems**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+<code>[**num_elems**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
 
 :   The number of elements to use.
 

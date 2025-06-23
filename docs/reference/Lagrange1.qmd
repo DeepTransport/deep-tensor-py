@@ -8,7 +8,7 @@ Piecewise linear polynomials.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**num_elems**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation}</code>
+<code>[**num_elems**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
 
 :   The number of elements to use.
 

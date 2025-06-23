@@ -30,26 +30,26 @@ bridging density does not fall below a given value.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**betas**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**betas**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   A set of $\beta$ values to use for the intermediate  distributions. If not specified, these will be determined  automatically.
 
-<code>[**ess_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| [float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.5]{.parameter-default}</code>
+<code>[**ess_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.5]{.parameter-default}</code>
 
 :   If selecting the $\beta$ values adaptively, the minimum  allowable ESS of the samples (distributed according to an  approximation of the previous bridging density) when selecting  the next bridging density.
 
-<code>[**ess_tol_init**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| [float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.5]{.parameter-default}</code>
+<code>[**ess_tol_init**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.5]{.parameter-default}</code>
 
 :   If selecting the $\beta$ values adaptively, the minimum  allowable ESS of the samples when selecting the initial  bridging density.
 
-<code>[**beta_factor**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| [float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1.05]{.parameter-default}</code>
+<code>[**beta_factor**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1.05]{.parameter-default}</code>
 
 :   If selecting the $\beta$ values adaptively, the factor by which  to increase the current $\beta$ value by prior to checking  whether the ESS of the reweighted samples is sufficiently high.
 
-<code>[**min_beta**]{.parameter-name} [:]{.parameter-annotation-sep} [[Tensor](`torch.Tensor`) \| [float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0001]{.parameter-default}</code>
+<code>[**min_beta**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0001]{.parameter-default}</code>
 
 :   If selecting the $\beta$ values adaptively, the minimum  allowable $\beta$ value.
 
-<code>[**max_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [20]{.parameter-default}</code>
+<code>[**max_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [20]{.parameter-default}</code>
 
 :   If selecting the $\beta$ values adaptively, the maximum number  of layers to construct. Note that, if the maximum number of layers is reached, the final bridging density may not be the  target density.

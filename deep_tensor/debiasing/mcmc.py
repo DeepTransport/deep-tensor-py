@@ -1,11 +1,11 @@
 from typing import Callable, Tuple
+import warnings
 
 import torch 
 from torch import Tensor
 
 from ..irt import AbstractDIRT
 from ..references import GaussianReference, Reference
-from ..tools import estimate_iact
 
 
 class MarkovChain(object):
@@ -56,8 +56,11 @@ class MarkovChain(object):
         return
     
     def print_progress(self) -> None:
-        # TODO: finish this.
-        print(self.acceptance_rate)
+        diagnostics = [
+            f"Iteration: {self.n_steps:>5f}", 
+            f"Acceptance rate: {self.acceptance_rate:.2f}"
+        ]
+        print(" | ".join(diagnostics), end="\r")
         return
 
 
@@ -78,6 +81,25 @@ class MCMCResult(object):
     iacts: Tensor
         A $k$-dimensional vector containing estimates of the integrated 
         autocorrelation time (IACT) for each parameter.
+    ess: Tensor
+        A $k$-dimensional vector containing estimates of the effective 
+        sample size (ESS) of each parameter.
+
+    Notes
+    -----
+    The IACT for a given parameter is estimated according to
+    $$
+        \hat{\tau}(M) = 1 + 2 \sum_{i=1}^{M} \hat{\rho}(i),
+    $$
+    where $\hat{\rho}(i)$ denotes an estimate of the normalised 
+    autocorrelation function of the parameter for a lag of $i$,
+    $M$ is the smallest integer such that $M \geq C\hat{\tau}(M)$,
+    and $C=5$. For further information, see the [emcee docs](https://emcee.readthedocs.io/en/stable/tutorials/autocorr/#computing-autocorrelation-times).
+
+    The ESS for a given parameter is estimated according to
+    $$
+        N_{\mathrm{eff}} = \frac{1}{\hat{\tau}(M)}.
+    $$
     
     """
     def __init__(self, chain: MarkovChain):
@@ -85,9 +107,91 @@ class MCMCResult(object):
         self.potentials = chain.potentials
         self.acceptance_rate = chain.acceptance_rate
         self.iacts = estimate_iact(chain.xs)
+        self.ess = 1 / self.iacts
         # import puwr
         # print(2.0 * puwr.tauint(chain.xs.T[:, None, :].numpy(), 0)[2])
         return
+
+
+def _next_pow_two(n: int) -> int:
+    """Returns the smallest power of two greater than or equal to the 
+    input value.
+    """
+    i = 1
+    while i < n:
+        i *= 2
+    return i
+
+
+def _estimate_window(taus: Tensor, c: float) -> int:
+    """Computes a suitable window size to use when estimating the IACT.
+    """
+    ms = torch.arange(taus.numel()) > c * taus
+    if torch.any(ms):
+        return int(torch.nonzero(ms)[0])
+    warnings.warn("Could not find a suitable window size.")
+    return taus.numel() - 1
+
+
+def compute_autocorrelations(xs: Tensor) -> Tensor:
+    """Computes the autocorrelations associated with a 1D time series.
+
+    Parameters
+    ----------
+    xs:
+        A 1D time series
+
+    References
+    ----------
+    https://en.wikipedia.org/wiki/Autocorrelation#Efficient_computation
+
+    """
+
+    if xs.dim() != 1:
+        raise Exception("Input tensor must be one-dimensional.")
+
+    # Compute the FTT and autocorrelation function
+    n = _next_pow_two(xs.numel())
+    f = torch.fft.fft(xs - xs.mean(), n=2*n)
+    acf = torch.fft.ifft(f * torch.conj(f))[:xs.numel()].real
+    acf = acf / acf[0]
+    return acf
+
+
+def estimate_iact(xs: Tensor, c: float = 5.0) -> Tensor:
+    """Estimates the integrated autocorrelation time of each parameter 
+    within a simulated Markov chain.
+    
+    Parameters
+    ----------
+    xs:
+        An n_steps * n_params matrix containing the simulated Markov 
+        chain.
+    c:
+        Parameter used to determine the window size to use when 
+        estimating the IACT.
+
+    Returns
+    -------
+    taus:
+        A vector containing the estimates of the IACT for each 
+        parameter.
+    
+    References
+    ----------
+    https://emcee.readthedocs.io/en/stable/tutorials/autocorr/#computing-autocorrelation-times
+
+    """
+
+    taus = torch.zeros(xs.shape[1])
+
+    for i, x_i in enumerate(xs.T):
+        rhos_i = compute_autocorrelations(x_i)[1:]  # remove rho(0) = 1
+        taus_i = 1.0 + 2.0 * rhos_i.cumsum(dim=0)
+        M = _estimate_window(taus_i, c)
+        taus[i] = taus_i[M]
+    
+    return taus
 
 
 def _run_irt_pcn(

@@ -37,7 +37,7 @@ class Reference(abc.ABC):
             of rs.
         
         """
-        return 
+        pass 
     
     @abc.abstractmethod
     def eval_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
@@ -62,7 +62,7 @@ class Reference(abc.ABC):
             at each element of rs.
         
         """
-        return
+        pass
     
     @abc.abstractmethod
     def invert_cdf(self, zs: Tensor) -> Tensor:
@@ -83,7 +83,7 @@ class Reference(abc.ABC):
             element of zs.
         
         """
-        return
+        pass
     
     @abc.abstractmethod
     def eval_potential(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
@@ -108,11 +108,11 @@ class Reference(abc.ABC):
             joint reference density evaluated at each sample in rs.
 
         """
-        return
+        pass
     
     @abc.abstractmethod
     def random(self, d: int, n: int) -> Tensor:
-        """Draws a set of samples from the reference density using
+        """Generates a set of samples from the reference density using
         the inverse CDF method.
         
         Parameters
@@ -128,7 +128,7 @@ class Reference(abc.ABC):
             An n * d matrix containing the generated samples.
 
         """
-        return
+        pass
     
     @abc.abstractmethod
     def sobol(self, d: int, n: int) -> Tensor:
@@ -148,7 +148,7 @@ class Reference(abc.ABC):
             An n * d matrix containing the generated samples.
         
         """
-        return
+        pass
     
     def _out_domain(self, rs: Tensor) -> Tensor:
         outside = (rs < self.domain.left) | (self.domain.right < rs)

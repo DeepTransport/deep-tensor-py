@@ -14,22 +14,22 @@ Options for configuring the construction of a DIRT object.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**method**]{.parameter-name} [:]{.parameter-annotation-sep} [[str](`str`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'aratio\']{.parameter-default}</code>
+<code>[**method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'aratio\']{.parameter-default}</code>
 
 :   The method used for the ratio function at each iteration. Can  be `'aratio'` (approximate ratio) or `'eratio'` (exact ratio).
 
-<code>[**num_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
+<code>[**num_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
 
 :   The number of samples generated to be used as part of the  construction of the DIRT.
 
-<code>[**num_debugs**]{.parameter-name} [:]{.parameter-annotation-sep} [[int](`int`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
+<code>[**num_debugs**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
 
 :   The number of samples used to evaluate the quality of each SIRT  constructed during the construction of the DIRT.
 
-<code>[**defensive**]{.parameter-name} [:]{.parameter-annotation-sep} [[float](`float`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-08]{.parameter-default}</code>
+<code>[**defensive**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-08]{.parameter-default}</code>
 
 :   The parameter (often referred to as $\gamma$ or $\tau$) used to  make the tails of the FTT approximation to each ratio function  heavier.
 
-<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [[bool](`bool`)]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
 
 :   Whether to print information on the construction of the DIRT  object.

@@ -1,12 +1,10 @@
-from dataclasses import dataclass
+import dataclasses 
 
 import torch
 from torch import Tensor
 
-from ..tools import estimate_ess_ratio
 
-
-@dataclass
+@dataclasses.dataclass
 class ImportanceSamplingResult(object):
     r"""An object containing the results of importance sampling.
     
@@ -19,12 +17,57 @@ class ImportanceSamplingResult(object):
         An estimate of the logarithm of the normalising constant 
         associated with the target density.
     ess: Tensor
-        An estimate of the effective sample size of the samples. 
+        An estimate of the effective sample size. 
+
+    Notes
+    -----
+    The effective sample size is computed using the formula
+    $$
+        N_{\mathrm{eff}} = \frac{(\sum_{i=1}^{n}w_{i})^{2}}{\sum_{i=1}^{n}w_{i}^{2}},
+    $$
+    where $w_{i}$ denotes the importance weight associated with 
+    particle $i$ (Owen, 2013).
+
+    References
+    ----------
+    Owen, AB (2013, Chapter 6). *[Monte Carlo theory, methods and 
+    examples](https://artowen.su.domains/mc/)*.
 
     """
     log_weights: Tensor
     log_norm: Tensor 
     ess: Tensor
+
+
+def estimate_ess_ratio(log_weights: Tensor) -> Tensor:
+    """Returns the ratio of the effective sample size to the number of
+    particles.
+
+    Parameters
+    ----------
+    log_weights:
+        A vector containing the logarithm of the ratio between the 
+        target density and the proposal density evaluated for each 
+        sample. 
+
+    Returns
+    -------
+    ess_ratio:
+        The ratio of the effective sample size to the number of 
+        particles.
+
+    References
+    ----------
+    Owen, AB (2013). Monte Carlo theory, methods and examples. Chapter 9.
+
+    """
+
+    sample_size = log_weights.numel()
+    log_weights = log_weights - log_weights.max()
+    
+    ess = log_weights.exp().sum().square() / (2.0*log_weights).exp().sum()
+    ess_ratio = ess / sample_size
+    return ess_ratio
 
 
 def run_importance_sampling(

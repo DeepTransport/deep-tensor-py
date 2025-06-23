@@ -4,7 +4,8 @@ import torch
 from torch import Tensor
 
 from .bridge import Bridge
-from ..tools import estimate_ess_ratio, compute_f_divergence
+from ..debiasing.importance_sampling import estimate_ess_ratio
+from ..tools import compute_f_divergence
 
 
 class AbstractTempering(Bridge):

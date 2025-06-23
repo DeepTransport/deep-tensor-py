@@ -1,4 +1,5 @@
 import abc
+import math
 from typing import Tuple
 
 import torch
@@ -46,7 +47,7 @@ class SymmetricReference(Reference, abc.ABC):
             each element of us.
         
         """
-        return
+        pass
     
     @abc.abstractmethod
     def eval_unit_pdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
@@ -72,7 +73,7 @@ class SymmetricReference(Reference, abc.ABC):
             evaluated at each element of us.
         
         """
-        return
+        pass
 
     @abc.abstractmethod
     def invert_unit_cdf(self, zs: Tensor) -> Tensor:
@@ -93,7 +94,7 @@ class SymmetricReference(Reference, abc.ABC):
             evaluated at each element of zs.
         
         """
-        return
+        pass
     
     @abc.abstractmethod
     def eval_unit_potential(self, us: Tensor) -> Tuple[Tensor, Tensor]:
@@ -118,7 +119,7 @@ class SymmetricReference(Reference, abc.ABC):
             us.
         
         """
-        return
+        pass
     
     def set_cdf_bounds(self) -> None:
         """Sets the minimum and maximum possible values of the CDF 
@@ -126,8 +127,8 @@ class SymmetricReference(Reference, abc.ABC):
         """
         
         if self.is_truncated:
-            self.cdf_left = self.eval_unit_cdf(self.domain.left)[0]
-            self.cdf_right = self.eval_unit_cdf(self.domain.right)[0]
+            self.cdf_left = float(self.eval_unit_cdf(self.domain.left)[0])
+            self.cdf_right = float(self.eval_unit_cdf(self.domain.right)[0])
         else:
             self.cdf_left = 0.0
             self.cdf_right = 1.0
@@ -160,45 +161,15 @@ class SymmetricReference(Reference, abc.ABC):
         self._check_samples_in_domain(rs)
         d_rs = rs.shape[1]
         log_ps, log_dpdrs = self.eval_unit_potential(rs)
-        log_ps = log_ps + d_rs * self.norm.log()
+        log_ps = log_ps + d_rs * math.log(self.norm)
         return log_ps, log_dpdrs
     
     def random(self, d: int, n: int) -> Tensor:
-        r"""Generates a set of random samples.
-        
-        Parameters
-        ----------
-        d:
-            The dimension of the samples.
-        n:
-            The number of samples to draw.
-
-        Returns
-        -------
-        rs:
-            An $n \times d$ matrix containing the generated samples.
-
-        """
         zs = torch.rand(n, d)
         rs = self.invert_cdf(zs)
         return rs
         
     def sobol(self, d: int, n: int) -> Tensor:
-        r"""Generates a set of QMC samples.
-        
-        Parameters
-        ----------
-        d: 
-            The dimension of the samples.
-        n:
-            The number of samples to generate.
-
-        Returns
-        -------
-        rs:
-            An $n \times d$ matrix containing the generated samples.
-        
-        """
         S = SobolEngine(dimension=d)
         zs = S.draw(n)
         rs = self.invert_cdf(zs)
