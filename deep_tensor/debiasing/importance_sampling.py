@@ -1,4 +1,5 @@
 import dataclasses 
+import math
 
 import torch
 from torch import Tensor
@@ -62,11 +63,11 @@ def estimate_ess_ratio(log_weights: Tensor) -> Tensor:
 
     """
 
-    sample_size = log_weights.numel()
+    n = log_weights.numel()
     log_weights = log_weights - log_weights.max()
     
     ess = log_weights.exp().sum().square() / (2.0*log_weights).exp().sum()
-    ess_ratio = ess / sample_size
+    ess_ratio = ess / n
     return ess_ratio
 
 
@@ -99,16 +100,14 @@ def run_importance_sampling(
     
     """
     log_weights = neglogfxs_irt - neglogfxs_exact
+    n = log_weights.numel()
     
     if self_normalised:
         log_norm = torch.tensor(0.0)
-    else: 
-        # Estimate normalising constant of the target density, then 
-        # shift the log-weights (for better numerics) before normalising
-        log_norm = log_weights.exp().mean().log()
-        log_weights = log_weights - log_weights.max()
-        log_weights = log_weights - log_weights.exp().mean().log()
+    else:
+        log_norm = log_weights.logsumexp(dim=0) - math.log(n)
+        log_weights = log_weights - log_norm
 
-    ess = log_weights.numel() * estimate_ess_ratio(log_weights)
+    ess = n * estimate_ess_ratio(log_weights)
     res = ImportanceSamplingResult(log_weights, log_norm, ess)
     return res
