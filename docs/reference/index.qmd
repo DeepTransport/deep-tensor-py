@@ -73,7 +73,7 @@ Functions used to remove the bias associated with the use of an approximation to
 | | |
 | --- | --- |
 | [run_importance_sampling](run_importance_sampling.qmd#deep_tensor.run_importance_sampling) | Computes the importance weights associated with a set of samples. |
-| [run_independence_sampler](run_independence_sampler.qmd#deep_tensor.run_independence_sampler) | Runs an independence MCMC sampler. |
+| [run_independence_sampler](run_independence_sampler.qmd#deep_tensor.run_independence_sampler) | Runs an independence Metropolis-Hastings sampler. |
 | [run_irt_pcn](run_irt_pcn.qmd#deep_tensor.run_irt_pcn) | Runs a pCN sampler using the DIRT mapping. |
 | [run_cirt_pcn](run_cirt_pcn.qmd#deep_tensor.run_cirt_pcn) | Runs a pCN sampler using a conditional of the DIRT mapping.  |
 | [ImportanceSamplingResult](ImportanceSamplingResult.qmd#deep_tensor.ImportanceSamplingResult) | An object containing the results of importance sampling. |

@@ -8,10 +8,10 @@ run_independence_sampler(
 )
 ```
 
-Runs an independence MCMC sampler.
+Runs an independence Metropolis-Hastings sampler.
 
-Runs an independence MCMC sampler using a set of samples from a 
-SIRT or DIRT object as the proposal.
+Runs an independence Metropolis-Hastings sampler which uses a dirt 
+density as a proposal.
 
 ## Parameters {.doc-section .doc-section-parameters}
 

@@ -457,10 +457,10 @@ def run_independence_sampler(
     neglogfxs_irt: Tensor,
     neglogfxs_exact: Tensor
 ) -> MCMCResult:
-    r"""Runs an independence MCMC sampler.
+    r"""Runs an independence Metropolis-Hastings sampler.
     
-    Runs an independence MCMC sampler using a set of samples from a 
-    SIRT or DIRT object as the proposal.
+    Runs an independence Metropolis-Hastings sampler which uses a dirt 
+    density as a proposal.
 
     Parameters
     ----------
