@@ -105,9 +105,9 @@ def run_importance_sampling(
     else: 
         # Estimate normalising constant of the target density, then 
         # shift the log-weights (for better numerics) before normalising
-        log_norm = log_weights.exp().sum().log()
+        log_norm = log_weights.exp().mean().log()
         log_weights = log_weights - log_weights.max()
-        log_weights = log_weights - log_weights.exp().sum().log()
+        log_weights = log_weights - log_weights.exp().mean().log()
 
     ess = log_weights.numel() * estimate_ess_ratio(log_weights)
     res = ImportanceSamplingResult(log_weights, log_norm, ess)
