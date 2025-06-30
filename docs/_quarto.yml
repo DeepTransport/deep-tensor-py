@@ -86,6 +86,8 @@ quartodoc:
           members: []
         - name: UniformMapping
           members: []
+        - name: GaussianMapping
+          members: []
 
     - title: Polynomial Bases
       desc: Polynomial bases used to construct a functional tensor train.

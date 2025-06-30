@@ -1,0 +1,34 @@
+# GaussianMapping { #deep_tensor.GaussianMapping }
+
+```python
+GaussianMapping(
+    mean: Tensor,
+    cov: Tensor,
+    reference: GaussianReference | None = None,
+    diag: bool = False,
+)
+```
+
+A mapping between two Gaussian densities.
+
+This preconditioner provides a mapping between the standard 
+Gaussian density and an Gaussian density with an arbitrary mean and 
+covariance.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**mean**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   The mean of the target Gaussian density.
+
+<code>[**cov**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   The covariance matrix of the target Gaussian density.
+
+<code>[**reference**]{.parameter-name} [:]{.parameter-annotation-sep} [GaussianReference \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The reference density. If this is not specified, it will be set  to the unit Gaussian density with support on $[-4, 4]^{d}$.
+
+<code>[**diag**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [False]{.parameter-default}</code>
+
+:   Whether `cov` is a diagonal matrix.

@@ -9,6 +9,7 @@ website:
       - reference/Preconditioner.qmd
       - reference/IdentityMapping.qmd
       - reference/UniformMapping.qmd
+      - reference/GaussianMapping.qmd
       section: Preconditioners
     - contents:
       - reference/Lagrange1.qmd

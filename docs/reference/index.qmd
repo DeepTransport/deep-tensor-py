@@ -17,6 +17,7 @@ Initial guesses for the mapping between the reference random variable and the ta
 | [Preconditioner](Preconditioner.qmd#deep_tensor.Preconditioner) | The base class for preconditioning mappings. |
 | [IdentityMapping](IdentityMapping.qmd#deep_tensor.IdentityMapping) | An identity mapping. |
 | [UniformMapping](UniformMapping.qmd#deep_tensor.UniformMapping) | A mapping between the reference density and a uniform density. |
+| [GaussianMapping](GaussianMapping.qmd#deep_tensor.GaussianMapping) | A mapping between two Gaussian densities. |
 
 ## Polynomial Bases
 
