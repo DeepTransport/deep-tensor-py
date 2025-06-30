@@ -607,15 +607,9 @@ window.Quarto = {
 
 <section id="deep_tensor.Preconditioner" class="level1">
 <h1>Preconditioner</h1>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>Preconditioner(</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    reference: Reference,</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Q: Callable[[Tensor, <span class="bu">str</span>], Tensor],</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    Q_inv: Callable[[Tensor, <span class="bu">str</span>], Tensor],</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    neglogdet_Q: Callable[[Tensor, <span class="bu">str</span>], Tensor],</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    neglogdet_Q_inv: Callable[[Tensor, <span class="bu">str</span>], Tensor],</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    dim: <span class="bu">int</span>,</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>A user-defined preconditioning function. Ideally, the pushforward of the reference density under the preconditioning function will be as similar as possible to the target density; this makes the subsequent construction of the DIRT approximation to the target density more efficient.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>Preconditioner(reference: Reference, dim: <span class="bu">int</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The base class for preconditioning mappings.</p>
+<p>Ideally, the pushforward of the reference density under the preconditioning mapping will be as similar as possible to the target density; this makes the subsequent construction of the DIRT approximation to the target density more efficient.</p>
 <p>The mapping, which we denote using <span class="math inline">\(Q(\cdot)\)</span>, needs to be invertible. There are additional benefits if the mapping is lower or upper triangular (or both):</p>
 <ul>
 <li>If the mapping is lower triangular, one can evaluate the marginal densities of the corresponding DIRT object in the first <span class="math inline">\(k\)</span> variables, and condition on the first <span class="math inline">\(k\)</span> variables, where <span class="math inline">\(1 \leq k &lt; d\)</span>.</li>
@@ -628,29 +622,154 @@ window.Quarto = {
 <dd>
 <p>The density of the reference random variable.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>Q</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Callable[[Tensor, str], Tensor]</span></code></dt>
-<dd>
-<p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain and a string indicating whether these are samples of the first (<code>subset='first'</code>) or last (<code>subset='last'</code>) <span class="math inline">\(k\)</span> variables, and returns an <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain, after applying the mapping <span class="math inline">\(Q(\cdot)\)</span> to each sample.</p>
-</dd>
-<dt><code><span class="parameter-name"><strong>Q_inv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Callable[[Tensor, str], Tensor]</span></code></dt>
-<dd>
-<p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain and a string indicating whether these are samples of the first (<code>subset='first'</code>) or last (<code>subset='last'</code>) <span class="math inline">\(k\)</span> variables, and returns an <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain, after applying the mapping <span class="math inline">\(Q^{-1}(\cdot)\)</span> to each sample.</p>
-</dd>
-<dt><code><span class="parameter-name"><strong>neglogdet_Q</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Callable[[Tensor, str], Tensor]</span></code></dt>
-<dd>
-<p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain and a string indicating whether these are samples of the first (<code>subset='first'</code>) or last (<code>subset='last'</code>) <span class="math inline">\(k\)</span> variables, and returns an <span class="math inline">\(n\)</span>-dimensional vector containing the negative log-determinant of <span class="math inline">\(Q(\cdot)\)</span> evaluated at each sample.</p>
-</dd>
-<dt><code><span class="parameter-name"><strong>neglogdet_Q_inv</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Callable[[Tensor, str], Tensor]</span></code></dt>
-<dd>
-<p>A function which takes an <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain and a string indicating whether these are samples of the first (<code>subset='first'</code>) or last (<code>subset='last'</code>) <span class="math inline">\(k\)</span> variables, and returns an <span class="math inline">\(n\)</span>-dimensional vector containing the negative log-determinant of <span class="math inline">\(Q^{-1}(\cdot)\)</span> evaluated at each sample.</p>
-</dd>
 <dt><code><span class="parameter-name"><strong>dim</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span></code></dt>
 <dd>
 <p>The dimension, <span class="math inline">\(d\)</span>, of the target (and reference) random variable.</p>
 </dd>
 </dl>
+</section>
+<section id="notes" class="level2 doc-section doc-section-notes">
+<h2 class="doc-section doc-section-notes anchored" data-anchor-id="notes">Notes</h2>
+<p>To construct a custom preconditioning mapping, the user must construct a class derived from this class with methods <code>Q()</code>, <code>Q_inv()</code>, <code>neglogdet_Q()</code>, and <code>neglogdet_Q_inv()</code>.</p>
+</section>
+<section id="methods" class="level2">
+<h2 class="anchored" data-anchor-id="methods">Methods</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#deep_tensor.Preconditioner.Q">Q</a></td>
+<td>Applies the mapping <span class="math inline">\(Q(\cdot)\)</span> to a set of samples.</td>
+</tr>
+<tr class="even">
+<td><a href="#deep_tensor.Preconditioner.Q_inv">Q_inv</a></td>
+<td>Applies the mapping <span class="math inline">\(Q^{-1}(\cdot)\)</span> to a set of samples.</td>
+</tr>
+<tr class="odd">
+<td><a href="#deep_tensor.Preconditioner.neglogdet_Q">neglogdet_Q</a></td>
+<td>Applies the mapping <span class="math inline">\(Q(\cdot)\)</span> to a set of samples.</td>
+</tr>
+<tr class="even">
+<td><a href="#deep_tensor.Preconditioner.neglogdet_Q_inv">neglogdet_Q_inv</a></td>
+<td>Applies the mapping <span class="math inline">\(Q^{-1}(\cdot)\)</span> to a set of samples.</td>
+</tr>
+</tbody>
+</table>
+<section id="deep_tensor.Preconditioner.Q" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.Preconditioner.Q">Q</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>Preconditioner.Q(us: Tensor, subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Applies the mapping <span class="math inline">\(Q(\cdot)\)</span> to a set of samples.</p>
+<section id="parameters-1" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-1">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>us</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>If <span class="math inline">\(k &lt; d\)</span>, whether the samples are samples of the first (<code>subset='first'</code>) or last (<code>subset='last'</code>) <span class="math inline">\(k\)</span> variables.</p>
+</dd>
+</dl>
+</section>
+<section id="returns" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns">Returns</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain, after applying the mapping <span class="math inline">\(Q(\cdot)\)</span> to each sample.</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="deep_tensor.Preconditioner.Q_inv" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.Preconditioner.Q_inv">Q_inv</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>Preconditioner.Q_inv(xs: Tensor, subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Applies the mapping <span class="math inline">\(Q^{-1}(\cdot)\)</span> to a set of samples.</p>
+<section id="parameters-2" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-2">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>If <span class="math inline">\(k &lt; d\)</span>, whether the samples are samples of the first (<code>subset='first'</code>) or last (<code>subset='last'</code>) <span class="math inline">\(k\)</span> variables.</p>
+</dd>
+</dl>
+</section>
+<section id="returns-1" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-1">Returns</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>us</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain, after applying the mapping <span class="math inline">\(Q^{-1}(\cdot)\)</span> to each sample.</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="deep_tensor.Preconditioner.neglogdet_Q" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.Preconditioner.neglogdet_Q">neglogdet_Q</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>Preconditioner.neglogdet_Q(us: Tensor, subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Applies the mapping <span class="math inline">\(Q(\cdot)\)</span> to a set of samples.</p>
+<section id="parameters-3" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-3">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>us</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times k\)</span> matrix containing samples from the reference domain.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>If <span class="math inline">\(k &lt; d\)</span>, whether the samples are samples of the first (<code>subset='first'</code>) or last (<code>subset='last'</code>) <span class="math inline">\(k\)</span> variables.</p>
+</dd>
+</dl>
+</section>
+<section id="returns-2" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-2">Returns</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>neglogdets</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the negative log-determinant of <span class="math inline">\(Q(\cdot)\)</span> evaluated at each sample.</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="deep_tensor.Preconditioner.neglogdet_Q_inv" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.Preconditioner.neglogdet_Q_inv">neglogdet_Q_inv</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>Preconditioner.neglogdet_Q_inv(xs: Tensor, subset: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Applies the mapping <span class="math inline">\(Q^{-1}(\cdot)\)</span> to a set of samples.</p>
+<section id="parameters-4" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-4">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>xs</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times k\)</span> matrix containing samples from the approximation domain.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>subset</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>If <span class="math inline">\(k &lt; d\)</span>, whether the samples are samples of the first (<code>subset='first'</code>) or last (<code>subset='last'</code>) <span class="math inline">\(k\)</span> variables.</p>
+</dd>
+</dl>
+</section>
+<section id="returns-3" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns-3">Returns</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>neglogdets</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n\)</span>-dimensional vector containing the negative log-determinant of <span class="math inline">\(Q^{-1}(\cdot)\)</span> evaluated at each sample.</p>
+</dd>
+</dl>
 
 
+</section>
+</section>
 </section>
 </section>
 

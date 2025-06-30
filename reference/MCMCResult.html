@@ -636,12 +636,11 @@ window.Quarto = {
 </section>
 <section id="notes" class="level2 doc-section doc-section-notes">
 <h2 class="doc-section doc-section-notes anchored" data-anchor-id="notes">Notes</h2>
-<p>The IACT for a given parameter is estimated according to <span class="math display">\[
-    \hat{\tau}(M) = 1 + 2 \sum_{i=1}^{M} \hat{\rho}(i),
-\]</span> where <span class="math inline">\(\hat{\rho}(i)\)</span> denotes an estimate of the normalised autocorrelation function of the parameter for a lag of <span class="math inline">\(i\)</span>, <span class="math inline">\(M\)</span> is the smallest integer such that <span class="math inline">\(M \geq C\hat{\tau}(M)\)</span>, and <span class="math inline">\(C=5\)</span>. For further information, see the <a href="https://emcee.readthedocs.io/en/stable/tutorials/autocorr/#computing-autocorrelation-times">emcee docs</a>.</p>
-<p>The ESS for a given parameter is estimated according to <span class="math display">\[
-    N_{\mathrm{eff}} = \frac{1}{\hat{\tau}(M)}.
-\]</span></p>
+<p>The IACT for parameter <span class="math inline">\(i\)</span>, denoted using <span class="math inline">\(\tau_{i}\)</span>, is estimated using the monotone sequence estimator outlined by Geyer (2011).</p>
+</section>
+<section id="references" class="level2 doc-section doc-section-references">
+<h2 class="doc-section doc-section-references anchored" data-anchor-id="references">References</h2>
+<p>Geyer, CJ (2011). <em><a href="https://doi.org/10.1201/b10905">Introduction to Markov chain Monte Carlo</a></em>. In: Handbook of Markov Chain Monte Carlo 3–48.</p>
 
 
 </section>
