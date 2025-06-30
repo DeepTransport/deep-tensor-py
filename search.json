@@ -218,543 +218,51 @@
     ]
   },
   {
-    "objectID": "reference/Lagrange1.html",
-    "href": "reference/Lagrange1.html",
-    "title": "Lagrange1",
+    "objectID": "reference/MCMCResult.html",
+    "href": "reference/MCMCResult.html",
+    "title": "MCMCResult",
     "section": "",
-    "text": "Lagrange1(num_elems: int)\nPiecewise linear polynomials.\n\n\n\nnum_elems : int\n\nThe number of elements to use.\n\n\n\n\n\nTo construct a piecewise linear basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements. Then, within each element a given function can be represented by \\[\n    f(x) \\approx f(x_{0})\n        + \\frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),\n\\] where \\(x_{0}\\) and \\(x_{1}\\) denote the endpoints of the element.\nWe use piecewise cubic polynomials to represent the (conditional) CDFs corresponding to the piecewise linear representation of (the square root of) the target density function.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Lagrange1"
-    ]
-  },
-  {
-    "objectID": "reference/Lagrange1.html#parameters",
-    "href": "reference/Lagrange1.html#parameters",
-    "title": "Lagrange1",
-    "section": "",
-    "text": "num_elems : int\n\nThe number of elements to use.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Lagrange1"
-    ]
-  },
-  {
-    "objectID": "reference/Lagrange1.html#notes",
-    "href": "reference/Lagrange1.html#notes",
-    "title": "Lagrange1",
-    "section": "",
-    "text": "To construct a piecewise linear basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements. Then, within each element a given function can be represented by \\[\n    f(x) \\approx f(x_{0})\n        + \\frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),\n\\] where \\(x_{0}\\) and \\(x_{1}\\) denote the endpoints of the element.\nWe use piecewise cubic polynomials to represent the (conditional) CDFs corresponding to the piecewise linear representation of (the square root of) the target density function.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Lagrange1"
-    ]
-  },
-  {
-    "objectID": "reference/LagrangeP.html",
-    "href": "reference/LagrangeP.html",
-    "title": "LagrangeP",
-    "section": "",
-    "text": "LagrangeP(order: int, num_elems: int)\nHigher-order piecewise Lagrange polynomials.\n\n\n\norder : int\n\nThe degree of the polynomials, \\(n\\).\n\nnum_elems : int\n\nThe number of elements to use.\n\n\n\n\n\nTo construct a higher-order Lagrange basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements, and use a set of Lagrange polynomials of degree \\(n=\\,\\)order within each element.\nWithin a given element, we choose a set of interpolation points, \\(\\{x_{j}\\}_{j=0}^{n}\\), which consist of the endpoints of the element and the roots of the Jacobi polynomial of degree \\(n-3\\) (mapped into the domain of the element). Then, a given function can be approximated (within the element) as \\[\n    f(x) \\approx \\sum_{j=0}^{n} f(x_{j})p_{j}(x),\n\\] where the Lagrange polynomials \\(\\{p_{j}(x)\\}_{j=0}^{n}\\) are given by \\[\n    p_{j}(x) = \\frac{\\prod_{k = 0, k \\neq j}^{n}(x-x_{k})}\n        {\\prod_{k = 0, k \\neq j}^{n}(x_{j}-x_{k})}.\n\\] To evaluate the interpolant, we use the second (true) form of the Barycentric formula, which is more efficient and stable than the above formula.\nWe use piecewise Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the higher-order Lagrange representation of (the square root of) the target density function.\n\n\n\nBerrut, J and Trefethen, LN (2004). Barycentric Lagrange interpolation. SIAM Review 46, 501–517.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "LagrangeP"
-    ]
-  },
-  {
-    "objectID": "reference/LagrangeP.html#parameters",
-    "href": "reference/LagrangeP.html#parameters",
-    "title": "LagrangeP",
-    "section": "",
-    "text": "order : int\n\nThe degree of the polynomials, \\(n\\).\n\nnum_elems : int\n\nThe number of elements to use.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "LagrangeP"
-    ]
-  },
-  {
-    "objectID": "reference/LagrangeP.html#notes",
-    "href": "reference/LagrangeP.html#notes",
-    "title": "LagrangeP",
-    "section": "",
-    "text": "To construct a higher-order Lagrange basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements, and use a set of Lagrange polynomials of degree \\(n=\\,\\)order within each element.\nWithin a given element, we choose a set of interpolation points, \\(\\{x_{j}\\}_{j=0}^{n}\\), which consist of the endpoints of the element and the roots of the Jacobi polynomial of degree \\(n-3\\) (mapped into the domain of the element). Then, a given function can be approximated (within the element) as \\[\n    f(x) \\approx \\sum_{j=0}^{n} f(x_{j})p_{j}(x),\n\\] where the Lagrange polynomials \\(\\{p_{j}(x)\\}_{j=0}^{n}\\) are given by \\[\n    p_{j}(x) = \\frac{\\prod_{k = 0, k \\neq j}^{n}(x-x_{k})}\n        {\\prod_{k = 0, k \\neq j}^{n}(x_{j}-x_{k})}.\n\\] To evaluate the interpolant, we use the second (true) form of the Barycentric formula, which is more efficient and stable than the above formula.\nWe use piecewise Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the higher-order Lagrange representation of (the square root of) the target density function.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "LagrangeP"
-    ]
-  },
-  {
-    "objectID": "reference/LagrangeP.html#references",
-    "href": "reference/LagrangeP.html#references",
-    "title": "LagrangeP",
-    "section": "",
-    "text": "Berrut, J and Trefethen, LN (2004). Barycentric Lagrange interpolation. SIAM Review 46, 501–517.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "LagrangeP"
-    ]
-  },
-  {
-    "objectID": "reference/Chebyshev1st.html",
-    "href": "reference/Chebyshev1st.html",
-    "title": "Chebyshev1st",
-    "section": "",
-    "text": "Chebyshev1st(order: int)\nChebyshev polynomials of the first kind.\n\n\n\norder : int\n\nThe maximum order of the polynomials.\n\n\n\n\n\nThe (normalised) Chebyshev polynomials of the first kind, defined on \\((-1, 1)\\), are given by \\[\n\\begin{align}\n    p_{0}(x) &= 1, \\\\\n    p_{k}(x) &= \\sqrt{2}\\cos(k\\arccos(x)),\n        \\qquad k = 1, 2, \\dots, n.\n\\end{align}\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{\\pi\\sqrt{1-x^{2}}}.\n\\]\n\n\n\nBoyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T, Dolgov, S and Zahm, O (2023). Self-reinforced polynomial approximation methods for concentrated probability densities. arXiv preprint.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Chebyshev1st"
-    ]
-  },
-  {
-    "objectID": "reference/Chebyshev1st.html#parameters",
-    "href": "reference/Chebyshev1st.html#parameters",
-    "title": "Chebyshev1st",
-    "section": "",
-    "text": "order : int\n\nThe maximum order of the polynomials.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Chebyshev1st"
-    ]
-  },
-  {
-    "objectID": "reference/Chebyshev1st.html#notes",
-    "href": "reference/Chebyshev1st.html#notes",
-    "title": "Chebyshev1st",
-    "section": "",
-    "text": "The (normalised) Chebyshev polynomials of the first kind, defined on \\((-1, 1)\\), are given by \\[\n\\begin{align}\n    p_{0}(x) &= 1, \\\\\n    p_{k}(x) &= \\sqrt{2}\\cos(k\\arccos(x)),\n        \\qquad k = 1, 2, \\dots, n.\n\\end{align}\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{\\pi\\sqrt{1-x^{2}}}.\n\\]",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Chebyshev1st"
-    ]
-  },
-  {
-    "objectID": "reference/Chebyshev1st.html#references",
-    "href": "reference/Chebyshev1st.html#references",
-    "title": "Chebyshev1st",
-    "section": "",
-    "text": "Boyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T, Dolgov, S and Zahm, O (2023). Self-reinforced polynomial approximation methods for concentrated probability densities. arXiv preprint.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Chebyshev1st"
-    ]
-  },
-  {
-    "objectID": "reference/UniformReference.html",
-    "href": "reference/UniformReference.html",
-    "title": "UniformReference",
-    "section": "",
-    "text": "UniformReference()\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).\n\n\n\n\n\nName\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nUniformReference.random(d: int, n: int)\nGenerates a set of random samples.\nGenerates a set of random samples from the reference density.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to draw.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nUniformReference.sobol(d: int, n: int)\nGenerates a set of QMC samples.\nGenerates a set of QMC samples from the reference density using a Sobol sequence.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
-    "crumbs": [
-      "API Reference",
-      "Reference Densities",
-      "UniformReference"
-    ]
-  },
-  {
-    "objectID": "reference/UniformReference.html#methods",
-    "href": "reference/UniformReference.html#methods",
-    "title": "UniformReference",
-    "section": "",
-    "text": "Name\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nUniformReference.random(d: int, n: int)\nGenerates a set of random samples.\nGenerates a set of random samples from the reference density.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to draw.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nUniformReference.sobol(d: int, n: int)\nGenerates a set of QMC samples.\nGenerates a set of QMC samples from the reference density using a Sobol sequence.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
-    "crumbs": [
-      "API Reference",
-      "Reference Densities",
-      "UniformReference"
-    ]
-  },
-  {
-    "objectID": "reference/Legendre.html",
-    "href": "reference/Legendre.html",
-    "title": "Legendre",
-    "section": "",
-    "text": "Legendre(order: int)\nLegendre polynomials.\n\n\n\norder : int\n\nThe maximum order of the polynomials, \\(n\\).\n\n\n\n\n\nThe Legendre polynomials, defined on \\((-1, 1)\\), are given by the recurrence relation \\[\n    (k+1)\\hat{p}_{k+1}(x) = (2k+1)x\\hat{p}_{k}(x) - k\\hat{p}_{k-1}(x),\n        \\qquad k = 1, 2, \\dots, n-1,\n\\] where \\(\\hat{p}_{0}(x) = 1, \\hat{p}_{1}(x) = x\\). The corresponding normalised polynomials are given by \\[\n    p_{k}(x) := \\frac{\\hat{p}_{k}(x)}{2k+1},\n        \\qquad k = 0, 1, \\dots, n.\n\\]\nThe polynomials are orthonormal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]\nWe use Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the Legendre representation of (the square root of) the target density function.\n\n\n\nBoyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Legendre"
-    ]
-  },
-  {
-    "objectID": "reference/Legendre.html#parameters",
-    "href": "reference/Legendre.html#parameters",
-    "title": "Legendre",
-    "section": "",
-    "text": "order : int\n\nThe maximum order of the polynomials, \\(n\\).",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Legendre"
-    ]
-  },
-  {
-    "objectID": "reference/Legendre.html#notes",
-    "href": "reference/Legendre.html#notes",
-    "title": "Legendre",
-    "section": "",
-    "text": "The Legendre polynomials, defined on \\((-1, 1)\\), are given by the recurrence relation \\[\n    (k+1)\\hat{p}_{k+1}(x) = (2k+1)x\\hat{p}_{k}(x) - k\\hat{p}_{k-1}(x),\n        \\qquad k = 1, 2, \\dots, n-1,\n\\] where \\(\\hat{p}_{0}(x) = 1, \\hat{p}_{1}(x) = x\\). The corresponding normalised polynomials are given by \\[\n    p_{k}(x) := \\frac{\\hat{p}_{k}(x)}{2k+1},\n        \\qquad k = 0, 1, \\dots, n.\n\\]\nThe polynomials are orthonormal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]\nWe use Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the Legendre representation of (the square root of) the target density function.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Legendre"
-    ]
-  },
-  {
-    "objectID": "reference/Legendre.html#references",
-    "href": "reference/Legendre.html#references",
-    "title": "Legendre",
-    "section": "",
-    "text": "Boyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Legendre"
-    ]
-  },
-  {
-    "objectID": "reference/Chebyshev2nd.html",
-    "href": "reference/Chebyshev2nd.html",
-    "title": "Chebyshev2nd",
-    "section": "",
-    "text": "Chebyshev2nd(order: int)\nChebyshev polynomials of the second kind.\n\n\n\norder : int\n\nThe maximum order of the polynomials.\n\n\n\n\n\nThe (normalised) Chebyshev polynomials of the second kind, defined on \\((-1, 1)\\), are given by \\[\n    p_{k}(x) = \\frac{\\sin((k+1)\\arccos(x))}{\\sin{(\\arccos(x))}},\n        \\qquad k = 0, 1, \\dots, n.\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{2\\sqrt{1-x^{2}}}{\\pi}.\n\\]\n\n\n\nBoyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Chebyshev2nd"
-    ]
-  },
-  {
-    "objectID": "reference/Chebyshev2nd.html#parameters",
-    "href": "reference/Chebyshev2nd.html#parameters",
-    "title": "Chebyshev2nd",
-    "section": "",
-    "text": "order : int\n\nThe maximum order of the polynomials.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Chebyshev2nd"
-    ]
-  },
-  {
-    "objectID": "reference/Chebyshev2nd.html#notes",
-    "href": "reference/Chebyshev2nd.html#notes",
-    "title": "Chebyshev2nd",
-    "section": "",
-    "text": "The (normalised) Chebyshev polynomials of the second kind, defined on \\((-1, 1)\\), are given by \\[\n    p_{k}(x) = \\frac{\\sin((k+1)\\arccos(x))}{\\sin{(\\arccos(x))}},\n        \\qquad k = 0, 1, \\dots, n.\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{2\\sqrt{1-x^{2}}}{\\pi}.\n\\]",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Chebyshev2nd"
-    ]
-  },
-  {
-    "objectID": "reference/Chebyshev2nd.html#references",
-    "href": "reference/Chebyshev2nd.html#references",
-    "title": "Chebyshev2nd",
-    "section": "",
-    "text": "Boyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Chebyshev2nd"
-    ]
-  },
-  {
-    "objectID": "reference/SingleLayer.html",
-    "href": "reference/SingleLayer.html",
-    "title": "SingleLayer",
-    "section": "",
-    "text": "SingleLayer()\nConstructs the DIRT using a single layer.\nIn this setting, the DIRT algorithm reduces to the SIRT algorithm (see Cui and Dolgov, 2022).\n\n\nCui, T and Dolgov, S (2022). Deep composition of tensor-trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
-    "crumbs": [
-      "API Reference",
-      "Bridges",
-      "SingleLayer"
-    ]
-  },
-  {
-    "objectID": "reference/SingleLayer.html#references",
-    "href": "reference/SingleLayer.html#references",
-    "title": "SingleLayer",
-    "section": "",
-    "text": "Cui, T and Dolgov, S (2022). Deep composition of tensor-trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
-    "crumbs": [
-      "API Reference",
-      "Bridges",
-      "SingleLayer"
-    ]
-  },
-  {
-    "objectID": "reference/ImportanceSamplingResult.html",
-    "href": "reference/ImportanceSamplingResult.html",
-    "title": "ImportanceSamplingResult",
-    "section": "",
-    "text": "ImportanceSamplingResult(log_weights: Tensor, log_norm: Tensor, ess: Tensor)\nAn object containing the results of importance sampling.\n\n\n\nlog_weights : Tensor\n\nAn \\(n\\)-dimensional vector containing the unnormalised importance weights associated with a set of samples.\n\nlog_norm : Tensor\n\nAn estimate of the logarithm of the normalising constant associated with the target density.\n\ness : Tensor\n\nAn estimate of the effective sample size.\n\n\n\n\n\nThe effective sample size is computed using the formula \\[\n    N_{\\mathrm{eff}} = \\frac{(\\sum_{i=1}^{n}w_{i})^{2}}{\\sum_{i=1}^{n}w_{i}^{2}},\n\\] where \\(w_{i}\\) denotes the importance weight associated with particle \\(i\\) (Owen, 2013).\n\n\n\nOwen, AB (2013, Chapter 6). Monte Carlo theory, methods and examples.",
+    "text": "MCMCResult(chain: MarkovChain)\nAn object containing a constructed Markov chain.\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix containing the samples that form the Markov chain.\n\npotentials : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample in the chain.\n\nacceptance_rate : float\n\nThe acceptance rate of the sampler.\n\niacts : Tensor\n\nA \\(k\\)-dimensional vector containing estimates of the integrated autocorrelation time (IACT) for each parameter.\n\ness : Tensor\n\nA \\(k\\)-dimensional vector containing estimates of the effective sample size (ESS) of each parameter.\n\n\n\n\n\nThe IACT for parameter \\(i\\), denoted using \\(\\tau_{i}\\), is estimated using the monotone sequence estimator outlined by Geyer (2011).\n\n\n\nGeyer, CJ (2011). Introduction to Markov chain Monte Carlo. In: Handbook of Markov Chain Monte Carlo 3–48.",
     "crumbs": [
       "API Reference",
       "Debiasing",
-      "ImportanceSamplingResult"
+      "MCMCResult"
     ]
   },
   {
-    "objectID": "reference/ImportanceSamplingResult.html#attributes",
-    "href": "reference/ImportanceSamplingResult.html#attributes",
-    "title": "ImportanceSamplingResult",
+    "objectID": "reference/MCMCResult.html#attributes",
+    "href": "reference/MCMCResult.html#attributes",
+    "title": "MCMCResult",
     "section": "",
-    "text": "log_weights : Tensor\n\nAn \\(n\\)-dimensional vector containing the unnormalised importance weights associated with a set of samples.\n\nlog_norm : Tensor\n\nAn estimate of the logarithm of the normalising constant associated with the target density.\n\ness : Tensor\n\nAn estimate of the effective sample size.",
+    "text": "xs : Tensor\n\nAn \\(n \\times k\\) matrix containing the samples that form the Markov chain.\n\npotentials : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample in the chain.\n\nacceptance_rate : float\n\nThe acceptance rate of the sampler.\n\niacts : Tensor\n\nA \\(k\\)-dimensional vector containing estimates of the integrated autocorrelation time (IACT) for each parameter.\n\ness : Tensor\n\nA \\(k\\)-dimensional vector containing estimates of the effective sample size (ESS) of each parameter.",
     "crumbs": [
       "API Reference",
       "Debiasing",
-      "ImportanceSamplingResult"
+      "MCMCResult"
     ]
   },
   {
-    "objectID": "reference/ImportanceSamplingResult.html#notes",
-    "href": "reference/ImportanceSamplingResult.html#notes",
-    "title": "ImportanceSamplingResult",
+    "objectID": "reference/MCMCResult.html#notes",
+    "href": "reference/MCMCResult.html#notes",
+    "title": "MCMCResult",
     "section": "",
-    "text": "The effective sample size is computed using the formula \\[\n    N_{\\mathrm{eff}} = \\frac{(\\sum_{i=1}^{n}w_{i})^{2}}{\\sum_{i=1}^{n}w_{i}^{2}},\n\\] where \\(w_{i}\\) denotes the importance weight associated with particle \\(i\\) (Owen, 2013).",
+    "text": "The IACT for parameter \\(i\\), denoted using \\(\\tau_{i}\\), is estimated using the monotone sequence estimator outlined by Geyer (2011).",
     "crumbs": [
       "API Reference",
       "Debiasing",
-      "ImportanceSamplingResult"
+      "MCMCResult"
     ]
   },
   {
-    "objectID": "reference/ImportanceSamplingResult.html#references",
-    "href": "reference/ImportanceSamplingResult.html#references",
-    "title": "ImportanceSamplingResult",
+    "objectID": "reference/MCMCResult.html#references",
+    "href": "reference/MCMCResult.html#references",
+    "title": "MCMCResult",
     "section": "",
-    "text": "Owen, AB (2013, Chapter 6). Monte Carlo theory, methods and examples.",
+    "text": "Geyer, CJ (2011). Introduction to Markov chain Monte Carlo. In: Handbook of Markov Chain Monte Carlo 3–48.",
     "crumbs": [
       "API Reference",
       "Debiasing",
-      "ImportanceSamplingResult"
-    ]
-  },
-  {
-    "objectID": "reference/Tempering.html",
-    "href": "reference/Tempering.html",
-    "title": "Tempering",
-    "section": "",
-    "text": "Tempering(\n    betas: Tensor | None = None,\n    ess_tol: Tensor | float = 0.5,\n    ess_tol_init: Tensor | float = 0.5,\n    beta_factor: Tensor | float = 1.05,\n    min_beta: Tensor | float = 0.0001,\n    max_layers: int = 20,\n)\nLikelihood tempering.\nThe intermediate densities, \\(\\{\\pi_{k}(\\theta)\\}_{k=1}^{N}\\), generated using this approach take the form \\[\\pi_{k}(\\theta) \\propto (Q_{\\sharp}\\rho(\\theta))^{1-\\beta_{k}}\\pi(\\theta)^{\\beta_{k}},\\] where \\(Q_{\\sharp}\\rho(\\cdot)\\) denotes the pushforward of the reference density, \\(\\rho(\\cdot)\\), under the preconditioner, \\(Q(\\cdot)\\), \\(\\pi(\\cdot)\\) denotes the target density, and \\(0 \\leq \\beta_{1} &lt; \\cdots &lt; \\beta_{N} = 1\\).\nIt is possible to provide this class with a set of \\(\\beta\\) values to use. If these are not provided, they will be determined automatically by finding the largest possible \\(\\beta\\), at each iteration, such that the ESS of a reweighted set of samples distributed according to (a TT approximation to) the previous bridging density does not fall below a given value.\n\n\n\nbetas : Tensor | None = None\n\nA set of \\(\\beta\\) values to use for the intermediate distributions. If not specified, these will be determined automatically.\n\ness_tol : Tensor | float = 0.5\n\nIf selecting the \\(\\beta\\) values adaptively, the minimum allowable ESS of the samples (distributed according to an approximation of the previous bridging density) when selecting the next bridging density.\n\ness_tol_init : Tensor | float = 0.5\n\nIf selecting the \\(\\beta\\) values adaptively, the minimum allowable ESS of the samples when selecting the initial bridging density.\n\nbeta_factor : Tensor | float = 1.05\n\nIf selecting the \\(\\beta\\) values adaptively, the factor by which to increase the current \\(\\beta\\) value by prior to checking whether the ESS of the reweighted samples is sufficiently high.\n\nmin_beta : Tensor | float = 0.0001\n\nIf selecting the \\(\\beta\\) values adaptively, the minimum allowable \\(\\beta\\) value.\n\nmax_layers : int = 20\n\nIf selecting the \\(\\beta\\) values adaptively, the maximum number of layers to construct. Note that, if the maximum number of layers is reached, the final bridging density may not be the target density.",
-    "crumbs": [
-      "API Reference",
-      "Bridges",
-      "Tempering"
-    ]
-  },
-  {
-    "objectID": "reference/Tempering.html#parameters",
-    "href": "reference/Tempering.html#parameters",
-    "title": "Tempering",
-    "section": "",
-    "text": "betas : Tensor | None = None\n\nA set of \\(\\beta\\) values to use for the intermediate distributions. If not specified, these will be determined automatically.\n\ness_tol : Tensor | float = 0.5\n\nIf selecting the \\(\\beta\\) values adaptively, the minimum allowable ESS of the samples (distributed according to an approximation of the previous bridging density) when selecting the next bridging density.\n\ness_tol_init : Tensor | float = 0.5\n\nIf selecting the \\(\\beta\\) values adaptively, the minimum allowable ESS of the samples when selecting the initial bridging density.\n\nbeta_factor : Tensor | float = 1.05\n\nIf selecting the \\(\\beta\\) values adaptively, the factor by which to increase the current \\(\\beta\\) value by prior to checking whether the ESS of the reweighted samples is sufficiently high.\n\nmin_beta : Tensor | float = 0.0001\n\nIf selecting the \\(\\beta\\) values adaptively, the minimum allowable \\(\\beta\\) value.\n\nmax_layers : int = 20\n\nIf selecting the \\(\\beta\\) values adaptively, the maximum number of layers to construct. Note that, if the maximum number of layers is reached, the final bridging density may not be the target density.",
-    "crumbs": [
-      "API Reference",
-      "Bridges",
-      "Tempering"
-    ]
-  },
-  {
-    "objectID": "reference/UniformMapping.html",
-    "href": "reference/UniformMapping.html",
-    "title": "UniformMapping",
-    "section": "",
-    "text": "UniformMapping(bounds: Tensor, reference: Reference | None = None)\nA mapping between the reference density and a uniform density.\nThe uniform density can have an arbitrary set of bounds in each dimension.\nThis preconditioner is diagonal.\n\n\n\nbounds : Tensor\n\nA \\(d \\times 2\\) matrix, where each row contains the lower and upper bounds of the uniform density in each dimension.\n\nreference : Reference | None = None\n\nThe reference density. If this is not specified, it will default to the unit Gaussian in \\(d\\) dimensions with support truncated to \\([-4, 4]^{d}\\).",
-    "crumbs": [
-      "API Reference",
-      "Preconditioners",
-      "UniformMapping"
-    ]
-  },
-  {
-    "objectID": "reference/UniformMapping.html#parameters",
-    "href": "reference/UniformMapping.html#parameters",
-    "title": "UniformMapping",
-    "section": "",
-    "text": "bounds : Tensor\n\nA \\(d \\times 2\\) matrix, where each row contains the lower and upper bounds of the uniform density in each dimension.\n\nreference : Reference | None = None\n\nThe reference density. If this is not specified, it will default to the unit Gaussian in \\(d\\) dimensions with support truncated to \\([-4, 4]^{d}\\).",
-    "crumbs": [
-      "API Reference",
-      "Preconditioners",
-      "UniformMapping"
-    ]
-  },
-  {
-    "objectID": "reference/IdentityMapping.html",
-    "href": "reference/IdentityMapping.html",
-    "title": "IdentityMapping",
-    "section": "",
-    "text": "IdentityMapping(dim: int, reference: Reference | None = None)\nAn identity mapping.\nThis preconditioner is diagonal.\n\n\n\ndim : int\n\nThe dimension of the target (and reference) random variables.\n\nreference : Reference | None = None\n\nThe reference density. If this is not specified, it will default to the unit Gaussian in \\(d\\) dimensions with support truncated to \\([-4, 4]^{d}\\).",
-    "crumbs": [
-      "API Reference",
-      "Preconditioners",
-      "IdentityMapping"
-    ]
-  },
-  {
-    "objectID": "reference/IdentityMapping.html#parameters",
-    "href": "reference/IdentityMapping.html#parameters",
-    "title": "IdentityMapping",
-    "section": "",
-    "text": "dim : int\n\nThe dimension of the target (and reference) random variables.\n\nreference : Reference | None = None\n\nThe reference density. If this is not specified, it will default to the unit Gaussian in \\(d\\) dimensions with support truncated to \\([-4, 4]^{d}\\).",
-    "crumbs": [
-      "API Reference",
-      "Preconditioners",
-      "IdentityMapping"
-    ]
-  },
-  {
-    "objectID": "reference/run_irt_pcn.html",
-    "href": "reference/run_irt_pcn.html",
-    "title": "run_irt_pcn",
-    "section": "",
-    "text": "run_irt_pcn(\n    potential: Callable[[Tensor], Tensor],\n    dirt: AbstractDIRT,\n    n: int,\n    dt: float = 2.0,\n    r0: Tensor | None = None,\n    subset: str = 'first',\n    verbose: bool = True,\n)\nRuns a pCN sampler using the DIRT mapping.\nRuns a preconditioned Crank-Nicholson sampler (Cotter et al., 2013) to characterise the pullback of the target density under the DIRT mapping, then pushes the resulting samples forward under the DIRT mapping to obtain samples distributed according to the target. This idea was initially outlined by Cui et al. (2023).\nNote that the pCN proposal is only applicable to problems with a Gaussian reference density.\n\n\n\npotential : Callable[[Tensor], Tensor]\n\nA function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.\n\ndirt : AbstractDIRT\n\nA previously-constructed DIRT object.\n\nn : int\n\nThe length of the Markov chain to construct.\n\ndt : float = 2.0\n\npCN stepsize, \\(\\Delta t\\). If this is not specified, a value of \\(\\Delta t = 2\\) (independence sampler) will be used.\n\nr0 : Tensor | None = None\n\nThe starting state. This should be a \\(1 \\times k\\) matrix containing a sample from the reference domain. If not passed in, the mean of the reference density will be used.\n\nsubset : str = 'first'\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nverbose : bool = True\n\nWhether to print diagnostic information during the sampling process.\n\n\n\n\n\n\nres : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.\n\n\n\n\n\nWhen the reference density is the standard Gaussian density (that is, \\(\\rho(\\theta) = \\mathcal{N}(0_{d}, I_{d})\\)), the pCN proposal (given current state \\(\\theta^{(i)}\\)) takes the form \\[\n    \\theta' = \\frac{2-\\Delta t}{2+\\Delta t} \\theta^{(i)}\n        + \\frac{2\\sqrt{2\\Delta t}}{2 + \\Delta t} \\tilde{\\theta},\n\\] where \\(\\tilde{\\theta} \\sim \\rho(\\,\\cdot\\,)\\), and \\(\\Delta t\\) denotes the step size.\nWhen \\(\\Delta t = 2\\), the resulting sampler is an independence sampler. When \\(\\Delta t &gt; 2\\), the proposals are negatively correlated, and when \\(\\Delta t &lt; 2\\), the proposals are positively correlated.\n\n\n\nCotter, SL, Roberts, GO, Stuart, AM and White, D (2013). MCMC methods for functions: Modifying old algorithms to make them faster. Statistical Science 28, 424–446.\nCui, T, Dolgov, S and Zahm, O (2023). Scalable conditional deep inverse Rosenblatt transports using tensor trains and gradient-based dimension reduction. Journal of Computational Physics 485, 112103.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_irt_pcn"
-    ]
-  },
-  {
-    "objectID": "reference/run_irt_pcn.html#parameters",
-    "href": "reference/run_irt_pcn.html#parameters",
-    "title": "run_irt_pcn",
-    "section": "",
-    "text": "potential : Callable[[Tensor], Tensor]\n\nA function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.\n\ndirt : AbstractDIRT\n\nA previously-constructed DIRT object.\n\nn : int\n\nThe length of the Markov chain to construct.\n\ndt : float = 2.0\n\npCN stepsize, \\(\\Delta t\\). If this is not specified, a value of \\(\\Delta t = 2\\) (independence sampler) will be used.\n\nr0 : Tensor | None = None\n\nThe starting state. This should be a \\(1 \\times k\\) matrix containing a sample from the reference domain. If not passed in, the mean of the reference density will be used.\n\nsubset : str = 'first'\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nverbose : bool = True\n\nWhether to print diagnostic information during the sampling process.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_irt_pcn"
-    ]
-  },
-  {
-    "objectID": "reference/run_irt_pcn.html#returns",
-    "href": "reference/run_irt_pcn.html#returns",
-    "title": "run_irt_pcn",
-    "section": "",
-    "text": "res : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_irt_pcn"
-    ]
-  },
-  {
-    "objectID": "reference/run_irt_pcn.html#notes",
-    "href": "reference/run_irt_pcn.html#notes",
-    "title": "run_irt_pcn",
-    "section": "",
-    "text": "When the reference density is the standard Gaussian density (that is, \\(\\rho(\\theta) = \\mathcal{N}(0_{d}, I_{d})\\)), the pCN proposal (given current state \\(\\theta^{(i)}\\)) takes the form \\[\n    \\theta' = \\frac{2-\\Delta t}{2+\\Delta t} \\theta^{(i)}\n        + \\frac{2\\sqrt{2\\Delta t}}{2 + \\Delta t} \\tilde{\\theta},\n\\] where \\(\\tilde{\\theta} \\sim \\rho(\\,\\cdot\\,)\\), and \\(\\Delta t\\) denotes the step size.\nWhen \\(\\Delta t = 2\\), the resulting sampler is an independence sampler. When \\(\\Delta t &gt; 2\\), the proposals are negatively correlated, and when \\(\\Delta t &lt; 2\\), the proposals are positively correlated.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_irt_pcn"
-    ]
-  },
-  {
-    "objectID": "reference/run_irt_pcn.html#references",
-    "href": "reference/run_irt_pcn.html#references",
-    "title": "run_irt_pcn",
-    "section": "",
-    "text": "Cotter, SL, Roberts, GO, Stuart, AM and White, D (2013). MCMC methods for functions: Modifying old algorithms to make them faster. Statistical Science 28, 424–446.\nCui, T, Dolgov, S and Zahm, O (2023). Scalable conditional deep inverse Rosenblatt transports using tensor trains and gradient-based dimension reduction. Journal of Computational Physics 485, 112103.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_irt_pcn"
-    ]
-  },
-  {
-    "objectID": "reference/Fourier.html",
-    "href": "reference/Fourier.html",
-    "title": "Fourier",
-    "section": "",
-    "text": "Fourier(order: int)\nFourier polynomials.\n\n\n\norder : int\n\nThe number of sine functions the basis is composed of. The total number of basis functions, \\(n\\), is equal to 2*order+2.\n\n\n\n\n\nThe Fourier basis for the interval \\([-1, 1]\\), with cardinality \\(n\\), is given by \\[\n    \\left\\{1, \\sqrt{2}\\sin(\\pi x), \\dots, \\sqrt{2}\\sin(k \\pi x),\n    \\sqrt{2}\\cos(\\pi x), \\dots, \\sqrt{2}\\cos(k \\pi x),\n    \\sqrt{2}\\cos(n \\pi x / 2)\\right\\},\n\\] where \\(k = 1, 2, \\dots, \\tfrac{n}{2}-1\\).\nThe basis functions are orthonormal with respect to the (normalised) weight function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]\n\n\n\nBoyd, JP (2001, Section 4.5). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T and Dolgov, S (2022). Deep composition of Tensor-Trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Fourier"
-    ]
-  },
-  {
-    "objectID": "reference/Fourier.html#parameters",
-    "href": "reference/Fourier.html#parameters",
-    "title": "Fourier",
-    "section": "",
-    "text": "order : int\n\nThe number of sine functions the basis is composed of. The total number of basis functions, \\(n\\), is equal to 2*order+2.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Fourier"
-    ]
-  },
-  {
-    "objectID": "reference/Fourier.html#notes",
-    "href": "reference/Fourier.html#notes",
-    "title": "Fourier",
-    "section": "",
-    "text": "The Fourier basis for the interval \\([-1, 1]\\), with cardinality \\(n\\), is given by \\[\n    \\left\\{1, \\sqrt{2}\\sin(\\pi x), \\dots, \\sqrt{2}\\sin(k \\pi x),\n    \\sqrt{2}\\cos(\\pi x), \\dots, \\sqrt{2}\\cos(k \\pi x),\n    \\sqrt{2}\\cos(n \\pi x / 2)\\right\\},\n\\] where \\(k = 1, 2, \\dots, \\tfrac{n}{2}-1\\).\nThe basis functions are orthonormal with respect to the (normalised) weight function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Fourier"
-    ]
-  },
-  {
-    "objectID": "reference/Fourier.html#references",
-    "href": "reference/Fourier.html#references",
-    "title": "Fourier",
-    "section": "",
-    "text": "Boyd, JP (2001, Section 4.5). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T and Dolgov, S (2022). Deep composition of Tensor-Trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
-    "crumbs": [
-      "API Reference",
-      "Polynomial Bases",
-      "Fourier"
-    ]
-  },
-  {
-    "objectID": "reference/run_importance_sampling.html",
-    "href": "reference/run_importance_sampling.html",
-    "title": "run_importance_sampling",
-    "section": "",
-    "text": "run_importance_sampling(\n    neglogfxs_irt: Tensor,\n    neglogfxs_exact: Tensor,\n    self_normalised: bool = False,\n)\nComputes the importance weights associated with a set of samples.\n\n\n\nneglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\nself_normalised : bool = False\n\nWhether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.\n\n\n\n\n\n\nres : ImportanceSamplingResult\n\nA structure containing the log-importance weights (normalised, if self_normalised=False), the estimate of the log-normalising constant of the target density (if self_normalised=False), and the effective sample size.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_importance_sampling"
-    ]
-  },
-  {
-    "objectID": "reference/run_importance_sampling.html#parameters",
-    "href": "reference/run_importance_sampling.html#parameters",
-    "title": "run_importance_sampling",
-    "section": "",
-    "text": "neglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\nself_normalised : bool = False\n\nWhether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_importance_sampling"
-    ]
-  },
-  {
-    "objectID": "reference/run_importance_sampling.html#returns",
-    "href": "reference/run_importance_sampling.html#returns",
-    "title": "run_importance_sampling",
-    "section": "",
-    "text": "res : ImportanceSamplingResult\n\nA structure containing the log-importance weights (normalised, if self_normalised=False), the estimate of the log-normalising constant of the target density (if self_normalised=False), and the effective sample size.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_importance_sampling"
+      "MCMCResult"
     ]
   },
   {
@@ -762,7 +270,7 @@
     "href": "reference/index.html",
     "title": "API Reference",
     "section": "",
-    "text": "An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.\n\n\n\nDIRT\nDeep (squared) inverse Rosenblatt transport.\n\n\n\n\n\n\nInitial guesses for the mapping between the reference random variable and the target random variable.\n\n\n\nPreconditioner\nThe base class for preconditioning mappings.\n\n\nIdentityMapping\nAn identity mapping.\n\n\nUniformMapping\nA mapping between the reference density and a uniform density.\n\n\n\n\n\n\nPolynomial bases used to construct a functional tensor train.\n\n\n\nLagrange1\nPiecewise linear polynomials.\n\n\nLagrangeP\nHigher-order piecewise Lagrange polynomials.\n\n\nChebyshev1st\nChebyshev polynomials of the first kind.\n\n\nChebyshev2nd\nChebyshev polynomials of the second kind.\n\n\nFourier\nFourier polynomials.\n\n\nLegendre\nLegendre polynomials.\n\n\n\n\n\n\nMappings between the approximation domain and the domain of the polynomial basis.\n\n\n\nBoundedDomain\nMapping from a bounded domain to \\((-1, 1)\\).\n\n\n\n\n\n\nOptions for configuring the FTT and DIRT construction.\n\n\n\nTTOptions\nOptions for configuring the construction of an FTT object.\n\n\nDIRTOptions\nOptions for configuring the construction of a DIRT object.\n\n\n\n\n\n\nProduct-form reference densities used as part of DIRT construction.\n\n\n\nGaussianReference\nThe standard \\(d\\)-dimensional Gaussian density, \\(\\mathcal{N}(\\boldsymbol{0}_{d}, \\boldsymbol{I}_{d})\\).\n\n\nUniformReference\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).\n\n\n\n\n\n\nObjects used to generate the intermediate densities approximated during DIRT construction.\n\n\n\nSingleLayer\nConstructs the DIRT using a single layer.\n\n\nTempering\nLikelihood tempering.\n\n\n\n\n\n\nFunctions used to remove the bias associated with the use of an approximation to the target density function.\n\n\n\nrun_importance_sampling\nComputes the importance weights associated with a set of samples.\n\n\nrun_independence_sampler\nRuns an independence Metropolis-Hastings sampler.\n\n\nrun_irt_pcn\nRuns a pCN sampler using the DIRT mapping.\n\n\nrun_cirt_pcn\nRuns a pCN sampler using a conditional of the DIRT mapping.\n\n\nImportanceSamplingResult\nAn object containing the results of importance sampling.\n\n\nMCMCResult\nAn object containing a constructed Markov chain.",
+    "text": "An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.\n\n\n\nDIRT\nDeep (squared) inverse Rosenblatt transport.\n\n\n\n\n\n\nInitial guesses for the mapping between the reference random variable and the target random variable.\n\n\n\nPreconditioner\nThe base class for preconditioning mappings.\n\n\nIdentityMapping\nAn identity mapping.\n\n\nUniformMapping\nA mapping between the reference density and a uniform density.\n\n\nGaussianMapping\nA mapping between two Gaussian densities.\n\n\n\n\n\n\nPolynomial bases used to construct a functional tensor train.\n\n\n\nLagrange1\nPiecewise linear polynomials.\n\n\nLagrangeP\nHigher-order piecewise Lagrange polynomials.\n\n\nChebyshev1st\nChebyshev polynomials of the first kind.\n\n\nChebyshev2nd\nChebyshev polynomials of the second kind.\n\n\nFourier\nFourier polynomials.\n\n\nLegendre\nLegendre polynomials.\n\n\n\n\n\n\nMappings between the approximation domain and the domain of the polynomial basis.\n\n\n\nBoundedDomain\nMapping from a bounded domain to \\((-1, 1)\\).\n\n\n\n\n\n\nOptions for configuring the FTT and DIRT construction.\n\n\n\nTTOptions\nOptions for configuring the construction of an FTT object.\n\n\nDIRTOptions\nOptions for configuring the construction of a DIRT object.\n\n\n\n\n\n\nProduct-form reference densities used as part of DIRT construction.\n\n\n\nGaussianReference\nThe standard \\(d\\)-dimensional Gaussian density, \\(\\mathcal{N}(\\boldsymbol{0}_{d}, \\boldsymbol{I}_{d})\\).\n\n\nUniformReference\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).\n\n\n\n\n\n\nObjects used to generate the intermediate densities approximated during DIRT construction.\n\n\n\nSingleLayer\nConstructs the DIRT using a single layer.\n\n\nTempering\nLikelihood tempering.\n\n\n\n\n\n\nFunctions used to remove the bias associated with the use of an approximation to the target density function.\n\n\n\nrun_importance_sampling\nComputes the importance weights associated with a set of samples.\n\n\nrun_independence_sampler\nRuns an independence Metropolis-Hastings sampler.\n\n\nrun_irt_pcn\nRuns a pCN sampler using the DIRT mapping.\n\n\nrun_cirt_pcn\nRuns a pCN sampler using a conditional of the DIRT mapping.\n\n\nImportanceSamplingResult\nAn object containing the results of importance sampling.\n\n\nMCMCResult\nAn object containing a constructed Markov chain.",
     "crumbs": [
       "API Reference"
     ]
@@ -782,7 +290,7 @@
     "href": "reference/index.html#preconditioners",
     "title": "API Reference",
     "section": "",
-    "text": "Initial guesses for the mapping between the reference random variable and the target random variable.\n\n\n\nPreconditioner\nThe base class for preconditioning mappings.\n\n\nIdentityMapping\nAn identity mapping.\n\n\nUniformMapping\nA mapping between the reference density and a uniform density.",
+    "text": "Initial guesses for the mapping between the reference random variable and the target random variable.\n\n\n\nPreconditioner\nThe base class for preconditioning mappings.\n\n\nIdentityMapping\nAn identity mapping.\n\n\nUniformMapping\nA mapping between the reference density and a uniform density.\n\n\nGaussianMapping\nA mapping between two Gaussian densities.",
     "crumbs": [
       "API Reference"
     ]
@@ -848,51 +356,567 @@
     ]
   },
   {
-    "objectID": "reference/MCMCResult.html",
-    "href": "reference/MCMCResult.html",
-    "title": "MCMCResult",
+    "objectID": "reference/run_importance_sampling.html",
+    "href": "reference/run_importance_sampling.html",
+    "title": "run_importance_sampling",
     "section": "",
-    "text": "MCMCResult(chain: MarkovChain)\nAn object containing a constructed Markov chain.\n\n\n\nxs : Tensor\n\nAn \\(n \\times k\\) matrix containing the samples that form the Markov chain.\n\npotentials : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample in the chain.\n\nacceptance_rate : float\n\nThe acceptance rate of the sampler.\n\niacts : Tensor\n\nA \\(k\\)-dimensional vector containing estimates of the integrated autocorrelation time (IACT) for each parameter.\n\ness : Tensor\n\nA \\(k\\)-dimensional vector containing estimates of the effective sample size (ESS) of each parameter.\n\n\n\n\n\nThe IACT for parameter \\(i\\), denoted using \\(\\tau_{i}\\), is estimated using the monotone sequence estimator outlined by Geyer (2011).\n\n\n\nGeyer, CJ (2011). Introduction to Markov chain Monte Carlo. In: Handbook of Markov Chain Monte Carlo 3–48.",
+    "text": "run_importance_sampling(\n    neglogfxs_irt: Tensor,\n    neglogfxs_exact: Tensor,\n    self_normalised: bool = False,\n)\nComputes the importance weights associated with a set of samples.\n\n\n\nneglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\nself_normalised : bool = False\n\nWhether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.\n\n\n\n\n\n\nres : ImportanceSamplingResult\n\nA structure containing the log-importance weights (normalised, if self_normalised=False), the estimate of the log-normalising constant of the target density (if self_normalised=False), and the effective sample size.",
     "crumbs": [
       "API Reference",
       "Debiasing",
-      "MCMCResult"
+      "run_importance_sampling"
     ]
   },
   {
-    "objectID": "reference/MCMCResult.html#attributes",
-    "href": "reference/MCMCResult.html#attributes",
-    "title": "MCMCResult",
+    "objectID": "reference/run_importance_sampling.html#parameters",
+    "href": "reference/run_importance_sampling.html#parameters",
+    "title": "run_importance_sampling",
     "section": "",
-    "text": "xs : Tensor\n\nAn \\(n \\times k\\) matrix containing the samples that form the Markov chain.\n\npotentials : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample in the chain.\n\nacceptance_rate : float\n\nThe acceptance rate of the sampler.\n\niacts : Tensor\n\nA \\(k\\)-dimensional vector containing estimates of the integrated autocorrelation time (IACT) for each parameter.\n\ness : Tensor\n\nA \\(k\\)-dimensional vector containing estimates of the effective sample size (ESS) of each parameter.",
+    "text": "neglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\nself_normalised : bool = False\n\nWhether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.",
     "crumbs": [
       "API Reference",
       "Debiasing",
-      "MCMCResult"
+      "run_importance_sampling"
     ]
   },
   {
-    "objectID": "reference/MCMCResult.html#notes",
-    "href": "reference/MCMCResult.html#notes",
-    "title": "MCMCResult",
+    "objectID": "reference/run_importance_sampling.html#returns",
+    "href": "reference/run_importance_sampling.html#returns",
+    "title": "run_importance_sampling",
     "section": "",
-    "text": "The IACT for parameter \\(i\\), denoted using \\(\\tau_{i}\\), is estimated using the monotone sequence estimator outlined by Geyer (2011).",
+    "text": "res : ImportanceSamplingResult\n\nA structure containing the log-importance weights (normalised, if self_normalised=False), the estimate of the log-normalising constant of the target density (if self_normalised=False), and the effective sample size.",
     "crumbs": [
       "API Reference",
       "Debiasing",
-      "MCMCResult"
+      "run_importance_sampling"
     ]
   },
   {
-    "objectID": "reference/MCMCResult.html#references",
-    "href": "reference/MCMCResult.html#references",
-    "title": "MCMCResult",
+    "objectID": "reference/Fourier.html",
+    "href": "reference/Fourier.html",
+    "title": "Fourier",
     "section": "",
-    "text": "Geyer, CJ (2011). Introduction to Markov chain Monte Carlo. In: Handbook of Markov Chain Monte Carlo 3–48.",
+    "text": "Fourier(order: int)\nFourier polynomials.\n\n\n\norder : int\n\nThe number of sine functions the basis is composed of. The total number of basis functions, \\(n\\), is equal to 2*order+2.\n\n\n\n\n\nThe Fourier basis for the interval \\([-1, 1]\\), with cardinality \\(n\\), is given by \\[\n    \\left\\{1, \\sqrt{2}\\sin(\\pi x), \\dots, \\sqrt{2}\\sin(k \\pi x),\n    \\sqrt{2}\\cos(\\pi x), \\dots, \\sqrt{2}\\cos(k \\pi x),\n    \\sqrt{2}\\cos(n \\pi x / 2)\\right\\},\n\\] where \\(k = 1, 2, \\dots, \\tfrac{n}{2}-1\\).\nThe basis functions are orthonormal with respect to the (normalised) weight function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]\n\n\n\nBoyd, JP (2001, Section 4.5). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T and Dolgov, S (2022). Deep composition of Tensor-Trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Fourier"
+    ]
+  },
+  {
+    "objectID": "reference/Fourier.html#parameters",
+    "href": "reference/Fourier.html#parameters",
+    "title": "Fourier",
+    "section": "",
+    "text": "order : int\n\nThe number of sine functions the basis is composed of. The total number of basis functions, \\(n\\), is equal to 2*order+2.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Fourier"
+    ]
+  },
+  {
+    "objectID": "reference/Fourier.html#notes",
+    "href": "reference/Fourier.html#notes",
+    "title": "Fourier",
+    "section": "",
+    "text": "The Fourier basis for the interval \\([-1, 1]\\), with cardinality \\(n\\), is given by \\[\n    \\left\\{1, \\sqrt{2}\\sin(\\pi x), \\dots, \\sqrt{2}\\sin(k \\pi x),\n    \\sqrt{2}\\cos(\\pi x), \\dots, \\sqrt{2}\\cos(k \\pi x),\n    \\sqrt{2}\\cos(n \\pi x / 2)\\right\\},\n\\] where \\(k = 1, 2, \\dots, \\tfrac{n}{2}-1\\).\nThe basis functions are orthonormal with respect to the (normalised) weight function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Fourier"
+    ]
+  },
+  {
+    "objectID": "reference/Fourier.html#references",
+    "href": "reference/Fourier.html#references",
+    "title": "Fourier",
+    "section": "",
+    "text": "Boyd, JP (2001, Section 4.5). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T and Dolgov, S (2022). Deep composition of Tensor-Trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Fourier"
+    ]
+  },
+  {
+    "objectID": "reference/run_irt_pcn.html",
+    "href": "reference/run_irt_pcn.html",
+    "title": "run_irt_pcn",
+    "section": "",
+    "text": "run_irt_pcn(\n    potential: Callable[[Tensor], Tensor],\n    dirt: AbstractDIRT,\n    n: int,\n    dt: float = 2.0,\n    r0: Tensor | None = None,\n    subset: str = 'first',\n    verbose: bool = True,\n)\nRuns a pCN sampler using the DIRT mapping.\nRuns a preconditioned Crank-Nicholson sampler (Cotter et al., 2013) to characterise the pullback of the target density under the DIRT mapping, then pushes the resulting samples forward under the DIRT mapping to obtain samples distributed according to the target. This idea was initially outlined by Cui et al. (2023).\nNote that the pCN proposal is only applicable to problems with a Gaussian reference density.\n\n\n\npotential : Callable[[Tensor], Tensor]\n\nA function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.\n\ndirt : AbstractDIRT\n\nA previously-constructed DIRT object.\n\nn : int\n\nThe length of the Markov chain to construct.\n\ndt : float = 2.0\n\npCN stepsize, \\(\\Delta t\\). If this is not specified, a value of \\(\\Delta t = 2\\) (independence sampler) will be used.\n\nr0 : Tensor | None = None\n\nThe starting state. This should be a \\(1 \\times k\\) matrix containing a sample from the reference domain. If not passed in, the mean of the reference density will be used.\n\nsubset : str = 'first'\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nverbose : bool = True\n\nWhether to print diagnostic information during the sampling process.\n\n\n\n\n\n\nres : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.\n\n\n\n\n\nWhen the reference density is the standard Gaussian density (that is, \\(\\rho(\\theta) = \\mathcal{N}(0_{d}, I_{d})\\)), the pCN proposal (given current state \\(\\theta^{(i)}\\)) takes the form \\[\n    \\theta' = \\frac{2-\\Delta t}{2+\\Delta t} \\theta^{(i)}\n        + \\frac{2\\sqrt{2\\Delta t}}{2 + \\Delta t} \\tilde{\\theta},\n\\] where \\(\\tilde{\\theta} \\sim \\rho(\\,\\cdot\\,)\\), and \\(\\Delta t\\) denotes the step size.\nWhen \\(\\Delta t = 2\\), the resulting sampler is an independence sampler. When \\(\\Delta t &gt; 2\\), the proposals are negatively correlated, and when \\(\\Delta t &lt; 2\\), the proposals are positively correlated.\n\n\n\nCotter, SL, Roberts, GO, Stuart, AM and White, D (2013). MCMC methods for functions: Modifying old algorithms to make them faster. Statistical Science 28, 424–446.\nCui, T, Dolgov, S and Zahm, O (2023). Scalable conditional deep inverse Rosenblatt transports using tensor trains and gradient-based dimension reduction. Journal of Computational Physics 485, 112103.",
     "crumbs": [
       "API Reference",
       "Debiasing",
-      "MCMCResult"
+      "run_irt_pcn"
+    ]
+  },
+  {
+    "objectID": "reference/run_irt_pcn.html#parameters",
+    "href": "reference/run_irt_pcn.html#parameters",
+    "title": "run_irt_pcn",
+    "section": "",
+    "text": "potential : Callable[[Tensor], Tensor]\n\nA function that returns the negative logarithm of the (possibly unnormalised) target density at a given sample.\n\ndirt : AbstractDIRT\n\nA previously-constructed DIRT object.\n\nn : int\n\nThe length of the Markov chain to construct.\n\ndt : float = 2.0\n\npCN stepsize, \\(\\Delta t\\). If this is not specified, a value of \\(\\Delta t = 2\\) (independence sampler) will be used.\n\nr0 : Tensor | None = None\n\nThe starting state. This should be a \\(1 \\times k\\) matrix containing a sample from the reference domain. If not passed in, the mean of the reference density will be used.\n\nsubset : str = 'first'\n\nIf the samples contain a subset of the variables, (i.e., \\(k &lt; d\\)), whether they correspond to the first \\(k\\) variables (subset='first') or the last \\(k\\) variables (subset='last').\n\nverbose : bool = True\n\nWhether to print diagnostic information during the sampling process.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_irt_pcn"
+    ]
+  },
+  {
+    "objectID": "reference/run_irt_pcn.html#returns",
+    "href": "reference/run_irt_pcn.html#returns",
+    "title": "run_irt_pcn",
+    "section": "",
+    "text": "res : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_irt_pcn"
+    ]
+  },
+  {
+    "objectID": "reference/run_irt_pcn.html#notes",
+    "href": "reference/run_irt_pcn.html#notes",
+    "title": "run_irt_pcn",
+    "section": "",
+    "text": "When the reference density is the standard Gaussian density (that is, \\(\\rho(\\theta) = \\mathcal{N}(0_{d}, I_{d})\\)), the pCN proposal (given current state \\(\\theta^{(i)}\\)) takes the form \\[\n    \\theta' = \\frac{2-\\Delta t}{2+\\Delta t} \\theta^{(i)}\n        + \\frac{2\\sqrt{2\\Delta t}}{2 + \\Delta t} \\tilde{\\theta},\n\\] where \\(\\tilde{\\theta} \\sim \\rho(\\,\\cdot\\,)\\), and \\(\\Delta t\\) denotes the step size.\nWhen \\(\\Delta t = 2\\), the resulting sampler is an independence sampler. When \\(\\Delta t &gt; 2\\), the proposals are negatively correlated, and when \\(\\Delta t &lt; 2\\), the proposals are positively correlated.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_irt_pcn"
+    ]
+  },
+  {
+    "objectID": "reference/run_irt_pcn.html#references",
+    "href": "reference/run_irt_pcn.html#references",
+    "title": "run_irt_pcn",
+    "section": "",
+    "text": "Cotter, SL, Roberts, GO, Stuart, AM and White, D (2013). MCMC methods for functions: Modifying old algorithms to make them faster. Statistical Science 28, 424–446.\nCui, T, Dolgov, S and Zahm, O (2023). Scalable conditional deep inverse Rosenblatt transports using tensor trains and gradient-based dimension reduction. Journal of Computational Physics 485, 112103.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_irt_pcn"
+    ]
+  },
+  {
+    "objectID": "reference/IdentityMapping.html",
+    "href": "reference/IdentityMapping.html",
+    "title": "IdentityMapping",
+    "section": "",
+    "text": "IdentityMapping(dim: int, reference: Reference | None = None)\nAn identity mapping.\nThis preconditioner is diagonal.\n\n\n\ndim : int\n\nThe dimension of the target (and reference) random variables.\n\nreference : Reference | None = None\n\nThe reference density. If this is not specified, it will default to the unit Gaussian in \\(d\\) dimensions with support truncated to \\([-4, 4]^{d}\\).",
+    "crumbs": [
+      "API Reference",
+      "Preconditioners",
+      "IdentityMapping"
+    ]
+  },
+  {
+    "objectID": "reference/IdentityMapping.html#parameters",
+    "href": "reference/IdentityMapping.html#parameters",
+    "title": "IdentityMapping",
+    "section": "",
+    "text": "dim : int\n\nThe dimension of the target (and reference) random variables.\n\nreference : Reference | None = None\n\nThe reference density. If this is not specified, it will default to the unit Gaussian in \\(d\\) dimensions with support truncated to \\([-4, 4]^{d}\\).",
+    "crumbs": [
+      "API Reference",
+      "Preconditioners",
+      "IdentityMapping"
+    ]
+  },
+  {
+    "objectID": "reference/UniformMapping.html",
+    "href": "reference/UniformMapping.html",
+    "title": "UniformMapping",
+    "section": "",
+    "text": "UniformMapping(bounds: Tensor, reference: Reference | None = None)\nA mapping between the reference density and a uniform density.\nThe uniform density can have an arbitrary set of bounds in each dimension.\nThis preconditioner is diagonal.\n\n\n\nbounds : Tensor\n\nA \\(d \\times 2\\) matrix, where each row contains the lower and upper bounds of the uniform density in each dimension.\n\nreference : Reference | None = None\n\nThe reference density. If this is not specified, it will default to the unit Gaussian in \\(d\\) dimensions with support truncated to \\([-4, 4]^{d}\\).",
+    "crumbs": [
+      "API Reference",
+      "Preconditioners",
+      "UniformMapping"
+    ]
+  },
+  {
+    "objectID": "reference/UniformMapping.html#parameters",
+    "href": "reference/UniformMapping.html#parameters",
+    "title": "UniformMapping",
+    "section": "",
+    "text": "bounds : Tensor\n\nA \\(d \\times 2\\) matrix, where each row contains the lower and upper bounds of the uniform density in each dimension.\n\nreference : Reference | None = None\n\nThe reference density. If this is not specified, it will default to the unit Gaussian in \\(d\\) dimensions with support truncated to \\([-4, 4]^{d}\\).",
+    "crumbs": [
+      "API Reference",
+      "Preconditioners",
+      "UniformMapping"
+    ]
+  },
+  {
+    "objectID": "reference/Tempering.html",
+    "href": "reference/Tempering.html",
+    "title": "Tempering",
+    "section": "",
+    "text": "Tempering(\n    betas: Tensor | None = None,\n    ess_tol: Tensor | float = 0.5,\n    ess_tol_init: Tensor | float = 0.5,\n    beta_factor: Tensor | float = 1.05,\n    min_beta: Tensor | float = 0.0001,\n    max_layers: int = 20,\n)\nLikelihood tempering.\nThe intermediate densities, \\(\\{\\pi_{k}(\\theta)\\}_{k=1}^{N}\\), generated using this approach take the form \\[\\pi_{k}(\\theta) \\propto (Q_{\\sharp}\\rho(\\theta))^{1-\\beta_{k}}\\pi(\\theta)^{\\beta_{k}},\\] where \\(Q_{\\sharp}\\rho(\\cdot)\\) denotes the pushforward of the reference density, \\(\\rho(\\cdot)\\), under the preconditioner, \\(Q(\\cdot)\\), \\(\\pi(\\cdot)\\) denotes the target density, and \\(0 \\leq \\beta_{1} &lt; \\cdots &lt; \\beta_{N} = 1\\).\nIt is possible to provide this class with a set of \\(\\beta\\) values to use. If these are not provided, they will be determined automatically by finding the largest possible \\(\\beta\\), at each iteration, such that the ESS of a reweighted set of samples distributed according to (a TT approximation to) the previous bridging density does not fall below a given value.\n\n\n\nbetas : Tensor | None = None\n\nA set of \\(\\beta\\) values to use for the intermediate distributions. If not specified, these will be determined automatically.\n\ness_tol : Tensor | float = 0.5\n\nIf selecting the \\(\\beta\\) values adaptively, the minimum allowable ESS of the samples (distributed according to an approximation of the previous bridging density) when selecting the next bridging density.\n\ness_tol_init : Tensor | float = 0.5\n\nIf selecting the \\(\\beta\\) values adaptively, the minimum allowable ESS of the samples when selecting the initial bridging density.\n\nbeta_factor : Tensor | float = 1.05\n\nIf selecting the \\(\\beta\\) values adaptively, the factor by which to increase the current \\(\\beta\\) value by prior to checking whether the ESS of the reweighted samples is sufficiently high.\n\nmin_beta : Tensor | float = 0.0001\n\nIf selecting the \\(\\beta\\) values adaptively, the minimum allowable \\(\\beta\\) value.\n\nmax_layers : int = 20\n\nIf selecting the \\(\\beta\\) values adaptively, the maximum number of layers to construct. Note that, if the maximum number of layers is reached, the final bridging density may not be the target density.",
+    "crumbs": [
+      "API Reference",
+      "Bridges",
+      "Tempering"
+    ]
+  },
+  {
+    "objectID": "reference/Tempering.html#parameters",
+    "href": "reference/Tempering.html#parameters",
+    "title": "Tempering",
+    "section": "",
+    "text": "betas : Tensor | None = None\n\nA set of \\(\\beta\\) values to use for the intermediate distributions. If not specified, these will be determined automatically.\n\ness_tol : Tensor | float = 0.5\n\nIf selecting the \\(\\beta\\) values adaptively, the minimum allowable ESS of the samples (distributed according to an approximation of the previous bridging density) when selecting the next bridging density.\n\ness_tol_init : Tensor | float = 0.5\n\nIf selecting the \\(\\beta\\) values adaptively, the minimum allowable ESS of the samples when selecting the initial bridging density.\n\nbeta_factor : Tensor | float = 1.05\n\nIf selecting the \\(\\beta\\) values adaptively, the factor by which to increase the current \\(\\beta\\) value by prior to checking whether the ESS of the reweighted samples is sufficiently high.\n\nmin_beta : Tensor | float = 0.0001\n\nIf selecting the \\(\\beta\\) values adaptively, the minimum allowable \\(\\beta\\) value.\n\nmax_layers : int = 20\n\nIf selecting the \\(\\beta\\) values adaptively, the maximum number of layers to construct. Note that, if the maximum number of layers is reached, the final bridging density may not be the target density.",
+    "crumbs": [
+      "API Reference",
+      "Bridges",
+      "Tempering"
+    ]
+  },
+  {
+    "objectID": "reference/ImportanceSamplingResult.html",
+    "href": "reference/ImportanceSamplingResult.html",
+    "title": "ImportanceSamplingResult",
+    "section": "",
+    "text": "ImportanceSamplingResult(log_weights: Tensor, log_norm: Tensor, ess: Tensor)\nAn object containing the results of importance sampling.\n\n\n\nlog_weights : Tensor\n\nAn \\(n\\)-dimensional vector containing the unnormalised importance weights associated with a set of samples.\n\nlog_norm : Tensor\n\nAn estimate of the logarithm of the normalising constant associated with the target density.\n\ness : Tensor\n\nAn estimate of the effective sample size.\n\n\n\n\n\nThe effective sample size is computed using the formula \\[\n    N_{\\mathrm{eff}} = \\frac{(\\sum_{i=1}^{n}w_{i})^{2}}{\\sum_{i=1}^{n}w_{i}^{2}},\n\\] where \\(w_{i}\\) denotes the importance weight associated with particle \\(i\\) (Owen, 2013).\n\n\n\nOwen, AB (2013, Chapter 6). Monte Carlo theory, methods and examples.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "ImportanceSamplingResult"
+    ]
+  },
+  {
+    "objectID": "reference/ImportanceSamplingResult.html#attributes",
+    "href": "reference/ImportanceSamplingResult.html#attributes",
+    "title": "ImportanceSamplingResult",
+    "section": "",
+    "text": "log_weights : Tensor\n\nAn \\(n\\)-dimensional vector containing the unnormalised importance weights associated with a set of samples.\n\nlog_norm : Tensor\n\nAn estimate of the logarithm of the normalising constant associated with the target density.\n\ness : Tensor\n\nAn estimate of the effective sample size.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "ImportanceSamplingResult"
+    ]
+  },
+  {
+    "objectID": "reference/ImportanceSamplingResult.html#notes",
+    "href": "reference/ImportanceSamplingResult.html#notes",
+    "title": "ImportanceSamplingResult",
+    "section": "",
+    "text": "The effective sample size is computed using the formula \\[\n    N_{\\mathrm{eff}} = \\frac{(\\sum_{i=1}^{n}w_{i})^{2}}{\\sum_{i=1}^{n}w_{i}^{2}},\n\\] where \\(w_{i}\\) denotes the importance weight associated with particle \\(i\\) (Owen, 2013).",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "ImportanceSamplingResult"
+    ]
+  },
+  {
+    "objectID": "reference/ImportanceSamplingResult.html#references",
+    "href": "reference/ImportanceSamplingResult.html#references",
+    "title": "ImportanceSamplingResult",
+    "section": "",
+    "text": "Owen, AB (2013, Chapter 6). Monte Carlo theory, methods and examples.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "ImportanceSamplingResult"
+    ]
+  },
+  {
+    "objectID": "reference/SingleLayer.html",
+    "href": "reference/SingleLayer.html",
+    "title": "SingleLayer",
+    "section": "",
+    "text": "SingleLayer()\nConstructs the DIRT using a single layer.\nIn this setting, the DIRT algorithm reduces to the SIRT algorithm (see Cui and Dolgov, 2022).\n\n\nCui, T and Dolgov, S (2022). Deep composition of tensor-trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
+    "crumbs": [
+      "API Reference",
+      "Bridges",
+      "SingleLayer"
+    ]
+  },
+  {
+    "objectID": "reference/SingleLayer.html#references",
+    "href": "reference/SingleLayer.html#references",
+    "title": "SingleLayer",
+    "section": "",
+    "text": "Cui, T and Dolgov, S (2022). Deep composition of tensor-trains using squared inverse Rosenblatt transports. Foundations of Computational Mathematics 22, 1863–1922.",
+    "crumbs": [
+      "API Reference",
+      "Bridges",
+      "SingleLayer"
+    ]
+  },
+  {
+    "objectID": "reference/Chebyshev2nd.html",
+    "href": "reference/Chebyshev2nd.html",
+    "title": "Chebyshev2nd",
+    "section": "",
+    "text": "Chebyshev2nd(order: int)\nChebyshev polynomials of the second kind.\n\n\n\norder : int\n\nThe maximum order of the polynomials.\n\n\n\n\n\nThe (normalised) Chebyshev polynomials of the second kind, defined on \\((-1, 1)\\), are given by \\[\n    p_{k}(x) = \\frac{\\sin((k+1)\\arccos(x))}{\\sin{(\\arccos(x))}},\n        \\qquad k = 0, 1, \\dots, n.\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{2\\sqrt{1-x^{2}}}{\\pi}.\n\\]\n\n\n\nBoyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Chebyshev2nd"
+    ]
+  },
+  {
+    "objectID": "reference/Chebyshev2nd.html#parameters",
+    "href": "reference/Chebyshev2nd.html#parameters",
+    "title": "Chebyshev2nd",
+    "section": "",
+    "text": "order : int\n\nThe maximum order of the polynomials.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Chebyshev2nd"
+    ]
+  },
+  {
+    "objectID": "reference/Chebyshev2nd.html#notes",
+    "href": "reference/Chebyshev2nd.html#notes",
+    "title": "Chebyshev2nd",
+    "section": "",
+    "text": "The (normalised) Chebyshev polynomials of the second kind, defined on \\((-1, 1)\\), are given by \\[\n    p_{k}(x) = \\frac{\\sin((k+1)\\arccos(x))}{\\sin{(\\arccos(x))}},\n        \\qquad k = 0, 1, \\dots, n.\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{2\\sqrt{1-x^{2}}}{\\pi}.\n\\]",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Chebyshev2nd"
+    ]
+  },
+  {
+    "objectID": "reference/Chebyshev2nd.html#references",
+    "href": "reference/Chebyshev2nd.html#references",
+    "title": "Chebyshev2nd",
+    "section": "",
+    "text": "Boyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Chebyshev2nd"
+    ]
+  },
+  {
+    "objectID": "reference/Legendre.html",
+    "href": "reference/Legendre.html",
+    "title": "Legendre",
+    "section": "",
+    "text": "Legendre(order: int)\nLegendre polynomials.\n\n\n\norder : int\n\nThe maximum order of the polynomials, \\(n\\).\n\n\n\n\n\nThe Legendre polynomials, defined on \\((-1, 1)\\), are given by the recurrence relation \\[\n    (k+1)\\hat{p}_{k+1}(x) = (2k+1)x\\hat{p}_{k}(x) - k\\hat{p}_{k-1}(x),\n        \\qquad k = 1, 2, \\dots, n-1,\n\\] where \\(\\hat{p}_{0}(x) = 1, \\hat{p}_{1}(x) = x\\). The corresponding normalised polynomials are given by \\[\n    p_{k}(x) := \\frac{\\hat{p}_{k}(x)}{2k+1},\n        \\qquad k = 0, 1, \\dots, n.\n\\]\nThe polynomials are orthonormal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]\nWe use Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the Legendre representation of (the square root of) the target density function.\n\n\n\nBoyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Legendre"
+    ]
+  },
+  {
+    "objectID": "reference/Legendre.html#parameters",
+    "href": "reference/Legendre.html#parameters",
+    "title": "Legendre",
+    "section": "",
+    "text": "order : int\n\nThe maximum order of the polynomials, \\(n\\).",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Legendre"
+    ]
+  },
+  {
+    "objectID": "reference/Legendre.html#notes",
+    "href": "reference/Legendre.html#notes",
+    "title": "Legendre",
+    "section": "",
+    "text": "The Legendre polynomials, defined on \\((-1, 1)\\), are given by the recurrence relation \\[\n    (k+1)\\hat{p}_{k+1}(x) = (2k+1)x\\hat{p}_{k}(x) - k\\hat{p}_{k-1}(x),\n        \\qquad k = 1, 2, \\dots, n-1,\n\\] where \\(\\hat{p}_{0}(x) = 1, \\hat{p}_{1}(x) = x\\). The corresponding normalised polynomials are given by \\[\n    p_{k}(x) := \\frac{\\hat{p}_{k}(x)}{2k+1},\n        \\qquad k = 0, 1, \\dots, n.\n\\]\nThe polynomials are orthonormal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]\nWe use Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the Legendre representation of (the square root of) the target density function.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Legendre"
+    ]
+  },
+  {
+    "objectID": "reference/Legendre.html#references",
+    "href": "reference/Legendre.html#references",
+    "title": "Legendre",
+    "section": "",
+    "text": "Boyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Legendre"
+    ]
+  },
+  {
+    "objectID": "reference/UniformReference.html",
+    "href": "reference/UniformReference.html",
+    "title": "UniformReference",
+    "section": "",
+    "text": "UniformReference()\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).\n\n\n\n\n\nName\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nUniformReference.random(d: int, n: int)\nGenerates a set of random samples.\nGenerates a set of random samples from the reference density.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to draw.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nUniformReference.sobol(d: int, n: int)\nGenerates a set of QMC samples.\nGenerates a set of QMC samples from the reference density using a Sobol sequence.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "crumbs": [
+      "API Reference",
+      "Reference Densities",
+      "UniformReference"
+    ]
+  },
+  {
+    "objectID": "reference/UniformReference.html#methods",
+    "href": "reference/UniformReference.html#methods",
+    "title": "UniformReference",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nUniformReference.random(d: int, n: int)\nGenerates a set of random samples.\nGenerates a set of random samples from the reference density.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to draw.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nUniformReference.sobol(d: int, n: int)\nGenerates a set of QMC samples.\nGenerates a set of QMC samples from the reference density using a Sobol sequence.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "crumbs": [
+      "API Reference",
+      "Reference Densities",
+      "UniformReference"
+    ]
+  },
+  {
+    "objectID": "reference/Chebyshev1st.html",
+    "href": "reference/Chebyshev1st.html",
+    "title": "Chebyshev1st",
+    "section": "",
+    "text": "Chebyshev1st(order: int)\nChebyshev polynomials of the first kind.\n\n\n\norder : int\n\nThe maximum order of the polynomials.\n\n\n\n\n\nThe (normalised) Chebyshev polynomials of the first kind, defined on \\((-1, 1)\\), are given by \\[\n\\begin{align}\n    p_{0}(x) &= 1, \\\\\n    p_{k}(x) &= \\sqrt{2}\\cos(k\\arccos(x)),\n        \\qquad k = 1, 2, \\dots, n.\n\\end{align}\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{\\pi\\sqrt{1-x^{2}}}.\n\\]\n\n\n\nBoyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T, Dolgov, S and Zahm, O (2023). Self-reinforced polynomial approximation methods for concentrated probability densities. arXiv preprint.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Chebyshev1st"
+    ]
+  },
+  {
+    "objectID": "reference/Chebyshev1st.html#parameters",
+    "href": "reference/Chebyshev1st.html#parameters",
+    "title": "Chebyshev1st",
+    "section": "",
+    "text": "order : int\n\nThe maximum order of the polynomials.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Chebyshev1st"
+    ]
+  },
+  {
+    "objectID": "reference/Chebyshev1st.html#notes",
+    "href": "reference/Chebyshev1st.html#notes",
+    "title": "Chebyshev1st",
+    "section": "",
+    "text": "The (normalised) Chebyshev polynomials of the first kind, defined on \\((-1, 1)\\), are given by \\[\n\\begin{align}\n    p_{0}(x) &= 1, \\\\\n    p_{k}(x) &= \\sqrt{2}\\cos(k\\arccos(x)),\n        \\qquad k = 1, 2, \\dots, n.\n\\end{align}\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{\\pi\\sqrt{1-x^{2}}}.\n\\]",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Chebyshev1st"
+    ]
+  },
+  {
+    "objectID": "reference/Chebyshev1st.html#references",
+    "href": "reference/Chebyshev1st.html#references",
+    "title": "Chebyshev1st",
+    "section": "",
+    "text": "Boyd, JP (2001, Appendix A.2). Chebyshev and Fourier spectral methods. Lecture Notes in Engineering, Volume 49.\nCui, T, Dolgov, S and Zahm, O (2023). Self-reinforced polynomial approximation methods for concentrated probability densities. arXiv preprint.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Chebyshev1st"
+    ]
+  },
+  {
+    "objectID": "reference/LagrangeP.html",
+    "href": "reference/LagrangeP.html",
+    "title": "LagrangeP",
+    "section": "",
+    "text": "LagrangeP(order: int, num_elems: int)\nHigher-order piecewise Lagrange polynomials.\n\n\n\norder : int\n\nThe degree of the polynomials, \\(n\\).\n\nnum_elems : int\n\nThe number of elements to use.\n\n\n\n\n\nTo construct a higher-order Lagrange basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements, and use a set of Lagrange polynomials of degree \\(n=\\,\\)order within each element.\nWithin a given element, we choose a set of interpolation points, \\(\\{x_{j}\\}_{j=0}^{n}\\), which consist of the endpoints of the element and the roots of the Jacobi polynomial of degree \\(n-3\\) (mapped into the domain of the element). Then, a given function can be approximated (within the element) as \\[\n    f(x) \\approx \\sum_{j=0}^{n} f(x_{j})p_{j}(x),\n\\] where the Lagrange polynomials \\(\\{p_{j}(x)\\}_{j=0}^{n}\\) are given by \\[\n    p_{j}(x) = \\frac{\\prod_{k = 0, k \\neq j}^{n}(x-x_{k})}\n        {\\prod_{k = 0, k \\neq j}^{n}(x_{j}-x_{k})}.\n\\] To evaluate the interpolant, we use the second (true) form of the Barycentric formula, which is more efficient and stable than the above formula.\nWe use piecewise Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the higher-order Lagrange representation of (the square root of) the target density function.\n\n\n\nBerrut, J and Trefethen, LN (2004). Barycentric Lagrange interpolation. SIAM Review 46, 501–517.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "LagrangeP"
+    ]
+  },
+  {
+    "objectID": "reference/LagrangeP.html#parameters",
+    "href": "reference/LagrangeP.html#parameters",
+    "title": "LagrangeP",
+    "section": "",
+    "text": "order : int\n\nThe degree of the polynomials, \\(n\\).\n\nnum_elems : int\n\nThe number of elements to use.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "LagrangeP"
+    ]
+  },
+  {
+    "objectID": "reference/LagrangeP.html#notes",
+    "href": "reference/LagrangeP.html#notes",
+    "title": "LagrangeP",
+    "section": "",
+    "text": "To construct a higher-order Lagrange basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements, and use a set of Lagrange polynomials of degree \\(n=\\,\\)order within each element.\nWithin a given element, we choose a set of interpolation points, \\(\\{x_{j}\\}_{j=0}^{n}\\), which consist of the endpoints of the element and the roots of the Jacobi polynomial of degree \\(n-3\\) (mapped into the domain of the element). Then, a given function can be approximated (within the element) as \\[\n    f(x) \\approx \\sum_{j=0}^{n} f(x_{j})p_{j}(x),\n\\] where the Lagrange polynomials \\(\\{p_{j}(x)\\}_{j=0}^{n}\\) are given by \\[\n    p_{j}(x) = \\frac{\\prod_{k = 0, k \\neq j}^{n}(x-x_{k})}\n        {\\prod_{k = 0, k \\neq j}^{n}(x_{j}-x_{k})}.\n\\] To evaluate the interpolant, we use the second (true) form of the Barycentric formula, which is more efficient and stable than the above formula.\nWe use piecewise Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the higher-order Lagrange representation of (the square root of) the target density function.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "LagrangeP"
+    ]
+  },
+  {
+    "objectID": "reference/LagrangeP.html#references",
+    "href": "reference/LagrangeP.html#references",
+    "title": "LagrangeP",
+    "section": "",
+    "text": "Berrut, J and Trefethen, LN (2004). Barycentric Lagrange interpolation. SIAM Review 46, 501–517.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "LagrangeP"
+    ]
+  },
+  {
+    "objectID": "reference/Lagrange1.html",
+    "href": "reference/Lagrange1.html",
+    "title": "Lagrange1",
+    "section": "",
+    "text": "Lagrange1(num_elems: int)\nPiecewise linear polynomials.\n\n\n\nnum_elems : int\n\nThe number of elements to use.\n\n\n\n\n\nTo construct a piecewise linear basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements. Then, within each element a given function can be represented by \\[\n    f(x) \\approx f(x_{0})\n        + \\frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),\n\\] where \\(x_{0}\\) and \\(x_{1}\\) denote the endpoints of the element.\nWe use piecewise cubic polynomials to represent the (conditional) CDFs corresponding to the piecewise linear representation of (the square root of) the target density function.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Lagrange1"
+    ]
+  },
+  {
+    "objectID": "reference/Lagrange1.html#parameters",
+    "href": "reference/Lagrange1.html#parameters",
+    "title": "Lagrange1",
+    "section": "",
+    "text": "num_elems : int\n\nThe number of elements to use.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Lagrange1"
+    ]
+  },
+  {
+    "objectID": "reference/Lagrange1.html#notes",
+    "href": "reference/Lagrange1.html#notes",
+    "title": "Lagrange1",
+    "section": "",
+    "text": "To construct a piecewise linear basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements. Then, within each element a given function can be represented by \\[\n    f(x) \\approx f(x_{0})\n        + \\frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),\n\\] where \\(x_{0}\\) and \\(x_{1}\\) denote the endpoints of the element.\nWe use piecewise cubic polynomials to represent the (conditional) CDFs corresponding to the piecewise linear representation of (the square root of) the target density function.",
+    "crumbs": [
+      "API Reference",
+      "Polynomial Bases",
+      "Lagrange1"
+    ]
+  },
+  {
+    "objectID": "reference/GaussianMapping.html",
+    "href": "reference/GaussianMapping.html",
+    "title": "GaussianMapping",
+    "section": "",
+    "text": "GaussianMapping(\n    mean: Tensor,\n    cov: Tensor,\n    reference: GaussianReference | None = None,\n    diag: bool = False,\n)\nA mapping between two Gaussian densities.\nThis preconditioner provides a mapping between the standard Gaussian density and an Gaussian density with an arbitrary mean and covariance.\n\n\n\nmean : Tensor\n\nThe mean of the target Gaussian density.\n\ncov : Tensor\n\nThe covariance matrix of the target Gaussian density.\n\nreference : GaussianReference | None = None\n\nThe reference density. If this is not specified, it will be set to the unit Gaussian density with support on \\([-4, 4]^{d}\\).\n\ndiag : bool = False\n\nWhether cov is a diagonal matrix.",
+    "crumbs": [
+      "API Reference",
+      "Preconditioners",
+      "GaussianMapping"
+    ]
+  },
+  {
+    "objectID": "reference/GaussianMapping.html#parameters",
+    "href": "reference/GaussianMapping.html#parameters",
+    "title": "GaussianMapping",
+    "section": "",
+    "text": "mean : Tensor\n\nThe mean of the target Gaussian density.\n\ncov : Tensor\n\nThe covariance matrix of the target Gaussian density.\n\nreference : GaussianReference | None = None\n\nThe reference density. If this is not specified, it will be set to the unit Gaussian density with support on \\([-4, 4]^{d}\\).\n\ndiag : bool = False\n\nWhether cov is a diagonal matrix.",
+    "crumbs": [
+      "API Reference",
+      "Preconditioners",
+      "GaussianMapping"
     ]
   },
   {
