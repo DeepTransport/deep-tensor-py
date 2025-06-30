@@ -40,8 +40,9 @@ from .polynomials import (
     construct_cdf
 )
 from .preconditioners import (
-    Preconditioner, 
+    GaussianMapping,
     IdentityMapping,
+    Preconditioner, 
     UniformMapping
 )
 from .references import Reference, GaussianReference, UniformReference

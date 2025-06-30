@@ -1,12 +1,11 @@
 import torch
 from torch import Tensor
 
-from .preconditioner import Preconditioner
-from .gaussian_preconditioner import GaussianPreconditioner
+from .gaussian_mapping import GaussianMapping
 from ..references import GaussianReference
 
 
-class SampleBasedPreconditioner(Preconditioner):
+class SampleBasedMapping(GaussianMapping):
     r"""An approximate linear coupling between the reference and target densities.
 
     Builds an approximate linear coupling between the unit Gaussian 
@@ -37,7 +36,7 @@ class SampleBasedPreconditioner(Preconditioner):
         inflation: Tensor | None = None
     ):
         
-        mean = torch.mean(samples, axis=0)
+        mean = torch.mean(samples, dim=0)
         cov = torch.cov(samples.T)
 
         if perturb_eigvals:
@@ -52,5 +51,5 @@ class SampleBasedPreconditioner(Preconditioner):
                 inflation = torch.diag(inflation)
                 cov = inflation @ cov @ inflation
 
-        GaussianPreconditioner.__init__(self, mean, cov, reference)
+        GaussianMapping.__init__(self, mean, cov, reference)
         return

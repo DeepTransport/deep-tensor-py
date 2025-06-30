@@ -87,19 +87,13 @@ class MCMCResult(object):
 
     Notes
     -----
-    The IACT for a given parameter is estimated according to
-    $$
-        \hat{\tau}(M) = 1 + 2 \sum_{i=1}^{M} \hat{\rho}(i),
-    $$
-    where $\hat{\rho}(i)$ denotes an estimate of the normalised 
-    autocorrelation function of the parameter for a lag of $i$,
-    $M$ is the smallest integer such that $M \geq C\hat{\tau}(M)$,
-    and $C=5$. For further information, see the [emcee docs](https://emcee.readthedocs.io/en/stable/tutorials/autocorr/#computing-autocorrelation-times).
+    The IACT for parameter $i$, denoted using $\tau_{i}$, is estimated 
+    using the monotone sequence estimator outlined by Geyer (2011).
 
-    The ESS for a given parameter is estimated according to
-    $$
-        N_{\mathrm{eff}} = \frac{1}{\hat{\tau}(M)}.
-    $$
+    References
+    ----------
+    Geyer, CJ (2011). *[Introduction to Markov chain Monte Carlo](https://doi.org/10.1201/b10905)*. 
+    In: Handbook of Markov Chain Monte Carlo 3--48.
     
     """
     def __init__(self, chain: MarkovChain):
@@ -107,9 +101,7 @@ class MCMCResult(object):
         self.potentials = chain.potentials
         self.acceptance_rate = chain.acceptance_rate
         self.iacts = estimate_iact(chain.xs)
-        self.ess = 1 / self.iacts
-        # import puwr
-        # print(2.0 * puwr.tauint(chain.xs.T[:, None, :].numpy(), 0)[2])
+        self.ess = 1.0 / self.iacts
         return
 
 
@@ -123,23 +115,19 @@ def _next_pow_two(n: int) -> int:
     return i
 
 
-def _estimate_window(taus: Tensor, c: float) -> int:
-    """Computes a suitable window size to use when estimating the IACT.
-    """
-    ms = torch.arange(taus.numel()) > c * taus
-    if torch.any(ms):
-        return int(torch.nonzero(ms)[0])
-    warnings.warn("Could not find a suitable window size.")
-    return taus.numel() - 1
-
-
 def compute_autocorrelations(xs: Tensor) -> Tensor:
     """Computes the autocorrelations associated with a 1D time series.
 
     Parameters
     ----------
     xs:
-        A 1D time series
+        An n-dimensional vector containing a 1D time series.
+    
+    Returns
+    -------
+    acf:
+        An n-dimensional vector containing an estimate of the 
+        autocorrelations for `xs`.
 
     References
     ----------
@@ -158,7 +146,7 @@ def compute_autocorrelations(xs: Tensor) -> Tensor:
     return acf
 
 
-def estimate_iact(xs: Tensor, c: float = 5.0) -> Tensor:
+def estimate_iact(xs: Tensor) -> Tensor:
     """Estimates the integrated autocorrelation time of each parameter 
     within a simulated Markov chain.
     
@@ -167,9 +155,6 @@ def estimate_iact(xs: Tensor, c: float = 5.0) -> Tensor:
     xs:
         An n_steps * n_params matrix containing the simulated Markov 
         chain.
-    c:
-        Parameter used to determine the window size to use when 
-        estimating the IACT.
 
     Returns
     -------
@@ -179,17 +164,28 @@ def estimate_iact(xs: Tensor, c: float = 5.0) -> Tensor:
     
     References
     ----------
-    https://emcee.readthedocs.io/en/stable/tutorials/autocorr/#computing-autocorrelation-times
+    https://mc-stan.org/docs/2_19/reference-manual/effective-sample-size-section.html
 
     """
 
     taus = torch.zeros(xs.shape[1])
 
     for i, x_i in enumerate(xs.T):
-        rhos_i = compute_autocorrelations(x_i)[1:]  # remove rho(0) = 1
-        taus_i = 1.0 + 2.0 * rhos_i.cumsum(dim=0)
-        M = _estimate_window(taus_i, c)
-        taus[i] = taus_i[M]
+        
+        rhos_i = compute_autocorrelations(x_i)
+        montone_seq = torch.cummin(rhos_i[:-1:2] + rhos_i[1::2], 0).values
+
+        if montone_seq.min() < 0:
+            M = (montone_seq > 0).int().argmin()
+        else:
+            msg = "Monotone sequence contains no negative component."
+            warnings.warn(msg)
+            M = montone_seq.numel()
+        
+        taus[i] = -1.0 + 2.0 * torch.sum(montone_seq[:M])
+
+        # import puwr
+        # tau_wolff = puwr.tauint(xs.T[:, None, :].numpy(), i)[2]
     
     return taus
 

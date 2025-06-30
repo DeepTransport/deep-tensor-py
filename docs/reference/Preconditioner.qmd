@@ -1,19 +1,13 @@
 # Preconditioner { #deep_tensor.Preconditioner }
 
 ```python
-Preconditioner(
-    reference: Reference,
-    Q: Callable[[Tensor, str], Tensor],
-    Q_inv: Callable[[Tensor, str], Tensor],
-    neglogdet_Q: Callable[[Tensor, str], Tensor],
-    neglogdet_Q_inv: Callable[[Tensor, str], Tensor],
-    dim: int,
-)
+Preconditioner(reference: Reference, dim: int)
 ```
 
-A user-defined preconditioning function.
+The base class for preconditioning mappings.
+
 Ideally, the pushforward of the reference density under the 
-preconditioning function will be as similar as possible to the 
+preconditioning mapping will be as similar as possible to the 
 target density; this makes the subsequent construction of the DIRT 
 approximation to the target density more efficient.
 
@@ -36,22 +30,117 @@ or upper triangular (or both):
 
 :   The density of the reference random variable.
 
-<code>[**Q**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor, str\], Tensor\]]{.parameter-annotation}</code>
-
-:   A function which takes an $n \times k$ matrix containing  samples from the reference domain and a string indicating  whether these are samples of the first (`subset='first'`) or  last (`subset='last'`) $k$ variables, and returns an  $n \times k$ matrix containing samples from the approximation  domain, after applying the mapping $Q(\cdot)$ to each sample.
-
-<code>[**Q_inv**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor, str\], Tensor\]]{.parameter-annotation}</code>
-
-:   A function which takes an $n \times k$ matrix containing  samples from the approximation domain and a string indicating  whether these are samples of the first (`subset='first'`) or  last (`subset='last'`) $k$ variables, and returns an  $n \times k$ matrix containing samples from the reference  domain, after applying the mapping $Q^{-1}(\cdot)$ to each  sample.
-
-<code>[**neglogdet_Q**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor, str\], Tensor\]]{.parameter-annotation}</code>
-
-:   A function which takes an $n \times k$ matrix containing  samples from the reference domain and a string indicating  whether these are samples of the first (`subset='first'`) or  last (`subset='last'`) $k$ variables, and returns an  $n$-dimensional vector containing the negative log-determinant  of $Q(\cdot)$ evaluated at each sample.
-
-<code>[**neglogdet_Q_inv**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor, str\], Tensor\]]{.parameter-annotation}</code>
-
-:   A function which takes an $n \times k$ matrix containing  samples from the approximation domain and a string indicating  whether these are samples of the first (`subset='first'`) or  last (`subset='last'`) $k$ variables, and returns an  $n$-dimensional vector containing the negative log-determinant  of $Q^{-1}(\cdot)$ evaluated at each sample.
-
 <code>[**dim**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
 
 :   The dimension, $d$, of the target (and reference) random  variable.
+
+## Notes {.doc-section .doc-section-notes}
+
+To construct a custom preconditioning mapping, the user must 
+construct a class derived from this class with methods `Q()`, 
+`Q_inv()`, `neglogdet_Q()`, and `neglogdet_Q_inv()`.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [Q](#deep_tensor.Preconditioner.Q) | Applies the mapping $Q(\cdot)$ to a set of samples. |
+| [Q_inv](#deep_tensor.Preconditioner.Q_inv) | Applies the mapping $Q^{-1}(\cdot)$ to a set of samples. |
+| [neglogdet_Q](#deep_tensor.Preconditioner.neglogdet_Q) | Applies the mapping $Q(\cdot)$ to a set of samples. |
+| [neglogdet_Q_inv](#deep_tensor.Preconditioner.neglogdet_Q_inv) | Applies the mapping $Q^{-1}(\cdot)$ to a set of samples. |
+
+### Q { #deep_tensor.Preconditioner.Q }
+
+```python
+Preconditioner.Q(us: Tensor, subset: str | None = None)
+```
+
+Applies the mapping $Q(\cdot)$ to a set of samples.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**us**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing samples from the  reference domain.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If $k < d$, whether the samples are samples of the first  (`subset='first'`) or last (`subset='last'`) $k$ variables.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing samples from the  approximation domain, after applying the mapping $Q(\cdot)$  to each sample.
+
+### Q_inv { #deep_tensor.Preconditioner.Q_inv }
+
+```python
+Preconditioner.Q_inv(xs: Tensor, subset: str | None = None)
+```
+
+Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing samples from the  approximation domain.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If $k < d$, whether the samples are samples of the first  (`subset='first'`) or last (`subset='last'`) $k$ variables.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**us**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing samples from the  reference domain, after applying the mapping $Q^{-1}(\cdot)$  to each sample.
+
+### neglogdet_Q { #deep_tensor.Preconditioner.neglogdet_Q }
+
+```python
+Preconditioner.neglogdet_Q(us: Tensor, subset: str | None = None)
+```
+
+Applies the mapping $Q(\cdot)$ to a set of samples.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**us**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing samples from the  reference domain.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If $k < d$, whether the samples are samples of the first  (`subset='first'`) or last (`subset='last'`) $k$ variables.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**neglogdets**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the negative  log-determinant of $Q(\cdot)$ evaluated at each sample.
+
+### neglogdet_Q_inv { #deep_tensor.Preconditioner.neglogdet_Q_inv }
+
+```python
+Preconditioner.neglogdet_Q_inv(xs: Tensor, subset: str | None = None)
+```
+
+Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing samples from the  approximation domain.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If $k < d$, whether the samples are samples of the first  (`subset='first'`) or last (`subset='last'`) $k$ variables.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**neglogdets**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the negative  log-determinant of $Q^{-1}(\cdot)$ evaluated at each sample.

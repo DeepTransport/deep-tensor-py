@@ -1,16 +1,15 @@
-from dataclasses import dataclass
-from typing import Callable
+import abc
 
 from torch import Tensor
 
 from ..references import Reference
 
 
-@dataclass
-class Preconditioner():
-    r"""A user-defined preconditioning function.
+class Preconditioner(abc.ABC):
+    r"""The base class for preconditioning mappings.
+
     Ideally, the pushforward of the reference density under the 
-    preconditioning function will be as similar as possible to the 
+    preconditioning mapping will be as similar as possible to the 
     target density; this makes the subsequent construction of the DIRT 
     approximation to the target density more efficient.
 
@@ -31,44 +30,109 @@ class Preconditioner():
     ----------
     reference:
         The density of the reference random variable.
-    Q:
-        A function which takes an $n \times k$ matrix containing 
-        samples from the reference domain and a string indicating 
-        whether these are samples of the first (`subset='first'`) or 
-        last (`subset='last'`) $k$ variables, and returns an 
-        $n \times k$ matrix containing samples from the approximation 
-        domain, after applying the mapping $Q(\cdot)$ to each sample.
-    Q_inv: 
-        A function which takes an $n \times k$ matrix containing 
-        samples from the approximation domain and a string indicating 
-        whether these are samples of the first (`subset='first'`) or 
-        last (`subset='last'`) $k$ variables, and returns an 
-        $n \times k$ matrix containing samples from the reference 
-        domain, after applying the mapping $Q^{-1}(\cdot)$ to each 
-        sample.
-    neglogdet_Q:
-        A function which takes an $n \times k$ matrix containing 
-        samples from the reference domain and a string indicating 
-        whether these are samples of the first (`subset='first'`) or 
-        last (`subset='last'`) $k$ variables, and returns an 
-        $n$-dimensional vector containing the negative log-determinant 
-        of $Q(\cdot)$ evaluated at each sample.
-    neglogdet_Q_inv:
-        A function which takes an $n \times k$ matrix containing 
-        samples from the approximation domain and a string indicating 
-        whether these are samples of the first (`subset='first'`) or 
-        last (`subset='last'`) $k$ variables, and returns an 
-        $n$-dimensional vector containing the negative log-determinant 
-        of $Q^{-1}(\cdot)$ evaluated at each sample.
     dim: 
         The dimension, $d$, of the target (and reference) random 
         variable.
 
+    Notes
+    -----
+    To construct a custom preconditioning mapping, the user must 
+    construct a class derived from this class with methods `Q()`, 
+    `Q_inv()`, `neglogdet_Q()`, and `neglogdet_Q_inv()`.
+
     """
+
+    def __init__(self, reference: Reference, dim: int):
+        self.reference = reference
+        self.dim = dim 
+        return
     
-    reference: Reference
-    Q: Callable[[Tensor, str], Tensor]
-    Q_inv: Callable[[Tensor, str], Tensor]
-    neglogdet_Q: Callable[[Tensor, str], Tensor]
-    neglogdet_Q_inv: Callable[[Tensor, str], Tensor]
-    dim: int
+    @abc.abstractmethod
+    def Q(self, us: Tensor, subset: str | None = None) -> Tensor:
+        r"""Applies the mapping $Q(\cdot)$ to a set of samples.
+
+        Parameters
+        ----------
+        us:
+            An $n \times k$ matrix containing samples from the 
+            reference domain.
+        subset:    
+            If $k < d$, whether the samples are samples of the first 
+            (`subset='first'`) or last (`subset='last'`) $k$ variables. 
+            
+        Returns
+        -------
+        xs:
+            An $n \times k$ matrix containing samples from the 
+            approximation domain, after applying the mapping $Q(\cdot)$ 
+            to each sample.
+        
+        """
+        pass
+
+    @abc.abstractmethod
+    def Q_inv(self, xs: Tensor, subset: str | None = None) -> Tensor:
+        r"""Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
+
+        Parameters
+        ----------
+        xs:
+            An $n \times k$ matrix containing samples from the 
+            approximation domain.
+        subset:    
+            If $k < d$, whether the samples are samples of the first 
+            (`subset='first'`) or last (`subset='last'`) $k$ variables. 
+            
+        Returns
+        -------
+        us:
+            An $n \times k$ matrix containing samples from the 
+            reference domain, after applying the mapping $Q^{-1}(\cdot)$ 
+            to each sample.
+        
+        """
+        pass
+
+    @abc.abstractmethod
+    def neglogdet_Q(self, us: Tensor, subset: str | None = None) -> Tensor:
+        r"""Applies the mapping $Q(\cdot)$ to a set of samples.
+
+        Parameters
+        ----------
+        us:
+            An $n \times k$ matrix containing samples from the 
+            reference domain.
+        subset:    
+            If $k < d$, whether the samples are samples of the first 
+            (`subset='first'`) or last (`subset='last'`) $k$ variables. 
+            
+        Returns
+        -------
+        neglogdets:
+            An $n$-dimensional vector containing the negative 
+            log-determinant of $Q(\cdot)$ evaluated at each sample.
+        
+        """
+        pass
+
+    @abc.abstractmethod
+    def neglogdet_Q_inv(self, xs: Tensor, subset: str | None = None) -> Tensor:
+        r"""Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
+
+        Parameters
+        ----------
+        xs:
+            An $n \times k$ matrix containing samples from the 
+            approximation domain.
+        subset:    
+            If $k < d$, whether the samples are samples of the first 
+            (`subset='first'`) or last (`subset='last'`) $k$ variables. 
+            
+        Returns
+        -------
+        neglogdets:
+            An $n$-dimensional vector containing the negative 
+            log-determinant of $Q^{-1}(\cdot)$ evaluated at each sample.
+        
+        """
+        pass

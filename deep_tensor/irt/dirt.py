@@ -1,7 +1,7 @@
 import abc
 from copy import deepcopy
 import time
-from typing import Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import torch
 from torch import Tensor
@@ -775,7 +775,7 @@ class AbstractDIRT(abc.ABC):
 
         fname = DIRT.parse_filename(fname)
         
-        d = {
+        d: Dict[Any, Any] = {
             "n_layers": self.n_layers,
             "bridge": {
                 "name": BRIDGE2NAME[type(self.bridge)],
@@ -880,14 +880,6 @@ class DIRT(AbstractDIRT):
         dirt_options: DIRTOptions | None = None,
         prev_approx: Dict[int, SIRT] | None = None
     ):
-        
-        def neglogfx_Q(us: Tensor) -> Tensor:
-            xs = self.preconditioner.Q(us, "first")
-            neglogdets = self.preconditioner.neglogdet_Q(us, "first")
-            neglogliks = negloglik(xs)
-            neglogpris = neglogpri(xs)
-            self.num_eval += us.shape[0]
-            return neglogpris + neglogliks + neglogdets
 
         if bridge is None:
             bridge = Tempering()
@@ -896,7 +888,9 @@ class DIRT(AbstractDIRT):
         if dirt_options is None:
             dirt_options = DIRTOptions()
 
-        self.neglogfx = neglogfx_Q
+        self.negloglik = negloglik
+        self.neglogpri = neglogpri
+        # self.neglogfx = neglogfx_Q
         self.preconditioner = preconditioner
         self.bases = ApproxBases(bases, self.domain, self.dim)
         self.bridge = bridge
@@ -911,6 +905,17 @@ class DIRT(AbstractDIRT):
 
         self._build()
         return
+    
+    def neglogfx(self, us: Tensor) -> Tensor:
+        """Evaluates the pullback of the target density function at a 
+        set of samples in the reference domain.
+        """
+        xs = self.preconditioner.Q(us, "first")
+        neglogdets = self.preconditioner.neglogdet_Q(us, "first")
+        neglogliks = self.negloglik(xs)
+        neglogpris = self.neglogpri(xs)
+        self.num_eval += us.shape[0]
+        return neglogpris + neglogliks + neglogdets
 
     def _get_potential_to_density(
         self, 
@@ -982,6 +987,24 @@ class DIRT(AbstractDIRT):
         )
 
         return InputData(xs[indices], xs[indices_debug], fxs_debug)
+    
+    def _updated_func(self, rs: Tensor) -> Tensor:
+
+        neglogrefs_rs = self.reference.eval_potential(rs)[0]
+
+        xs, neglogfxs_dirt = self._eval_irt_reference(rs)
+        neglogrefs = self.reference.eval_potential(xs)[0]
+        neglogfxs = self.neglogfx(xs)
+
+        neglogratios = self.bridge._get_ratio_func(
+            self.dirt_options.method,
+            neglogrefs_rs,
+            neglogrefs,
+            neglogfxs,
+            neglogfxs_dirt
+        )
+
+        return neglogratios
 
     def _get_new_layer(self, xs: Tensor, neglogratios: Tensor) -> SIRT:
         """Constructs a new SIRT to add to the current composition of 
@@ -1004,24 +1027,6 @@ class DIRT(AbstractDIRT):
         
         """
 
-        def updated_func(rs: Tensor) -> Tensor:
-
-            neglogrefs_rs = self.reference.eval_potential(rs)[0]
-
-            xs, neglogfxs_dirt = self._eval_irt_reference(rs)
-            neglogrefs = self.reference.eval_potential(xs)[0]
-            neglogfxs = self.neglogfx(xs)
-
-            neglogratios = self.bridge._get_ratio_func(
-                self.dirt_options.method,
-                neglogrefs_rs,
-                neglogrefs,
-                neglogfxs,
-                neglogfxs_dirt
-            )
-
-            return neglogratios
-
         if self.prev_approx is None:
             
             # Generate debugging and initialisation samples
@@ -1036,7 +1041,7 @@ class DIRT(AbstractDIRT):
                 tt_data = deepcopy(self.sirts[self.n_layers-1].approx.tt_data)
 
             sirt = SIRT(
-                updated_func,
+                self._updated_func,
                 preconditioner=self.preconditioner,
                 bases=self.bases.polys,
                 prev_approx=approx,
@@ -1054,7 +1059,7 @@ class DIRT(AbstractDIRT):
             input_data = self._get_inputdata(xs, neglogratios)
 
             sirt = SIRT(
-                updated_func,
+                self._updated_func,
                 preconditioner=self.preconditioner,
                 bases=sirt_prev.approx.bases.polys,
                 options=self.tt_options,
@@ -1155,11 +1160,19 @@ class DIRT(AbstractDIRT):
                 t1 = time.time()
 
                 if self.dirt_options.verbose:
+
+                    total_time = t1 - t0
+                    if total_time < 60: 
+                        total_time = f"{total_time:.2f} seconds"
+                    elif total_time < 3600:
+                        total_time = f"{total_time/60.0:2.2f} mins"
+                    else:
+                        total_time = f"{total_time/3600.0:2.2f} hours"
                     
                     dirt_info("DIRT construction complete.")
                     dirt_info(f" • Layers: {self.n_layers}.")
                     dirt_info(f" • Total function evaluations: {self.num_eval:,}.")
-                    dirt_info(f" • Total time: {t1-t0:,.2} s.")
+                    dirt_info(f" • Total time: {total_time}.")
                     dirt_info(f" • DHell: {dhell2.sqrt():.4f}.")
 
                 return

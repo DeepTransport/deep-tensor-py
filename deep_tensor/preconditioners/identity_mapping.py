@@ -26,30 +26,24 @@ class IdentityMapping(Preconditioner):
         dim: int, 
         reference: Reference | None = None
     ):
-
         if reference is None:
-            reference = GaussianReference()
-
-        def Q(us: Tensor, subset: str) -> Tensor:
-            return us
-        
-        def Q_inv(xs: Tensor, subset: str) -> Tensor:
-            return xs
-        
-        def neglogdet_Q(us: Tensor, subset: str) -> Tensor:
-            return torch.zeros(us.shape[0])
-        
-        def neglogdet_Q_inv(xs: Tensor, subset: str) -> Tensor: 
-            return torch.zeros(xs.shape[0])
-        
-        Preconditioner.__init__(
-            self, 
-            reference=reference, 
-            Q=Q,
-            Q_inv=Q_inv,
-            neglogdet_Q=neglogdet_Q,
-            neglogdet_Q_inv=neglogdet_Q_inv,
-            dim=dim
-        )
-
+            reference = GaussianReference()  
+        self.dim = dim
+        self.reference = reference
         return
+
+    @staticmethod
+    def Q(us: Tensor, subset: str | None = None) -> Tensor:
+        return us
+    
+    @staticmethod
+    def Q_inv(xs: Tensor, subset: str | None = None) -> Tensor:
+        return xs
+    
+    @staticmethod
+    def neglogdet_Q(us: Tensor, subset: str | None = None) -> Tensor:
+        return torch.zeros(us.shape[0])
+    
+    @staticmethod
+    def neglogdet_Q_inv(xs: Tensor, subset: str | None = None) -> Tensor: 
+        return torch.zeros(xs.shape[0])

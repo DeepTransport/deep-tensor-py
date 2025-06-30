@@ -190,7 +190,7 @@ Following @Dolgov2020, we will construct the mapping such that each coefficient 
 
 ```{python}
 
-from examples.shock import construct_preconditioner
+from examples.shock import GammaNormalMapping
 
 # Define bounds for parameters
 bounds = torch.zeros((D+2, 2))
@@ -200,7 +200,7 @@ bounds[-1] = torch.tensor([1e-8, 13.0])
 # Construct mapping from Gaussian reference to prior
 dim = D + 2
 reference = dt.GaussianReference()
-preconditioner = construct_preconditioner(
+preconditioner = GammaNormalMapping(
     reference, bounds, 
     alpha, gamma, 
     ms, sds, dim

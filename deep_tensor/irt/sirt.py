@@ -1379,21 +1379,6 @@ class SIRT(AbstractSIRT):
         defensive: float = 1e-8
     ):
         
-        def target_func(ls: Tensor) -> Tensor:
-            """Returns the square root of the ratio between the target 
-            density and the weighting function evaluated at a set of 
-            points in the local domain.
-            """
-
-            xs = self.bases.local2approx(ls)[0]
-            neglogfxs = self.potential(xs)
-            neglogwxs = self.bases.eval_measure_potential(xs)[0]
-            
-            # The ratio of f and w is invariant to changes of coordinate
-            gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
-            check_finite(gs)
-            return gs
-        
         if bases is None and prev_approx is None:
             msg = ("Must pass in a previous approximation or a set of "
                    + "approximation bases.")
@@ -1424,7 +1409,7 @@ class SIRT(AbstractSIRT):
         self.oned_cdfs = self._construct_cdfs(self.options.cdf_tol)
 
         self.approx = TTFunc(
-            target_func, 
+            self._target_func, 
             self.bases,
             options=self.options, 
             input_data=self.input_data,
@@ -1442,6 +1427,21 @@ class SIRT(AbstractSIRT):
         self._marginalise_forward()
         self._marginalise_backward()
         return
+    
+    def _target_func(self, ls: Tensor) -> Tensor:
+        """Returns the square root of the ratio between the target 
+        density and the weighting function evaluated at a set of points 
+        in the local domain.
+        """
+
+        xs = self.bases.local2approx(ls)[0]
+        neglogfxs = self.potential(xs)
+        neglogwxs = self.bases.eval_measure_potential(xs)[0]
+        
+        # The ratio of f and w is invariant to changes of coordinate
+        gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
+        check_finite(gs)
+        return gs
 
     def _marginalise_forward(self) -> None:
         """Computes each coefficient tensor required to evaluate the 

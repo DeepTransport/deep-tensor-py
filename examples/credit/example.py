@@ -47,24 +47,22 @@ def negloglik(bs: torch.Tensor) -> torch.Tensor:
     bs = torch.atleast_2d(bs)
 
     neglogodds = bs[:, :1] + torch.sum(bs[:, 1:, None] * xs.T[None, ...], dim=1)
-    probs = 1.0 / (1.0 + torch.exp(-neglogodds))
+    odds = torch.exp(-neglogodds)
 
-    neglogliks_0 = -torch.log(1.0 - probs)[:, ys < 0.5].sum(dim=1)
-    neglogliks_1 = -torch.log(probs)[:, ys > 0.5].sum(dim=1)
+    neglogliks_0 = -torch.log(odds / (1.0 + odds))[:, ys < 0.5].sum(dim=1)
+    neglogliks_1 = -torch.log(1.0 / (1.0 + odds))[:, ys > 0.5].sum(dim=1)
     neglogliks = neglogliks_0 + neglogliks_1 - 500  # numerical stability
     return neglogliks
 
 def neglogpri(bs: torch.Tensor) -> torch.Tensor:
-
     bs = torch.atleast_2d(bs)
-    
     neglogpris = 0.5 * (bs / sd_pri).square().sum(dim=1)
     return neglogpris
 
 def neglogpost(bs: torch.Tensor) -> torch.Tensor:
     return negloglik(bs) + neglogpri(bs)
 
-def compute_laplace_approx() -> Tuple[torch.Tensor, torch.Tensor]:
+def compute_laplace_approx(x0: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """Computes a Laplace approximation to the posterior."""
     
     def jac(_bs: np.ndarray) -> torch.Tensor:
@@ -73,7 +71,7 @@ def compute_laplace_approx() -> Tuple[torch.Tensor, torch.Tensor]:
 
     res = optimize.minimize(
         fun=lambda bs: neglogpost(torch.from_numpy(bs)), 
-        x0=torch.zeros((n_beta,)),
+        x0=x0,
         jac=jac
     )
 
@@ -86,11 +84,12 @@ def compute_laplace_approx() -> Tuple[torch.Tensor, torch.Tensor]:
     H_inv = torch.linalg.inv(H)
     return bs_map, H_inv
 
-bs_map, cov_map = compute_laplace_approx()
+x0 = torch.zeros(n_beta)  # I haven't found a different MAP estimate when varying the starting location
+bs_map, cov_map = compute_laplace_approx(x0)
 
 domain = dt.BoundedDomain(torch.tensor([-6.0, 6.0]))
 reference = dt.GaussianReference(domain=domain)
-preconditioner = dt.GaussianPreconditioner(bs_map, cov_map, reference)
+preconditioner = dt.GaussianMapping(bs_map, cov_map, reference)
 
 bases = dt.Lagrange1(num_elems=20)
 
@@ -124,5 +123,7 @@ print(res.iacts.max())
 print(res.ess.min())
 
 rs = dirt.reference.random(d=dirt.dim, n=1000)
-samples = preconditioner.Q(rs, "first")
-pairplot(res.xs[::5, :6])
+samples = preconditioner.Q(rs)
+
+for i in range(5):
+    pairplot(res.xs[::5, 5*i:5*(i+1)])

@@ -30,16 +30,10 @@ An object containing a constructed Markov chain.
 
 ## Notes {.doc-section .doc-section-notes}
 
-The IACT for a given parameter is estimated according to
-$$
-    \hat{\tau}(M) = 1 + 2 \sum_{i=1}^{M} \hat{\rho}(i),
-$$
-where $\hat{\rho}(i)$ denotes an estimate of the normalised 
-autocorrelation function of the parameter for a lag of $i$,
-$M$ is the smallest integer such that $M \geq C\hat{\tau}(M)$,
-and $C=5$. For further information, see the [emcee docs](https://emcee.readthedocs.io/en/stable/tutorials/autocorr/#computing-autocorrelation-times).
+The IACT for parameter $i$, denoted using $\tau_{i}$, is estimated 
+using the monotone sequence estimator outlined by Geyer (2011).
 
-The ESS for a given parameter is estimated according to
-$$
-    N_{\mathrm{eff}} = \frac{1}{\hat{\tau}(M)}.
-$$
+## References {.doc-section .doc-section-references}
+
+Geyer, CJ (2011). *[Introduction to Markov chain Monte Carlo](https://doi.org/10.1201/b10905)*. 
+In: Handbook of Markov Chain Monte Carlo 3--48.

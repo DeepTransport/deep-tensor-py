@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import torch
 import deep_tensor as dt
 
-from preconditioner import construct_preconditioner
+from preconditioner import GammaNormalMapping
 from examples.plotting import add_arrows, pairplot
 
 
@@ -97,7 +97,7 @@ bounds[-1] = torch.tensor([1e-8, 13.0])
 # Construct mapping from Gaussian reference to prior
 dim = D + 2
 reference = dt.GaussianReference()
-preconditioner = construct_preconditioner(
+preconditioner = GammaNormalMapping(
     reference, bounds, 
     alpha, gamma, 
     ms, sds, dim
@@ -225,7 +225,7 @@ for i, name in enumerate(results):
     ax.scatter(num_eval, iact, c=colours[name], marker="s", label=name, zorder=i)
 
 ax.set_xlabel("Number of likelihood evaluations")
-ax.set_ylabel("Max. IACT")
+ax.set_ylabel("Max IACT")
 ax.set_box_aspect(1)
 ax.legend(loc="center left", bbox_to_anchor=(1, 0.5))
 add_arrows(ax)

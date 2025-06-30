@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch import Tensor
 
@@ -25,62 +27,56 @@ class UniformMapping(Preconditioner):
 
     """
 
-    def __init__(self, bounds: Tensor, reference: Reference | None = None):
+    def __init__(
+        self, 
+        bounds: Tensor, 
+        reference: Reference | None = None
+    ):
         
         if reference is None:
             reference = GaussianReference()
-
-        dim = bounds.shape[0]
-        lbs, ubs = bounds.T
-        dxs = ubs - lbs
-
-        def Q(us: Tensor, subset: str | None = None) -> Tensor:
-            # Reference to uniform
-            d_us = us.shape[1]
-            zs = reference.eval_cdf(us)[0]
-            if subset in ("first", None):
-                xs = lbs[:d_us] + dxs[:d_us] * zs 
-            elif subset == "last":
-                xs = lbs[-d_us:] + dxs[-d_us:] * zs
-            return xs 
         
-        def Q_inv(xs: Tensor, subset: str | None = None) -> Tensor:
-            # Uniform to reference
-            d_xs = xs.shape[1]
-            if subset in ("first", None):    
-                zs = (xs - lbs[:d_xs]) / dxs[:d_xs]
-            elif subset == "last":
-                zs = (xs - lbs[-d_xs:]) / dxs[-d_xs:]
-            us = reference.invert_cdf(zs)
-            return us
-        
-        def neglogdet_Q(us: Tensor, subset: str | None = None) -> Tensor:
-            n_us, d_us = us.shape
-            if subset in ("first", None):
-                neglogfxs = dxs[:d_us].prod().log()
-            elif subset == "last":
-                neglogfxs = dxs[-d_us:].prod().log()
-            neglogfxs = torch.full((n_us,), neglogfxs)
-            return reference.eval_potential(us)[0] - neglogfxs
-        
-        def neglogdet_Q_inv(xs: Tensor, subset: str | None = None) -> Tensor:
-            n_xs, d_xs = xs.shape
-            if subset in ("first", None):
-                neglogfxs = dxs[:d_xs].prod().log()
-            elif subset == "last":
-                neglogfxs = dxs[-d_xs:].prod().log()
-            neglogfxs = torch.full((n_xs,), neglogfxs)
-            us = Q_inv(xs, subset)
-            return neglogfxs - reference.eval_potential(us)[0]
-
-        Preconditioner.__init__(
-            self, 
-            reference=reference,
-            Q=Q, 
-            Q_inv=Q_inv,
-            neglogdet_Q=neglogdet_Q,
-            neglogdet_Q_inv=neglogdet_Q_inv,
-            dim=dim
-        )
-
+        self.lbs, self.ubs = bounds.T
+        self.dxs = self.ubs - self.lbs
+        self.reference = reference
+        self.dim = bounds.shape[0]
         return
+
+    def Q(self, us: Tensor, subset: str | None = None) -> Tensor:
+        # Reference to uniform
+        d_us = us.shape[1]
+        zs = self.reference.eval_cdf(us)[0]
+        if subset in ("first", None):
+            xs = self.lbs[:d_us] + self.dxs[:d_us] * zs 
+        elif subset == "last":
+            xs = self.lbs[-d_us:] + self.dxs[-d_us:] * zs
+        return xs 
+    
+    def Q_inv(self, xs: Tensor, subset: str | None = None) -> Tensor:
+        # Uniform to reference
+        d_xs = xs.shape[1]
+        if subset in ("first", None):    
+            zs = (xs - self.lbs[:d_xs]) / self.dxs[:d_xs]
+        elif subset == "last":
+            zs = (xs - self.lbs[-d_xs:]) / self.dxs[-d_xs:]
+        us = self.reference.invert_cdf(zs)
+        return us
+    
+    def neglogdet_Q(self, us: Tensor, subset: str | None = None) -> Tensor:
+        n_us, d_us = us.shape
+        if subset in ("first", None):
+            neglogfxs = self.dxs[:d_us].log().sum().item()
+        elif subset == "last":
+            neglogfxs = self.dxs[-d_us:].log().sum().item()
+        neglogfxs = torch.full((n_us,), neglogfxs)
+        return self.reference.eval_potential(us)[0] - neglogfxs
+    
+    def neglogdet_Q_inv(self, xs: Tensor, subset: str | None = None) -> Tensor:
+        n_xs, d_xs = xs.shape
+        if subset in ("first", None):
+            neglogfxs = self.dxs[:d_xs].log().sum().item()
+        elif subset == "last":
+            neglogfxs = self.dxs[-d_xs:].log().sum().item()
+        neglogfxs = torch.full((n_xs,), neglogfxs)
+        us = self.Q_inv(xs, subset)
+        return neglogfxs - self.reference.eval_potential(us)[0]

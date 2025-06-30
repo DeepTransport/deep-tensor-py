@@ -1,1 +1,1 @@
-from .preconditioner import construct_preconditioner
+from .preconditioner import GammaNormalMapping

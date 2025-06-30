@@ -81,7 +81,7 @@ quartodoc:
       desc: Initial guesses for the mapping between the reference random variable and the target random variable.
       contents:
         - name: Preconditioner
-          members: []
+          members: [Q, Q_inv, neglogdet_Q, neglogdet_Q_inv]
         - name: IdentityMapping
           members: []
         - name: UniformMapping
