@@ -1,0 +1,50 @@
+# eval_cirt_pullback { #deep_tensor.DIRT.eval_cirt_pullback }
+
+```python
+DIRT.eval_cirt_pullback(
+    potential: Callable[[Tensor], Tensor],
+    ys: Tensor,
+    rs: Tensor,
+    subset: str = 'first',
+    n_layers: int | None = None,
+)
+```
+
+Evaluates the pullback of a conditional density function.
+
+This function evaluates $\mathcal{T}^{\sharp}f(r\|y)$, where 
+$\mathcal{T}(\cdot)$ denotes the inverse Rosenblatt transport 
+and $f(\cdot\|y)$ denotes an arbitrary conditional density 
+function.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**potential**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor\], Tensor\]]{.parameter-annotation}</code>
+
+:   A function that takes an $n \times (d-k)$ matrix of samples  from the approximation domain, and returns an  $n$-dimensional vector containing the potential function  associated with $f(\cdot\\|y)$ evaluated at each sample.
+
+<code>[**ys**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A matrix containing samples from the approximation domain. The matrix should have dimensions $1 \times k$ (if the same  realisation of $Y$ is to be used for all samples in `rs`)  or $n \times k$ (if a different realisation of $Y$ is to be  used for each samples in `rs`).
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times (d-k)$ matrix containing a set of samples from  the reference domain.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'first\']{.parameter-default}</code>
+
+:   Whether `ys` corresponds to the first $k$ variables  (`subset='first'`) of the approximation, or the last $k$  variables (`subset='last'`).
+
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The number of layers of the deep inverse Rosenblatt  transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[**neglogTfrs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential of the  pullback function evaluated at each element in `rs`; that  is, $-\log(\mathcal{T}^{\sharp}f(r\\|y))$.
+
+<code>[**neglogfxs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential of the  target function evaluated at each element in `rs`, pushed  forward under the IRT; that is, $-\log(f(\mathcal{T}(r)\\|y))$.

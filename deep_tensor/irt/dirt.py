@@ -860,12 +860,6 @@ class DIRT(AbstractDIRT):
     prev_approx:
         A dictionary containing a set of SIRTs generated as part of 
         the construction of a previous DIRT object.
-
-    References
-    ----------
-    Cui, T and Dolgov, S (2022). *[Deep composition of tensor-trains 
-    using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).*
-    Foundations of Computational Mathematics **22**, 1863--1922.
     
     """
 

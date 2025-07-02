@@ -1,0 +1,39 @@
+# eval_potential_cond { #deep_tensor.DIRT.eval_potential_cond }
+
+```python
+DIRT.eval_potential_cond(
+    ys: Tensor,
+    xs: Tensor,
+    subset: str = 'first',
+    n_layers: int | None = None,
+)
+```
+
+Evaluates the conditional potential function.
+
+Returns the conditional potential function evaluated
+at a set of samples in the approximation domain. 
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**ys**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing samples from the  approximation domain.
+
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times (d-k)$ matrix containing samples from the  approximation domain.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'first\']{.parameter-default}</code>
+
+:   Whether `ys` corresponds to the first $k$ variables  (`subset='first'`) of the approximation, or the last $k$  variables (`subset='last'`).
+
+<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The number of layers of the deep inverse Rosenblatt  transport to push the samples forward under. If not  specified, the samples will be pushed forward through all  the layers.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[**neglogfxs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the potential function  of the approximation to the conditional density of  $X \textbar Y$ evaluated at each sample in `xs`.

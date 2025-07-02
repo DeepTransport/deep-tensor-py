@@ -18,7 +18,7 @@ class Fourier(Spectral):
     Notes
     -----
     The Fourier basis for the interval $[-1, 1]$, with cardinality $n$, 
-    is given by
+    is given by [@Boyd2001; @Cui2022]
     $$
         \left\{1, \sqrt{2}\sin(\pi x), \dots, \sqrt{2}\sin(k \pi x), 
         \sqrt{2}\cos(\pi x), \dots, \sqrt{2}\cos(k \pi x), 
@@ -31,16 +31,6 @@ class Fourier(Spectral):
     $$
         \lambda(x) = \frac{1}{2}.
     $$
-
-    References
-    ----------
-    Boyd, JP (2001, Section 4.5). *[Chebyshev and Fourier spectral 
-    methods](https://link.springer.com/book/9783540514879).* Lecture 
-    Notes in Engineering, Volume 49.
-
-    Cui, T and Dolgov, S (2022). *[Deep composition of Tensor-Trains 
-    using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).* 
-    Foundations of Computational Mathematics **22**, 1863--1922.
         
     """
 

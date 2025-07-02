@@ -20,7 +20,7 @@ class Chebyshev2nd(Spectral):
     Notes
     -----
     The (normalised) Chebyshev polynomials of the second kind, defined 
-    on $(-1, 1)$, are given by
+    on $(-1, 1)$, are given by [@Boyd2001]
     $$
         p_{k}(x) = \frac{\sin((k+1)\arccos(x))}{\sin{(\arccos(x))}}, 
             \qquad k = 0, 1, \dots, n.
@@ -30,12 +30,6 @@ class Chebyshev2nd(Spectral):
     $$
         \lambda(x) = \frac{2\sqrt{1-x^{2}}}{\pi}.
     $$
-
-    References
-    ----------
-    Boyd, JP (2001, Appendix A.2). *[Chebyshev and Fourier spectral 
-    methods](https://link.springer.com/book/9783540514879).* Lecture 
-    Notes in Engineering, Volume 49.
         
     """
 

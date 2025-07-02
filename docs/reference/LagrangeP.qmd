@@ -37,16 +37,10 @@ $$
         {\prod_{k = 0, k \neq j}^{n}(x_{j}-x_{k})}.
 $$
 To evaluate the interpolant, we use the second (true) form of the 
-Barycentric formula, which is more efficient and stable than the 
+Barycentric formula [@Berrut2004], which is more efficient and stable than the 
 above formula.
 
 We use piecewise Chebyshev polynomials of the second kind to 
 represent the (conditional) CDFs corresponding to the higher-order 
 Lagrange representation of (the square root of) the target density 
 function.
-
-## References {.doc-section .doc-section-references}
-
-Berrut, J and Trefethen, LN (2004). *[Barycentric Lagrange 
-interpolation](https://doi.org/10.1137/S0036144502417715).* 
-SIAM Review **46**, 501--517.

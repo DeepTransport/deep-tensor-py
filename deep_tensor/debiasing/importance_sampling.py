@@ -27,12 +27,7 @@ class ImportanceSamplingResult(object):
         N_{\mathrm{eff}} = \frac{(\sum_{i=1}^{n}w_{i})^{2}}{\sum_{i=1}^{n}w_{i}^{2}},
     $$
     where $w_{i}$ denotes the importance weight associated with 
-    particle $i$ (Owen, 2013).
-
-    References
-    ----------
-    Owen, AB (2013, Chapter 6). *[Monte Carlo theory, methods and 
-    examples](https://artowen.su.domains/mc/)*.
+    particle $i$ [see, e.g., @Owen2013].
 
     """
     log_weights: Tensor

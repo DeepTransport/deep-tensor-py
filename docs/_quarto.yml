@@ -1,6 +1,9 @@
 project:
   type: website
 
+bibliography: references.bib
+toc: true
+
 website:
   title: deep_tensor
   navbar:
@@ -22,7 +25,7 @@ website:
       title: Examples
       style: floating
       align: left
-      collapse-level: 1
+      collapse-level: 2
       contents:
         - title: Examples
           href: examples/index.qmd
@@ -72,7 +75,6 @@ quartodoc:
 
     - title: Deep Inverse Rosenblatt Transport
       desc: An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.
-      package: deep_tensor
       contents:
         - name: DIRT
           members: [eval_potential, eval_potential_cond, eval_rt, eval_irt, eval_cirt, eval_irt_pullback, eval_cirt_pullback, random, sobol]
@@ -91,7 +93,6 @@ quartodoc:
 
     - title: Polynomial Bases
       desc: Polynomial bases used to construct a functional tensor train.
-      package: deep_tensor
       contents:
         - name: Lagrange1
           members: []
@@ -108,21 +109,18 @@ quartodoc:
 
     - title: Domain Mappings
       desc: Mappings between the approximation domain and the domain of the polynomial basis.
-      package: deep_tensor
       contents:
         - name: BoundedDomain
           members: []
     
     - title: Options
       desc: Options for configuring the FTT and DIRT construction.
-      package: deep_tensor
       contents:
         - name: TTOptions
         - name: DIRTOptions
 
     - title: Reference Densities
       desc: Product-form reference densities used as part of DIRT construction.
-      package: deep_tensor
       contents:
         - name: GaussianReference
           members: [random, sobol]
@@ -131,7 +129,6 @@ quartodoc:
 
     - title: Bridges
       desc: Objects used to generate the intermediate densities approximated during DIRT construction.
-      package: deep_tensor
       contents:
         - name: SingleLayer
           members: []
@@ -140,7 +137,6 @@ quartodoc:
 
     - title: Debiasing
       desc: Functions used to remove the bias associated with the use of an approximation to the target density function.
-      package: deep_tensor
       contents:
         - name: run_importance_sampling 
         - name: run_independence_sampler

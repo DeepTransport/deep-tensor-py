@@ -53,18 +53,8 @@ Options for configuring the construction of an FTT object.
 
 <code>[**int_method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'maxvol\']{.parameter-default}</code>
 
-:   The interpolation method used when constructing the tensor  cores. Can be `'maxvol'` (Goreinov *et al.*, 2010) or `'deim'`  (Chaturantabut and Sorensen, 2010).
+:   The interpolation method used when constructing the tensor  cores. Can be `'maxvol'` [@Goreinov2010] or `'deim'`  [@Chaturantabut2010].
 
 <code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
 
 :   If `verbose=0`, no information about the construction of the  FTT will be printed to the screen. If `verbose=1`, diagnostic  information will be prined at the end of each ALS iteration. If `verbose=2`, the tensor core currently being constructed  during each ALS iteration will also be displayed.
-
-## References {.doc-section .doc-section-references}
-
-Chaturantabut, S and Sorensen, DC (2010). *[Nonlinear model reduction 
-via discrete empirical interpolation](https://doi.org/10.1137/090766498)*. 
-SIAM Journal on Scientific Computing **32**, 2737--2764.
-
-Goreinov, SA, Oseledets, IV, Savostyanov, DV, Tyrtyshnikov, EE and 
-Zamarashkin, NL (2010). *[How to find a good submatrix](https://doi.org/10.1142/9789812836021_0015)*.
-In: Matrix Methods: Theory, Algorithms and Applications, 247--256.

@@ -17,7 +17,7 @@ class Legendre(Recurr):
     Notes
     -----
     The Legendre polynomials, defined on $(-1, 1)$, are given by the 
-    recurrence relation
+    recurrence relation [@Boyd2001]
     $$
         (k+1)\hat{p}_{k+1}(x) = (2k+1)x\hat{p}_{k}(x) - k\hat{p}_{k-1}(x), 
             \qquad k = 1, 2, \dots, n-1,
@@ -38,12 +38,6 @@ class Legendre(Recurr):
     We use Chebyshev polynomials of the second kind to represent the 
     (conditional) CDFs corresponding to the Legendre representation of 
     (the square root of) the target density function.
-
-    References
-    ----------
-    Boyd, JP (2001, Appendix A.2). *[Chebyshev and Fourier spectral 
-    methods](https://link.springer.com/book/9783540514879).* Lecture 
-    Notes in Engineering, Volume 49.
         
     """
 

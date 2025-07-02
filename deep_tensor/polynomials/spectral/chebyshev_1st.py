@@ -19,7 +19,7 @@ class Chebyshev1st(Spectral):
     Notes
     -----
     The (normalised) Chebyshev polynomials of the first kind, defined 
-    on $(-1, 1)$, are given by 
+    on $(-1, 1)$, are given by [@Boyd2001; @Cui2023b]
     $$
     \begin{align}
         p_{0}(x) &= 1, \\
@@ -32,16 +32,6 @@ class Chebyshev1st(Spectral):
     $$
         \lambda(x) = \frac{1}{\pi\sqrt{1-x^{2}}}.
     $$
-
-    References
-    ----------
-    Boyd, JP (2001, Appendix A.2). *[Chebyshev and Fourier spectral 
-    methods](https://link.springer.com/book/9783540514879).* Lecture 
-    Notes in Engineering, Volume 49.
-
-    Cui, T, Dolgov, S and Zahm, O (2023). *[Self-reinforced polynomial 
-    approximation methods for concentrated probability 
-    densities](https://arxiv.org/abs/2303.02554)*. arXiv preprint.
 
     """
 

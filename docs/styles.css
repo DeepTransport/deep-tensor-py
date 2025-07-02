@@ -11,3 +11,15 @@
 .navbar-brand {
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
+
+a.sidebar-item-text.sidebar-link.text-start {
+    font-weight: bold;
+}
+
+.breadcrumb {
+    padding-left: 0px;
+}
+
+/* h1, h2 {
+    margin-top: 1rem;
+} */

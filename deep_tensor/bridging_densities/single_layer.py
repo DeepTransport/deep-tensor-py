@@ -19,14 +19,8 @@ class AbstractSingleLayer(Bridge):
 class SingleLayer(AbstractSingleLayer):
     r"""Constructs the DIRT using a single layer.
     
-    In this setting, the DIRT algorithm reduces to the SIRT algorithm 
-    (see Cui and Dolgov, 2022).
-
-    References
-    ----------
-    Cui, T and Dolgov, S (2022). *[Deep composition of tensor-trains 
-    using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).* 
-    Foundations of Computational Mathematics **22**, 1863--1922.
+    In this setting, the DIRT algorithm reduces to the SIRT algorithm; 
+    see @Cui2022.
 
     """
 
