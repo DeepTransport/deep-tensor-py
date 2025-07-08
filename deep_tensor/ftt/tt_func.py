@@ -437,12 +437,6 @@ class AbstractTTFunc(object):
         dfdls = self._grad_local(ls)
         dfdxs = dfdls * dldxs
         return dfdxs
-    
-    def _int_reference(self):
-        """Integrates the approximation to the target function over the 
-        reference domain (TODO: check this).
-        """
-        raise NotImplementedError()
 
     def _round(self, tol: float | Tensor | None = None) -> None:
         """Rounds the TT cores. Applies double rounding to get back to 
@@ -1010,7 +1004,7 @@ class TTFunc(AbstractTTFunc):
         self, 
         ls_left: Tensor,
         ls_right: Tensor,
-        k: int|Tensor
+        k: int | Tensor
     ) -> Tensor:
         """Evaluates the function being approximated at a (reduced) set 
         of interpolation points, and returns the corresponding
@@ -1022,7 +1016,7 @@ class TTFunc(AbstractTTFunc):
             An r_{k-1} * {k-1} matrix containing a set of interpolation
             points for dimensions 1, ..., {k-1}.
         ls_right:
-            An r_{k+1} * {k+1} matix containing a set of interpolation 
+            An r_{k+1} * {k+1} matrix containing a set of interpolation 
             points for dimensions {k+1}, ..., d.
         k:
             The dimension in which interpolation is being carried out.
@@ -1040,8 +1034,7 @@ class TTFunc(AbstractTTFunc):
         
         """
 
-        k = int(k)
-        poly = self.bases.polys[k]
+        poly = self.bases.polys[int(k)]
         nodes = poly.nodes[:, None]
 
         r_p = 1 if ls_left.numel() == 0 else ls_left.shape[0]
@@ -1066,8 +1059,8 @@ class TTFunc(AbstractTTFunc):
         
         H = self.target_func(ls).reshape(r_p, n_k, r_k)
 
-        # TODO: could be a separate method eventually
         if isinstance(poly, Spectral): 
+            # node2basis for piecewise polynomials is the identity
             H = torch.einsum("jl, ilk", poly.node2basis, H)
 
         self.num_eval += ls.shape[0]
@@ -1170,7 +1163,6 @@ class TTFunc(AbstractTTFunc):
             self._print_info_header()
 
         if self.tt_data.cores == {}:
-            self.tt_data.direction = Direction.FORWARD 
             self._initialise_cores()
         else:
             # Prepare for the next iteration
@@ -1215,11 +1207,11 @@ class TTFunc(AbstractTTFunc):
                     als_info("ALS complete.")
                 if self.options.verbose > 1:
                     ranks = "-".join([str(int(r)) for r in self.rank])
-                    msg = (f"Final TT ranks: {ranks}.")
+                    msg = f"Final TT ranks: {ranks}."
                     als_info(msg)
                 return
-            else:
-                self.tt_data._reverse_direction()
+            
+            self.tt_data._reverse_direction()
 
     def _compute_final_block(self) -> None:
         """Computes the final block of the FTT approximation to the 

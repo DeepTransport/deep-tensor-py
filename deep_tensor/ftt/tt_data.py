@@ -1,3 +1,5 @@
+from typing import Dict
+
 import torch
 from torch import Tensor
 
@@ -10,15 +12,15 @@ class TTData():
     def __init__(
         self, 
         direction: Direction = Direction.FORWARD,
-        cores: dict[int, Tensor] | None = None
+        cores: Dict[int, Tensor] | None = None
     ):
         if cores is None:
             cores = {}
         self.direction = direction
-        self.cores: dict[int, Tensor] = cores
-        self.interp_ls: dict[int, Tensor] = {}
-        self.res_x: dict[int, Tensor] = {}  # Residual coordinates for AMEN
-        self.res_w: dict[int, Tensor] = {}  # Residual blocks for AMEN
+        self.cores: Dict[int, Tensor] = cores
+        self.interp_ls: Dict[int, Tensor] = {}
+        self.res_x: Dict[int, Tensor] = {}  # Residual coordinates for AMEN
+        self.res_w: Dict[int, Tensor] = {}  # Residual blocks for AMEN
         return
     
     @property

@@ -47,7 +47,7 @@ class Spectral(Basis1D, abc.ABC):
     def node2basis(self) -> Tensor:
         """The inverse of basis2node. Given the values of the function 
         of interest at each collocation point, returns the 
-        correpsonding coefficients of each basis function.
+        corresponding coefficients of each basis function.
         """
         return self._node2basis
     

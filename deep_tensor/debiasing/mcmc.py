@@ -262,7 +262,7 @@ def run_irt_pcn(
 ) -> MCMCResult:
     r"""Runs a pCN sampler using the DIRT mapping.
     
-    Runs a preconditioned Crank-Nicholson sampler (Cotter *et al.*, 
+    Runs a preconditioned Crank-Nicolson sampler (Cotter *et al.*, 
     2013) to characterise the pullback of the target density under the 
     DIRT mapping, then pushes the resulting samples forward under the 
     DIRT mapping to obtain samples distributed according to the target. 
