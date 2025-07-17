@@ -53,14 +53,14 @@ class InputData():
     def is_debug(self) -> bool:
         """Flag that indicates whether debugging samples are available.
         """
-        return not self.xs_debug.numel() == 0
+        return self.xs_debug.numel() > 0
     
     @property 
     def is_evaluated(self) -> bool:
         """Flag that indicates whether the approximation to the target 
         function has been evaluated for all debugging samples.
         """
-        return not self.fxs_debug.numel() == 0
+        return self.fxs_debug.numel() > 0
 
     def set_samples(self, bases: ApproxBases, n_samples: int) -> None:
         """Generates the samples used to construct the FTT (if not 
@@ -158,10 +158,7 @@ class InputData():
             self.fxs_debug = target_func(self.ls_debug)
         return
     
-    def relative_error(
-        self, 
-        fxs_approx: Tensor
-    ) -> Tuple[Tensor | float, Tensor | float]:
+    def relative_error(self, fxs_approx: Tensor) -> Tuple[float, float]:
         """Estimates the L_2 and L_inf error between the target 
         function and FTT approximation using a set of samples.
         
@@ -185,13 +182,11 @@ class InputData():
         if not self.is_debug:
             return torch.inf, torch.inf 
         
-        error_l2 = ((self.fxs_debug - fxs_approx).square().mean().sqrt()
-                    / self.fxs_debug.square().mean().sqrt())
-        
-        error_linf = ((self.fxs_debug - fxs_approx).abs().max()
-                      / self.fxs_debug.abs().max())
+        dfs = self.fxs_debug - fxs_approx
+        error_l2 = dfs.square().mean().sqrt() / self.fxs_debug.square().mean().sqrt()
+        error_linf = dfs.abs().max() / self.fxs_debug.abs().max()
 
-        return error_l2, error_linf
+        return float(error_l2), float(error_linf)
     
     def reset_counter(self) -> None:
         self.count = 0

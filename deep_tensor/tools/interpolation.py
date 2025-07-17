@@ -55,7 +55,7 @@ def deim(U: Tensor) -> Tuple[Tensor, Tensor]:
         inds[i] = r.abs().argmax()
         P[inds[i], i] = 1.0
 
-    B = linalg.solve(U[inds].T, U.T).T
+    B = linalg.solve(U[inds], U, left=False)
     return inds, B
 
 

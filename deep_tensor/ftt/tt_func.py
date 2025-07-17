@@ -11,13 +11,28 @@ from .directions import Direction
 from .input_data import InputData
 from .tt_data import TTData
 from ..constants import EPS
+from ..linalg import (
+    batch_mul, 
+    cartesian_prod, 
+    fold_left, fold_right, 
+    unfold_left, unfold_right,
+    tsvd
+)
 from ..options import TTOptions
 from ..polynomials import Basis1D, Piecewise, Spectral
 from ..tools import deim, maxvol
 from ..tools.printing import als_info
 
 
+INTERPOLATION_METHODS = {"deim": deim, "maxvol": maxvol}
 MAX_COND = 1.0e+5
+
+
+def _check_condition_number(U: Tensor) -> None:
+    if (cond := linalg.cond(U)) > MAX_COND:
+        msg = f"Poor condition number in interpolation: {cond}."
+        warnings.warn(msg)
+    return
 
 
 class AbstractTTFunc(object):
@@ -103,80 +118,35 @@ class AbstractTTFunc(object):
 
         return
     
-    @staticmethod
-    def batch_mul(A: Tensor, B: Tensor) -> Tensor:
-        """Batch-multiplies two sets of tensors together.
-        """
-        return torch.einsum("...ij, ...jk", A, B)
-
-    @staticmethod
-    def unfold_left(H: Tensor) -> Tensor:
-        """Forms the left unfolding matrix associated with a tensor.
-        """
-        r_p, n_k, r_k = H.shape
-        H = H.reshape(r_p * n_k, r_k)
-        return H
-    
-    @staticmethod 
-    def unfold_right(H: Tensor) -> Tensor:
-        """Forms the (transpose of the) right unfolding matrix 
-        associated with a tensor.
-        """
-        r_p, n_k, r_k = H.shape
-        H = H.swapdims(0, 2).reshape(n_k * r_k, r_p)
-        return H
-    
     @staticmethod 
     def unfold(H: Tensor, direction: Direction) -> Tensor:
         """Unfolds a tensor.
         """
         if direction == Direction.FORWARD:
-            H = TTFunc.unfold_left(H)
+            H = unfold_left(H)
         else: 
-            H = TTFunc.unfold_right(H)
+            H = unfold_right(H)
         return H
     
-    @staticmethod 
-    def fold_left(H: Tensor, newshape: Tuple) -> Tensor:
-        """Computes the inverse of the unfold_left operation.
-        """
-        H = H.reshape(*newshape)
-        return H
-    
-    @staticmethod 
-    def fold_right(H: Tensor, newshape: Tuple) -> Tensor:
-        """Computes the inverse of the unfold_right operation.
-        """
-        H = H.reshape(*reversed(newshape)).swapdims(0, 2)
-        return H
-    
-    @staticmethod
-    def fold(H: Tensor, newshape: Tuple, direction: Direction) -> Tensor:
-        if direction == Direction.FORWARD:
-            H = TTFunc.fold_left(H, newshape)
-        else: 
-            H = TTFunc.fold_right(H, newshape)
-        return H
-
     @staticmethod
     def eval_core_213(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        """Evaluates the kth tensor core at a given set of values.
+        """Evaluates a tensor core.
 
         Parameters
         ----------
         poly:
-            The basis functions associated with the current dimension.
+            The basis functions associated with the core.
         A:
             The coefficient tensor associated with the current core.
         ls: 
-            A vector of points at which to evaluate the current core.
+            An n-dimensional vector of points at which to evaluate the 
+            current core.
 
         Returns
         -------
         Gs:
-            A matrix of dimension n_{k} * r_{k-1} * r_{k}, 
-            corresponding to evaluations the kth core at each value 
-            of ls.
+            A matrix of dimension n * r_{k-1} * r_{k}, containing the 
+            evaluation of the kth core at each value of ls.
         
         """
         r_p, n_k, r_k = A.shape
@@ -187,8 +157,7 @@ class AbstractTTFunc(object):
 
     @staticmethod
     def eval_core_213_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        """Evaluates the derivative of the kth tensor core at a given 
-        set of values.
+        """Evaluates the derivative of a tensor core.
 
         Parameters
         ----------
@@ -268,38 +237,61 @@ class AbstractTTFunc(object):
         dGdls = poly.eval_radon_deriv(coeffs, ls).reshape(n_ls, r_k, r_p)
         return dGdls
     
+    @staticmethod
+    def _apply_mass_R(poly: Basis1D, H: Tensor) -> Tensor:
+
+        # Mass matrix for spectral polynomials is the identity
+        if isinstance(poly, Spectral):
+            return H
+        
+        nr_k = H.shape[0]
+        H = poly.mass_R @ H.T.reshape(-1, poly.cardinality).T
+        H = H.T.reshape(-1, nr_k).T
+        return H
+
+    @staticmethod
+    def _apply_mass_R_inv(poly: Basis1D, U: Tensor) -> Tensor:
+        
+        # Mass matrix for spectral polynomials is the identity
+        if isinstance(poly, Spectral):
+            return U
+
+        nr_k = U.shape[0]
+        U = U.T.reshape(-1, poly.cardinality).T
+        U = linalg.solve(poly.mass_R, U)
+        U = U.T.reshape(-1, nr_k).T
+        return U
+
     def _eval_local_forward(self, ls: Tensor) -> Tensor:
         """Evaluates the FTT approximation to the target function for 
         the first k variables.
         """
-
-        n_ls, d_ls = ls.shape
+        d_ls = ls.shape[1]
         polys = self.bases.polys
         cores = self.tt_data.cores
-        Gs_prod = torch.ones((n_ls, 1, 1))
-
-        for k in range(d_ls):
-            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
-            Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
-
-        Gs_prod = Gs_prod.sum(dim=1)
+        Gs = [
+            TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
+            for k in range(d_ls)
+        ]
+        # Take the product of the cores and remove the second dimension 
+        # (which will always be r_0 = 1)
+        Gs_prod = batch_mul(*Gs).sum(dim=1)
         return Gs_prod
     
     def _eval_local_backward(self, ls: Tensor) -> Tensor:
         """Evaluates the FTT approximation to the target function for 
         the last k variables.
         """
-
-        n_ls, d_ls = ls.shape
-        polys = self.bases.polys 
+        d_ls = ls.shape[1]
+        polys = self.bases.polys
         cores = self.tt_data.cores
-        Gs_prod = torch.ones((n_ls, 1, 1))
-        
-        for i, k in enumerate(range(self.dim-1, self.dim-d_ls-1, -1), start=1):
-            Gs = TTFunc.eval_core_231(polys[k], cores[k], ls[:, -i])
-            Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
-        
-        Gs_prod = Gs_prod.sum(dim=1)
+        Gs = [
+            TTFunc.eval_core_213(polys[k], cores[k], ls[:, i])
+            for i, k in enumerate(range(self.dim-d_ls, self.dim))
+        ]
+        # Take the product of the cores and remove the third dimension 
+        # (which will always be r_0 = 1)
+        Gs_prod = batch_mul(*Gs).sum(dim=2)
         return Gs_prod
 
     def _eval_local(self, ls: Tensor, direction: Direction) -> Tensor:
@@ -383,9 +375,9 @@ class AbstractTTFunc(object):
             dGdls_k = TTFunc.eval_core_213_deriv(polys[k], cores[k], ls[:, k])
             for j in range(self.dim):
                 if k == j:
-                    dGdls[j] = TTFunc.batch_mul(dGdls[j], dGdls_k)
+                    dGdls[j] = batch_mul(dGdls[j], dGdls_k)
                 else:
-                    dGdls[j] = TTFunc.batch_mul(dGdls[j], Gs_k)
+                    dGdls[j] = batch_mul(dGdls[j], Gs_k)
         
         dfdls = torch.zeros_like(ls)
         for k in range(self.dim):
@@ -458,12 +450,12 @@ class AbstractTTFunc(object):
             self.tt_data._reverse_direction()
 
             if self.tt_data.direction == Direction.FORWARD:
-                indices = torch.arange(self.dim-1)
+                inds = range(self.dim-1)
             else:
-                indices = torch.arange(self.dim-1, 0, -1)
+                inds = range(self.dim-1, 0, -1)
 
-            for k in indices:
-                self._build_basis_svd(self.tt_data.cores[int(k)], k, tol)
+            for k in inds:
+                self._build_basis_svd(self.tt_data.cores[k], k, tol)
 
         if self.use_amen:
             self.tt_data.res_w = {}
@@ -473,7 +465,7 @@ class AbstractTTFunc(object):
     def _truncate_local(
         self, 
         H: Tensor, 
-        error_tol: float | Tensor | None = None
+        tol: float | None = None
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """Computes the truncated SVD for a given tensor block.
 
@@ -482,67 +474,34 @@ class AbstractTTFunc(object):
         H:
             The unfolding matrix of evaluations of the target function 
             evaluated at a set of interpolation points.
-        error_tol:
-            The error tolerance, used to truncate small singular 
+        tol:
+            The error tolerance used when truncating the singular 
             values.
         
         Returns
         -------
-        U:
+        Ur:
             Matrix containing the left singular vectors of F after 
             truncation.
-        sVh: 
+        sVhr: 
             Matrix containing the transpose of the product of the 
             singular values and the right-hand singular vectors after
             truncation. 
         rank:
-            The number of singular values of F that were retained.
+            The number of singular values of H that were retained.
 
         """
-
-        if error_tol is None: 
-            error_tol = self.options.local_tol
-        
-        U, s, Vh = linalg.svd(H, full_matrices=False)
-            
-        energies = s.square().flip(dims=(0,)).cumsum(dim=0)
-        tol = 0.1 * energies[-1] * error_tol ** 2        
-        rank = torch.sum(energies > tol)
-        rank = torch.clamp(rank, 1, self.options.max_rank)
-
-        U = U[:, :rank]
-        sVh = (s[:rank] * Vh[:rank].T).T
- 
-        return U, sVh, rank
-
-    def _apply_mass_R(self, poly: Basis1D, H: Tensor) -> Tensor:
-
-        # Mass matrix for spectral polynomials is the identity
-        if isinstance(poly, Spectral):
-            return H
-        
-        nr_k = H.shape[0]
-        H = poly.mass_R @ H.T.reshape(-1, poly.cardinality).T
-        H = H.T.reshape(-1, nr_k).T
-        return H
-
-    def _apply_mass_R_inv(self, poly: Basis1D, U: Tensor) -> Tensor:
-        
-        # Mass matrix for spectral polynomials is the identity
-        if isinstance(poly, Spectral):
-            return U
-
-        nr_k = U.shape[0]
-        U = U.T.reshape(-1, poly.cardinality).T
-        U = linalg.solve(poly.mass_R, U)
-        U = U.T.reshape(-1, nr_k).T
-        return U
+        if tol is None: 
+            tol = self.options.local_tol
+        Ur, sr, Vhr, rank = tsvd(H, tol, self.options.max_rank)
+        sVhr = sr[:, None] * Vhr
+        return Ur, sVhr, rank
     
     def _build_basis_svd(
         self, 
         H: Tensor, 
-        k: Tensor | int, 
-        tol: float | Tensor | None = None
+        k: int, 
+        tol: float | None = None
     ) -> None:
         """Computes the coefficients of the kth tensor core.
         
@@ -561,40 +520,42 @@ class AbstractTTFunc(object):
             
         """
 
-        k = int(k)
-        k_prev = int(k - self.tt_data.direction.value)
-        k_next = int(k + self.tt_data.direction.value)
+        k_prev = k - self.tt_data.direction.value
+        k_next = k + self.tt_data.direction.value
+        r_p, n_k, r_k = H.shape
         
         poly = self.bases.polys[k]
-        interp_ls_prev = self.tt_data.interp_ls[k_prev]
+        ls_int_p = self.tt_data.interp_ls[k_prev]
         A_next = self.tt_data.cores[k_next]
 
-        r_p, n_k, r_k = H.shape 
-        r_p_next, _, r_k_next = A_next.shape
+        if self.tt_data.direction == Direction.FORWARD:
+            H = unfold_left(H)
+        else: 
+            H = unfold_right(H)
 
-        H = TTFunc.unfold(H, self.tt_data.direction)
+        # Compute an M-orthogonal basis and truncate
         H = self._apply_mass_R(poly, H)
         U, sVh, rank = self._truncate_local(H, tol)
         U = self._apply_mass_R_inv(poly, U)
 
+        # Select a set of interpolation points
         inds, B, U_interp = self._select_points(U, k)
-        interp_ls = self._get_local_index(poly, interp_ls_prev, inds)
-
+        ls_int_k = self._get_local_index(poly, ls_int_p, inds)
         couple = U_interp @ sVh
 
-        # Form current coefficient tensor and update dimensions of next one
+        # Form the current coefficient tensor and update the dimensions 
+        # of the next one
         if self.tt_data.direction == Direction.FORWARD:
-            A = TTFunc.fold_left(B, (r_p, n_k, rank))
-            couple = couple[:, :r_p_next]
-            A_next = torch.einsum("il, ljk", couple, A_next)
+            self.tt_data.cores[k] = fold_left(B, (r_p, n_k, rank))
+            r_next = A_next.shape[0]
+            A_next = torch.einsum("il, ljk", couple[:, :r_next], A_next)
         else:
-            A = TTFunc.fold_right(B, (rank, n_k, r_k))
-            couple = couple[:, :r_k_next]
-            A_next = torch.einsum("kl, ijl", couple, A_next)
+            self.tt_data.cores[k] = fold_right(B, (rank, n_k, r_k))
+            r_next = A_next.shape[2]
+            A_next = torch.einsum("ijl, kl", A_next, couple[:, :r_next])
 
-        self.tt_data.cores[k] = A
         self.tt_data.cores[k_next] = A_next
-        self.tt_data.interp_ls[k] = interp_ls 
+        self.tt_data.interp_ls[k] = ls_int_k 
         return
     
     def _build_basis_amen(
@@ -630,20 +591,20 @@ class AbstractTTFunc(object):
         H_up = TTFunc.unfold(H_up, self.tt_data.direction)
 
         if self.tt_data.direction == Direction.FORWARD:
-            temp_l = TTFunc.fold_left(U, (n_left, n_k, rank))
+            temp_l = fold_left(U, (n_left, n_k, rank))
             temp_l = torch.einsum("il, ljk", res_w_prev, temp_l)
             temp_r = sVh @ res_w_next
             H_up -= U @ temp_r
             H_res -= torch.einsum("ijl, lk", temp_l, temp_r)
-            H_res = TTFunc.unfold_left(H_res)
+            H_res = unfold_left(H_res)
 
         else: 
-            temp_r = TTFunc.fold_right(U, (rank, n_k, n_right))
+            temp_r = fold_right(U, (rank, n_k, n_right))
             temp_r = torch.einsum("ijl, lk", temp_r, res_w_next)
             temp_lt = sVh @ res_w_prev.T
             H_up -= U @ temp_lt
             H_res -= torch.einsum("li, ljk", temp_lt, temp_r)
-            H_res = TTFunc.unfold_right(H_res)
+            H_res = unfold_right(H_res)
         
         # Enrich basis
         T = torch.cat((U, H_up), dim=1)
@@ -666,10 +627,10 @@ class AbstractTTFunc(object):
 
         if self.tt_data.direction == Direction.FORWARD:
             
-            A = TTFunc.fold_left(B, (n_left, n_k, r_new))
+            A = fold_left(B, (n_left, n_k, r_new))
 
             temp = torch.einsum("il, ljk", res_w_prev, A)
-            temp = TTFunc.unfold_left(temp)
+            temp = unfold_left(temp)
             res_w = temp[inds_res]
 
             couple = couple[:, :r_0_next]
@@ -677,10 +638,10 @@ class AbstractTTFunc(object):
 
         else:
             
-            A = TTFunc.fold_right(B, (r_new, n_k, n_right))
+            A = fold_right(B, (r_new, n_k, n_right))
 
             temp = torch.einsum("ijl, lk", A, res_w_next)
-            temp = TTFunc.unfold_right(temp)
+            temp = unfold_right(temp)
             res_w = temp[inds_res].T
 
             couple = couple[:, :r_1_next]
@@ -696,7 +657,7 @@ class AbstractTTFunc(object):
     def _get_local_index(
         self,
         poly: Basis1D, 
-        interp_ls_prev: Tensor,
+        ls_int_p: Tensor,
         inds: Tensor
     ) -> Tensor:
         """Updates the set of interpolation points for the current 
@@ -707,7 +668,7 @@ class AbstractTTFunc(object):
         poly:
             The polynomial basis for the current dimension of the 
             approximation.
-        interp_ls_prev: 
+        ls_int_p: 
             The previous set of interpolation points.
         inds:
             The set of indices of the maximum-volume submatrix of the 
@@ -715,47 +676,37 @@ class AbstractTTFunc(object):
         
         Returns
         -------
-        interp_ls:
+        ls_int_k:
             The set of updated interpolation points for the current 
             dimension.
         
         """
 
-        if interp_ls_prev.numel() == 0:
-            interp_ls = poly.nodes[inds][:, None]
-            return interp_ls
+        if ls_int_p.numel() == 0:
+            ls_int_k = poly.nodes[inds][:, None]
+            return ls_int_k
 
         n_k = poly.cardinality
-
-        ls_prev = interp_ls_prev[inds // n_k]
+        ls_prev = ls_int_p[inds // n_k]
         ls_nodes = poly.nodes[inds % n_k][:, None]
 
         if self.tt_data.direction == Direction.FORWARD:
-            interp_ls = torch.hstack((ls_prev, ls_nodes))
+            ls_int_k = torch.hstack((ls_prev, ls_nodes))
         else:
-            interp_ls = torch.hstack((ls_nodes, ls_prev))
+            ls_int_k = torch.hstack((ls_nodes, ls_prev))
 
-        return interp_ls
+        return ls_int_k
 
     def _select_points_piecewise(
         self,
         U: Tensor,
         poly: Piecewise
     ) -> Tuple[Tensor, Tensor, Tensor]:
-
-        if self.options.int_method == "qdeim":
-            raise NotImplementedError()
-        elif self.options.int_method == "deim":
-            inds, B = deim(U)
-            U_interp = U[inds]
-        elif self.options.int_method == "maxvol":
-            inds, B = maxvol(U)
-            U_interp = U[inds]
         
-        if (cond := linalg.cond(U_interp)) > MAX_COND:
-            msg = f"Poor condition number in interpolation: {cond}."
-            warnings.warn(msg)
-
+        inds, B = INTERPOLATION_METHODS[self.options.int_method](U)
+        U_interp = U[inds]
+        _check_condition_number(U_interp)
+        
         return inds, B, U_interp
     
     def _select_points_spectral(
@@ -765,25 +716,18 @@ class AbstractTTFunc(object):
     ) -> Tuple[Tensor, Tensor, Tensor]:
 
         n_k = poly.cardinality
-        r_p = int(torch.tensor(U.shape[0] / n_k).round())
-        
+        r_p = round(U.shape[0] / n_k)
+
+        # Undo the previous application of the node2basis 
         nodes = poly.basis2node @ U.T.reshape(-1, n_k).T
         nodes = nodes.T.reshape(-1, n_k * r_p).T
 
-        if self.options.int_method == "qdeim":
-            raise NotImplementedError()
-        elif self.options.int_method == "deim":
-            msg = "DEIM is not supported for spectral polynomials."
-            raise Exception(msg)
-        elif self.options.int_method == "maxvol":
-            inds, _ = maxvol(nodes)
-            U_interp = nodes[inds]
-            B = U @ linalg.inv(U_interp)
-        
-        if (cond := linalg.cond(U_interp)) > MAX_COND:
-            msg = f"Poor condition number in interpolation ({cond})."
-            warnings.warn(msg)
+        inds, _ = INTERPOLATION_METHODS[self.options.int_method](nodes)
+        U_interp = nodes[inds]
+        _check_condition_number(U_interp)
 
+        # Compute unfolded coefficient tensor B = UU[I, :]^{-1}
+        B = linalg.solve(U_interp, U, left=False)
         return inds, B, U_interp
 
     def _select_points(self, U: Tensor, k: int) -> Tuple[Tensor, Tensor, Tensor]:
@@ -1035,38 +979,25 @@ class TTFunc(AbstractTTFunc):
         """
 
         poly = self.bases.polys[int(k)]
-        nodes = poly.nodes[:, None]
-
         r_p = 1 if ls_left.numel() == 0 else ls_left.shape[0]
         r_k = 1 if ls_right.numel() == 0 else ls_right.shape[0]
         n_k = poly.n_nodes
 
-        # Form the Cartesian product of the index sets and the nodes
-        # corresponding to the basis of the current dimension
-        if ls_left.numel() == 0:
-            ls_0 = nodes.repeat_interleave(r_k, dim=0)
-            ls_1 = ls_right.repeat(n_k, 1)
-            ls = torch.hstack((ls_0, ls_1))
-        elif ls_right.numel() == 0:
-            ls_0 = ls_left.repeat_interleave(n_k, dim=0)
-            ls_1 = nodes.repeat(r_p, 1)
-            ls = torch.hstack((ls_0, ls_1))
-        else:
-            ls_0 = ls_left.repeat_interleave(n_k * r_k, dim=0)
-            ls_1 = nodes.repeat_interleave(r_k, dim=0).repeat(r_p, 1)
-            ls_2 = ls_right.repeat(r_p * n_k, 1)
-            ls = torch.hstack((ls_0, ls_1, ls_2))
-        
+        ls = cartesian_prod((ls_left, poly.nodes[:, None], ls_right))
         H = self.target_func(ls).reshape(r_p, n_k, r_k)
 
+        # Convert from a tensor containing the target function value at 
+        # each interpolation point to a tensor containing the 
+        # coefficients associated with each basis function for each 
+        # interpolation point. Note that node2basis for piecewise 
+        # polynomials is an identity operator.
         if isinstance(poly, Spectral): 
-            # node2basis for piecewise polynomials is the identity
             H = torch.einsum("jl, ilk", poly.node2basis, H)
 
         self.num_eval += ls.shape[0]
         return H
 
-    def _get_error_local(self, H: Tensor, k: int | Tensor) -> Tensor:
+    def _get_error_local(self, H: Tensor, k: int) -> float:
         """Returns the error between the current core and the tensor 
         formed by evaluating the target function at the current set of 
         interpolation points corresponding to the core.
@@ -1088,8 +1019,8 @@ class TTFunc(AbstractTTFunc):
             absolute value of the element of H.
 
         """
-        core = self.tt_data.cores[int(k)]
-        return (core-H).abs().max() / H.abs().max()
+        core = self.tt_data.cores[k]
+        return float((core-H).abs().max() / H.abs().max())
 
     def _is_finished(self, cross_iter: int, indices: Tensor) -> bool:
         """Returns True if the maximum number of cross iterations has 
@@ -1103,8 +1034,8 @@ class TTFunc(AbstractTTFunc):
 
     def _compute_cross_block_fixed(self, k: Tensor) -> None:
         
-        ls_left = self.tt_data.interp_ls[int(k-1)]
-        ls_right = self.tt_data.interp_ls[int(k+1)]
+        ls_left = self.tt_data.interp_ls[k-1]
+        ls_right = self.tt_data.interp_ls[k+1]
         
         H = self._build_block_local(ls_left, ls_right, k) 
         self.errors[k] = self._get_error_local(H, k)
@@ -1113,8 +1044,8 @@ class TTFunc(AbstractTTFunc):
     
     def _compute_cross_block_random(self, k: Tensor) -> None:
         
-        ls_left = self.tt_data.interp_ls[int(k-1)].clone()
-        ls_right = self.tt_data.interp_ls[int(k+1)].clone()
+        ls_left = self.tt_data.interp_ls[k-1].clone()
+        ls_right = self.tt_data.interp_ls[k+1].clone()
         enrich = self.input_data.get_samples(self.options.kick_rank)
 
         H = self._build_block_local(ls_left, ls_right, k)
@@ -1132,10 +1063,10 @@ class TTFunc(AbstractTTFunc):
     
     def _compute_cross_block_amen(self, k: Tensor) -> None:
         
-        ls_left = self.tt_data.interp_ls[int(k-1)]
-        ls_right = self.tt_data.interp_ls[int(k+1)]
-        r_left = self.tt_data.res_x[int(k-1)]
-        r_right = self.tt_data.res_x[int(k+1)]
+        ls_left = self.tt_data.interp_ls[k-1]
+        ls_right = self.tt_data.interp_ls[k+1]
+        r_left = self.tt_data.res_x[k-1]
+        r_right = self.tt_data.res_x[k+1]
 
         # Evaluate the interpolant function at x_k nodes
         H = self._build_block_local(ls_left, ls_right, k)
@@ -1183,11 +1114,11 @@ class TTFunc(AbstractTTFunc):
                     msg = f"Building block {i+1} / {self.dim}..."
                     als_info(msg, end="\r")
                 if self.options.tt_method == "fixed_rank":
-                    self._compute_cross_block_fixed(k)
+                    self._compute_cross_block_fixed(int(k))
                 elif self.options.tt_method == "random":
-                    self._compute_cross_block_random(k)
+                    self._compute_cross_block_random(int(k))
                 elif self.options.tt_method == "amen":
-                    self._compute_cross_block_amen(k)
+                    self._compute_cross_block_amen(int(k))
 
             cross_iter += 1
             finished = self._is_finished(cross_iter, indices)
@@ -1223,8 +1154,8 @@ class TTFunc(AbstractTTFunc):
         else:
             k = 0
 
-        ls_left = self.tt_data.interp_ls[int(k-1)]
-        ls_right = self.tt_data.interp_ls[int(k+1)]
+        ls_left = self.tt_data.interp_ls[k-1]
+        ls_right = self.tt_data.interp_ls[k+1]
         H = self._build_block_local(ls_left, ls_right, k)
         self.errors[k] = self._get_error_local(H, k)
         self.tt_data.cores[k] = H

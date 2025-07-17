@@ -9,6 +9,7 @@ from ..ftt import (
     ApproxBases, Direction, InputData, TTData, 
     AbstractTTFunc, TTFunc, SavedTTFunc
 )
+from ..linalg import batch_mul, unfold_left, unfold_right
 from ..options import TTOptions
 from ..polynomials import Basis1D, CDF1D, construct_cdf
 from ..preconditioners.preconditioner import Preconditioner
@@ -366,16 +367,16 @@ class AbstractSIRT():
 
         for k in range(d_xs-1):
             Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_x[:, k])
-            Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
+            Gs_prod = batch_mul(Gs_prod, Gs)
         
         k = d_xs-1
 
         Ps = TTFunc.eval_core_213(polys[k], Bs[k], ls_x[:, k])
-        gs_marg = TTFunc.batch_mul(Gs_prod, Ps)
+        gs_marg = batch_mul(Gs_prod, Ps)
         ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.defensive
 
         Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_x[:, k])
-        Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
+        Gs_prod = batch_mul(Gs_prod, Gs)
 
         # Generate conditional samples
         for i, k in enumerate(range(d_xs, self.dim)):
@@ -386,7 +387,7 @@ class AbstractSIRT():
             ls_y[:, i] = self.oned_cdfs[k].invert_cdf(ps, zs[:, i])
 
             Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_y[:, i])
-            Gs_prod = TTFunc.batch_mul(Gs_prod, Gs)
+            Gs_prod = batch_mul(Gs_prod, Gs)
 
         ps = Gs_prod.flatten().square() + self.defensive
 
@@ -414,14 +415,14 @@ class AbstractSIRT():
 
         for i, k in enumerate(range(self.dim-1, d_zs, -1), start=1):
             Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_x[:, -i])
-            Gs_prod = TTFunc.batch_mul(Gs, Gs_prod)
+            Gs_prod = batch_mul(Gs, Gs_prod)
 
         Ps = TTFunc.eval_core_213(polys[d_zs], Bs[d_zs], ls_x[:, 0])
-        gs_marg = TTFunc.batch_mul(Ps, Gs_prod)
+        gs_marg = batch_mul(Ps, Gs_prod)
         ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.defensive
 
         Gs = TTFunc.eval_core_213(polys[d_zs], cores[d_zs], ls_x[:, 0])
-        Gs_prod = TTFunc.batch_mul(Gs, Gs_prod)
+        Gs_prod = batch_mul(Gs, Gs_prod)
 
         # Generate conditional samples
         for k in range(d_zs-1, -1, -1):
@@ -432,7 +433,7 @@ class AbstractSIRT():
             ls_y[:, k] = self.oned_cdfs[k].invert_cdf(ps, zs[:, k])
 
             Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_y[:, k])
-            Gs_prod = TTFunc.batch_mul(Gs, Gs_prod)
+            Gs_prod = batch_mul(Gs, Gs_prod)
 
         ps = Gs_prod.flatten().square() + self.defensive
 
@@ -521,15 +522,15 @@ class AbstractSIRT():
 
             Gs_k = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
             dGdls_k = TTFunc.eval_core_213_deriv(polys[k], cores[k], ls[:, k])
-            Gs_prod = TTFunc.batch_mul(Gs_prod, Gs_k)
+            Gs_prod = batch_mul(Gs_prod, Gs_k)
             
             for j in range(self.dim):
                 if k == j:
                     dwdls[j] *= dwdls_k
-                    dGdls[j] = TTFunc.batch_mul(dGdls[j], dGdls_k)
+                    dGdls[j] = batch_mul(dGdls[j], dGdls_k)
                 else:
                     dwdls[j] *= ws_k
-                    dGdls[j] = TTFunc.batch_mul(dGdls[j], Gs_k)
+                    dGdls[j] = batch_mul(dGdls[j], Gs_k)
         
         dfdls = torch.zeros_like(ls)
         deriv = torch.zeros_like(ls)
@@ -576,7 +577,7 @@ class AbstractSIRT():
             # Evaluate kth tensor core and derivative
             Gs[k] = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
             Gs_deriv[k] = TTFunc.eval_core_213_deriv(polys[k], cores[k], ls[:, k])
-            Gs_prod[k] = TTFunc.batch_mul(Gs_prod[k-1], Gs[k])
+            Gs_prod[k] = batch_mul(Gs_prod[k-1], Gs[k])
 
             # Evaluate kth marginalisation core and derivative
             Ps[k] = TTFunc.eval_core_213(polys[k], Bs[k], ls[:, k])
@@ -585,7 +586,7 @@ class AbstractSIRT():
 
             # Evaluate marginal probability for the first k elements of 
             # each sample
-            gs = TTFunc.batch_mul(Gs_prod[k-1], Ps[k])
+            gs = batch_mul(Gs_prod[k-1], Ps[k])
             ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.defensive
 
             # Compute (unnormalised) marginal PDF at CDF nodes for each sample
@@ -598,14 +599,14 @@ class AbstractSIRT():
             
             for j in range(k+1):
 
-                prod = TTFunc.batch_mul(Gs_prod[k-1], Ps[k])
+                prod = batch_mul(Gs_prod[k-1], Ps[k])
                 prod_deriv = torch.ones((n_ls, 1, 1))
 
                 for k_i in range(k):
                     core = Gs_deriv[k_i] if k_i == j else Gs[k_i]
-                    prod_deriv = TTFunc.batch_mul(prod_deriv, core)
+                    prod_deriv = batch_mul(prod_deriv, core)
                 core = Ps_deriv[k] if k == j else Ps[k]
-                prod_deriv = TTFunc.batch_mul(prod_deriv, core)
+                prod_deriv = batch_mul(prod_deriv, core)
 
                 ps_marg_deriv[k][j] = 2 * (prod * prod_deriv).sum(dim=(1, 2))
 
@@ -619,7 +620,7 @@ class AbstractSIRT():
 
                 for k_i in range(k):
                     core = Gs_deriv[k_i] if k_i == j else Gs[k_i]
-                    prod_deriv = TTFunc.batch_mul(prod_deriv, core)
+                    prod_deriv = batch_mul(prod_deriv, core)
                 prod_deriv = torch.einsum("mij, ljk -> lmik", prod_deriv, Ps_grid[k])
                 
                 ps_grid_deriv[k][j] = 2 * (prod * prod_deriv).sum(dim=(2, 3))
@@ -673,7 +674,7 @@ class AbstractSIRT():
             # Evaluate kth tensor core and derivative
             Gs[k] = TTFunc.eval_core_231(polys[k], cores[k], ls[:, k])
             Gs_deriv[k] = TTFunc.eval_core_231_deriv(polys[k], cores[k], ls[:, k])
-            Gs_prod[k] = TTFunc.batch_mul(Gs_prod[k+1], Gs[k])
+            Gs_prod[k] = batch_mul(Gs_prod[k+1], Gs[k])
 
             # Evaluate kth marginalisation core and derivative
             Ps[k] = TTFunc.eval_core_231(polys[k], Bs[k], ls[:, k])
@@ -682,7 +683,7 @@ class AbstractSIRT():
 
             # Evaluate marginal probability for the first k elements of 
             # each sample
-            gs = TTFunc.batch_mul(Gs_prod[k+1], Ps[k])
+            gs = batch_mul(Gs_prod[k+1], Ps[k])
             ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.defensive
 
             # Compute (unnormalised) marginal PDF at CDF nodes for each sample
@@ -695,14 +696,14 @@ class AbstractSIRT():
 
             for j in range(k, self.dim):
 
-                prod = TTFunc.batch_mul(Gs_prod[k+1], Ps[k])
+                prod = batch_mul(Gs_prod[k+1], Ps[k])
                 prod_deriv = torch.ones((n_ls, 1, 1))
 
                 for k_i in range(self.dim-1, k, -1):
                     core = Gs_deriv[k_i] if k_i == j else Gs[k_i]
-                    prod_deriv = TTFunc.batch_mul(prod_deriv, core)
+                    prod_deriv = batch_mul(prod_deriv, core)
                 core = Ps_deriv[k] if k == j else Ps[k] 
-                prod_deriv = TTFunc.batch_mul(prod_deriv, core)
+                prod_deriv = batch_mul(prod_deriv, core)
 
                 ps_marg_deriv[k][j] = 2 * (prod * prod_deriv).sum(dim=(1, 2))
 
@@ -716,7 +717,7 @@ class AbstractSIRT():
 
                 for k_i in range(self.dim-1, k, -1):
                     core = Gs_deriv[k_i] if k_i == j else Gs[k_i]
-                    prod_deriv = TTFunc.batch_mul(prod_deriv, core)
+                    prod_deriv = batch_mul(prod_deriv, core)
                 prod_deriv = torch.einsum("mij, ljk -> lmik", prod_deriv, Ps_grid[k])
                 
                 ps_grid_deriv[k][j] = 2 * (prod * prod_deriv).sum(dim=(2, 3))
@@ -1456,7 +1457,7 @@ class SIRT(AbstractSIRT):
         for k in range(self.dim-1, -1, -1):
             self.Bs_f[k] = torch.einsum("ijl, lk", cores[k], self.Rs_f[k+1])
             C_k = torch.einsum("ilk, lj", self.Bs_f[k], polys[k].mass_R)
-            C_k = TTFunc.unfold_right(C_k)
+            C_k = unfold_right(C_k)
             self.Rs_f[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
         self.z_func = self.Rs_f[0].square().sum()
@@ -1475,7 +1476,7 @@ class SIRT(AbstractSIRT):
         for k in range(self.dim):
             self.Bs_b[k] = torch.einsum("il, ljk", self.Rs_b[k-1], cores[k])
             C_k = torch.einsum("jl, ilk", polys[k].mass_R, self.Bs_b[k])
-            C_k = TTFunc.unfold_left(C_k)
+            C_k = unfold_left(C_k)
             self.Rs_b[k] = torch.linalg.qr(C_k, mode="reduced")[1]
 
         self.z_func = self.Rs_b[self.dim-1].square().sum()
