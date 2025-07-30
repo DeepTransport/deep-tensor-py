@@ -2,13 +2,14 @@
 
 ```python
 TTOptions(
+    self,
     max_als: int = 1,
     als_tol: float = 0.0001,
     init_rank: int = 20,
     kick_rank: int = 2,
     max_rank: int = 30,
-    local_tol: float = 1e-10,
-    cdf_tol: float = 1e-10,
+    local_tol: float = 1e-06,
+    cdf_tol: float = 1e-06,
     tt_method: str = 'amen',
     int_method: str = 'maxvol',
     verbose: int = 1,
@@ -39,11 +40,11 @@ Options for configuring the construction of an FTT object.
 
 :   The maximum allowable rank of each tensor core (prior to the  enrichment set being added).
 
-<code>[**local_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-10]{.parameter-default}</code>
+<code>[**local_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-06]{.parameter-default}</code>
 
 :   The threshold to use when applying truncated SVD to the tensor  cores when building the FTT.
 
-<code>[**cdf_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-10]{.parameter-default}</code>
+<code>[**cdf_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-06]{.parameter-default}</code>
 
 :   The tolerance used when solving the root-finding problem to  invert the CDF.
 

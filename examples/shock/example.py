@@ -1,6 +1,5 @@
 #%% Example: Shock absorber
 
-import os
 from matplotlib import pyplot as plt
 import torch
 import deep_tensor as dt
@@ -10,7 +9,6 @@ from examples.plotting import add_arrows, pairplot
 
 
 torch.manual_seed(0)
-plt.style.use(os.sep.join(["examples", "plotstyle.mplstyle"]))
 
 
 # Define failure distances (km)
@@ -102,9 +100,8 @@ preconditioner = GammaNormalMapping(
     alpha, gamma, 
     ms, sds, dim
 )
-# preconditioner = dt.UniformMapping(bounds)
 
-bases = dt.Lagrange1(num_elems=30)
+bases = dt.Lagrange1(num_elems=20)
 bridge = dt.SingleLayer()
 tt_options = dt.TTOptions(verbose=2, max_als=2, init_rank=10, max_rank=14)
 
@@ -125,9 +122,6 @@ samples_dirt, potentials_dirt = dirt.eval_irt(rs)
 
 # Run an independence MCMC sampler
 potentials_true = negloglik(samples_dirt) + neglogpri(samples_dirt)
-print(negloglik(samples_dirt))
-print(neglogpri(samples_dirt))
-print(potentials_true)
 res = dt.run_independence_sampler(samples_dirt, potentials_dirt, potentials_true)
 
 print(f"Acceptance rate: {res.acceptance_rate:.2f}")
@@ -177,9 +171,9 @@ bases_dict = {
 }
 
 args_dict = {
-    "Fourier": [15, 20, 25, 30],
-    "Legendre": [30, 40, 50, 60],
-    "Piecewise": [30, 40, 50, 60],
+    "Fourier": [10, 15, 20, 25],
+    "Legendre": [20, 30, 40, 50],
+    "Piecewise": [20, 30, 40, 50],
 }
 
 colours = {

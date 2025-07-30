@@ -1,7 +1,7 @@
 # UniformReference { #deep_tensor.UniformReference }
 
 ```python
-UniformReference()
+UniformReference(self)
 ```
 
 The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$.

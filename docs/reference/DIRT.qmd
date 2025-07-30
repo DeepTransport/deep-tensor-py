@@ -2,6 +2,7 @@
 
 ```python
 DIRT(
+    self,
     negloglik: Callable[[Tensor], Tensor],
     neglogpri: Callable[[Tensor], Tensor],
     preconditioner: Preconditioner,

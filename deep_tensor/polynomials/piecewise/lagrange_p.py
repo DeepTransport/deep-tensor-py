@@ -59,7 +59,7 @@ class _LagrangeRef():
         self.weights = torch.zeros(self.cardinality)
         for i in range(self.cardinality):
             f_i = lambda x: self._eval(self.es[i], x)
-            self.weights[i] = integrate(f_i, *self.domain)
+            self.weights[i] = integrate(f_i, self.domain[0], self.domain[1])
         return
     
     def _compute_mass(self) -> None:
@@ -72,7 +72,7 @@ class _LagrangeRef():
             for j in range(i, self.cardinality):
                 e_i, e_j = self.es[i], self.es[j]
                 f_ij = lambda ls: self._eval(e_i, ls) * self._eval(e_j, ls)
-                integral = integrate(f_ij, *self.domain)
+                integral = integrate(f_ij, self.domain[0], self.domain[1])
                 self.mass[i, j] = self.mass[j, i] = integral
         return
 

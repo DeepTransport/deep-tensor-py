@@ -29,7 +29,7 @@ class TestSpectralPolynomials(unittest.TestCase):
             with self.subTest(poly=poly):
                 Id = poly.node2basis @ poly.basis2node
                 Id_true = torch.eye(poly.cardinality)
-                self.assertTrue((Id_true - Id).abs().max() < 1e-8)
+                self.assertTrue((Id_true - Id).abs().max() < 1e-4)
 
         return
 

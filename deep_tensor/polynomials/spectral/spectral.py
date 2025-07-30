@@ -10,23 +10,19 @@ from ...tools import check_finite
 class Spectral(Basis1D, abc.ABC):
 
     def __post_init__(self) -> None:
-        """Forms the basis2node and node2basis operators, the mass 
-        matrix, and the integration matrix for a given basis.
+        """Forms the basis2node and node2basis operators, the 
+        quadrature weights and the mass matrix for a given basis.
         """
         self.basis2node = self.eval_basis(self.nodes)
         self.node2basis = self.basis2node.T * self.weights
         self.omegas = self.eval_measure(self.nodes)
         self.mass_R = torch.eye(self.cardinality)
-        # TODO: check this (not currently used)
-        # self.int_W = self.basis2node.T @ self.weights
-        self.int_W = self.basis2node * self.weights
         return
 
     @property
     @abc.abstractmethod
     def weights(self) -> Tensor:
-        """The collocation weights.
-        """
+        """The collocation weights."""
         pass
 
     @property 
@@ -68,36 +64,10 @@ class Spectral(Basis1D, abc.ABC):
         self._mass_R = value
         return
     
-    @property 
-    def int_W(self) -> Tensor: 
-        """Given a set of polynomial coefficients, this operator 
-        returns the values of the integrated function at each 
-        collocation point.
-        """
-        return self._int_W
-    
-    @int_W.setter 
-    def int_W(self, value: Tensor) -> None:
-        self._int_W = value
-        return 
-    
     @staticmethod
     def l2theta(ls: Tensor) -> Tensor:
-        """Converts a set of values from a local domain to a set of 
-        theta values (theta = arccos(l)).
-
-        Parameters
-        ----------
-        ls: 
-            An n-dimensional vector containing a set of points from the 
-            local domain.
-        
-        Returns
-        -------
-        thetas: 
-            An n-dimensional vector containing the corresponding values 
-            of theta (theta = arccos(l)).
-        
+        """Applies the mapping l -> arccos(l) to a vector of values on
+        [-1, 1].
         """
         thetas = ls.clamp(-1.0, 1.0).acos()
         check_finite(thetas)

@@ -17,7 +17,7 @@ class Chebyshev2ndCDF(Chebyshev2nd, SpectralCDF):
         return
 
     def grid_measure(self, n: int) -> Tensor:
-        return torch.linspace(*self.domain, n)
+        return torch.linspace(self.domain[0], self.domain[1], n)
     
     def eval_int_basis(self, ls: Tensor) -> Tensor:
         """Evaluates the integral of each basis function at each 

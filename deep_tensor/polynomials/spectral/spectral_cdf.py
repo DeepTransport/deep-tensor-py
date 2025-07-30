@@ -25,17 +25,6 @@ class SpectralCDF(CDF1D, abc.ABC):
     def grid_measure(self, n: int) -> Tensor:
         """Returns the domain of the measure discretised on a grid of
         n points.
-        
-        Parameters
-        ----------
-        n:
-            Number of discretisation points.
-
-        Returns
-        -------
-        ls:
-            The discretised domain.
-        
         """
         pass
 
@@ -175,7 +164,7 @@ class SpectralCDF(CDF1D, abc.ABC):
 
         ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
 
-        for _ in range(self.num_newton):  
+        for _ in range(self.n_newton):  
             zs, dzs = self.eval_int_newton(coefs, cdf_poly_base, zs_unnorm, ls)
             ls, dls = self._newton_step(ls, zs, dzs, l0s, l1s)
             if self.converged(zs / cdf_poly_norm, dls / cdf_poly_norm):
@@ -198,7 +187,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         z1s = self.eval_int_diff(coefs, cdf_poly_base, zs_cdf, l1s)
         self.check_initial_intervals(z0s, z1s)
 
-        for _ in range(self.num_regula_falsi):
+        for _ in range(self.n_regula_falsi):
 
             ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
             zs = self.eval_int_diff(coefs, cdf_poly_base, zs_cdf, ls)
@@ -211,7 +200,7 @@ class SpectralCDF(CDF1D, abc.ABC):
             z0s[zs < 0] = zs[zs < 0]
             z1s[zs > 0] = zs[zs > 0]
             
-        self.print_unconverged(zs, dls, "Regula falsi")
+        self.print_unconverged(zs / cdf_poly_norm, dls / cdf_poly_norm, "Regula falsi")
         return ls
     
     def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:

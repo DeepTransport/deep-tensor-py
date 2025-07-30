@@ -5,6 +5,8 @@ import deep_tensor as dt
 
 from examples.shock.prior import GammaDist, GaussianDist
 
+EPS = torch.finfo(torch.get_default_dtype()).eps
+
 
 class GammaNormalMapping(dt.Preconditioner):
 
@@ -36,18 +38,19 @@ class GammaNormalMapping(dt.Preconditioner):
             raise Exception(msg)
         return
 
-    def Q(self, us: Tensor, subset: str | None = None) -> Tensor:
+    def Q(self, us: Tensor, subset: str = "first") -> Tensor:
         
         self.check_dimensions(us)
         xs = torch.zeros_like(us)
         zs = self.reference.eval_cdf(us)[0]
+        zs = torch.clamp(zs, EPS, 1.0-EPS)
 
         xs[:, -1] = self.gam.invert_cdf(zs[:, -1])
         norm = GaussianDist(self.ms, self.sds / xs[:, -1:].sqrt(), self.bounds[:-1])
         xs[:, :-1] = norm.invert_cdf(zs[:, :-1])
         return xs
 
-    def Q_inv(self, xs: Tensor, subset: str | None = None) -> Tensor:
+    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
         
         self.check_dimensions(xs)
         zs = torch.zeros_like(xs)
@@ -58,7 +61,7 @@ class GammaNormalMapping(dt.Preconditioner):
         us = self.reference.invert_cdf(zs)
         return us
 
-    def neglogdet_Q(self, us: Tensor, subset: str | None = None) -> Tensor:
+    def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:
         
         self.check_dimensions(us)
         xs = self.Q(us)
@@ -70,7 +73,7 @@ class GammaNormalMapping(dt.Preconditioner):
         
         return potential_ref - potential_gam - potential_norm
 
-    def neglogdet_Q_inv(self, xs: Tensor, subset: str | None = None) -> Tensor:
+    def neglogdet_Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
 
         self.check_dimensions(xs)
         us = self.Q_inv(xs)

@@ -68,12 +68,6 @@ class Chebyshev2nd(Spectral):
         ls = Beta(1.5, 1.5).sample((n,))
         return ls
     
-    def sample_measure_skip(self, n: int) -> Tensor:
-        left = 0.5 * (self.nodes.min() - 1.0)
-        right = 0.5 * (self.nodes.max() + 1.0)
-        ls = left + torch.rand(n) * (right - left)
-        return ls
-    
     def eval_measure(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
         ts = 1.0 - ls.square()

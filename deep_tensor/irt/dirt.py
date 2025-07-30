@@ -23,7 +23,7 @@ from ..preconditioners import Preconditioner
 from ..references import Reference
 from ..tools.printing import dirt_info
 from ..tools.saving import dict_to_h5, h5_to_dict
-from ..tools import compute_f_divergence
+from ..tools import check_finite, compute_f_divergence
 
 import h5py
 
@@ -111,7 +111,7 @@ class AbstractDIRT(abc.ABC):
         subset: str,
         n_layers: int
     ) -> Tuple[Tensor, Tensor]:
-        r"""Evaluates the deep Rosenblatt transport for the pullback of 
+        """Evaluates the deep Rosenblatt transport for the pullback of 
         the target density under the preconditioning map.
         """
         
@@ -338,7 +338,7 @@ class AbstractDIRT(abc.ABC):
         if direction == Direction.FORWARD:
             inds_y = torch.arange(d_ys)
             inds_x = torch.arange(d_ys, self.dim)
-        elif direction == Direction.BACKWARD:
+        else:
             inds_y = torch.arange(d_rs, self.dim)
             inds_x = torch.arange(d_rs)
         
@@ -607,7 +607,7 @@ class AbstractDIRT(abc.ABC):
         direction = SUBSET2DIRECTION[subset]
         if direction == Direction.FORWARD:
             yxs = torch.hstack((ys, xs))
-        elif direction == Direction.BACKWARD:
+        else:
             yxs = torch.hstack((xs, ys))
         
         # Evaluate marginal RT
@@ -787,7 +787,7 @@ class AbstractDIRT(abc.ABC):
         }
         
         for k in range(self.dim):
-            poly_k = self.bases.polys[k]
+            poly_k = self.bases[k]
             if isinstance(poly_k, Lagrange1):
                 kwargs = {"num_elems": poly_k.num_elems}
             elif isinstance(poly_k, LagrangeP):
@@ -812,10 +812,10 @@ class AbstractDIRT(abc.ABC):
             ftt = sirt.approx
 
             # Extract SIRT data
-            d[i]["Bs_f"] = sirt.Bs_f
-            d[i]["Bs_b"] = sirt.Bs_b
-            d[i]["Rs_f"] = sirt.Rs_f
-            d[i]["Rs_b"] = sirt.Rs_b
+            d[i]["Bs_f"] = sirt._Bs_f
+            d[i]["Bs_b"] = sirt._Bs_b
+            d[i]["Rs_f"] = sirt._Rs_f
+            d[i]["Rs_b"] = sirt._Rs_b
             d[i]["defensive"] = sirt.defensive
             # Extract FTT data
             d[i]["xs_samp"] = ftt.input_data.xs_samp
@@ -884,7 +884,6 @@ class DIRT(AbstractDIRT):
 
         self.negloglik = negloglik
         self.neglogpri = neglogpri
-        # self.neglogfx = neglogfx_Q
         self.preconditioner = preconditioner
         self.bases = ApproxBases(bases, self.domain, self.dim)
         self.bridge = bridge
@@ -909,7 +908,9 @@ class DIRT(AbstractDIRT):
         neglogliks = self.negloglik(xs)
         neglogpris = self.neglogpri(xs)
         self.num_eval += us.shape[0]
-        return neglogpris + neglogliks + neglogdets
+        neglogfxs = neglogpris + neglogliks + neglogdets
+        check_finite(neglogfxs)
+        return neglogfxs
 
     def _get_potential_to_density(
         self, 
@@ -1032,12 +1033,12 @@ class DIRT(AbstractDIRT):
             else:
                 # Use previous approximation as a starting point
                 approx = deepcopy(self.sirts[self.n_layers-1].approx)
-                tt_data = deepcopy(self.sirts[self.n_layers-1].approx.tt_data)
+                tt_data = deepcopy(self.sirts[self.n_layers-1].approx._tt_data)
 
             sirt = SIRT(
                 self._updated_func,
                 preconditioner=self.preconditioner,
-                bases=self.bases.polys,
+                bases=self.bases.bases,
                 prev_approx=approx,
                 options=self.tt_options,
                 input_data=input_data,
@@ -1055,7 +1056,7 @@ class DIRT(AbstractDIRT):
             sirt = SIRT(
                 self._updated_func,
                 preconditioner=self.preconditioner,
-                bases=sirt_prev.approx.bases.polys,
+                bases=sirt_prev.approx.bases.bases,
                 options=self.tt_options,
                 input_data=input_data, 
                 defensive=self.dirt_options.defensive
@@ -1142,7 +1143,7 @@ class DIRT(AbstractDIRT):
             self.sirts[self.n_layers] = self._get_new_layer(rs, neglogratios)
 
             self.log_z += self.sirts[self.n_layers].z.log()
-            self.num_eval += self.sirts[self.n_layers].approx.num_eval
+            self.num_eval += self.sirts[self.n_layers].approx.n_eval
 
             self.n_layers += 1
             if self.bridge.is_last:

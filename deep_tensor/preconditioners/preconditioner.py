@@ -48,7 +48,7 @@ class Preconditioner(abc.ABC):
         return
     
     @abc.abstractmethod
-    def Q(self, us: Tensor, subset: str | None = None) -> Tensor:
+    def Q(self, us: Tensor, subset: str = "first") -> Tensor:
         r"""Applies the mapping $Q(\cdot)$ to a set of samples.
 
         Parameters
@@ -71,7 +71,7 @@ class Preconditioner(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def Q_inv(self, xs: Tensor, subset: str | None = None) -> Tensor:
+    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
         r"""Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
 
         Parameters
@@ -94,7 +94,7 @@ class Preconditioner(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def neglogdet_Q(self, us: Tensor, subset: str | None = None) -> Tensor:
+    def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:
         r"""Applies the mapping $Q(\cdot)$ to a set of samples.
 
         Parameters
@@ -116,7 +116,7 @@ class Preconditioner(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def neglogdet_Q_inv(self, xs: Tensor, subset: str | None = None) -> Tensor:
+    def neglogdet_Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
         r"""Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
 
         Parameters

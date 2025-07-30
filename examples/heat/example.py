@@ -1,17 +1,16 @@
 #%% Example: Heat equation
 
-import os
 from matplotlib import pyplot as plt
 import torch
 
 import deep_tensor as dt
 
-from examples.heat import setup_heat_problem
-from examples.plotting import add_arrows, plot_dl_function, pairplot
+from examples.heat import setup_heat_problem, plot_dl_function
+from examples.plotting import add_arrows, pairplot
 
 
 torch.manual_seed(1)
-plt.style.use(os.sep.join(["examples", "plotstyle.mplstyle"]))
+
 
 #%% Generation of models and data 
 

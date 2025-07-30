@@ -14,7 +14,9 @@ class LogarithmicMapping(MappedDomain):
     This class provides a mapping from an unbounded domain, 
     $(-\infty, \infty)$, to a bounded domain, $(-1, 1)$. This mapping
     is of the form
-    $$x \mapsto \tanh\left(\frac{x}{s}\right),$$
+    $$
+        x \mapsto \tanh\left(\frac{x}{s}\right),
+    $$
     where $s$ is a scale parameter.
 
     Parameters

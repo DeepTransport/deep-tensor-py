@@ -13,7 +13,6 @@ from ..linalg import batch_mul, unfold_left, unfold_right
 from ..options import TTOptions
 from ..polynomials import Basis1D, CDF1D, construct_cdf
 from ..preconditioners.preconditioner import Preconditioner
-from ..tools import check_finite
 
 
 PotentialFunc = Callable[[Tensor], Tensor]
@@ -43,6 +42,15 @@ class AbstractSIRT():
     def input_data(self, value: InputData) -> None:
         self._input_data = value 
         return
+    
+    @property 
+    def approx(self) -> AbstractTTFunc:
+        return self._approx
+    
+    @approx.setter 
+    def approx(self, value: AbstractTTFunc) -> None:
+        self._approx = value 
+        return
 
     @property 
     def bases(self) -> ApproxBases:
@@ -54,22 +62,17 @@ class AbstractSIRT():
         return
     
     @property 
-    def oned_cdfs(self) -> Dict[int, CDF1D]:
-        return self._oned_cdfs
+    def cdfs(self) -> Dict[int, CDF1D]:
+        return self._cdfs
     
-    @oned_cdfs.setter 
-    def oned_cdfs(self, value: Dict[int, CDF1D]) -> None:
-        self._oned_cdfs = value 
+    @cdfs.setter 
+    def cdfs(self, value: Dict[int, CDF1D]) -> None:
+        self._cdfs = value 
         return
     
     @property 
-    def approx(self) -> AbstractTTFunc:
-        return self._approx
-    
-    @approx.setter 
-    def approx(self, value: AbstractTTFunc) -> None:
-        self._approx = value 
-        return
+    def dim(self) -> int:
+        return self.bases.dim 
     
     @property 
     def defensive(self) -> float:
@@ -89,55 +92,51 @@ class AbstractSIRT():
         self._z_func = value 
         return 
     
-    @property 
-    def dim(self) -> int:
-        return self.bases.dim 
-    
     @property
     def z(self) -> Tensor:
         return self.defensive + self.z_func
     
     @property 
-    def Bs_f(self) -> Dict[int, Tensor]:
-        return self._Bs_f
+    def _Bs_f(self) -> Dict[int, Tensor]:
+        return self.__Bs_f
     
-    @Bs_f.setter 
-    def Bs_f(self, value: Dict[int, Tensor]) -> None:
-        self._Bs_f = value 
+    @_Bs_f.setter 
+    def _Bs_f(self, value: Dict[int, Tensor]) -> None:
+        self.__Bs_f = value 
         return
     
     @property 
-    def Bs_b(self) -> Dict[int, Tensor]:
-        return self._Bs_b
+    def _Bs_b(self) -> Dict[int, Tensor]:
+        return self.__Bs_b
     
-    @Bs_b.setter 
-    def Bs_b(self, value: Dict[int, Tensor]) -> None:
-        self._Bs_b = value 
+    @_Bs_b.setter 
+    def _Bs_b(self, value: Dict[int, Tensor]) -> None:
+        self.__Bs_b = value 
         return
     
     @property 
-    def Rs_f(self) -> Dict[int, Tensor]:
-        return self._Rs_f
+    def _Rs_f(self) -> Dict[int, Tensor]:
+        return self.__Rs_f
     
-    @Rs_f.setter 
-    def Rs_f(self, value: Dict[int, Tensor]) -> None:
-        self._Rs_f = value 
+    @_Rs_f.setter 
+    def _Rs_f(self, value: Dict[int, Tensor]) -> None:
+        self.__Rs_f = value 
         return
     
     @property 
-    def Rs_b(self) -> Dict[int, Tensor]:
-        return self._Rs_b
+    def _Rs_b(self) -> Dict[int, Tensor]:
+        return self.__Rs_b
     
-    @Rs_b.setter 
-    def Rs_b(self, value: Dict[int, Tensor]) -> None:
-        self._Rs_b = value 
+    @_Rs_b.setter 
+    def _Rs_b(self, value: Dict[int, Tensor]) -> None:
+        self.__Rs_b = value 
         return
 
     def _construct_cdfs(self, tol: float) -> Dict[int, CDF1D]:
-        oned_cdfs = {}
+        cdfs = {}
         for k in range(self.dim):
-            oned_cdfs[k] = construct_cdf(self.bases.polys[k], error_tol=tol)
-        return oned_cdfs
+            cdfs[k] = construct_cdf(self.bases[k], error_tol=tol)
+        return cdfs
 
     def _eval_rt_local_forward(self, ls: Tensor) -> Tensor:
 
@@ -145,23 +144,21 @@ class AbstractSIRT():
         zs = torch.zeros_like(ls)
         Gs_prod = torch.ones((n_ls, 1))
 
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
-        Bs = self.Bs_f 
-        cdfs = self.oned_cdfs
+        cores = self.approx.cores
+        Bs = self._Bs_f 
             
         for k in range(d_ls):
             
             # Compute (unnormalised) conditional PDF for each sample
-            Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
+            Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("jl, ilk -> ijk", Gs_prod, Ps)
             ps = gs.square().sum(dim=2) + self.defensive
 
             # Evaluate CDF to obtain corresponding uniform variates
-            zs[:, k] = self.oned_cdfs[k].eval_cdf(ps, ls[:, k])
+            zs[:, k] = self.cdfs[k].eval_cdf(ps, ls[:, k])
 
             # Compute incremental product of tensor cores for each sample
-            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
+            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls[:, k])
             Gs_prod = torch.einsum("il, ilk -> ik", Gs_prod, Gs)
 
         return zs
@@ -173,23 +170,21 @@ class AbstractSIRT():
         d_min = self.dim - d_ls
         Gs_prod = torch.ones((1, n_ls))
 
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
-        Bs = self.Bs_b 
-        cdfs = self.oned_cdfs
+        cores = self.approx.cores
+        Bs = self._Bs_b 
 
         for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
 
             # Compute (unnormalised) conditional PDF for each sample
-            Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
+            Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("ijl, lk -> ijk", Ps, Gs_prod)
             ps = gs.square().sum(dim=1) + self.defensive
 
             # Evaluate CDF to obtain corresponding uniform variates
-            zs[:, -i] = self.oned_cdfs[k].eval_cdf(ps, ls[:, -i])
+            zs[:, -i] = self.cdfs[k].eval_cdf(ps, ls[:, -i])
             
             # Compute incremental product of tensor cores for each sample
-            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, -i])
+            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls[:, -i])
             Gs_prod = torch.einsum("ijl, li -> ji", Gs, Gs_prod)
 
         return zs
@@ -244,22 +239,20 @@ class AbstractSIRT():
         ls = torch.zeros_like(zs)
         gs = torch.ones((n_zs, 1))
 
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
-        Bs = self.Bs_f
-        cdfs = self.oned_cdfs
+        cores = self.approx.cores
+        Bs = self._Bs_f
 
         for k in range(d_zs):
             
-            Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
+            Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gls = torch.einsum("jl, ilk", gs, Ps)
             ps = gls.square().sum(dim=2) + self.defensive
-            ls[:, k] = self.oned_cdfs[k].invert_cdf(ps, zs[:, k])
+            ls[:, k] = self.cdfs[k].invert_cdf(ps, zs[:, k])
 
-            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
+            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls[:, k])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
         
-        gs_sq = (gs @ self.Rs_f[d_zs]).square().sum(dim=1)
+        gs_sq = (gs @ self._Rs_f[d_zs]).square().sum(dim=1)
         return ls, gs_sq
     
     def _eval_irt_local_backward(self, zs: Tensor) -> Tuple[Tensor, Tensor]:
@@ -288,22 +281,20 @@ class AbstractSIRT():
         gs = torch.ones((n_zs, 1))
         d_min = self.dim - d_zs
 
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
-        Bs = self.Bs_b
-        cdfs = self.oned_cdfs
-        
+        cores = self.approx.cores
+        Bs = self._Bs_b
+
         for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
 
-            Ps = TTFunc.eval_core_231(polys[k], Bs[k], cdfs[k].nodes)
+            Ps = TTFunc._eval_core_231(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gls = torch.einsum("ilk, jl", Ps, gs)
             ps = gls.square().sum(dim=2) + self.defensive
-            ls[:, -i] = self.oned_cdfs[k].invert_cdf(ps, zs[:, -i])
+            ls[:, -i] = self.cdfs[k].invert_cdf(ps, zs[:, -i])
 
-            Gs = TTFunc.eval_core_231(polys[k], cores[k], ls[:, -i])
+            Gs = TTFunc._eval_core_231(self.bases[k], cores[k], ls[:, -i])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
-        gs_sq = (self.Rs_b[d_min-1] @ gs.T).square().sum(dim=0)
+        gs_sq = (self._Rs_b[d_min-1] @ gs.T).square().sum(dim=0)
         return ls, gs_sq
 
     def _eval_irt_local(
@@ -343,7 +334,7 @@ class AbstractSIRT():
         indices = self._get_transform_indices(zs.shape[1], direction)
         
         neglogpls = -(gs_sq + self.defensive).log()
-        neglogwls = self.bases.eval_measure_potential_local(ls, indices)
+        neglogwls = self.bases._eval_measure_potential_local(ls, indices)
         neglogfls = self.z.log() + neglogpls + neglogwls
 
         return ls, neglogfls
@@ -358,41 +349,39 @@ class AbstractSIRT():
         n_zs, d_zs = zs.shape
         ls_y = torch.zeros_like(zs)
 
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
-        Bs = self.Bs_f
-        cdfs = self.oned_cdfs
+        cores = self.approx.cores
+        Bs = self._Bs_f
         
         Gs_prod = torch.ones((n_xs, 1, 1))
 
         for k in range(d_xs-1):
-            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_x[:, k])
+            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls_x[:, k])
             Gs_prod = batch_mul(Gs_prod, Gs)
         
         k = d_xs-1
 
-        Ps = TTFunc.eval_core_213(polys[k], Bs[k], ls_x[:, k])
+        Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], ls_x[:, k])
         gs_marg = batch_mul(Gs_prod, Ps)
         ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.defensive
 
-        Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_x[:, k])
+        Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls_x[:, k])
         Gs_prod = batch_mul(Gs_prod, Gs)
 
         # Generate conditional samples
         for i, k in enumerate(range(d_xs, self.dim)):
             
-            Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
+            Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("mij, ljk -> lmk", Gs_prod, Ps)
             ps = gs.square().sum(dim=2) + self.defensive
-            ls_y[:, i] = self.oned_cdfs[k].invert_cdf(ps, zs[:, i])
+            ls_y[:, i] = self.cdfs[k].invert_cdf(ps, zs[:, i])
 
-            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_y[:, i])
+            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls_y[:, i])
             Gs_prod = batch_mul(Gs_prod, Gs)
 
         ps = Gs_prod.flatten().square() + self.defensive
 
         indices = d_xs + torch.arange(d_zs)
-        neglogwls_y = self.bases.eval_measure_potential_local(ls_y, indices)
+        neglogwls_y = self.bases._eval_measure_potential_local(ls_y, indices)
         neglogfls_y = ps_marg.log() - ps.log() + neglogwls_y
 
         return ls_y, neglogfls_y
@@ -406,39 +395,37 @@ class AbstractSIRT():
         n_zs, d_zs = zs.shape
         ls_y = torch.zeros_like(zs)
 
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
-        Bs = self.Bs_b
-        cdfs = self.oned_cdfs
+        cores = self.approx.cores
+        Bs = self._Bs_b
 
         Gs_prod = torch.ones((n_zs, 1, 1))
 
         for i, k in enumerate(range(self.dim-1, d_zs, -1), start=1):
-            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_x[:, -i])
+            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls_x[:, -i])
             Gs_prod = batch_mul(Gs, Gs_prod)
 
-        Ps = TTFunc.eval_core_213(polys[d_zs], Bs[d_zs], ls_x[:, 0])
+        Ps = TTFunc._eval_core_213(self.bases[d_zs], Bs[d_zs], ls_x[:, 0])
         gs_marg = batch_mul(Ps, Gs_prod)
         ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.defensive
 
-        Gs = TTFunc.eval_core_213(polys[d_zs], cores[d_zs], ls_x[:, 0])
+        Gs = TTFunc._eval_core_213(self.bases[d_zs], cores[d_zs], ls_x[:, 0])
         Gs_prod = batch_mul(Gs, Gs_prod)
 
         # Generate conditional samples
         for k in range(d_zs-1, -1, -1):
 
-            Ps = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
+            Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("lij, mjk -> lmi", Ps, Gs_prod)
             ps = gs.square().sum(dim=2) + self.defensive
-            ls_y[:, k] = self.oned_cdfs[k].invert_cdf(ps, zs[:, k])
+            ls_y[:, k] = self.cdfs[k].invert_cdf(ps, zs[:, k])
 
-            Gs = TTFunc.eval_core_213(polys[k], cores[k], ls_y[:, k])
+            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls_y[:, k])
             Gs_prod = batch_mul(Gs, Gs_prod)
 
         ps = Gs_prod.flatten().square() + self.defensive
 
         indices = torch.arange(d_zs-1, -1, -1)
-        neglogwls_y = self.bases.eval_measure_potential_local(ls_y, indices)
+        neglogwls_y = self.bases._eval_measure_potential_local(ls_y, indices)
         neglogfls_y = ps_marg.log() - ps.log() + neglogwls_y
 
         return ls_y, neglogfls_y
@@ -499,14 +486,13 @@ class AbstractSIRT():
         
         """
 
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
+        cores = self.approx.cores
 
         zs = self._eval_rt_local_forward(ls)
         ls, gs_sq = self._eval_irt_local_forward(zs)
         n_ls = ls.shape[0]
         ps = gs_sq + self.defensive
-        neglogws = self.bases.eval_measure_potential_local(ls)
+        neglogws = self.bases._eval_measure_potential_local(ls)
         ws = torch.exp(-neglogws)
         fs = ps * ws  # Don't need to normalise as derivative ends up being a ratio
         
@@ -517,11 +503,11 @@ class AbstractSIRT():
         
         for k in range(self.dim):
 
-            ws_k = polys[k].eval_measure(ls[:, k])
-            dwdls_k = polys[k].eval_measure_deriv(ls[:, k])
+            ws_k = self.bases[k].eval_measure(ls[:, k])
+            dwdls_k = self.bases[k].eval_measure_deriv(ls[:, k])
 
-            Gs_k = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
-            dGdls_k = TTFunc.eval_core_213_deriv(polys[k], cores[k], ls[:, k])
+            Gs_k = TTFunc._eval_core_213(self.bases[k], cores[k], ls[:, k])
+            dGdls_k = TTFunc._eval_core_213_deriv(self.bases[k], cores[k], ls[:, k])
             Gs_prod = batch_mul(Gs_prod, Gs_k)
             
             for j in range(self.dim):
@@ -545,10 +531,8 @@ class AbstractSIRT():
 
     def _eval_rt_jac_local_forward(self, ls: Tensor) -> Tensor:
 
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
-        Bs = self.Bs_f
-        cdfs = self.oned_cdfs
+        cores = self.approx.cores
+        Bs = self._Bs_f
 
         Gs: Dict[int, Tensor] = {}
         Gs_deriv: Dict[int, Tensor] = {}
@@ -572,17 +556,17 @@ class AbstractSIRT():
         for k in range(self.dim):
 
             # Evaluate weighting function
-            wls[k] = polys[k].eval_measure(ls[:, k])
+            wls[k] = self.bases[k].eval_measure(ls[:, k])
 
             # Evaluate kth tensor core and derivative
-            Gs[k] = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
-            Gs_deriv[k] = TTFunc.eval_core_213_deriv(polys[k], cores[k], ls[:, k])
+            Gs[k] = TTFunc._eval_core_213(self.bases[k], cores[k], ls[:, k])
+            Gs_deriv[k] = TTFunc._eval_core_213_deriv(self.bases[k], cores[k], ls[:, k])
             Gs_prod[k] = batch_mul(Gs_prod[k-1], Gs[k])
 
             # Evaluate kth marginalisation core and derivative
-            Ps[k] = TTFunc.eval_core_213(polys[k], Bs[k], ls[:, k])
-            Ps_deriv[k] = TTFunc.eval_core_213_deriv(polys[k], Bs[k], ls[:, k])
-            Ps_grid[k] = TTFunc.eval_core_213(polys[k], Bs[k], cdfs[k].nodes)
+            Ps[k] = TTFunc._eval_core_213(self.bases[k], Bs[k], ls[:, k])
+            Ps_deriv[k] = TTFunc._eval_core_213_deriv(self.bases[k], Bs[k], ls[:, k])
+            Ps_grid[k] = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
 
             # Evaluate marginal probability for the first k elements of 
             # each sample
@@ -634,18 +618,16 @@ class AbstractSIRT():
             for j in range(k):
                 grad_cond = (ps_grid_deriv[k][j] * ps_marg[k-1] 
                              - ps_grid[k] * ps_marg_deriv[k-1][j]) / ps_marg[k-1].square()
-                if polys[k].constant_weight:
+                if self.bases[k].constant_weight:
                     grad_cond *= wls[k]
-                Jacs[k, :, j] = self.oned_cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
+                Jacs[k, :, j] = self.cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
 
         return Jacs
     
     def _eval_rt_jac_local_backward(self, ls: Tensor) -> Tensor:
 
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
-        Bs = self.Bs_b
-        cdfs = self.oned_cdfs
+        cores = self.approx.cores
+        Bs = self._Bs_b
 
         Gs: dict[int, Tensor] = {}
         Gs_deriv: dict[int, Tensor] = {}
@@ -669,17 +651,17 @@ class AbstractSIRT():
         for k in range(self.dim-1, -1, -1):
 
             # Evaluate weighting function
-            wls[k] = polys[k].eval_measure(ls[:, k])
+            wls[k] = self.bases[k].eval_measure(ls[:, k])
 
             # Evaluate kth tensor core and derivative
-            Gs[k] = TTFunc.eval_core_231(polys[k], cores[k], ls[:, k])
-            Gs_deriv[k] = TTFunc.eval_core_231_deriv(polys[k], cores[k], ls[:, k])
+            Gs[k] = TTFunc._eval_core_231(self.bases[k], cores[k], ls[:, k])
+            Gs_deriv[k] = TTFunc._eval_core_231_deriv(self.bases[k], cores[k], ls[:, k])
             Gs_prod[k] = batch_mul(Gs_prod[k+1], Gs[k])
 
             # Evaluate kth marginalisation core and derivative
-            Ps[k] = TTFunc.eval_core_231(polys[k], Bs[k], ls[:, k])
-            Ps_deriv[k] = TTFunc.eval_core_231_deriv(polys[k], Bs[k], ls[:, k])
-            Ps_grid[k] = TTFunc.eval_core_231(polys[k], Bs[k], cdfs[k].nodes)
+            Ps[k] = TTFunc._eval_core_231(self.bases[k], Bs[k], ls[:, k])
+            Ps_deriv[k] = TTFunc._eval_core_231_deriv(self.bases[k], Bs[k], ls[:, k])
+            Ps_grid[k] = TTFunc._eval_core_231(self.bases[k], Bs[k], self.cdfs[k].nodes)
 
             # Evaluate marginal probability for the first k elements of 
             # each sample
@@ -731,9 +713,9 @@ class AbstractSIRT():
             for j in range(k+1, self.dim):
                 grad_cond = (ps_grid_deriv[k][j] * ps_marg[k+1] 
                              - ps_grid[k] * ps_marg_deriv[k+1][j]) / ps_marg[k+1].square()
-                if polys[k].constant_weight:
+                if self.bases[k].constant_weight:
                     grad_cond *= wls[k]
-                Jacs[k, :, j] = self.oned_cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
+                Jacs[k, :, j] = self.cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
             
         return Jacs
 
@@ -770,7 +752,7 @@ class AbstractSIRT():
         elif direction == Direction.BACKWARD:
             return torch.arange(self.dim-dim_z, self.dim)
 
-    def _eval_potential_grad_autodiff(self, xs: Tensor, subset: str | None) -> Tensor:
+    def _eval_potential_grad_autodiff(self, xs: Tensor, subset: str = "first") -> Tensor:
         """Evaluates the gradient of the potential using autodiff."""
 
         xs_shape = xs.shape
@@ -796,7 +778,7 @@ class AbstractSIRT():
         Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
         return Js.reshape(d_xs, n_xs, d_xs)
     
-    def round(self, tol: float | Tensor | None = None) -> None:
+    def _round(self, tol: float | None = None) -> None:
         """Rounds the TT cores. 
         
         Applies double rounding to get back to the starting direction.
@@ -837,17 +819,17 @@ class AbstractSIRT():
         if direction == Direction.FORWARD:
             indices = torch.arange(dim_l)
             gs = self.approx._eval_local(ls, direction=direction)
-            gs_sq = (gs @ self.Rs_f[dim_l]).square().sum(dim=1)
+            gs_sq = (gs @ self._Rs_f[dim_l]).square().sum(dim=1)
             
         else:
             i_min = self.dim - dim_l
             indices = torch.arange(self.dim-1, self.dim-dim_l-1, -1)
             gs = self.approx._eval_local(ls, direction=direction)
-            gs_sq = (self.Rs_b[i_min-1] @ gs.T).square().sum(dim=0)
+            gs_sq = (self._Rs_b[i_min-1] @ gs.T).square().sum(dim=0)
             
         # TODO: check that indices go backwards. This could be an issue 
         # if different bases are used in each dimension.
-        neglogwls = self.bases.eval_measure_potential_local(ls, indices)
+        neglogwls = self.bases._eval_measure_potential_local(ls, indices)
         neglogfls = self.z.log() - (gs_sq + self.defensive).log() + neglogwls
         return neglogfls
     
@@ -883,7 +865,7 @@ class AbstractSIRT():
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
     
-    def eval_potential(self, ms: Tensor, subset: str|None = None) -> Tensor:
+    def eval_potential(self, ms: Tensor, subset: str = "first") -> Tensor:
         r"""Evaluates the potential function.
 
         Returns the joint potential function, or the marginal potential 
@@ -914,37 +896,7 @@ class AbstractSIRT():
         neglogfms = neglogfxs + neglogabsdet_ms
         return neglogfms
 
-    def _eval_pdf(self, xs: Tensor, subset: str | None = None) -> Tensor: 
-        r"""Evaluates the density function.
-
-        Returns the joint density function, or the marginal density 
-        function for the first $k$ variables or the last $k$ variables, 
-        evaluated at a set of samples.
-        
-        Parameters
-        ----------
-        xs:
-            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
-            samples from the reference domain.
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-
-        Returns
-        -------
-        fxs:
-            An $n$-dimensional vector containing the value of the 
-            approximation to the target density evaluated at each 
-            element in `xs`.
-        
-        """
-        neglogfxs = self._eval_potential(xs, subset)
-        fxs = torch.exp(-neglogfxs)
-        return fxs
-
-    def eval_pdf(self, ms: Tensor, subset: str | None = None) -> Tensor: 
+    def eval_pdf(self, ms: Tensor, subset: str = "first") -> Tensor: 
         r"""Evaluates the density function.
 
         Returns the joint density function, or the marginal density 
@@ -1006,7 +958,7 @@ class AbstractSIRT():
         zs = self._eval_rt_local(ls, direction)
         return zs
 
-    def eval_rt(self, ms: Tensor, subset: str) -> Tensor:
+    def eval_rt(self, ms: Tensor, subset: str = "first") -> Tensor:
         r"""Evaluates the Rosenblatt transport.
 
         Returns the joint Rosenblatt transport, or the marginal 
@@ -1071,7 +1023,7 @@ class AbstractSIRT():
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs
 
-    def eval_irt(self, zs: Tensor, subset: str) -> Tuple[Tensor, Tensor]:
+    def eval_irt(self, zs: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
         r"""Evaluates the inverse Rosenblatt transport.
         
         Returns the joint inverse Rosenblatt transport, or the marginal 
@@ -1175,7 +1127,7 @@ class AbstractSIRT():
         if direction == Direction.FORWARD:
             inds_x = torch.arange(d_xs)
             inds_z = torch.arange(d_xs, self.dim)
-        elif direction == Direction.BACKWARD:
+        else:
             inds_x = torch.arange(d_zs, self.dim)
             inds_z = torch.arange(d_zs)
         
@@ -1190,7 +1142,7 @@ class AbstractSIRT():
         self, 
         xs: Tensor, 
         method: str = "autodiff",
-        subset: str | None = None
+        subset: str = "first"
     ) -> Tensor:
         r"""Evaluates the gradient of the potential function.
         
@@ -1291,7 +1243,9 @@ class AbstractSIRT():
         return Jacs
 
     def random(self, n: int) -> Tensor: 
-        """Generates a set of random samples. 
+        """Generates a set of random samples.
+
+        Samples are generated from the joint density defined by the SIRT. 
         
         Parameters
         ----------
@@ -1310,6 +1264,8 @@ class AbstractSIRT():
     
     def sobol(self, n: int) -> Tensor:
         """Generates a set of QMC samples.
+
+        Samples are generated from the joint density defined by the SIRT. 
         
         Parameters
         ----------
@@ -1372,8 +1328,8 @@ class SIRT(AbstractSIRT):
         self, 
         potential: Callable[[Tensor], Tensor], 
         preconditioner: Preconditioner,
-        bases: Basis1D | List[Basis1D] | None = None,
-        prev_approx: TTFunc | None = None,
+        bases: Basis1D | List[Basis1D],
+        prev_approx: AbstractTTFunc | None = None,
         options: TTOptions | None = None, 
         input_data: InputData | None = None, 
         tt_data: TTData | None = None,
@@ -1386,9 +1342,9 @@ class SIRT(AbstractSIRT):
             raise Exception(msg)
 
         if prev_approx is not None:
-            bases = prev_approx.bases.polys
+            bases = prev_approx.bases.bases
             options = prev_approx.options
-            tt_data = prev_approx.tt_data
+            tt_data = prev_approx._tt_data
 
         if options is None:
             options = TTOptions()
@@ -1407,7 +1363,7 @@ class SIRT(AbstractSIRT):
         self.input_data = input_data
         self.tt_data = tt_data
         self.defensive = defensive
-        self.oned_cdfs = self._construct_cdfs(self.options.cdf_tol)
+        self.cdfs = self._construct_cdfs(self.options.cdf_tol)
 
         self.approx = TTFunc(
             self._target_func, 
@@ -1417,14 +1373,15 @@ class SIRT(AbstractSIRT):
             tt_data=self.tt_data
         )
         self.approx._cross()
-        if self.approx.use_amen:
+        if self.approx._use_amen:
             self.approx._round()  # why?
 
-        # Compute coefficient tensors and marginalisation coefficents
-        self.Bs_f: Dict[int, Tensor] = {}
-        self.Rs_f: Dict[int, Tensor] = {}
-        self.Bs_b: Dict[int, Tensor] = {}
-        self.Rs_b: Dict[int, Tensor] = {}
+        # Compute coefficient tensors and marginalisation coefficents, 
+        # from the first core to the last and the last core to the first
+        self._Bs_f = {}
+        self._Rs_f = {}
+        self._Bs_b = {}
+        self._Rs_b = {}
         self._marginalise_forward()
         self._marginalise_backward()
         return
@@ -1439,9 +1396,8 @@ class SIRT(AbstractSIRT):
         neglogfxs = self.potential(xs)
         neglogwxs = self.bases.eval_measure_potential(xs)[0]
         
-        # The ratio of f and w is invariant to changes of coordinate
+        # Note: the ratio of f and w is invariant to changes of coordinate
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
-        check_finite(gs)
         return gs
 
     def _marginalise_forward(self) -> None:
@@ -1450,17 +1406,16 @@ class SIRT(AbstractSIRT):
         dimensions of the approximation from last to first.
         """
 
-        self.Rs_f[self.dim] = torch.tensor([[1.0]])
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
+        self._Rs_f[self.dim] = torch.tensor([[1.0]])
+        cores = self.approx.cores
 
         for k in range(self.dim-1, -1, -1):
-            self.Bs_f[k] = torch.einsum("ijl, lk", cores[k], self.Rs_f[k+1])
-            C_k = torch.einsum("ilk, lj", self.Bs_f[k], polys[k].mass_R)
+            self._Bs_f[k] = torch.einsum("ijl, lk", cores[k], self._Rs_f[k+1])
+            C_k = torch.einsum("ilk, lj", self._Bs_f[k], self.bases[k].mass_R)
             C_k = unfold_right(C_k)
-            self.Rs_f[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
+            self._Rs_f[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
-        self.z_func = self.Rs_f[0].square().sum()
+        self.z_func = self._Rs_f[0].square().sum()
         return 
     
     def _marginalise_backward(self) -> None:
@@ -1469,17 +1424,16 @@ class SIRT(AbstractSIRT):
         dimensions of the approximation from first to last.
         """
         
-        self.Rs_b[-1] = torch.tensor([[1.0]])
-        polys = self.bases.polys
-        cores = self.approx.tt_data.cores
+        self._Rs_b[-1] = torch.tensor([[1.0]])
+        cores = self.approx.cores
 
         for k in range(self.dim):
-            self.Bs_b[k] = torch.einsum("il, ljk", self.Rs_b[k-1], cores[k])
-            C_k = torch.einsum("jl, ilk", polys[k].mass_R, self.Bs_b[k])
+            self._Bs_b[k] = torch.einsum("il, ljk", self._Rs_b[k-1], cores[k])
+            C_k = torch.einsum("jl, ilk", self.bases[k].mass_R, self._Bs_b[k])
             C_k = unfold_left(C_k)
-            self.Rs_b[k] = torch.linalg.qr(C_k, mode="reduced")[1]
+            self._Rs_b[k] = torch.linalg.qr(C_k, mode="reduced")[1]
 
-        self.z_func = self.Rs_b[self.dim-1].square().sum()
+        self.z_func = self._Rs_b[self.dim-1].square().sum()
         return
 
 
@@ -1505,13 +1459,13 @@ class SavedSIRT(AbstractSIRT):
         self.options = options
         self.input_data = InputData(data["xs_samp"], data["xs_debug"], data["fxs_debug"])
         self.tt_data = TTData(direction, cores)
-        self.Bs_f = {int(k): v for k, v in data["Bs_f"].items()}
-        self.Rs_f = {int(k): v for k, v in data["Rs_f"].items()}
-        self.Bs_b = {int(k): v for k, v in data["Bs_b"].items()}
-        self.Rs_b = {int(k): v for k, v in data["Rs_b"].items()}
+        self._Bs_f = {int(k): v for k, v in data["Bs_f"].items()}
+        self._Rs_f = {int(k): v for k, v in data["Rs_f"].items()}
+        self._Bs_b = {int(k): v for k, v in data["Bs_b"].items()}
+        self._Rs_b = {int(k): v for k, v in data["Rs_b"].items()}
         self.defensive = data["defensive"]
-        self.z_func = self.Rs_f[0].square().sum()
-        self.oned_cdfs = self._construct_cdfs(self.options.cdf_tol)
+        self.z_func = self._Rs_f[0].square().sum()
+        self.cdfs = self._construct_cdfs(self.options.cdf_tol)
 
         self.approx = SavedTTFunc(
             self.bases,

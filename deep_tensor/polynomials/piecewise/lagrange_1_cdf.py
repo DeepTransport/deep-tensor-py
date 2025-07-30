@@ -3,12 +3,12 @@ from typing import Tuple
 import torch
 from torch import Tensor
 
+from .lagrange_1 import Lagrange1
 from ..cdf_data import CDFDataLagrange1
 from ..piecewise.piecewise_cdf import PiecewiseCDF
-from .lagrange_1 import Lagrange1
 
 
-class Lagrange1CDF(Lagrange1, PiecewiseCDF):
+class Lagrange1CDF(PiecewiseCDF):
 
     def __init__(self, poly: Lagrange1, **kwargs):
         """The CDF for piecewise linear Lagrange polynomials.
@@ -20,7 +20,7 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         using three evaluations of the polynomial (at the left-hand 
         edge, centre, and right-hand edge). Inverting the CDF amounts 
         to determining which element a given CDF value lies in and then 
-        inverting the correpsonding polynomial (done using Newton's 
+        inverting the corresponding polynomial (done using Newton's 
         method).
 
         Parameters
@@ -31,24 +31,17 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
             Arguments to pass into PiecewiseCDF.__init__.
             
         """
-        
-        Lagrange1.__init__(self, num_elems=poly.num_elems)
+
         PiecewiseCDF.__init__(self, **kwargs)
         
-        dl = self.elem_size / 2.0
-        n_nodes = 2 * self.num_elems + 1
-        self.nodes = torch.linspace(*self.domain, n_nodes)
+        self._poly = poly
+        self.elem_size = self._poly.elem_size
 
-        ii = torch.tensor([[3*i, 3*i+1, 3*i+2] for i in range(self.num_elems)]).flatten()
-        jj = torch.tensor([[2*i, 2*i+1, 2*i+2] for i in range(self.num_elems)]).flatten()
-        self.node2elem = torch.zeros((3*self.num_elems, n_nodes))
-        self.node2elem[ii, jj] = 1.0
+        dl = 0.5 * self.elem_size
+        self.nodes = torch.linspace(*self.domain, 2 * self.num_elems + 1)
 
-        self.V_inv = torch.tensor([
-            [1.0, 0.0, 0.0], 
-            [-1.5/dl, 2.0/dl, -0.5/dl], 
-            [0.5/(dl**2), -1.0/(dl**2), 0.5/(dl**2)]
-        ])
+        self.node2elem = self._build_node2elem(self.cardinality, self.num_elems)
+        self.V_inv = self._build_V_inv(dl)
 
         return
     
@@ -59,6 +52,14 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
     @property 
     def domain(self) -> Tensor:
         return torch.tensor([-1.0, 1.0])
+    
+    @property
+    def grid(self) -> Tensor:
+        return self._poly.grid
+    
+    @property
+    def num_elems(self) -> int:
+        return self._poly.num_elems
     
     @property
     def node2elem(self) -> Tensor:
@@ -73,18 +74,29 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
     def node2elem(self, value: Tensor) -> None:
         self._node2elem = value 
         return
-
-    @property
-    def V_inv(self) -> Tensor:
-        """The inverse of the Vandermonde matrix obtained by evaluating 
-        (1, x, x^2) at (0, dl/2, dl).
-        """
-        return self._V_inv
     
-    @V_inv.setter 
-    def V_inv(self, value: Tensor) -> None:
-        self._V_inv = value 
-        return
+    @staticmethod 
+    def _build_node2elem(n_nodes: int, n_elems: int) -> Tensor:
+        ii = range(3*n_elems)
+        jj = torch.tensor([[2*i, 2*i+1, 2*i+2] for i in range(n_elems)]).flatten()
+        node2elem = torch.zeros((3*n_elems, n_nodes))
+        node2elem[ii, jj] = 1.0
+        return node2elem
+    
+    @staticmethod
+    def _build_V_inv(dl: float) -> Tensor:
+        """Constructs the inverse of the Vandermonde matrix obtained by 
+        evaluating (1, x, x^2) at (0, dl/2, dl). When applied to a 
+        vector containing three equispaced function values on an 
+        element, this matrix returns the coefficients of the quadratic 
+        that passes through them.
+        """
+        V_inv = torch.tensor([
+            [1.0, 0.0, 0.0], 
+            [-1.5/dl, 2.0/dl, -0.5/dl], 
+            [0.5/(dl**2), -1.0/(dl**2), 0.5/(dl**2)]
+        ])
+        return V_inv
 
     def pdf2cdf(self, ps: Tensor) -> CDFDataLagrange1:
 
@@ -94,9 +106,9 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
 
         n_cdfs = ps.shape[1]
         
-        # Compute coefficients of cubic for each element
-        ps_elems = (self.node2elem @ ps).T.reshape(n_cdfs, self.num_elems, 3)
-        poly_coef = torch.einsum("kl, jil", self.V_inv, ps_elems)
+        # Compute coefficients of quadratic for each element
+        ps_elems = (self.node2elem @ ps).reshape(self.num_elems, 3, n_cdfs)
+        poly_coef = torch.einsum("kl, ilj", self.V_inv, ps_elems)
 
         temp = torch.tensor([
             self.elem_size, 
@@ -105,7 +117,7 @@ class Lagrange1CDF(Lagrange1, PiecewiseCDF):
         ])
 
         # Integrate each quadratic polynomial over its element
-        cdf_elems = torch.einsum("l, jkl", temp, poly_coef)
+        cdf_elems = torch.einsum("jkl, l", poly_coef, temp)
 
         cdf_poly_grid = torch.zeros(self.num_elems+1, n_cdfs)
         cdf_poly_grid[1:] = torch.cumsum(cdf_elems, dim=0)

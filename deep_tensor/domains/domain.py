@@ -11,7 +11,7 @@ class Domain(abc.ABC):
     @abc.abstractmethod
     def bounds(self) -> Tensor:
         """The boundary of the approximation domain."""
-        return
+        pass
     
     @property
     def left(self) -> Tensor:
@@ -45,7 +45,7 @@ class Domain(abc.ABC):
             domain evaluated at each point in xs.
             
         """
-        return
+        pass
     
     @abc.abstractmethod
     def approx2local(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
@@ -69,7 +69,7 @@ class Domain(abc.ABC):
             domain evaluated at each point in rs.
 
         """
-        return
+        pass
     
     @abc.abstractmethod
     def local2approx_log_density(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
@@ -95,7 +95,7 @@ class Domain(abc.ABC):
             the approximation domain.
         
         """
-        return
+        pass
     
     @abc.abstractmethod
     def approx2local_log_density(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
@@ -121,7 +121,7 @@ class Domain(abc.ABC):
             approximation domain to the local domain.
         
         """
-        return
+        pass
     
     @staticmethod
     def check_bounds(bounds: Tensor) -> None:

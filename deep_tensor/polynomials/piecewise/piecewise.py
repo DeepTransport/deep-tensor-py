@@ -12,9 +12,9 @@ class Piecewise(Basis1D, abc.ABC):
     def __init__(self, order: int, num_elems: int):
         self.order = order 
         self.num_elems = num_elems
-        self.grid = torch.linspace(*self.domain, num_elems+1)
+        self.grid = torch.linspace(self.domain[0], self.domain[1], num_elems+1)
         self.elem_size = self.grid[1] - self.grid[0]
-        self.domain_size = self.domain[1] - self.domain[0]
+        self.domain_size = float(self.domain[1] - self.domain[0])
         return
     
     @property
@@ -73,9 +73,6 @@ class Piecewise(Basis1D, abc.ABC):
 
     def sample_measure(self, n: int) -> Tensor:
         return self.domain[0] + self.domain_size * torch.rand(n)
-
-    def sample_measure_skip(self, n: int) -> Tensor:
-        return self.sample_measure(n)
 
     def eval_measure(self, ls: Tensor) -> Tensor:
         return torch.full(ls.shape, 1.0 / self.domain_size)

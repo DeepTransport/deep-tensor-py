@@ -11,6 +11,9 @@ from examples.plotting import pairplot
 import deep_tensor as dt
 
 
+torch.random.manual_seed(0)
+
+
 def read_credit_data(fname: str) -> Tuple[torch.Tensor, torch.Tensor]:
     """Reads in the German credit dataset, then shifts and scales the 
     predictors such that each has a mean of zero and standard deviation 
@@ -21,10 +24,10 @@ def read_credit_data(fname: str) -> Tuple[torch.Tensor, torch.Tensor]:
     with open(fname, "r") as f:
         data = [[float(l) for l in line.strip().split()] 
                 for line in f.readlines()]
-    
+
     data = torch.tensor(data)
     xs, ys = data[:, :-1], data[:, -1]
-    
+
     mean_xs = torch.mean(xs, dim=0)
     std_xs = torch.std(xs, dim=0)
 
@@ -84,46 +87,55 @@ def compute_laplace_approx(x0: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor
     H_inv = torch.linalg.inv(H)
     return bs_map, H_inv
 
-x0 = torch.zeros(n_beta)  # I haven't found a different MAP estimate when varying the starting location
-bs_map, cov_map = compute_laplace_approx(x0)
 
-domain = dt.BoundedDomain(torch.tensor([-6.0, 6.0]))
-reference = dt.GaussianReference(domain=domain)
-preconditioner = dt.GaussianMapping(bs_map, cov_map, reference)
+if __name__ == "__main__":
 
-bases = dt.Lagrange1(num_elems=20)
+    x0 = torch.zeros(n_beta)  # I haven't found a different MAP estimate when varying the starting location
+    bs_map, cov_map = compute_laplace_approx(x0)
 
-dirt = dt.DIRT(
-    negloglik,
-    neglogpri,
-    preconditioner,
-    bases,
-    tt_options=dt.TTOptions(verbose=2, init_rank=10, max_rank=12)
-)
+    domain = dt.BoundedDomain(torch.tensor([-6.0, 6.0]))
+    reference = dt.GaussianReference(domain=domain)
+    preconditioner = dt.GaussianMapping(bs_map, cov_map, reference)
 
-n_steps = 10_000
+    bases = dt.Lagrange1(num_elems=20)
 
-norm = torch.distributions.MultivariateNormal(bs_map.flatten(), cov_map)
-samples = norm.sample((n_steps,))
-potentials_norm = -norm.log_prob(samples)
-potentials_true = negloglik(samples) + neglogpri(samples)
+    dirt = dt.DIRT(
+        negloglik,
+        neglogpri,
+        preconditioner,
+        bases,
+        tt_options=dt.TTOptions(verbose=2, init_rank=10, max_rank=12)
+    )
 
-res = dt.run_independence_sampler(samples, potentials_norm, potentials_true)
-print(res.acceptance_rate)
-print(res.iacts.max())
-print(res.ess.min())
+    n_steps = 100
 
-rs = dirt.reference.random(d=dirt.dim, n=n_steps)
-samples, potentials_dirt = dirt.eval_irt(rs)
-potentials_true = negloglik(samples) + neglogpri(samples)
+    kernel = dt.pCNKernel(neglogpost, dirt, dt=2.0)
+    mcmc = dt.MCMC(kernel, n_steps, n_chains=4)
+    mcmc.run()
 
-res = dt.run_independence_sampler(samples, potentials_dirt, potentials_true)
-print(res.acceptance_rate)
-print(res.iacts.max())
-print(res.ess.min())
+    torch.tensor([1, 2, 3]).share_memory_()
 
-rs = dirt.reference.random(d=dirt.dim, n=1000)
-samples = preconditioner.Q(rs)
+    # norm = torch.distributions.MultivariateNormal(bs_map.flatten(), cov_map)
+    # samples = norm.sample((n_steps,))
+    # potentials_norm = -norm.log_prob(samples)
+    # potentials_true = negloglik(samples) + neglogpri(samples)
 
-for i in range(5):
-    pairplot(res.xs[::5, 5*i:5*(i+1)])
+    # res = dt.run_independence_sampler(samples, potentials_norm, potentials_true)
+    # print(res.acceptance_rate)
+    # print(res.iacts.max())
+    # print(res.ess.min())
+
+    # rs = dirt.reference.random(d=dirt.dim, n=n_steps)
+    # samples, potentials_dirt = dirt.eval_irt(rs)
+    # potentials_true = negloglik(samples) + neglogpri(samples)
+
+    # res = dt.run_independence_sampler(samples, potentials_dirt, potentials_true)
+    # print(res.acceptance_rate)
+    # print(res.iacts.max())
+    # print(res.ess.min())
+
+    # rs = dirt.reference.random(d=dirt.dim, n=1000)
+    # samples = preconditioner.Q(rs)
+
+    # for i in range(5):
+    #     pairplot(res.xs[::5, 5*i:5*(i+1)])

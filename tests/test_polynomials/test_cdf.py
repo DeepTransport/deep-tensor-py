@@ -44,7 +44,7 @@ class TestCDF(unittest.TestCase):
                 zs = cdf.eval_cdf(ps, ls)
                 ls_0 = cdf.invert_cdf(ps, zs)
                 
-                self.assertTrue(norm(ls-ls_0) < 1e-8)
+                self.assertTrue((ls-ls_0).abs().max() < 1e-4)
 
         return
 

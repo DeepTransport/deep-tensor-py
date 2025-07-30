@@ -1,5 +1,5 @@
 import abc
-from typing import Tuple, Union
+from typing import Tuple
 
 import torch
 from torch import Tensor
@@ -48,17 +48,17 @@ class Recurr(Spectral, abc.ABC):
         self.b = b
         self.c = c
         self.norm = norm
-        self._nodes, self._weights = self.compute_nodes_weights(a, b, c)
+        self._nodes, self._weights = self._compute_nodes_weights(a, b, c)
         self.__post_init__()
         return
 
     @staticmethod
-    def compute_nodes_weights(
+    def _compute_nodes_weights(
         a: Tensor,
         b: Tensor,
         c: Tensor
     ) -> Tuple[Tensor, Tensor]:
-        """Computes the collocation points and the interpolation 
+        """Computes the collocation points and the quadrature 
         weights using the Golub-Welsch method.
 
         Parameters

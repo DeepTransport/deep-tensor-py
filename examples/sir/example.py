@@ -1,6 +1,5 @@
 #%% Example: SIR model
 
-import os
 import math
 from matplotlib import pyplot as plt
 import torch
@@ -12,7 +11,6 @@ from examples.plotting import add_arrows
 
 
 torch.manual_seed(1)
-plt.style.use(os.sep.join(["examples", "plotstyle.mplstyle"]))
 
 #%% Generation of model and data 
 

@@ -6,6 +6,24 @@ from torch import Tensor
 from torch import linalg
 
 
+def _check_tall_matrix(A: Tensor) -> None:
+    """Raises an exception if a matrix is not a tall matrix."""
+    
+    if A.ndim != 2:
+        msg = "Input tensor must be two-dimensional."
+        raise Exception(msg)
+    
+    n, r = A.shape
+    if r > n:
+        msg = (
+            "The number of rows of the input matrix must be greater "
+            f"than or equal to the number of columns ({n} vs {r})."
+        )
+        raise Exception(msg)
+    
+    return
+
+
 def deim(U: Tensor) -> Tuple[Tensor, Tensor]:
     """Computes a submatrix of a matrix of left singular vectors using
     the discrete empirical interpolation method (DEIM).
@@ -31,13 +49,8 @@ def deim(U: Tensor) -> Tuple[Tensor, Tensor]:
 
     """
 
+    _check_tall_matrix(U)
     n, r = U.shape 
-
-    if r > n:
-        msg = ("The number of rows of the input matrix "
-               + "must be greater than or equal to the "
-               + f"number of columns ({n} vs {r}).")
-        raise Exception(msg)
 
     inds = torch.zeros(r, dtype=torch.int32)
     P = torch.zeros((n, r))
@@ -63,13 +76,8 @@ def lu_deim(A: Tensor):
     """TODO: tidy this up. Also test to see whether this is the same as 
     DEIM when applied with spectral polynomials."""
 
-    n, r = A.shape
-
-    if r > n:
-        msg = ("The number of rows of the input matrix "
-               + "must be greater than or equal to the "
-               + f"number of columns ({n} vs {r}).")
-        raise Exception(msg)
+    _check_tall_matrix(A)
+    n = A.shape[0]
 
     inds = torch.arange(n)
 
@@ -111,6 +119,7 @@ def maxvol(
 
     """
 
+    _check_tall_matrix(H)
     _, r = H.shape
     inds = lu_deim(H)[:r]
 

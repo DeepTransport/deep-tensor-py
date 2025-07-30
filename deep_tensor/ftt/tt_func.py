@@ -1,4 +1,4 @@
-from typing import Callable, Tuple
+from typing import Callable, Dict, Tuple, Sequence
 import warnings
 
 import torch
@@ -10,16 +10,14 @@ from .approx_bases import ApproxBases
 from .directions import Direction
 from .input_data import InputData
 from .tt_data import TTData
-from ..constants import EPS
 from ..linalg import (
-    batch_mul, 
-    cartesian_prod, 
+    batch_mul, cartesian_prod, 
     fold_left, fold_right, 
     unfold_left, unfold_right,
     tsvd
 )
 from ..options import TTOptions
-from ..polynomials import Basis1D, Piecewise, Spectral
+from ..polynomials import Basis1D, Spectral
 from ..tools import deim, maxvol
 from ..tools.printing import als_info
 
@@ -28,18 +26,11 @@ INTERPOLATION_METHODS = {"deim": deim, "maxvol": maxvol}
 MAX_COND = 1.0e+5
 
 
-def _check_condition_number(U: Tensor) -> None:
-    if (cond := linalg.cond(U)) > MAX_COND:
-        msg = f"Poor condition number in interpolation: {cond}."
-        warnings.warn(msg)
-    return
-
-
 class AbstractTTFunc(object):
 
     @property 
     def bases(self) -> ApproxBases:
-        return self._bases 
+        return self._bases
     
     @bases.setter 
     def bases(self, value: ApproxBases) -> None:
@@ -80,21 +71,28 @@ class AbstractTTFunc(object):
     @property 
     def rank(self) -> Tensor:
         """The ranks of each tensor core."""
-        return self.tt_data.rank
+        return self.tt_data._rank
 
     @property
-    def use_amen(self) -> bool:
-        """Whether to use AMEN."""
+    def _use_amen(self) -> bool:
         return self.options.tt_method.lower() == "amen"
         
     @property
-    def sample_size(self):
+    def _sample_size(self) -> int:
         """An upper bound on the total number of samples required to 
         construct a FTT approximation to the target function.
         """
         n = self.dim * (self.options.init_rank 
                         + self.options.kick_rank * (self.options.max_als + 1))
         return n
+    
+    @property 
+    def cores(self) -> Dict[int, Tensor]:
+        return self.tt_data.cores
+    
+    @property
+    def coefs(self) -> Dict[int, Tensor]:
+        return self.tt_data.coefs
 
     @staticmethod
     def _check_sample_dim(xs: Tensor, dim: int, strict: bool = False) -> None:
@@ -118,18 +116,8 @@ class AbstractTTFunc(object):
 
         return
     
-    @staticmethod 
-    def unfold(H: Tensor, direction: Direction) -> Tensor:
-        """Unfolds a tensor.
-        """
-        if direction == Direction.FORWARD:
-            H = unfold_left(H)
-        else: 
-            H = unfold_right(H)
-        return H
-    
     @staticmethod
-    def eval_core_213(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
+    def _eval_core_213(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         """Evaluates a tensor core.
 
         Parameters
@@ -156,7 +144,7 @@ class AbstractTTFunc(object):
         return Gs
 
     @staticmethod
-    def eval_core_213_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
+    def _eval_core_213_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the derivative of a tensor core.
 
         Parameters
@@ -183,8 +171,8 @@ class AbstractTTFunc(object):
         return dGdls
 
     @staticmethod
-    def eval_core_231(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        """Evaluates the kth tensor core at a given set of values.
+    def _eval_core_231(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
+        """Evaluates a tensor core.
 
         Parameters
         ----------
@@ -203,16 +191,11 @@ class AbstractTTFunc(object):
             of ls.
         
         """
-        r_p, n_k, r_k = A.shape
-        n_ls = ls.numel()
-        coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
-        Gs = poly.eval_radon(coeffs, ls).reshape(n_ls, r_k, r_p)
-        return Gs
+        return TTFunc._eval_core_213(poly, A, ls).swapdims(1, 2)
     
     @staticmethod
-    def eval_core_231_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        """Evaluates the derivative of the kth tensor core at a given 
-        set of values.
+    def _eval_core_231_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
+        """Evaluates the derivative of a tensor core.
 
         Parameters
         ----------
@@ -231,12 +214,20 @@ class AbstractTTFunc(object):
             core at each value of ls.
         
         """
-        r_p, n_k, r_k = A.shape
-        n_ls = ls.numel()
-        coeffs = A.permute(1, 2, 0).reshape(n_k, r_p * r_k)
-        dGdls = poly.eval_radon_deriv(coeffs, ls).reshape(n_ls, r_k, r_p)
-        return dGdls
-    
+        return TTFunc._eval_core_213_deriv(poly, A, ls).swapdims(1, 2)
+
+    @staticmethod
+    def _coef2core(H: Tensor, basis: Basis1D) -> Tensor:
+        """Converts from a tensor containing the target function value 
+        at each interpolation point to a tensor containing the 
+        coefficients associated with each basis function for each 
+        interpolation point.
+        """
+        if isinstance(basis, Spectral): 
+            return torch.einsum("jl, ilk", basis.node2basis, H)
+        # node2basis is an identity operator for piecewise polynomials 
+        return H.clone()
+
     @staticmethod
     def _apply_mass_R(poly: Basis1D, H: Tensor) -> Tensor:
 
@@ -262,20 +253,23 @@ class AbstractTTFunc(object):
         U = U.T.reshape(-1, nr_k).T
         return U
 
+    @staticmethod
+    def _get_error_local(H_new: Tensor, H_old: Tensor) -> float:
+        """Returns the error between the current and previous 
+        coefficient tensors.
+        """
+        return float((H_new-H_old).abs().max() / H_new.abs().max())
+
     def _eval_local_forward(self, ls: Tensor) -> Tensor:
         """Evaluates the FTT approximation to the target function for 
         the first k variables.
         """
         d_ls = ls.shape[1]
-        polys = self.bases.polys
-        cores = self.tt_data.cores
         Gs = [
-            TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
+            TTFunc._eval_core_213(self.bases[k], self.cores[k], ls[:, k])
             for k in range(d_ls)
         ]
-        # Take the product of the cores and remove the second dimension 
-        # (which will always be r_0 = 1)
-        Gs_prod = batch_mul(*Gs).sum(dim=1)
+        Gs_prod = batch_mul(*Gs).squeeze(dim=1)
         return Gs_prod
     
     def _eval_local_backward(self, ls: Tensor) -> Tensor:
@@ -283,15 +277,11 @@ class AbstractTTFunc(object):
         the last k variables.
         """
         d_ls = ls.shape[1]
-        polys = self.bases.polys
-        cores = self.tt_data.cores
         Gs = [
-            TTFunc.eval_core_213(polys[k], cores[k], ls[:, i])
+            TTFunc._eval_core_213(self.bases[k], self.cores[k], ls[:, i])
             for i, k in enumerate(range(self.dim-d_ls, self.dim))
         ]
-        # Take the product of the cores and remove the third dimension 
-        # (which will always be r_0 = 1)
-        Gs_prod = batch_mul(*Gs).sum(dim=2)
+        Gs_prod = batch_mul(*Gs).squeeze(dim=2)
         return Gs_prod
 
     def _eval_local(self, ls: Tensor, direction: Direction) -> Tensor:
@@ -322,7 +312,7 @@ class AbstractTTFunc(object):
             Gs_prod = self._eval_local_backward(ls)
         return Gs_prod
 
-    def _eval(self, xs: Tensor) -> Tensor:
+    def eval(self, xs: Tensor) -> Tensor:
         """Evaluates the target function at a set of points in the 
         approximation domain.
         
@@ -364,15 +354,13 @@ class AbstractTTFunc(object):
 
         """
 
-        polys = self.bases.polys
-        cores = self.tt_data.cores
         n_ls = ls.shape[0]
         
         dGdls = {k: torch.ones((n_ls, 1, 1)) for k in range(self.dim)}
         
         for k in range(self.dim):
-            Gs_k = TTFunc.eval_core_213(polys[k], cores[k], ls[:, k])
-            dGdls_k = TTFunc.eval_core_213_deriv(polys[k], cores[k], ls[:, k])
+            Gs_k = TTFunc._eval_core_213(self.bases[k], self.cores[k], ls[:, k])
+            dGdls_k = TTFunc._eval_core_213_deriv(self.bases[k], self.cores[k], ls[:, k])
             for j in range(self.dim):
                 if k == j:
                     dGdls[j] = batch_mul(dGdls[j], dGdls_k)
@@ -390,7 +378,7 @@ class AbstractTTFunc(object):
 
         def _grad(xs: Tensor) -> Tensor:
             xs = xs.reshape(n_xs, self.dim)
-            return self._eval(xs).sum(dim=0)
+            return self.eval(xs).sum(dim=0)
         
         derivs = jacobian(_grad, xs.flatten(), vectorize=True)
         return derivs.reshape(n_xs, self.dim)
@@ -430,9 +418,8 @@ class AbstractTTFunc(object):
         dfdxs = dfdls * dldxs
         return dfdxs
 
-    def _round(self, tol: float | Tensor | None = None) -> None:
-        """Rounds the TT cores. Applies double rounding to get back to 
-        the starting direction.
+    def _round(self, tol: float | None = None) -> None:
+        """Rounds the TT cores.
 
         Parameters
         ----------
@@ -455,9 +442,9 @@ class AbstractTTFunc(object):
                 inds = range(self.dim-1, 0, -1)
 
             for k in inds:
-                self._build_basis_svd(self.tt_data.cores[k], k, tol)
+                self._build_basis_svd(self.coefs[k], k, tol)
 
-        if self.use_amen:
+        if self._use_amen:
             self.tt_data.res_w = {}
             self.tt_data.res_x = {}
         return
@@ -466,7 +453,7 @@ class AbstractTTFunc(object):
         self, 
         H: Tensor, 
         tol: float | None = None
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor, int]:
         """Computes the truncated SVD for a given tensor block.
 
         Parameters
@@ -513,6 +500,9 @@ class AbstractTTFunc(object):
         k:
             The index of the dimension corresponding to the basis 
             being constructed.
+        tol:
+            The tolerance to use when applying truncated SVD to the 
+            unfolding matrix of H.
 
         Returns
         -------
@@ -524,9 +514,8 @@ class AbstractTTFunc(object):
         k_next = k + self.tt_data.direction.value
         r_p, n_k, r_k = H.shape
         
-        poly = self.bases.polys[k]
         ls_int_p = self.tt_data.interp_ls[k_prev]
-        A_next = self.tt_data.cores[k_next]
+        A_next = self.coefs[k_next]
 
         if self.tt_data.direction == Direction.FORWARD:
             H = unfold_left(H)
@@ -534,28 +523,30 @@ class AbstractTTFunc(object):
             H = unfold_right(H)
 
         # Compute an M-orthogonal basis and truncate
-        H = self._apply_mass_R(poly, H)
+        H = self._apply_mass_R(self.bases[k], H)
         U, sVh, rank = self._truncate_local(H, tol)
-        U = self._apply_mass_R_inv(poly, U)
+        U = self._apply_mass_R_inv(self.bases[k], U)
 
         # Select a set of interpolation points
-        inds, B, U_interp = self._select_points(U, k)
-        ls_int_k = self._get_local_index(poly, ls_int_p, inds)
+        inds, B, U_interp = self._select_points(U)
+        ls_int_k = self._get_local_index(self.bases[k], ls_int_p, inds)
         couple = U_interp @ sVh
 
-        # Form the current coefficient tensor and update the dimensions 
-        # of the next one
+        # Form the current coefficient tensor and update the next one
         if self.tt_data.direction == Direction.FORWARD:
-            self.tt_data.cores[k] = fold_left(B, (r_p, n_k, rank))
+            A = fold_left(B, (r_p, n_k, rank))
             r_next = A_next.shape[0]
             A_next = torch.einsum("il, ljk", couple[:, :r_next], A_next)
         else:
-            self.tt_data.cores[k] = fold_right(B, (rank, n_k, r_k))
+            A = fold_right(B, (rank, n_k, r_k))
             r_next = A_next.shape[2]
             A_next = torch.einsum("ijl, kl", A_next, couple[:, :r_next])
 
-        self.tt_data.cores[k_next] = A_next
+        self.coefs[k] = A
+        self.coefs[k_next] = A_next
         self.tt_data.interp_ls[k] = ls_int_k 
+        self.cores[k] = TTFunc._coef2core(A, self.bases[k])
+        self.cores[k_next] = TTFunc._coef2core(A_next, self.bases[k_next])
         return
     
     def _build_basis_amen(
@@ -563,32 +554,35 @@ class AbstractTTFunc(object):
         H: Tensor,
         H_res: Tensor,
         H_up: Tensor,
-        k: Tensor | int
+        k: int
     ) -> None:
         """Computes the coefficients of the kth tensor core."""
         
-        k = int(k)
-        k_prev = int(k - self.tt_data.direction.value)
-        k_next = int(k + self.tt_data.direction.value)
+        k_prev = k - self.tt_data.direction.value
+        k_next = k + self.tt_data.direction.value
         
-        poly = self.bases.polys[k]
+        basis = self.bases[k]
         interp_ls_prev = self.tt_data.interp_ls[k_prev]
         res_x_prev = self.tt_data.res_x[k_prev]
 
         res_w_prev = self.tt_data.res_w[k-1]
         res_w_next = self.tt_data.res_w[k+1]
 
-        A_next = self.tt_data.cores[k_next]
+        A_next = self.coefs[k_next]
 
         n_left, n_k, n_right = H.shape
         r_0_next, _, r_1_next = A_next.shape
 
-        H = TTFunc.unfold(H, self.tt_data.direction)
-        H = self._apply_mass_R(poly, H)
-        U, sVh, rank = self._truncate_local(H)
-        U = self._apply_mass_R_inv(poly, U)
+        if self.tt_data.direction == Direction.FORWARD:
+            H = unfold_left(H)
+            H_up = unfold_left(H_up)
+        else:
+            H = unfold_right(H)
+            H_up = unfold_right(H_up)
 
-        H_up = TTFunc.unfold(H_up, self.tt_data.direction)
+        H = self._apply_mass_R(basis, H)
+        U, sVh, rank = self._truncate_local(H)
+        U = self._apply_mass_R_inv(basis, U)
 
         if self.tt_data.direction == Direction.FORWARD:
             temp_l = fold_left(U, (n_left, n_k, rank))
@@ -609,21 +603,20 @@ class AbstractTTFunc(object):
         # Enrich basis
         T = torch.cat((U, H_up), dim=1)
 
-        T = self._apply_mass_R(poly, T)
+        T = self._apply_mass_R(basis, T)
         U, R = linalg.qr(T)
-        U = self._apply_mass_R_inv(poly, U)
+        U = self._apply_mass_R_inv(basis, U)
 
         r_new = U.shape[1]
 
-        indices, B, U_interp = self._select_points(U, k)
+        indices, B, U_interp = self._select_points(U)
         couple = U_interp @ R[:r_new, :rank] @ sVh
 
-        interp_ls = self._get_local_index(poly, interp_ls_prev, indices)
+        interp_ls = self._get_local_index(basis, interp_ls_prev, indices)
 
-        error_tol = self.options.local_tol * EPS
-        U_res = self._truncate_local(H_res, error_tol)[0]
-        inds_res = self._select_points(U_res, k)[0]
-        res_x = self._get_local_index(poly, res_x_prev, inds_res)
+        U_res = self._truncate_local(H_res, tol=0.0)[0]
+        inds_res = self._select_points(U_res)[0]
+        res_x = self._get_local_index(basis, res_x_prev, inds_res)
 
         if self.tt_data.direction == Direction.FORWARD:
             
@@ -647,16 +640,18 @@ class AbstractTTFunc(object):
             couple = couple[:, :r_1_next]
             A_next = torch.einsum("ijl, kl", A_next, couple)
 
-        self.tt_data.cores[k] = A 
-        self.tt_data.cores[k_next] = A_next
+        self.coefs[k] = A 
+        self.coefs[k_next] = A_next
         self.tt_data.interp_ls[k] = interp_ls
         self.tt_data.res_w[k] = res_w 
         self.tt_data.res_x[k] = res_x
+        self.cores[k] = TTFunc._coef2core(A, self.bases[k])
+        self.cores[k_next] = TTFunc._coef2core(A_next, self.bases[k_next])
         return
 
     def _get_local_index(
         self,
-        poly: Basis1D, 
+        basis: Basis1D, 
         ls_int_p: Tensor,
         inds: Tensor
     ) -> Tensor:
@@ -665,7 +660,7 @@ class AbstractTTFunc(object):
         
         Parameters
         ----------
-        poly:
+        basis:
             The polynomial basis for the current dimension of the 
             approximation.
         ls_int_p: 
@@ -683,88 +678,46 @@ class AbstractTTFunc(object):
         """
 
         if ls_int_p.numel() == 0:
-            ls_int_k = poly.nodes[inds][:, None]
+            ls_int_k = basis.nodes[inds][:, None]
             return ls_int_k
 
-        n_k = poly.cardinality
-        ls_prev = ls_int_p[inds // n_k]
-        ls_nodes = poly.nodes[inds % n_k][:, None]
+        n_k = basis.cardinality
+        ls_p = ls_int_p[inds // n_k]
+        ls_nodes = basis.nodes[inds % n_k][:, None]
 
         if self.tt_data.direction == Direction.FORWARD:
-            ls_int_k = torch.hstack((ls_prev, ls_nodes))
+            ls_int_k = torch.hstack((ls_p, ls_nodes))
         else:
-            ls_int_k = torch.hstack((ls_nodes, ls_prev))
+            ls_int_k = torch.hstack((ls_nodes, ls_p))
 
         return ls_int_k
 
-    def _select_points_piecewise(
-        self,
-        U: Tensor,
-        poly: Piecewise
-    ) -> Tuple[Tensor, Tensor, Tensor]:
-        
-        inds, B = INTERPOLATION_METHODS[self.options.int_method](U)
-        U_interp = U[inds]
-        _check_condition_number(U_interp)
-        
-        return inds, B, U_interp
-    
-    def _select_points_spectral(
-        self,
-        U: Tensor,
-        poly: Spectral
-    ) -> Tuple[Tensor, Tensor, Tensor]:
-
-        n_k = poly.cardinality
-        r_p = round(U.shape[0] / n_k)
-
-        # Undo the previous application of the node2basis 
-        nodes = poly.basis2node @ U.T.reshape(-1, n_k).T
-        nodes = nodes.T.reshape(-1, n_k * r_p).T
-
-        inds, _ = INTERPOLATION_METHODS[self.options.int_method](nodes)
-        U_interp = nodes[inds]
-        _check_condition_number(U_interp)
-
-        # Compute unfolded coefficient tensor B = UU[I, :]^{-1}
-        B = linalg.solve(U_interp, U, left=False)
-        return inds, B, U_interp
-
-    def _select_points(self, U: Tensor, k: int) -> Tuple[Tensor, Tensor, Tensor]:
-        """Builds the cross indices.
+    def _select_points(self, U: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        """Selects a square submatrix within a tall matrix.
 
         Parameters
         ----------
         U:
-            The set of left singular vectors obtained from a truncated 
-            SVD of the unfolding matrix of tensor H (which contains a
-            set of evaluations of the target function at the current 
-            set of interpolation points).
-        k: 
-            The index of the current dimension.
+            A tall matrix.
         
         Returns
         -------
         inds:
-            The set of indices of the (approximate) maximum volume 
-            submatrix of H.
-        B:
-            The corresponding (unfolded) tensor core.
-        U_interp:
-            The nodes of the basis of the current dimension 
-            corresponding to the set of indices of the maximum volume
+            The set of row indices of U corresponding to the selected 
             submatrix.
+        B:
+            The product of U and the inverse of the selected submatrix, 
+            UU[I, :]^{-1}.
+        U_sub:
+            The selected submatrix, U[I, :].
         
         """
-
-        poly = self.bases.polys[k]
-
-        if isinstance(poly, Piecewise):
-            return self._select_points_piecewise(U, poly)
-        elif isinstance(poly, Spectral):
-            return self._select_points_spectral(U, poly)
-    
-        raise Exception("Unknown polynomial encountered.")
+        inds, B = INTERPOLATION_METHODS[self.options.int_method](U)
+        U_sub = U[inds]
+        if (cond := linalg.cond(U_sub)) > MAX_COND:
+            msg = f"Poor condition number in interpolation: {cond}."
+            warnings.warn(msg)
+        return inds, B, U_sub
 
 
 class TTFunc(AbstractTTFunc):
@@ -807,33 +760,34 @@ class TTFunc(AbstractTTFunc):
         self.options = options
         self.input_data = input_data
         self.tt_data = tt_data
-        self.num_eval = 0
+        self.n_eval = 0
         self.errors = torch.zeros(self.dim)
         self.l2_err = torch.inf
         self.linf_err = torch.inf
 
-        self.input_data.set_samples(self.bases, self.sample_size)
+        self.input_data.set_samples(self.bases, self._sample_size)
         if self.input_data.is_debug:
             self.input_data.set_debug(self.target_func, self.bases)
         
         return
 
-    def _initialise_cores(self) -> None:
+    def _initialise_coefs(self) -> None:
         """Initialises the cores and interpolation points in each 
         dimension.
         """
 
         for k in range(self.dim):
 
-            core_shape = [
+            coef_shape = [
                 1 if k == 0 else self.options.init_rank, 
-                self.bases.polys[k].cardinality,
+                self.bases[k].cardinality,
                 1 if k == self.dim-1 else self.options.init_rank
             ]
-            self.tt_data.cores[k] = torch.zeros(core_shape)
+            self.coefs[k] = torch.zeros(coef_shape)
+            self.cores[k] = torch.zeros(coef_shape)
 
-            samples = self.input_data.get_samples(self.options.init_rank)
-            self.tt_data.interp_ls[k] = samples[:, k:]
+            ls_samp = self.input_data.get_samples(self.options.init_rank)
+            self.tt_data.interp_ls[k] = ls_samp[:, k:]
 
         self.tt_data.interp_ls[-1] = torch.tensor([])
         self.tt_data.interp_ls[self.dim] = torch.tensor([])
@@ -858,24 +812,24 @@ class TTFunc(AbstractTTFunc):
 
         if self.tt_data.direction == Direction.FORWARD:
             
-            core_0 = self.tt_data.cores[0]
-            shape_0 = (self.options.kick_rank, core_0.shape[-1])
+            coef_0 = self.coefs[0]
+            shape_0 = (self.options.kick_rank, coef_0.shape[-1])
             self.tt_data.res_w[0] = torch.ones(shape_0)
             
             for k in range(1, self.dim):
-                core_k = self.tt_data.cores[k].shape[0]
-                shape_k = (core_k, self.options.kick_rank)
+                coef_k = self.coefs[k].shape[0]
+                shape_k = (coef_k, self.options.kick_rank)
                 self.tt_data.res_w[k] = torch.ones(shape_k)
 
         else:
 
             for k in range(self.dim-1):
-                core_k = self.tt_data.cores[k]
-                shape_k = (self.options.kick_rank, core_k.shape[-1])
+                coef_k = self.coefs[k]
+                shape_k = (self.options.kick_rank, coef_k.shape[-1])
                 self.tt_data.res_w[k] = torch.ones(shape_k)
 
-            core_d = self.tt_data.cores[self.dim-1]
-            shape_d = (core_d.shape[0], self.options.kick_rank)
+            coef_d = self.coefs[self.dim-1]
+            shape_d = (coef_d.shape[0], self.options.kick_rank)
             self.tt_data.res_w[self.dim-1] = torch.ones(shape_d)
 
         self.tt_data.res_w[-1] = torch.tensor([[1.0]])
@@ -908,17 +862,17 @@ class TTFunc(AbstractTTFunc):
         als_info(" | ".join(info_headers))
         return
 
-    def _print_info(self, cross_iter: int, indices: Tensor) -> None:
+    def _print_info(self, cross_iter: int, inds: Sequence) -> None:
         """Prints some diagnostic information about the current cross 
         iteration.
         """
 
         diagnostics = [
             f"{cross_iter:=4}", 
-            f"{self.num_eval:=10}",
-            f"{torch.max(self.rank):=8}",
-            f"{torch.max(self.errors[indices]):=15.5e}",
-            f"{torch.mean(self.errors[indices]):=16.5e}"
+            f"{self.n_eval:=10}",
+            f"{self.rank.max():=8}",
+            f"{self.errors[inds].max():=15.5e}",
+            f"{self.errors[inds].mean():=16.5e}"
         ]
 
         if self.input_data.is_debug:
@@ -930,7 +884,7 @@ class TTFunc(AbstractTTFunc):
         als_info(" | ".join(diagnostics))
         return
 
-    def _compute_relative_error(self) -> None:
+    def _compute_rel_error(self) -> None:
         """Computes the relative error between the value of the FTT 
         approximation to the target function and the true value for the 
         set of debugging samples.
@@ -944,12 +898,7 @@ class TTFunc(AbstractTTFunc):
         self.l2_err, self.linf_err = self.input_data.relative_error(ps_approx)
         return
 
-    def _build_block_local(
-        self, 
-        ls_left: Tensor,
-        ls_right: Tensor,
-        k: int | Tensor
-    ) -> Tensor:
+    def _build_block_local(self, ls_left: Tensor, ls_right: Tensor, k: int) -> Tensor:
         """Evaluates the function being approximated at a (reduced) set 
         of interpolation points, and returns the corresponding
         local coefficient matrix.
@@ -970,86 +919,44 @@ class TTFunc(AbstractTTFunc):
         H: 
             An r_{k-1} * n_{k} * r_{k} tensor containing the values of 
             the function evaluated at each interpolation point.
-
-        References
-        ----------
-        Cui and Dolgov (2022). Deep composition of tensor-trains using 
-        squared inverse Rosenblatt transports.
         
         """
 
-        poly = self.bases.polys[int(k)]
         r_p = 1 if ls_left.numel() == 0 else ls_left.shape[0]
         r_k = 1 if ls_right.numel() == 0 else ls_right.shape[0]
-        n_k = poly.n_nodes
+        n_k = self.bases[k].cardinality
 
-        ls = cartesian_prod((ls_left, poly.nodes[:, None], ls_right))
+        ls = cartesian_prod((ls_left, self.bases[k].nodes[:, None], ls_right))
         H = self.target_func(ls).reshape(r_p, n_k, r_k)
-
-        # Convert from a tensor containing the target function value at 
-        # each interpolation point to a tensor containing the 
-        # coefficients associated with each basis function for each 
-        # interpolation point. Note that node2basis for piecewise 
-        # polynomials is an identity operator.
-        if isinstance(poly, Spectral): 
-            H = torch.einsum("jl, ilk", poly.node2basis, H)
-
-        self.num_eval += ls.shape[0]
+        self.n_eval += ls.shape[0]
         return H
 
-    def _get_error_local(self, H: Tensor, k: int) -> float:
-        """Returns the error between the current core and the tensor 
-        formed by evaluating the target function at the current set of 
-        interpolation points corresponding to the core.
+    def _is_finished(self, cross_iter: int, inds: Sequence) -> bool:
 
-        Parameters
-        ----------
-        H:
-            The tensor formed by evaluating the target function at the 
-            current set of interpolation points corresponding to the 
-            kth core.
-        k:
-            The current dimension.
-
-        Returns
-        -------
-        error:
-            The greatest absolute difference between an element of H 
-            and the corresponding element of the core divided by the 
-            absolute value of the element of H.
-
-        """
-        core = self.tt_data.cores[k]
-        return float((core-H).abs().max() / H.abs().max())
-
-    def _is_finished(self, cross_iter: int, indices: Tensor) -> bool:
-        """Returns True if the maximum number of cross iterations has 
-        been reached or the desired error tolerance is met, and False 
-        otherwise.
-        """
         max_iters = cross_iter == self.options.max_als
-        max_error_tol = torch.max(self.errors[indices]) < self.options.als_tol
+        max_error_tol = bool(self.errors[inds].max() < self.options.als_tol)
         l2_error_tol = self.l2_err < self.options.als_tol
-        return bool(max_iters or max_error_tol or l2_error_tol)
+        
+        return max_iters or max_error_tol or l2_error_tol
 
-    def _compute_cross_block_fixed(self, k: Tensor) -> None:
+    def _compute_cross_block_fixed(self, k: int) -> None:
         
         ls_left = self.tt_data.interp_ls[k-1]
         ls_right = self.tt_data.interp_ls[k+1]
         
         H = self._build_block_local(ls_left, ls_right, k) 
-        self.errors[k] = self._get_error_local(H, k)
+        self.errors[k] = TTFunc._get_error_local(H, self.coefs[k])
         self._build_basis_svd(H, k)
         return
     
-    def _compute_cross_block_random(self, k: Tensor) -> None:
+    def _compute_cross_block_random(self, k: int) -> None:
         
         ls_left = self.tt_data.interp_ls[k-1].clone()
         ls_right = self.tt_data.interp_ls[k+1].clone()
         enrich = self.input_data.get_samples(self.options.kick_rank)
 
         H = self._build_block_local(ls_left, ls_right, k)
-        self.errors[k] = self._get_error_local(H, k)
+        self.errors[k] = TTFunc._get_error_local(H, self.coefs[k])
 
         if self.tt_data.direction == Direction.FORWARD:
             H_enrich = self._build_block_local(ls_left, enrich[:, k+1:], k)
@@ -1061,7 +968,7 @@ class TTFunc(AbstractTTFunc):
         self._build_basis_svd(H_full, k)
         return
     
-    def _compute_cross_block_amen(self, k: Tensor) -> None:
+    def _compute_cross_block_amen(self, k: int) -> None:
         
         ls_left = self.tt_data.interp_ls[k-1]
         ls_right = self.tt_data.interp_ls[k+1]
@@ -1070,7 +977,7 @@ class TTFunc(AbstractTTFunc):
 
         # Evaluate the interpolant function at x_k nodes
         H = self._build_block_local(ls_left, ls_right, k)
-        self.errors[k] = self._get_error_local(H, k)
+        self.errors[k] = TTFunc._get_error_local(H, self.coefs[k])
 
         # Evaluate residual function at x_k nodes
         H_res = self._build_block_local(r_left, r_right, k)
@@ -1084,66 +991,7 @@ class TTFunc(AbstractTTFunc):
 
         self._build_basis_amen(H, H_res, H_up, k)
         return 
-
-    def _cross(self) -> None:
-        """Builds the FTT using cross iterations."""
-
-        cross_iter = 0
-
-        if self.options.verbose > 0:
-            self._print_info_header()
-
-        if self.tt_data.cores == {}:
-            self._initialise_cores()
-        else:
-            # Prepare for the next iteration
-            self.tt_data._reverse_direction()
-        
-        if self.use_amen:
-            self._initialise_amen()
-
-        while True:
-
-            if self.tt_data.direction == Direction.FORWARD:
-                indices = torch.arange(self.dim-1)
-            else:
-                indices = torch.arange(self.dim-1, 0, -1)
-            
-            for i, k in enumerate(indices):
-                if self.options.verbose > 1:
-                    msg = f"Building block {i+1} / {self.dim}..."
-                    als_info(msg, end="\r")
-                if self.options.tt_method == "fixed_rank":
-                    self._compute_cross_block_fixed(int(k))
-                elif self.options.tt_method == "random":
-                    self._compute_cross_block_random(int(k))
-                elif self.options.tt_method == "amen":
-                    self._compute_cross_block_amen(int(k))
-
-            cross_iter += 1
-            finished = self._is_finished(cross_iter, indices)
-            
-            if finished:
-                if self.options.verbose > 1:
-                    msg = f"Building block {self.dim} / {self.dim}..."
-                    als_info(msg, end="\r")
-                self._compute_final_block()
-            
-            self._compute_relative_error()
-            if self.options.verbose > 0:
-                self._print_info(cross_iter, indices)
-
-            if finished:
-                if self.options.verbose > 0:
-                    als_info("ALS complete.")
-                if self.options.verbose > 1:
-                    ranks = "-".join([str(int(r)) for r in self.rank])
-                    msg = f"Final TT ranks: {ranks}."
-                    als_info(msg)
-                return
-            
-            self.tt_data._reverse_direction()
-
+    
     def _compute_final_block(self) -> None:
         """Computes the final block of the FTT approximation to the 
         target function.
@@ -1157,9 +1005,71 @@ class TTFunc(AbstractTTFunc):
         ls_left = self.tt_data.interp_ls[k-1]
         ls_right = self.tt_data.interp_ls[k+1]
         H = self._build_block_local(ls_left, ls_right, k)
-        self.errors[k] = self._get_error_local(H, k)
-        self.tt_data.cores[k] = H
+        
+        self.errors[k] = TTFunc._get_error_local(H, self.coefs[k])
+        self.coefs[k] = H
+        self.cores[k] = self._coef2core(H, self.bases[k])
+
         return
+
+    def _cross(self) -> None:
+        """Builds the FTT using cross iterations."""
+
+        previously_constructed = self.coefs != {}
+        n_iter = 0
+
+        if self.options.verbose > 0:
+            self._print_info_header()
+
+        if not previously_constructed:
+            self._initialise_coefs()
+        else:
+            self.tt_data._reverse_direction()
+        
+        if self._use_amen:
+            self._initialise_amen()
+
+        while True:
+
+            if self.tt_data.direction == Direction.FORWARD:
+                inds = range(self.dim-1)
+            else:
+                inds = range(self.dim-1, 0, -1)
+            
+            for i, k in enumerate(inds):
+                if self.options.verbose > 1:
+                    msg = f"Building block {i+1} / {self.dim}..."
+                    als_info(msg, end="\r")
+                if self.options.tt_method == "fixed_rank":
+                    self._compute_cross_block_fixed(k)
+                elif self.options.tt_method == "random":
+                    self._compute_cross_block_random(k)
+                elif self.options.tt_method == "amen":
+                    self._compute_cross_block_amen(k)
+
+            n_iter += 1
+            finished = self._is_finished(n_iter, inds)
+            
+            if finished:
+                if self.options.verbose > 1:
+                    msg = f"Building block {self.dim} / {self.dim}..."
+                    als_info(msg, end="\r")
+                self._compute_final_block()
+            
+            self._compute_rel_error()
+            if self.options.verbose > 0:
+                self._print_info(n_iter, inds)
+
+            if finished:
+                if self.options.verbose > 0:
+                    als_info("ALS complete.")
+                if self.options.verbose > 1:
+                    ranks = "-".join([str(int(r)) for r in self.rank])
+                    msg = f"Final TT ranks: {ranks}."
+                    als_info(msg)
+                return
+            
+            self.tt_data._reverse_direction()
     
 
 class SavedTTFunc(TTFunc):

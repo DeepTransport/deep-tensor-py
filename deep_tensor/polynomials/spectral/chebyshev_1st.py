@@ -95,12 +95,6 @@ class Chebyshev1st(Spectral):
         zs = torch.rand(n)
         samples = torch.sin(torch.pi * (zs - 0.5))
         return samples
-
-    def sample_measure_skip(self, n: int) -> torch.Tensor:
-        l0 = 0.5 * (self.nodes.min() - 1.0)
-        l1 = 0.5 * (self.nodes.max() + 1.0)
-        samples = l0 + torch.rand(n) * (l1 - l0)
-        return samples
     
     def eval_basis(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)

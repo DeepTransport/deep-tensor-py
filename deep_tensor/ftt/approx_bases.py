@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Tuple
 
 import torch
 from torch import Tensor
@@ -27,33 +27,33 @@ class ApproxBases():
     
     """
 
-    def __init__(
-        self, 
-        polys: Basis1D | list[Basis1D],  # TODO: rename polys to bases?
-        domain: Domain, 
-        dim: int
-    ):
+    def __init__(self, bases: Basis1D | List[Basis1D], domain: Domain, dim: int):
         
-        if isinstance(polys, Basis1D):
-            polys = [polys]
-        if len(polys) == 1:
-            polys *= dim
-        if len(polys) != dim:
-            msg = ("Dimension of polynomials does not equal specified " 
-                   + f"dimension (expected {dim}, got {len(polys)}).")
+        if isinstance(bases, Basis1D):
+            bases = [bases]
+        if len(bases) == 1:
+            bases *= dim
+        if len(bases) != dim:
+            msg = (
+                "Number of polynomial bases passed in does not equal "
+                f"specified dimension (expected {dim}, got {len(bases)})."
+            )
             raise Exception(msg)
 
-        self.polys = polys
+        self.bases = bases
         self.domain = domain
         self.dim = dim
         return
     
+    def __getitem__(self, k: int) -> Basis1D:
+        return self.bases[k]
+    
     @staticmethod
-    def check_indices_shape(indices: Tensor, xs: Tensor) -> None:
+    def _check_indices_shape(inds: Tensor, xs: Tensor) -> None:
         """Confirms whether the length of a vector of indices is equal 
         to the dimension of a set of samples.
         """
-        if indices.numel() != xs.shape[1]:
+        if inds.numel() != xs.shape[1]:
             msg = "Samples do not have the correct dimensions."
             raise Exception(msg)
         return
@@ -61,7 +61,7 @@ class ApproxBases():
     def local2approx(
         self, 
         ls: Tensor, 
-        indices: Tensor | None = None
+        inds: Tensor | None = None
     ) -> tuple[Tensor, Tensor]:
         """Maps a set of samples drawn distributed in (a subset of) the 
         local domain to the approximation domain.
@@ -70,7 +70,7 @@ class ApproxBases():
         ----------
         ls:
             An n * d matrix containing samples from the local domain.
-        indices:
+        inds:
             The indices corresponding to the dimensions of the 
             local domain the samples live in (can be a subset of 
             {1, 2, ..., d}).
@@ -87,9 +87,9 @@ class ApproxBases():
 
         """
         
-        if indices is None:
-            indices = torch.arange(self.dim)
-        ApproxBases.check_indices_shape(indices, ls)
+        if inds is None:
+            inds = torch.arange(self.dim)
+        ApproxBases._check_indices_shape(inds, ls)
 
         xs = torch.empty_like(ls)
         dxdls = torch.empty_like(ls)
@@ -101,7 +101,7 @@ class ApproxBases():
     def approx2local(
         self, 
         xs: Tensor, 
-        indices: Tensor | None = None
+        inds: Tensor | None = None
     ) -> Tuple[Tensor, Tensor]:
         """Maps a set of samples from (a subset of) the approximation 
         domain to the local domain.
@@ -111,7 +111,7 @@ class ApproxBases():
         xs:
             An n * d matrix containing samples from the approximation 
             domain.
-        indices:
+        inds:
             The indices corresponding to the dimensions of the 
             approximation domain the samples live in (can be a subset 
             of {1, 2, ..., d}).
@@ -128,9 +128,9 @@ class ApproxBases():
 
         """
         
-        if indices is None:
-            indices = torch.arange(self.dim)
-        ApproxBases.check_indices_shape(indices, xs)
+        if inds is None:
+            inds = torch.arange(self.dim)
+        ApproxBases._check_indices_shape(inds, xs)
 
         ls = torch.empty_like(xs)
         dldxs = torch.empty_like(xs)
@@ -142,7 +142,7 @@ class ApproxBases():
     def local2approx_log_density(
         self,
         ls: Tensor,
-        indices: Tensor | None = None
+        inds: Tensor | None = None
     ) -> Tuple[Tensor, Tensor]:
         """Computes the logarithm of the gradient, and derivative of 
         the gradient, of the transformation of a set of samples from 
@@ -152,6 +152,10 @@ class ApproxBases():
         ----------
         ls:
             An n * d matrix containing samples from the local domain.
+        inds:
+            The indices corresponding to the dimensions of the 
+            approximation domain the samples live in (can be a subset 
+            of {1, 2, ..., d}).
 
         Returns
         -------
@@ -167,9 +171,9 @@ class ApproxBases():
 
         """
         
-        if indices is None:
-            indices = torch.arange(self.dim)
-        ApproxBases.check_indices_shape(indices, ls)
+        if inds is None:
+            inds = torch.arange(self.dim)
+        ApproxBases._check_indices_shape(inds, ls)
 
         dlogxdls = torch.empty_like(ls)
         d2logxdl2s = torch.empty_like(ls)
@@ -183,7 +187,7 @@ class ApproxBases():
     def approx2local_log_density(
         self,
         xs: Tensor,
-        indices: Tensor | None = None
+        inds: Tensor | None = None
     ) -> Tuple[Tensor, Tensor]:
         """Computes the logarithm of the gradient, and derivative of 
         the gradient, of the transformation of a set of samples from 
@@ -194,6 +198,10 @@ class ApproxBases():
         xs:
             An n * d matrix containing samples from the approximation 
             domain.
+        inds:
+            The indices corresponding to the dimensions of the 
+            approximation domain the samples live in (can be a subset 
+            of {1, 2, ..., d}).
 
         Returns
         -------
@@ -209,9 +217,9 @@ class ApproxBases():
             
         """
         
-        if indices is None:
-            indices = torch.arange(self.dim)
-        ApproxBases.check_indices_shape(indices, xs)
+        if inds is None:
+            inds = torch.arange(self.dim)
+        ApproxBases._check_indices_shape(inds, xs)
 
         logdldxs = torch.empty_like(xs)
         logd2ldx2s = torch.empty_like(xs)
@@ -222,7 +230,7 @@ class ApproxBases():
 
         return logdldxs, logd2ldx2s
 
-    def sample_measure_local(self, n: int) -> Tuple[Tensor, Tensor]:
+    def _sample_measure_local(self, n: int) -> Tuple[Tensor, Tensor]:
         """Generates a set of random variates from the local weighting 
         function.
 
@@ -246,15 +254,15 @@ class ApproxBases():
         neglogwls = torch.zeros(n)
         
         for k in range(self.dim):
-            ls[:, k] = self.polys[k].sample_measure(n)
-            neglogwls -= self.polys[k].eval_log_measure(ls[:, k])
+            ls[:, k] = self.bases[k].sample_measure(n)
+            neglogwls -= self.bases[k].eval_log_measure(ls[:, k])
         
         return ls, neglogwls
 
-    def eval_measure_potential_local(
+    def _eval_measure_potential_local(
         self, 
         ls: Tensor, 
-        indices: Tensor | None = None
+        inds: Tensor | None = None
     ) -> Tensor:
         """Computes the negative logarithm of the weighting function 
         associated with (a subset of) the basis functions (defined in 
@@ -277,22 +285,22 @@ class ApproxBases():
 
         """
             
-        if indices is None:
-            indices = torch.arange(self.dim)
-        ApproxBases.check_indices_shape(indices, ls)
+        if inds is None:
+            inds = torch.arange(self.dim)
+        ApproxBases._check_indices_shape(inds, ls)
 
         neglogwls = torch.empty_like(ls)
         for i, ls_i in enumerate(ls.T):
-            poly = self.polys[indices[i]]
-            neglogwls[:, i] = -poly.eval_log_measure(ls_i)
+            basis = self.bases[inds[i]]
+            neglogwls[:, i] = -basis.eval_log_measure(ls_i)
 
         return neglogwls.sum(dim=1)
 
-    def eval_measure_potential_local_grad(
+    def _eval_measure_potential_local_grad(
         self, 
         ls: Tensor,
-        indices: Tensor | None = None
-    ):
+        inds: Tensor | None = None
+    ) -> Tensor:
         """Computes the gradient of the negative logarithm of the 
         weighting functions of (a subset of) the basis functions for a 
         given set of samples in the local domain.
@@ -302,7 +310,7 @@ class ApproxBases():
         ls: 
             An n * d matrix containing samples from the reference 
             distribution.
-        indices:
+        inds:
             The indices corresponding to the dimensions of the 
             approximation domain the samples live in (can be a subset 
             of {1, 2, ..., d}). 
@@ -316,14 +324,14 @@ class ApproxBases():
             
         """
 
-        if indices is None:
-            indices = torch.arange(self.dim)
-        ApproxBases.check_indices_shape(indices, ls)
+        if inds is None:
+            inds = torch.arange(self.dim)
+        ApproxBases._check_indices_shape(inds, ls)
         
         negloggradwls = torch.empty_like(ls)
         for i, ls_i in enumerate(ls.T):
-            poly = self.polys[indices[i]]
-            negloggradwls[:, i] = -poly.eval_log_measure_deriv(ls_i)
+            basis = self.bases[inds[i]]
+            negloggradwls[:, i] = -basis.eval_log_measure_deriv(ls_i)
 
         return negloggradwls
 
@@ -346,7 +354,7 @@ class ApproxBases():
             approximation domain) for each sample.
         
         """
-        ls, neglogwls = self.sample_measure_local(n)
+        ls, neglogwls = self._sample_measure_local(n)
         xs, dxdls = self.local2approx(ls)
         neglogwxs = neglogwls + dxdls.log().sum(dim=1)
         return xs, neglogwxs
@@ -354,7 +362,7 @@ class ApproxBases():
     def eval_measure_potential(
         self, 
         xs: Tensor, 
-        indices: Tensor | None = None
+        inds: Tensor | None = None
     ) -> Tuple[Tensor, Tensor]:
         """Computes the target potential function and its gradient for 
         a set of samples from the approximation domain.
@@ -364,7 +372,7 @@ class ApproxBases():
         xs:
             An n * d matrix containing a set of samples from the 
             approximation domain.
-        indices:
+        inds:
             The indices corresponding to the dimensions of the 
             approximation domain the samples live in (can be a subset 
             of {1, 2, ..., d}). 
@@ -381,16 +389,16 @@ class ApproxBases():
         
         """
         
-        if indices is None:
-            indices = torch.arange(self.dim)
-        ApproxBases.check_indices_shape(indices, xs)
+        if inds is None:
+            inds = torch.arange(self.dim)
+        ApproxBases._check_indices_shape(inds, xs)
 
-        ls, dldxs = self.approx2local(xs, indices)
+        ls, dldxs = self.approx2local(xs, inds)
         
-        neglogwls = self.eval_measure_potential_local(ls, indices)
+        neglogwls = self._eval_measure_potential_local(ls, inds)
         neglogwxs = neglogwls - dldxs.log().sum(dim=1)
         
-        gradneglogwls = self.eval_measure_potential_local_grad(ls, indices)
+        gradneglogwls = self._eval_measure_potential_local_grad(ls, inds)
         gradneglogwxs = gradneglogwls * dldxs
         return neglogwxs, gradneglogwxs
     

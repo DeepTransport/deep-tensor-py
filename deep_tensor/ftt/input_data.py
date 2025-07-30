@@ -88,7 +88,7 @@ class InputData():
             msg = ("Generating initialization samples from the " 
                     + "base measure.")
             print(msg)
-            self.ls_samp = bases.sample_measure_local(n_samples)[0]        
+            self.ls_samp = bases._sample_measure_local(n_samples)[0]        
         else:
             if self.xs_samp.shape[0] < n_samples:
                 msg = ("Not enough number of samples to initialise " 

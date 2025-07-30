@@ -58,4 +58,5 @@ class SIRModel():
         # large.
         param_batches = [params[i:i+n_batch] for i in range(0, params.shape[0], n_batch)]
         ys = np.vstack([self._solve_fwd(p) for p in param_batches])
-        return torch.tensor(ys)
+        ys = torch.from_numpy(ys).to(dtype=torch.get_default_dtype())
+        return ys

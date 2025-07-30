@@ -1,44 +1,9 @@
 from typing import List
 
-import dolfin as dl
-from matplotlib import pyplot as plt, tri
-import numpy as np
+from matplotlib import pyplot as plt
 from scipy.stats import gaussian_kde
 import torch 
 from torch import Tensor 
-
-
-def triangulate(coords, cells) -> tri.Triangulation:
-    return tri.Triangulation(coords[:, 0], coords[:, 1], cells)
-
-
-def plot_dl_function(
-    fig, ax,
-    func: dl.Function, 
-    cbar_label: str | None = None,
-    **kwargs
-) -> None: 
-
-    mesh = func.function_space().mesh()
-    coords = mesh.coordinates()
-    cells = mesh.cells()
-
-    triangulation = triangulate(coords, cells)
-    vals = func.compute_vertex_values(mesh)
-
-    xmin, ymin = np.min(coords, axis=0)
-    xmax, ymax = np.max(coords, axis=0)
-
-    col = ax.tripcolor(triangulation, vals, **kwargs)
-    ax.set_xlim((xmin, xmax))
-    ax.set_ylim((ymin, ymax))
-    ax.set_aspect("equal", adjustable="box")
-    ax.set_xlabel(r"$x$")
-    ax.set_ylabel(r"$y$")
-
-    cbar = fig.colorbar(col, ax=ax)
-    cbar.set_label(cbar_label)
-    return
 
 
 def add_arrows(ax) -> None:
@@ -61,7 +26,7 @@ def pairplot(
     y_label: str | None = None,
     bounds: Tensor | None = None
 ) -> None:
-    """Generates a pairs plot for a set of joint distributions."""
+    """Generates a pair plot for a set of joint distributions."""
 
     dim = xs.shape[1]
 

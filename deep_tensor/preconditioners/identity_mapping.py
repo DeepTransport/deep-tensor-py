@@ -33,17 +33,17 @@ class IdentityMapping(Preconditioner):
         return
 
     @staticmethod
-    def Q(us: Tensor, subset: str | None = None) -> Tensor:
+    def Q(us: Tensor, subset: str = "first") -> Tensor:
         return us
     
     @staticmethod
-    def Q_inv(xs: Tensor, subset: str | None = None) -> Tensor:
+    def Q_inv(xs: Tensor, subset: str = "first") -> Tensor:
         return xs
     
     @staticmethod
-    def neglogdet_Q(us: Tensor, subset: str | None = None) -> Tensor:
+    def neglogdet_Q(us: Tensor, subset: str = "first") -> Tensor:
         return torch.zeros(us.shape[0])
     
     @staticmethod
-    def neglogdet_Q_inv(xs: Tensor, subset: str | None = None) -> Tensor: 
+    def neglogdet_Q_inv(xs: Tensor, subset: str = "first") -> Tensor: 
         return torch.zeros(xs.shape[0])

@@ -16,7 +16,7 @@ class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
         return
     
     def grid_measure(self, n: int) -> Tensor:
-        ls = torch.linspace(*self.domain, n)
+        ls = torch.linspace(self.domain[0], self.domain[1], n)
         return ls
 
     def eval_int_basis(self, ls: Tensor) -> Tensor:

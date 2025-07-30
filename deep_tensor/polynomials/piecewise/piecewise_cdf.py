@@ -4,16 +4,25 @@ from typing import Tuple
 import torch
 from torch import Tensor
 
-from .piecewise import Piecewise
 from ..cdf_1d import CDF1D
 from ..cdf_data import CDFData
 
 
-class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
+class PiecewiseCDF(CDF1D, abc.ABC):
     
     def __init__(self, **kwargs):
         CDF1D.__init__(self, **kwargs)
         return
+    
+    @property
+    @abc.abstractmethod
+    def grid(self) -> Tensor:
+        pass 
+
+    @property
+    @abc.abstractmethod
+    def num_elems(self) -> int:
+        pass 
 
     @abc.abstractmethod
     def eval_int_elem(
@@ -251,7 +260,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
 
         ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
 
-        for _ in range(self.num_newton):
+        for _ in range(self.n_newton):
             zs, dzs = self.eval_int_elem_newton(cdf_data, inds_left, zs_cdf, ls)
             ls, dls = self._newton_step(ls, zs, dzs, l0s, l1s)
             if self.converged(zs, dls):
@@ -304,7 +313,7 @@ class PiecewiseCDF(CDF1D, Piecewise, abc.ABC):
         z1s = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l1s)
         self.check_initial_intervals(z0s, z1s)
 
-        for _ in range(self.num_regula_falsi):
+        for _ in range(self.n_regula_falsi):
 
             ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
             zs = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, ls)

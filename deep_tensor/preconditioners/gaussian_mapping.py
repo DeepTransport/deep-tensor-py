@@ -60,7 +60,7 @@ class GaussianMapping(Preconditioner):
     def Q(self, us: Tensor, subset: str = "first") -> Tensor:
         self._check_subset(subset)
         d_us = us.shape[1]
-        if subset in ("first", None):
+        if subset == "first":
             xs = self.mean[:d_us] + (us @ self.L[:d_us, :d_us].T)
         else:
             xs = self.mean[d_us:] + (us @ self.L[d_us:, d_us:].T)
@@ -69,7 +69,7 @@ class GaussianMapping(Preconditioner):
     def Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
         self._check_subset(subset)
         d_xs = xs.shape[1]
-        if subset in ("first", None):
+        if subset == "first":
             us = (xs - self.mean[:d_xs]) @ self.R[:d_xs, :d_xs].T
         else:
             xs = (xs - self.mean[d_xs:]) @ self.R[d_xs:, d_xs:].T
@@ -78,7 +78,7 @@ class GaussianMapping(Preconditioner):
     def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:
         self._check_subset(subset)
         d_us = us.shape[1]
-        if subset in ("first", None):
+        if subset == "first":
             Ls = self.L.diag()[:d_us]
         else:
             Ls = self.L.diag()[d_us:]
@@ -88,7 +88,7 @@ class GaussianMapping(Preconditioner):
     def neglogdet_Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor: 
         self._check_subset(subset)
         d_xs = xs.shape[1]
-        if subset in ("first", None):
+        if subset == "first":
             Rs = self.R.diag()[:d_xs]
         else:
             Rs = self.R.diag()[d_xs:]

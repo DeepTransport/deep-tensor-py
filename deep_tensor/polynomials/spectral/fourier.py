@@ -40,9 +40,9 @@ class Fourier(Spectral):
         n = torch.arange(n_nodes)
 
         self.order = order
-        self.m = order + 1
-        self.c = torch.pi * (torch.arange(order) + 1)
-        self.nodes = 2.0 * (n+1) / n_nodes - 1
+        self._m = order + 1
+        self._c = torch.pi * (torch.arange(order) + 1.0)
+        self.nodes = 2.0 * (n+1.0) / n_nodes - 1.0
         self.weights = torch.ones_like(self.nodes) / n_nodes
 
         self.__post_init__()
@@ -69,9 +69,6 @@ class Fourier(Spectral):
     def sample_measure(self, n: int) -> Tensor:
         return 2.0 * torch.rand(n) - 1.0
     
-    def sample_measure_skip(self, n: int) -> Tensor:
-        return self.sample_measure(n)
-    
     def eval_measure(self, ls: Tensor):
         return torch.full(ls.shape, 0.5)
     
@@ -91,9 +88,9 @@ class Fourier(Spectral):
         ls = ls[:, None]
         ps = torch.hstack((
             torch.ones_like(ls),
-            2 ** 0.5 * torch.sin(ls * self.c),
-            2 ** 0.5 * torch.cos(ls * self.c),
-            2 ** 0.5 * torch.cos(ls * self.m * torch.pi)
+            2 ** 0.5 * torch.sin(ls * self._c),
+            2 ** 0.5 * torch.cos(ls * self._c),
+            2 ** 0.5 * torch.cos(ls * self._m * torch.pi)
         ))
         return ps
     
@@ -104,8 +101,8 @@ class Fourier(Spectral):
         ls = ls[:, None]
         dpdls = torch.hstack((
             torch.zeros_like(ls),
-            2 ** 0.5 * torch.cos(ls * self.c) * self.c,
-            -2 ** 0.5 * torch.sin(ls * self.c) * self.c,
-            -2 ** 0.5 * torch.sin(ls * self.m * torch.pi) * self.m * torch.pi
+            2 ** 0.5 * torch.cos(ls * self._c) * self._c,
+            -2 ** 0.5 * torch.sin(ls * self._c) * self._c,
+            -2 ** 0.5 * torch.sin(ls * self._m * torch.pi) * self._m * torch.pi
         ))
         return dpdls

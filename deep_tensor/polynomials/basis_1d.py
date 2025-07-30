@@ -39,16 +39,17 @@ class Basis1D(abc.ABC, object):
         local domain.
         """
         pass 
-    
-    @property 
-    @abc.abstractmethod
-    def int_W(self) -> Tensor: 
-        """Given a set of polynomial coefficients, this operator 
-        returns the values of the integrated function at each 
-        collocation point.
-        """
-        pass
 
+    @property
+    def has_bounded_domain(self) -> bool:
+        """Whether the domain of the basis is bounded."""
+        return bool(self.domain.isinf().any())
+
+    @property
+    def cardinality(self) -> int:
+        """The number of basis functions associated with the basis."""
+        return self.nodes.numel()
+    
     @abc.abstractmethod
     def eval_basis(self, ls: Tensor) -> Tensor:
         """Evaluates the (normalised) one-dimensional basis at a given 
@@ -194,21 +195,6 @@ class Basis1D(abc.ABC, object):
         
         """
         pass
-
-    @property
-    def has_bounded_domain(self) -> bool:
-        """Whether the domain of the basis is bounded."""
-        return bool(self.domain.isinf().any())
-
-    @property
-    def n_nodes(self) -> int:
-        """The number of nodes associated with the basis."""
-        return self.nodes.numel()
-
-    @property
-    def cardinality(self) -> int:
-        """The number of basis functions associated with the basis."""
-        return self.nodes.numel()
     
     def _out_domain(self, ls: Tensor) -> Tensor:
         """Returns a boolean mask that indicates whether each of a set
@@ -368,13 +354,3 @@ class Basis1D(abc.ABC, object):
             gradwls = self.eval_measure_deriv(ls)[:, None]
             gradfwls += (basis_vals @ coeffs) * gradwls
         return gradfwls
- 
-    def mass_r(self, interp_w: Tensor) -> Tensor:
-        """Evaluates the product of the upper Cholesky factor of the 
-        mass matrix and a set of nodal values or coefficients.
-        """
-        return self.mass_R @ interp_w
-    
-    def evaluate_integral(self, interp_w: Tensor) -> Tensor:
-        """Evaluates the one-dimensional integral."""
-        return self.int_W @ interp_w

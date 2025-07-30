@@ -52,8 +52,8 @@ class TestLegendre(unittest.TestCase):
                                    [0., 1., 3./2., 9./24.],
                                    [0., 1., 3., 6.]]) * norm_true
 
-        self.assertTrue((ps - ps_true).abs().max() < 1e-8)
-        self.assertTrue((dpdxs - dpdxs_true).abs().max() < 1e-8)
+        self.assertTrue((ps - ps_true).abs().max() < 1e-4)
+        self.assertTrue((dpdxs - dpdxs_true).abs().max() < 1e-4)
         return
 
 

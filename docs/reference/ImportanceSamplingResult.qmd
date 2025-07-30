@@ -1,7 +1,12 @@
 # ImportanceSamplingResult { #deep_tensor.ImportanceSamplingResult }
 
 ```python
-ImportanceSamplingResult(log_weights: Tensor, log_norm: Tensor, ess: Tensor)
+ImportanceSamplingResult(
+    self,
+    log_weights: Tensor,
+    log_norm: Tensor,
+    ess: Tensor,
+)
 ```
 
 An object containing the results of importance sampling.

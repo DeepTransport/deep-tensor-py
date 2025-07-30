@@ -1,5 +1,4 @@
 import torch
-torch.set_default_dtype(torch.float64)
 
 from .bridging_densities import SingleLayer, Tempering
 from .debiasing.importance_sampling import (
@@ -11,6 +10,9 @@ from .debiasing.mcmc import (
     run_irt_pcn, 
     run_cirt_pcn,
     run_independence_sampler
+)
+from .debiasing.mcmc_new import (
+    MCMC, pCNKernel
 )
 from .domains import (
     AlgebraicMapping, 

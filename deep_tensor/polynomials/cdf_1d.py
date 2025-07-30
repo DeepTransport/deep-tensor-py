@@ -15,15 +15,15 @@ class CDF1D(abc.ABC):
 
     def __init__(
         self, 
-        error_tol: float = 1e-10, 
-        num_newton: int = 100,
-        num_regula_falsi: int = 100
+        error_tol: float = 1e-6, 
+        n_newton: int = 100,
+        n_regula_falsi: int = 100
     ):
         self.error_tol = error_tol
-        self.num_newton = num_newton
-        self.num_regula_falsi = num_regula_falsi
+        self.n_newton = n_newton
+        self.n_regula_falsi = n_regula_falsi
         return
-    
+
     @property 
     def nodes(self) -> Tensor:
         return self._nodes 
@@ -36,14 +36,6 @@ class CDF1D(abc.ABC):
     @property 
     def cardinality(self) -> int:
         return self.nodes.numel()
-    
-    @property
-    @abc.abstractmethod
-    def domain(self) -> Tensor:
-        """The domain on which polynomials used to form the CDF are 
-        defined.
-        """
-        pass 
 
     @abc.abstractmethod
     def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
@@ -172,9 +164,11 @@ class CDF1D(abc.ABC):
 
         """
         if (n_violations := (z0s * z1s > EPS).sum()) > 0:
-            msg = (f"Rootfinding: {n_violations} initial intervals "
-                   + "without roots found.")
-            warnings.warn(msg)
+            msg = (
+                f"Rootfinding: {n_violations} initial intervals "
+                "without roots found."
+            )
+            # warnings.warn(msg)
         return
     
     def check_pdf_dims(self, ps: Tensor, xs: Tensor) -> None:
@@ -190,13 +184,17 @@ class CDF1D(abc.ABC):
         n_k, n_ps = ps.shape
 
         if n_k != self.cardinality:
-            msg = ("Number of rows of PDF matrix must be equal to " 
-                   + "cardinality of polynomial basis for CDF.")
+            msg = (
+                "Number of rows of PDF matrix must be equal to " 
+                "cardinality of polynomial basis for CDF."
+            )
             raise Exception(msg)
         
         if n_ps > 1 and n_ps != xs.numel():
-            msg = ("Number of columns of PDF matrix must be equal to "
-                   + "one or number of samples.")
+            msg = (
+                "Number of columns of PDF matrix must be equal to one "
+                "or number of samples."
+            )
             raise Exception(msg)
         
         return
@@ -264,9 +262,10 @@ class CDF1D(abc.ABC):
         unconverged = (torch.min(error_fs, error_dls) >= self.error_tol)
         max_residual = error_fs.abs().max()
         
-        msg = (f"{method} did not converge "
-               + f"({unconverged.sum()} unconverged samples). "
-               + f"Maximum residual: {max_residual:.4e}.")
+        msg = (
+            f"{method} did not converge ({unconverged.sum()} unconverged "
+            f"samples). Maximum residual: {max_residual:.4e}."
+        )
         warnings.warn(msg)
 
         return None

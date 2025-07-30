@@ -18,7 +18,7 @@ def batch_mul(*arrs: Tensor) -> Tensor:
 
     prod = arrs[0]
     for a in arrs[1:]:
-        prod =torch.einsum("...ij, ...jk", prod, a)
+        prod = torch.einsum("...ij, ...jk", prod, a)
     return prod
 
 
@@ -139,7 +139,7 @@ def tsvd(
     max_energy = energies[-1].clone()
     energies /= max_energy
 
-    rank = (torch.sum(energies < 1.0 - tol) + 1).clamp(max=s.numel())
+    rank = int((torch.sum(energies < 1.0 - tol) + 1).clamp(max=s.numel()))
 
     if max_rank is not None:
         rank = min(rank, max_rank)

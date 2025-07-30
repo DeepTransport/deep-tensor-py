@@ -62,7 +62,7 @@ import torch
 
 import deep_tensor as dt
 
-from examples.heat import setup_heat_problem
+from examples.heat import setup_heat_problem, plot_dl_function
 
 ```
 
@@ -71,7 +71,7 @@ from examples.heat import setup_heat_problem
 #| output: false
 
 import os
-from examples.plotting import add_arrows, plot_dl_function, pairplot
+from examples.plotting import add_arrows, pairplot
 
 torch.manual_seed(1)
 plt.style.use(os.sep.join(["..", "..", "examples", "plotstyle.mplstyle"]))

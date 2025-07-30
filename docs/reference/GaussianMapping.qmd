@@ -2,6 +2,7 @@
 
 ```python
 GaussianMapping(
+    self,
     mean: Tensor,
     cov: Tensor,
     reference: GaussianReference | None = None,

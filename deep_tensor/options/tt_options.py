@@ -54,8 +54,8 @@ class TTOptions():
     init_rank: int = 20
     kick_rank: int = 2
     max_rank: int = 30
-    local_tol: float = 1e-10
-    cdf_tol: float = 1e-10
+    local_tol: float = 1e-06
+    cdf_tol: float = 1e-06
     tt_method: str = "amen"
     int_method: str = "maxvol"
     verbose: int = 1

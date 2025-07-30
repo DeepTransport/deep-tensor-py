@@ -27,8 +27,8 @@ class TestTTFunc(unittest.TestCase):
 
         ls = torch.tensor([-0.5, 0.0, 0.5])
 
-        G_213 = dt.TTFunc.eval_core_213(poly, A, ls)
-        G_231 = dt.TTFunc.eval_core_231(poly, A, ls)
+        G_213 = dt.TTFunc._eval_core_213(poly, A, ls)
+        G_231 = dt.TTFunc._eval_core_231(poly, A, ls)
 
         G_213_true = torch.tensor([[[2.0, 1.5],
                                     [2.0, 2.0]],
@@ -55,7 +55,7 @@ class TestTTFunc(unittest.TestCase):
         evaluating the marginal PDF).
         """
 
-        dummy_func = lambda _: 1.0
+        dummy_func = lambda _: torch.tensor([1.0])
 
         poly = dt.Lagrange1(num_elems=2)
         domain = dt.BoundedDomain()

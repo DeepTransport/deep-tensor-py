@@ -2,6 +2,7 @@
 
 ```python
 DIRTOptions(
+    self,
     method: str = 'aratio',
     num_samples: int = 1000,
     num_debugs: int = 1000,

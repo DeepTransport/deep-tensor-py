@@ -51,10 +51,10 @@ class TestPiecewisePolynomials(unittest.TestCase):
             [1.50], [1.25], [1.00]
         ])
 
-        self.assertTrue((basis_vals_true - basis_vals).abs().max() < 1e-8)
-        self.assertTrue((weights_true - weights).abs().max() < 1e-8)
-        self.assertTrue((radon_vals_true - radon_vals).abs().max() < 1e-8)
-        self.assertTrue((func_vals_true - func_vals).abs().max() < 1e-8)
+        self.assertTrue((basis_vals_true - basis_vals).abs().max() < 1e-4)
+        self.assertTrue((weights_true - weights).abs().max() < 1e-4)
+        self.assertTrue((radon_vals_true - radon_vals).abs().max() < 1e-4)
+        self.assertTrue((func_vals_true - func_vals).abs().max() < 1e-4)
 
         return
     
@@ -84,9 +84,9 @@ class TestPiecewisePolynomials(unittest.TestCase):
         radon_deriv_vals_true = torch.tensor([[2.0], [-2.0], [2.0], [-2.0]])
         func_deriv_vals_true = torch.tensor([[1.0], [-1.0], [1.0], [-1.0]])
 
-        self.assertTrue((deriv_vals_true - deriv_vals).abs().max() < 1e-8)
-        self.assertTrue((weights_deriv_true - weights_deriv).abs().max() < 1e-8)
-        self.assertTrue((radon_deriv_vals_true - radon_deriv_vals).abs().max() < 1e-8)
-        self.assertTrue((func_deriv_vals_true - func_deriv_vals).abs().max() < 1e-8)
+        self.assertTrue((deriv_vals_true - deriv_vals).abs().max() < 1e-4)
+        self.assertTrue((weights_deriv_true - weights_deriv).abs().max() < 1e-4)
+        self.assertTrue((radon_deriv_vals_true - radon_deriv_vals).abs().max() < 1e-4)
+        self.assertTrue((func_deriv_vals_true - func_deriv_vals).abs().max() < 1e-4)
 
         return

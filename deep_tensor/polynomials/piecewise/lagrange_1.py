@@ -4,9 +4,8 @@ from torch import Tensor
 from .piecewise import Piecewise
 
 
-# Integrals and weights of adjacent basis functions mapped to [0, 1]
+# Integrals of adjacent basis functions mapped to [0, 1]
 LOCAL_MASS = torch.tensor([[2.0, 1.0], [1.0, 2.0]]) / 6.0
-LOCAL_WEIGHTS = torch.tensor([1.0, 1.0]) / 2.0
 
 
 class Lagrange1(Piecewise):
@@ -39,16 +38,11 @@ class Lagrange1(Piecewise):
         Piecewise.__init__(self, order=1, num_elems=num_elems)
         self.nodes = self.grid.clone()
         
-        mass = torch.zeros((self.cardinality, self.cardinality))
         jac = self.elem_size / self.domain_size
-        self.int_W = torch.zeros(self.cardinality)
 
-        for i in range(self.num_elems):
-            ind = torch.tensor([i, i+1])
-            mass[ind[:, None], ind[None, :]] += LOCAL_MASS * jac
-            self.int_W[ind] += LOCAL_WEIGHTS * jac
-
+        mass = self._build_mass_matrix(self.num_elems, jac)
         self.mass_R = torch.linalg.cholesky(mass).T
+
         return
     
     @property 
@@ -60,14 +54,15 @@ class Lagrange1(Piecewise):
         self._mass_R = value 
         return
 
-    @property 
-    def int_W(self) -> Tensor: 
-        return self._int_W
-    
-    @int_W.setter 
-    def int_W(self, value: Tensor) -> None:
-        self._int_W = value 
-        return
+    @staticmethod 
+    def _build_mass_matrix(n_elems: int, jac: Tensor) -> Tensor:
+
+        M = torch.zeros((n_elems+1, n_elems+1))
+        for i in range(n_elems):
+            inds = torch.tensor([i, i+1])
+            M[inds[:, None], inds[None, :]] += LOCAL_MASS * jac
+        
+        return M
 
     def eval_basis(self, ls: Tensor) -> Tensor:
         
