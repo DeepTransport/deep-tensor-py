@@ -393,6 +393,8 @@ class AbstractTTFunc(object):
             A matrix containing n sets of d-dimensional input 
             variables in the approximation domain. Each row contains a
             single input variable.
+        method: 
+            'autodiff' or 'manual'.
 
         Returns
         -------
