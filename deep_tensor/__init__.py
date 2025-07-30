@@ -11,9 +11,6 @@ from .debiasing.mcmc import (
     run_cirt_pcn,
     run_independence_sampler
 )
-from .debiasing.mcmc_new import (
-    MCMC, pCNKernel
-)
 from .domains import (
     AlgebraicMapping, 
     BoundedDomain, 
