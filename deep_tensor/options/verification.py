@@ -10,4 +10,4 @@ def verify_method(method: str, accepted_methods: Sequence[str]) -> None:
         f"Method '{method}' not recognised. Expected one of: " 
         ", ".join(accepted_methods) + "."
     )
-    raise Exception(msg)
+    raise ValueError(msg)

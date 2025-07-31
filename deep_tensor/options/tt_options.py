@@ -34,8 +34,8 @@ class TTOptions():
         The tolerance used when solving the root-finding problem to 
         invert the CDF. 
     tt_method:
-        The method used to construct the TT cores. Can be `'fixed'`, 
-        `'random'`, or `'amen'`.
+        The enrichment method used when constructing the TT cores. Can 
+        be `'fixed_rank'` (no enrichment), `'random'`, or `'amen'`.
     int_method:
         The interpolation method used when constructing the tensor 
         cores. Can be `'maxvol'` [@Goreinov2010] or `'deim'` 
