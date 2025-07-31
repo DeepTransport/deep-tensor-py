@@ -64,7 +64,7 @@ def unfold_left(H: Tensor) -> Tensor:
     """
     if H.ndim != 3:
         msg = "Input tensor must be 3-dimensional."
-        raise Exception(msg)
+        raise ValueError(msg)
     r_p, n_k, r_k = H.shape
     H = H.reshape(r_p * n_k, r_k)
     return H
@@ -76,7 +76,7 @@ def unfold_right(H: Tensor) -> Tensor:
     """
     if H.ndim != 3:
         msg = "Input tensor must be 3-dimensional."
-        raise Exception(msg)
+        raise ValueError(msg)
     r_p, n_k, r_k = H.shape
     H = H.swapdims(0, 2).reshape(n_k * r_k, r_p)
     return H
@@ -87,7 +87,7 @@ def fold_left(H: Tensor, newshape: Sequence) -> Tensor:
     """
     if H.ndim > 2:
         msg = "Dimension of input tensor cannot be greater than 2."
-        raise Exception(msg)
+        raise ValueError(msg)
     H = H.reshape(*newshape)
     return H
 
@@ -97,7 +97,7 @@ def fold_right(H: Tensor, newshape: Sequence) -> Tensor:
     """
     if H.ndim > 2:
         msg = "Dimension of input tensor cannot be greater than 2."
-        raise Exception(msg)
+        raise ValueError(msg)
     H = H.reshape(*reversed(newshape)).swapdims(0, 2)
     return H
 
