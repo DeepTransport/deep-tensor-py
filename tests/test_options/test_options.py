@@ -3,7 +3,7 @@ import unittest
 import deep_tensor as dt
 
 
-class TestUniformMapping(unittest.TestCase):
+class TestOptions(unittest.TestCase):
 
     def test_tt_options(self):
 
