@@ -29,7 +29,9 @@ class TTOptions():
         enrichment set being added).
     local_tol:
         The threshold to use when applying truncated SVD to the tensor 
-        cores when building the FTT.
+        cores when building the FTT. The minimum number of singular 
+        values such that the sum of their squares exceeds (1 - local_tol) 
+        will be retained.
     cdf_tol:
         The tolerance used when solving the root-finding problem to 
         invert the CDF. 

@@ -139,7 +139,11 @@ def tsvd(
     max_energy = energies[-1].clone()
     energies /= max_energy
 
-    rank = int((torch.sum(energies < 1.0 - tol) + 1).clamp(max=s.numel()))
+    if tol == 0.0:
+        rank = s.numel()
+    else:
+        rank = torch.sum(energies <= 1.0 - tol) + 1
+        rank = int(rank.clamp(max=s.numel()))
 
     if max_rank is not None:
         rank = min(rank, max_rank)
