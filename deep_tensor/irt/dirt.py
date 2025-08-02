@@ -903,8 +903,8 @@ class DIRT(AbstractDIRT):
         """Evaluates the pullback of the target density function at a 
         set of samples in the reference domain.
         """
-        xs = self.preconditioner.Q(us, "first")
-        neglogdets = self.preconditioner.neglogdet_Q(us, "first")
+        xs = self.preconditioner.Q(us)
+        neglogdets = self.preconditioner.neglogdet_Q(us)
         neglogliks = self.negloglik(xs)
         neglogpris = self.neglogpri(xs)
         self.num_eval += us.shape[0]

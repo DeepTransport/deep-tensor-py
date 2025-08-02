@@ -38,7 +38,7 @@ class Chebyshev2nd(Spectral):
         n = order + 1
 
         self.order = order 
-        self.nodes = torch.cos(torch.pi * torch.arange(1, n+1) / (n+1)).sort()[0]
+        self.nodes = torch.cos(torch.pi * torch.arange(1, n+1) / (n+1)).sort().values
         self.weights = torch.sin(torch.pi * torch.arange(1, n+1) / (n+1)).square() * 2 / (n+1)
         
         self.n = torch.arange(self.order+1)

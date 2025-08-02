@@ -31,6 +31,11 @@ class UniformMapping(Preconditioner):
         reference: Reference | None = None
     ):
         
+        bounds = torch.atleast_2d(bounds)
+        if bounds.shape[1] != 2:
+            msg = "Bounds array must have two columns."
+            raise Exception(msg)
+
         if reference is None:
             reference = GaussianReference()
         
@@ -44,7 +49,7 @@ class UniformMapping(Preconditioner):
         # Reference to uniform
         d_us = us.shape[1]
         zs = self.reference.eval_cdf(us)[0]
-        if subset in ("first", None):
+        if subset == "first":
             xs = self.lbs[:d_us] + self.dxs[:d_us] * zs 
         elif subset == "last":
             xs = self.lbs[-d_us:] + self.dxs[-d_us:] * zs

@@ -63,7 +63,7 @@ class GaussianMapping(Preconditioner):
         if subset == "first":
             xs = self.mean[:d_us] + (us @ self.L[:d_us, :d_us].T)
         else:
-            xs = self.mean[d_us:] + (us @ self.L[d_us:, d_us:].T)
+            xs = self.mean[-d_us:] + (us @ self.L[-d_us:, -d_us:].T)
         return xs
     
     def Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
@@ -72,7 +72,7 @@ class GaussianMapping(Preconditioner):
         if subset == "first":
             us = (xs - self.mean[:d_xs]) @ self.R[:d_xs, :d_xs].T
         else:
-            xs = (xs - self.mean[d_xs:]) @ self.R[d_xs:, d_xs:].T
+            xs = (xs - self.mean[-d_xs:]) @ self.R[-d_xs:, -d_xs:].T
         return us
     
     def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:
@@ -81,7 +81,7 @@ class GaussianMapping(Preconditioner):
         if subset == "first":
             Ls = self.L.diag()[:d_us]
         else:
-            Ls = self.L.diag()[d_us:]
+            Ls = self.L.diag()[-d_us:]
         neglogdets = torch.full((us.shape[0],), -Ls.log().sum().item())
         return neglogdets 
     
@@ -91,6 +91,6 @@ class GaussianMapping(Preconditioner):
         if subset == "first":
             Rs = self.R.diag()[:d_xs]
         else:
-            Rs = self.R.diag()[d_xs:]
+            Rs = self.R.diag()[-d_xs:]
         neglogdets = torch.full((xs.shape[0],), -Rs.log().sum().item())
         return neglogdets 
