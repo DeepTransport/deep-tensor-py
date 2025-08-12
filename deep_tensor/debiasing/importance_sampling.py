@@ -88,9 +88,8 @@ def run_importance_sampling(
     Returns
     -------
     res:
-        A structure containing the log-importance weights (normalised, 
-        if `self_normalised=False`), the estimate of the 
-        log-normalising constant of the target density (if 
+        A structure containing the log-importance weights, the estimate 
+        of the log-normalising constant of the target density (if 
         `self_normalised=False`), and the effective sample size.
     
     """
@@ -101,7 +100,7 @@ def run_importance_sampling(
         log_norm = torch.tensor(0.0)
     else:
         log_norm = log_weights.logsumexp(dim=0) - math.log(n)
-        log_weights = log_weights - log_norm
+        # log_weights = log_weights - log_norm
 
     ess = n * estimate_ess_ratio(log_weights)
     res = ImportanceSamplingResult(log_weights, log_norm, ess)

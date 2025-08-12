@@ -4,6 +4,9 @@ from typing import Dict, List, Tuple
 import torch
 from torch import Tensor
 
+from ..preconditioners import Preconditioner
+from ..target_functions import TargetFunc
+
 
 class Bridge(abc.ABC):
     
@@ -12,10 +15,10 @@ class Bridge(abc.ABC):
     def is_last(self) -> bool:
         pass
     
-    @property 
-    @abc.abstractmethod
-    def params_dict(self) -> Dict:
-        pass
+    # @property 
+    # @abc.abstractmethod
+    # def params_dict(self) -> Dict:
+    #     pass
 
     @property 
     def n_layers(self) -> int:
@@ -36,128 +39,72 @@ class Bridge(abc.ABC):
         return
 
     @abc.abstractmethod
-    def _get_ratio_func(
+    def ratio_func(
         self, 
         method: str,
         rs: Tensor,
-        neglogliks: Tensor, 
-        neglogpris: Tensor, 
-        neglogfxs: Tensor
+        us: Tensor,
+        neglogfus_dirt: Tensor
     ) -> Tensor:
-        """Returns the negative log-ratio function evaluated each of 
-        the current set of samples.
-        
+        pass
+
+    @abc.abstractmethod
+    def update(
+        self, 
+        method: str,
+        rs: Tensor,
+        us: Tensor,
+        neglogfus_dirt: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        """Evaluates the current bridging density, the next ratio 
+        function and the ratio between the current bridging density and 
+        the next bridging density at each of a set of samples.
+
         Parameters
         ----------
         method:
-            The method used to compute the ratio function. Can be
-            'eratio' (exact) or 'aratio' (approximate).
+            Method for computing the ratio function ('aratio' or 
+            'eratio').
         rs:
             An n * d matrix containing a set of samples from the 
-            reference density.
-        neglogliks:
-            An n-dimensional vector containing the negative 
-            log-likelihood evaluated at each sample.
-        neglogpris:
-            An n-dimensional vector containing the negative log-prior
-            density evaluated at each sample.
-        neglogfxs:
-            An n-dimensional vector containing the negative logarithm
-            of the current DIRT density.
-
+            reference distribution.
+        us:
+            An n * d matrix containing the samples from `rs` after 
+            applying the current DIRT mapping to them.
+        neglogfus_dirt:
+            An n-dimensional vector containing evaluations of the 
+            current DIRT density at each sample in us.  
+        
         Returns
         -------
-        neglogratio:
-            An n-dimensional vector containing the negative log-ratio 
-            function evaluated for each sample.
-            
-        """
-        pass
-    
-    @abc.abstractmethod
-    def _compute_log_weights(
-        self,
-        neglogliks: Tensor,
-        neglogpris: Tensor, 
-        neglogfxs: Tensor
-    ) -> Tensor:
-        """Returns the logarithm of the ratio between the current 
-        bridging density and the density of the approximation to the 
-        previous bridging density evaluated at each of a set of samples
-        distributed according to the previous bridging density.
-
-        Parameters
-        ----------
-        neglogliks:
-            An n-dimensional vector containing the negative 
-            log-likelihood function evaluated at each sample.
-        neglogpris:
-            An n-dimensional vector containing the negative log-prior 
+        neglogbridges:
+            An n-dimensional vector containing the current bridging 
             density evaluated at each sample.
-        neglogfxs:
-            An n-dimensional vector containing the negative logarithm 
-            of the approximation to the previous bridging density 
-            evaluated at each sample.
-
-        Returns
-        -------
         log_weights:
-            The logarithm of the ratio between the current bridging 
-            density and the density of the approximation to the 
-            previous bridging density evaluated at each sample.
+            An n-dimensional vector containing the ratio between 
+            the current and new bridging densities evaluated at each 
+            sample.
+        neglogratios:
+            An n-dimensional vector containing the next ratio function
+            evaluated at each sample.
         
         """
         pass
-    
-    def _set_init(self, neglogliks: Tensor) -> None:
-        """Computes the properties of the initial bridging density.
-        
-        Parameters
-        ----------
-        neglogliks:
-            An n-dimensional vector containing the negative 
-            log-likelihood function evaluated at a set of 
-            initialisation samples (drawn from the prior).
 
-        Returns
-        -------
-        None
-        
-        """
-        return 
-    
-    def _adapt_density(
-        self,
-        method: str, 
-        neglogliks: Tensor, 
-        neglogpris: Tensor, 
-        neglogfxs: Tensor
+    def initialise(
+        self, 
+        preconditioner: Preconditioner, 
+        target_func: TargetFunc
     ) -> None:
-        """Determines the beta value associated with the next bridging 
-        density.
-        
-        Parameters
-        ----------
-        method: 
-            The method used to select the next bridging parameter. Can
-            be 'aratio' (approximate ratio) or 'eratio' (exact ratio).
-        neglogliks: 
-            An n-dimensional vector containing the negative 
-            log-likelihood of each of the current samples.
-        neglogpris:
-            An n-dimensional vector containing the negative log-prior 
-            density of each of the current samples.
-        neglogfxs:
-            An n-dimensional vector containing the negative log-density 
-            of the current approximation to the target density for each 
-            of the current samples.
-
-        Returns
-        -------
-        None
-        
-        """
+        self.preconditioner = preconditioner
+        self.reference = self.preconditioner.reference
+        self.target_func = target_func
         return
+    
+    def apply_preconditioner(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+        xs = self.preconditioner.Q(us)
+        neglogdets = self.preconditioner.neglogdet_Q(us)
+        return xs, neglogdets
     
     def _reorder(
         self, 
@@ -202,11 +149,27 @@ class Bridge(abc.ABC):
 
     def _get_diagnostics(
         self, 
-        neglogweights: Tensor,
-        neglogliks: Tensor, 
-        neglogpris: Tensor, 
-        neglogfxs: Tensor
+        log_weights: Tensor,
+        neglogfus: Tensor,
+        neglogfus_dirt: Tensor
     ) -> List[str]:
         """Returns some information about the current bridging density.
+
+        Parameters
+        ----------
+        log_weights:
+            An n-dimensional vector containing the logarithm of the 
+            ratio between the next bridging density and the current 
+            bridging density evaluated at a set of samples from the 
+            DIRT approximation to the current bridging density.
+        neglogfus:
+            An n-dimensional vector containing the negative logarithm 
+            of the current bridging density evaluated at a set of 
+            samples from the DIRT approximation.
+        neglogfus_dirt:
+            An-dimensional vector containin the negative logarithm of 
+            the DIRT approximation to the current bridging density 
+            evaluated at the same set of samples as above. 
+
         """
         return []

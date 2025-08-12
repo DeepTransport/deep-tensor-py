@@ -1,6 +1,6 @@
 import torch
 
-from .bridging_densities import SingleLayer, Tempering
+from .bridging_densities import SingleLayer, Tempering, SigmoidSmoothing
 from .debiasing.importance_sampling import (
     ImportanceSamplingResult, 
     run_importance_sampling
@@ -45,4 +45,5 @@ from .preconditioners import (
     UniformMapping
 )
 from .references import Reference, GaussianReference, UniformReference
+from .target_functions import RareEventFunc, TargetFunc
 from .tools import compute_f_divergence

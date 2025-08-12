@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Tuple
 
 from torch import Tensor
 
@@ -28,26 +28,32 @@ class SingleLayer(AbstractSingleLayer):
         self.n_layers = 0
         self.is_adaptive = False
         return
-    
-    def _get_ratio_func(
-        self, 
+
+    def update(self, 
+        method: str, 
+        rs: Tensor, 
+        us: Tensor, 
+        neglogfus_dirt: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        
+        xs, neglogdets = self.apply_preconditioner(us)
+        neglogfxs = self.target_func(xs)
+        neglogfus = neglogfxs + neglogdets
+
+        log_weights = -neglogfus + neglogfus_dirt
+        return log_weights, neglogfus, neglogfus
+        
+    def ratio_func(
+        self,
         method: str,
-        neglogrefs_rs: Tensor,
-        neglogrefs: Tensor, 
-        neglogfxs: Tensor, 
-        neglogfxs_dirt: Tensor
+        rs: Tensor, 
+        us: Tensor,
+        neglogfus_dirt: Tensor
     ) -> Tensor:
-        neglogratios = neglogfxs.clone()
-        return neglogratios
-    
-    def _compute_log_weights(
-        self, 
-        neglogrefs: Tensor,
-        neglogfxs: Tensor,
-        neglogfxs_dirt: Tensor
-    ) -> Tensor:
-        log_weights = -neglogfxs + neglogfxs_dirt
-        return log_weights
+        xs, neglogdets = self.apply_preconditioner(us)
+        neglogfxs = self.target_func(xs)
+        neglogfus = neglogfxs + neglogdets
+        return neglogfus
 
 
 class SavedSingleLayer(AbstractSingleLayer):

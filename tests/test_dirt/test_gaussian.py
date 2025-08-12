@@ -7,6 +7,7 @@ from torch import Tensor
 import deep_tensor as dt
 
 torch.manual_seed(0)
+torch.set_default_dtype(torch.float64)
 
 
 class TestDIRTStandardGaussian(unittest.TestCase):
@@ -14,12 +15,8 @@ class TestDIRTStandardGaussian(unittest.TestCase):
     """
 
     @staticmethod
-    def neglogpri(xs: Tensor) -> Tensor:
+    def neglogtarget(xs: Tensor) -> Tensor:
         return 0.5 * xs.square().sum(dim=1)
-
-    @staticmethod
-    def negloglik(xs: Tensor) -> Tensor:
-        return torch.zeros((xs.shape[0],)) 
 
     def build_dirt(
         self, 
@@ -30,6 +27,7 @@ class TestDIRTStandardGaussian(unittest.TestCase):
         if bases is None:
             bases = dt.Lagrange1(num_elems=30)
 
+        target_func = dt.TargetFunc(self.neglogtarget)
         preconditioner = dt.IdentityMapping(dim=dim)
 
         # bounds = torch.tensor([[-4.0] * dim, [4.0] * dim]).T
@@ -39,8 +37,7 @@ class TestDIRTStandardGaussian(unittest.TestCase):
         dirt_options = dt.DIRTOptions(verbose=False)
 
         dirt = dt.DIRT(
-            self.negloglik, 
-            self.neglogpri, 
+            target_func, 
             preconditioner=preconditioner, 
             bases=bases,
             tt_options=tt_options,
@@ -63,7 +60,7 @@ class TestDIRTStandardGaussian(unittest.TestCase):
         mean_true = torch.zeros((dirt.dim,))
         cov_true = torch.eye(dirt.dim)
         neglognorm = 0.5 * dirt.dim * math.log(2.0 * math.pi)
-        potentials_true = neglognorm + self.neglogpri(xs)
+        potentials_true = neglognorm + self.neglogtarget(xs)
 
         self.assertTrue((mean_dirt-mean_true).abs().max() < 0.1)
         self.assertTrue((cov_dirt-cov_true).abs().max() < 0.1)

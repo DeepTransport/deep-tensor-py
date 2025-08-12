@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Tuple, Sequence
+from typing import Callable, Dict, Tuple
 import warnings
 
 import torch
@@ -154,12 +154,13 @@ class AbstractTTFunc(object):
         A:
             The coefficient tensor associated with the current core.
         ls: 
-            A vector of points at which to evaluate the current core.
+            A n-dimensional vector of points at which to evaluate the 
+            current core.
 
         Returns
         -------
         dGdls:
-            A matrix of dimension n_{k} * r_{k-1} * r_{k}, 
+            A matrix of dimension n * r_{k-1} * r_{k}, 
             corresponding to evaluations of the derivative of the kth 
             core at each value of ls.
         
@@ -181,12 +182,13 @@ class AbstractTTFunc(object):
         A:
             The coefficient tensor associated with the current core.
         ls: 
-            A vector of points at which to evaluate the current core.
+            A n-dimensional vector of points at which to evaluate the 
+            current core.
 
         Returns
         -------
         Gs:
-            A tensor of dimension n_{k} * r_{k} * r_{k-1}, 
+            A tensor of dimension n * r_{k} * r_{k-1}, 
             corresponding to evaluations of the kth core at each value 
             of ls.
         
@@ -204,12 +206,13 @@ class AbstractTTFunc(object):
         A:
             The coefficient tensor associated with the current core.
         ls: 
-            A vector of points at which to evaluate the current core.
+            An n-dimensional vector of points at which to evaluate the 
+            current core.
 
         Returns
         -------
         dGdls:
-            A tensor of dimension n_{k} * r_{k} * r_{k-1}, 
+            A tensor of dimension n * r_{k} * r_{k-1}, 
             corresponding to evaluations of the derivative of the kth 
             core at each value of ls.
         
@@ -420,7 +423,11 @@ class AbstractTTFunc(object):
         dfdxs = dfdls * dldxs
         return dfdxs
 
-    def _round(self, tol: float | None = None) -> None:
+    def _round(
+        self, 
+        tol: float | None = None, 
+        max_rank: int | None = None
+    ) -> None:
         """Rounds the TT cores.
 
         Parameters
@@ -444,7 +451,7 @@ class AbstractTTFunc(object):
                 inds = range(self.dim-1, 0, -1)
 
             for k in inds:
-                self._build_basis_svd(self.coefs[k], k, tol)
+                self._build_basis_svd(self.coefs[k], k, tol, max_rank)
 
         if self._use_amen:
             self.tt_data.res_w = {}
@@ -454,7 +461,8 @@ class AbstractTTFunc(object):
     def _truncate_local(
         self, 
         H: Tensor, 
-        tol: float | None = None
+        tol: float | None = None,
+        max_rank: int | None = None
     ) -> Tuple[Tensor, Tensor, int]:
         """Computes the truncated SVD for a given tensor block.
 
@@ -482,7 +490,9 @@ class AbstractTTFunc(object):
         """
         if tol is None: 
             tol = self.options.local_tol
-        Ur, sr, Vhr, rank = tsvd(H, tol, self.options.max_rank)
+        if max_rank is None:
+            max_rank = self.options.max_rank
+        Ur, sr, Vhr, rank = tsvd(H, tol, max_rank)
         sVhr = sr[:, None] * Vhr
         return Ur, sVhr, rank
     
@@ -490,7 +500,8 @@ class AbstractTTFunc(object):
         self, 
         H: Tensor, 
         k: int, 
-        tol: float | None = None
+        tol: float | None = None,
+        max_rank: int | None = None
     ) -> None:
         """Computes the coefficients of the kth tensor core.
         
@@ -505,6 +516,9 @@ class AbstractTTFunc(object):
         tol:
             The tolerance to use when applying truncated SVD to the 
             unfolding matrix of H.
+        max_rank:
+            The maximum number of singular values to retain when 
+            applying truncated SVD to the unfolding matrix of H.
 
         Returns
         -------
@@ -526,7 +540,7 @@ class AbstractTTFunc(object):
 
         # Compute an M-orthogonal basis and truncate
         H = self._apply_mass_R(self.bases[k], H)
-        U, sVh, rank = self._truncate_local(H, tol)
+        U, sVh, rank = self._truncate_local(H, tol, max_rank)
         U = self._apply_mass_R_inv(self.bases[k], U)
 
         # Select a set of interpolation points
@@ -762,7 +776,7 @@ class TTFunc(AbstractTTFunc):
         self.options = options
         self.input_data = input_data
         self.tt_data = tt_data
-        self.n_eval = 0
+        self.num_eval = 0
         self.errors = torch.zeros(self.dim)
         self.l2_err = torch.inf
         self.linf_err = torch.inf
@@ -864,17 +878,17 @@ class TTFunc(AbstractTTFunc):
         als_info(" | ".join(info_headers))
         return
 
-    def _print_info(self, cross_iter: int, inds: Sequence) -> None:
+    def _print_info(self, cross_iter: int) -> None:
         """Prints some diagnostic information about the current cross 
         iteration.
         """
 
         diagnostics = [
             f"{cross_iter:=4}", 
-            f"{self.n_eval:=10}",
+            f"{self.num_eval:=10}",
             f"{self.rank.max():=8}",
-            f"{self.errors[inds].max():=15.5e}",
-            f"{self.errors[inds].mean():=16.5e}"
+            f"{self.errors.max():=15.5e}",
+            f"{self.errors.mean():=16.5e}"
         ]
 
         if self.input_data.is_debug:
@@ -930,13 +944,13 @@ class TTFunc(AbstractTTFunc):
 
         ls = cartesian_prod((ls_left, self.bases[k].nodes[:, None], ls_right))
         H = self.target_func(ls).reshape(r_p, n_k, r_k)
-        self.n_eval += ls.shape[0]
+        self.num_eval += ls.shape[0]
         return H
 
-    def _is_finished(self, cross_iter: int, inds: Sequence) -> bool:
+    def _is_finished(self, cross_iter: int) -> bool:
 
         max_iters = cross_iter == self.options.max_als
-        max_error_tol = bool(self.errors[inds].max() < self.options.als_tol)
+        max_error_tol = bool(self.errors.max() < self.options.als_tol)
         l2_error_tol = self.l2_err < self.options.als_tol
         
         return max_iters or max_error_tol or l2_error_tol
@@ -1049,20 +1063,19 @@ class TTFunc(AbstractTTFunc):
                 elif self.options.tt_method == "amen":
                     self._compute_cross_block_amen(k)
 
+            # if finished:
+            if self.options.verbose > 1:
+                msg = f"Building block {self.dim} / {self.dim}..."
+                als_info(msg, end="\r")
+            self._compute_final_block()
+
             n_iter += 1
-            finished = self._is_finished(n_iter, inds)
-            
-            if finished:
-                if self.options.verbose > 1:
-                    msg = f"Building block {self.dim} / {self.dim}..."
-                    als_info(msg, end="\r")
-                self._compute_final_block()
             
             self._compute_rel_error()
             if self.options.verbose > 0:
-                self._print_info(n_iter, inds)
+                self._print_info(n_iter)
 
-            if finished:
+            if self._is_finished(n_iter):
                 if self.options.verbose > 0:
                     als_info("ALS complete.")
                 if self.options.verbose > 1:

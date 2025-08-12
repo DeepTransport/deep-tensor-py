@@ -1,21 +1,22 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
-import torch
 from torch import Tensor
 
 from .bridge import Bridge
 from ..debiasing.importance_sampling import estimate_ess_ratio
+from ..preconditioners import Preconditioner
+from ..target_functions import TargetFunc
 from ..tools import compute_f_divergence
 
 
 class AbstractTempering(Bridge):
 
     @property 
-    def betas(self) -> Tensor:
+    def betas(self) -> List:
         return self._betas
     
     @betas.setter 
-    def betas(self, value: Tensor) -> None:
+    def betas(self, value: List) -> None:
         self._betas = value 
         return
     
@@ -40,7 +41,7 @@ class AbstractTempering(Bridge):
     @property 
     def is_last(self) -> bool:
         max_layers_reached = self.n_layers == self.max_layers
-        final_beta_reached = (self.betas[self.n_layers-1] - 1.0).abs() < 1e-6
+        final_beta_reached = abs(self.betas[self.n_layers-1] - 1.0) < 1e-6
         return bool(max_layers_reached or final_beta_reached)
     
     @property
@@ -53,11 +54,13 @@ class Tempering(AbstractTempering):
     
     The intermediate densities, $\{\pi_{k}(\theta)\}_{k=1}^{N}$, 
     generated using this approach take the form
-    $$\pi_{k}(\theta) \propto (Q_{\sharp}\rho(\theta))^{1-\beta_{k}}\pi(\theta)^{\beta_{k}},$$
+    $$
+        \pi_{k}(\theta) \propto (Q_{\sharp}\rho(\theta))^{1-\beta_{k}}\pi(\theta)^{\beta_{k}},
+    $$
     where $Q_{\sharp}\rho(\cdot)$ denotes the pushforward of the 
     reference density, $\rho(\cdot)$, under the preconditioner, 
     $Q(\cdot)$, $\pi(\cdot)$ denotes the target density, and 
-    $0 \leq \beta_{1} < \cdots < \beta_{N} = 1$.
+    $0 \leq \beta_{1} \leq \cdots \leq \beta_{N} = 1$.
 
     It is possible to provide this class with a set of $\beta$ values to 
     use. If these are not provided, they will be determined 
@@ -98,45 +101,46 @@ class Tempering(AbstractTempering):
 
     def __init__(
         self, 
-        betas: Tensor | None = None, 
-        ess_tol: Tensor | float = 0.5, 
-        ess_tol_init: Tensor | float = 0.5,
-        beta_factor: Tensor | float = 1.05,
-        min_beta: Tensor | float = 1e-4,
+        betas: List | None = None, 
+        ess_tol: float = 0.5, 
+        ess_tol_init: float = 0.5,
+        beta_factor: float = 1.05,
+        min_beta: float = 1e-04,
         max_layers: int = 20
     ):
         
-        if betas is not None:
-            if torch.abs(betas[-1] - 1.0) > 1e-6:
+        if betas:
+            if abs(betas[-1] - 1.0) > 1e-6:
                 msg = "Final beta value must be equal to 1."
                 raise Exception(msg)
         else:
-            betas = torch.tensor([])
+            betas = []
         
         self.betas = betas
-        self.ess_tol = torch.tensor(ess_tol)
-        self.ess_tol_init = torch.tensor(ess_tol_init)
-        self.beta_factor = torch.tensor(beta_factor)
-        self.min_beta = torch.tensor(min_beta)
-        self.init_beta = torch.tensor(min_beta)
+        self.ess_tol = ess_tol
+        self.ess_tol_init = ess_tol_init
+        self.beta_factor = beta_factor
+        self.min_beta = min_beta
+        self.init_beta = min_beta
         self.max_layers = max_layers
-        self.is_adaptive = self.betas.numel() == 0
+        self.is_adaptive = len(betas) == 0
         self.n_layers = 0
         return
     
-    def _set_init(self, neglogliks: Tensor) -> None:
+    def initialise(
+        self, 
+        preconditioner: Preconditioner, 
+        target_func: TargetFunc
+    ) -> None:
+        self.preconditioner = preconditioner
+        self.reference = self.preconditioner.reference
+        self.target_func = target_func
+        return
 
-        if not self.is_adaptive:
-            return 
-
-        beta = self.min_beta
-        while True:
-            log_ratios = -beta*self.beta_factor*neglogliks
-            if estimate_ess_ratio(log_ratios) < self.ess_tol:
-                beta = torch.minimum(torch.tensor(1.0), beta)
-                self.init_beta = beta
-                return
-            beta *= self.beta_factor
+    def apply_preconditioner(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+        xs = self.preconditioner.Q(us)
+        neglogdets = self.preconditioner.neglogdet_Q(us)
+        return xs, neglogdets
     
     @staticmethod
     def _compute_ratio_weights(
@@ -157,27 +161,110 @@ class Tempering(AbstractTempering):
     def _compute_log_weights(
         self, 
         neglogrefs: Tensor,
-        neglogfxs: Tensor,
-        neglogfxs_dirt: Tensor
+        neglogfus: Tensor,
+        neglogfus_dirt: Tensor
     ) -> Tensor:
         beta = self.betas[self.n_layers]
-        log_weights = -beta*neglogfxs - (1-beta)*neglogrefs + neglogfxs_dirt
+        log_weights = -beta*neglogfus - (1-beta)*neglogrefs + neglogfus_dirt
         return log_weights
+    
+    def _ratio_func(
+        self, 
+        method: str,
+        neglogrefs_rs: Tensor,
+        neglogrefs_us: Tensor, 
+        neglogfus: Tensor, 
+        neglogfus_dirt: Tensor
+    ) -> Tensor:
+        
+        beta = self.betas[self.n_layers]
 
-    def _adapt_density(
+        if self.n_layers == 0:
+            neglogratios = beta*neglogfus + (1-beta)*neglogrefs_us
+            return neglogratios
+
+        beta_p = self.betas[self.n_layers-1]
+
+        log_weights = Tempering._compute_ratio_weights(
+            method, 
+            beta_p, 
+            beta, 
+            neglogrefs_us, 
+            neglogfus, 
+            neglogfus_dirt
+        )
+        neglogratios = -log_weights + neglogrefs_rs
+        return neglogratios
+
+    def ratio_func(
+        self,
+        method: str,
+        rs: Tensor, 
+        us: Tensor,
+        neglogfus_dirt: Tensor
+    ) -> Tensor:
+        
+        neglogrefs_rs = self.reference.eval_potential(rs)[0]
+        neglogrefs_us = self.reference.eval_potential(us)[0]
+
+        xs, neglogdets = self.apply_preconditioner(us)
+        neglogfxs = self.target_func(xs)
+        neglogfus = neglogfxs + neglogdets
+        
+        neglogratios = self._ratio_func(
+            method,
+            neglogrefs_rs,
+            neglogrefs_us, 
+            neglogfus, 
+            neglogfus_dirt
+        )
+        return neglogratios
+    
+    def update(
         self, 
         method: str, 
-        neglogrefs: Tensor, 
-        neglogfxs: Tensor, 
-        neglogfxs_dirt: Tensor
-    ) -> None:
+        rs: Tensor, 
+        us: Tensor, 
+        neglogfus_dirt: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         
+        neglogref_rs = self.reference.eval_potential(rs)[0]
+        neglogref_us = self.reference.eval_potential(us)[0]
+        
+        xs, neglogdets = self.apply_preconditioner(us)
+        neglogfxs = self.target_func(xs)
+        neglogfus = neglogfxs + neglogdets
+
         if not self.is_adaptive:
-            return
+            log_weights = self._compute_log_weights(neglogref_us, neglogfus, neglogfus_dirt)            
+            neglogratios = self._ratio_func(
+                method,
+                neglogref_rs,
+                neglogref_us, 
+                neglogfus, 
+                neglogfus_dirt
+            )
+
+            # TODO: add a function to do this (avoid the call to this 
+            # function and the below function)
+            # Also fix the case where n_layers == 0
+            beta_p = self.betas[self.n_layers-1]
+            neglogbridges = (1.0 - beta_p) * neglogref_us + beta_p * neglogfus
+
+            return log_weights, neglogratios, neglogbridges
             
         if self.n_layers == 0:
-            self.betas = torch.tensor([self.init_beta])
-            return
+            self.betas = [self.init_beta]
+            log_weights = self._compute_log_weights(neglogref_us, neglogfus, neglogfus_dirt)            
+            neglogratios = self._ratio_func(
+                method,
+                neglogref_rs,
+                neglogref_us, 
+                neglogfus, 
+                neglogfus_dirt
+            )
+            # TODO: fix neglogfus -> neglogbridges
+            return log_weights, neglogratios, neglogfus
             
         beta_p = self.betas[self.n_layers-1]
         beta = beta_p * self.beta_factor
@@ -187,75 +274,53 @@ class Tempering(AbstractTempering):
             log_weights = Tempering._compute_ratio_weights(
                 method, 
                 beta_p, 
-                beta * self.beta_factor, 
-                neglogrefs, 
-                neglogfxs, 
-                neglogfxs_dirt
+                beta * self.beta_factor,
+                neglogref_us, 
+                neglogfus, 
+                neglogfus_dirt
             )
             
             if estimate_ess_ratio(log_weights) < self.ess_tol:
-                beta = torch.minimum(beta, torch.tensor(1.0))
-                self.betas = torch.cat((self.betas, beta.reshape(1)))
-                return
+                beta = min(beta, 1.0)
+                self.betas.append(beta)
+                break
             
             beta *= self.beta_factor
-
-    def _get_ratio_func(
-        self, 
-        method: str,
-        neglogrefs_rs: Tensor,
-        neglogrefs: Tensor, 
-        neglogfxs: Tensor, 
-        neglogfxs_dirt: Tensor
-    ) -> Tensor:
         
-        beta = self.betas[self.n_layers]
-
-        if self.n_layers == 0:
-            neglogratios = beta*neglogfxs + (1-beta)*neglogrefs
-            return neglogratios
+        neglogratios = self._ratio_func(
+            method,
+            neglogref_rs,
+            neglogref_us, 
+            neglogfus, 
+            neglogfus_dirt
+        )
 
         beta_p = self.betas[self.n_layers-1]
-
-        log_weights = Tempering._compute_ratio_weights(
-            method, 
-            beta_p, 
-            beta, 
-            neglogrefs, 
-            neglogfxs, 
-            neglogfxs_dirt
-        )
-        neglogratios = -log_weights + neglogrefs_rs
-        return neglogratios
+        neglogbridges = (1.0 - beta_p) * neglogref_us + beta_p * neglogfus
+        
+        return log_weights, neglogratios, neglogbridges
 
     def _get_diagnostics(
         self, 
         log_weights: Tensor,
-        neglogrefs: Tensor,
-        neglogfxs: Tensor,
-        neglogfxs_dirt: Tensor
+        neglogfus: Tensor,
+        neglogfus_dirt: Tensor
     ) -> List[str]:
 
+        div_h2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
         ess = estimate_ess_ratio(log_weights)
 
         msg = [
+            f"DHell: {div_h2.sqrt():.4f}",
             f"Beta: {self.betas[self.n_layers]:.4f}", 
             f"ESS: {ess:.4f}"
         ]
-
-        if self.n_layers > 0:
-            beta_p = self.betas[self.n_layers-1]
-            log_approx = -neglogfxs_dirt
-            log_target = -beta_p*neglogfxs - (1-beta_p)*neglogrefs
-            div_h2 = compute_f_divergence(log_approx, log_target)
-            msg.append(f"DHell: {div_h2.sqrt():.4f}")
-
         return msg
     
 
 class SavedTempering(AbstractTempering):
 
-    def __init__(self, betas: Tensor, n_layers: int):
+    def __init__(self, betas: List, n_layers: int):
         self.betas = betas 
         self.n_layers = n_layers
         return

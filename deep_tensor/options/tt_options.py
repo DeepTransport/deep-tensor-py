@@ -52,7 +52,7 @@ class TTOptions():
     """
         
     max_als: int = 1
-    als_tol: float = 1e-04
+    als_tol: float = 1e-01
     init_rank: int = 20
     kick_rank: int = 2
     max_rank: int = 30

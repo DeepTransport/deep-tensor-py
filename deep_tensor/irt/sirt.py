@@ -13,6 +13,7 @@ from ..linalg import batch_mul, unfold_left, unfold_right
 from ..options import TTOptions
 from ..polynomials import Basis1D, CDF1D, construct_cdf
 from ..preconditioners.preconditioner import Preconditioner
+from ..tools import check_finite
 
 
 PotentialFunc = Callable[[Tensor], Tensor]
@@ -778,7 +779,11 @@ class AbstractSIRT():
         Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
         return Js.reshape(d_xs, n_xs, d_xs)
     
-    def _round(self, tol: float | None = None) -> None:
+    def _round(
+        self, 
+        tol: float | None = None, 
+        max_rank: int | None = None
+    ) -> None:
         """Rounds the TT cores. 
         
         Applies double rounding to get back to the starting direction.
@@ -790,7 +795,7 @@ class AbstractSIRT():
             each core. If `None`, will use `self.options.local_tol`.
         
         """
-        self.approx._round(tol)
+        self.approx._round(tol, max_rank)
         return
     
     def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
@@ -1373,8 +1378,6 @@ class SIRT(AbstractSIRT):
             tt_data=self.tt_data
         )
         self.approx._cross()
-        if self.approx._use_amen:
-            self.approx._round()  # why?
 
         # Compute coefficient tensors and marginalisation coefficents, 
         # from the first core to the last and the last core to the first
@@ -1398,6 +1401,7 @@ class SIRT(AbstractSIRT):
         
         # Note: the ratio of f and w is invariant to changes of coordinate
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
+        check_finite(gs)
         return gs
 
     def _marginalise_forward(self) -> None:

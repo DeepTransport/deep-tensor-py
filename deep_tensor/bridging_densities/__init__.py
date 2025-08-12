@@ -1,6 +1,7 @@
 from .bridge import Bridge 
 from .single_layer import SingleLayer, SavedSingleLayer
 from .tempering import Tempering, SavedTempering
+from .rare_event import SigmoidSmoothing
 
 
 BRIDGE2NAME = {

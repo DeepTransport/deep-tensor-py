@@ -1,5 +1,6 @@
 import abc
 from copy import deepcopy
+import math
 import time
 from typing import Any, Callable, Dict, List, Tuple
 
@@ -21,7 +22,8 @@ from ..polynomials import (
 )
 from ..preconditioners import Preconditioner
 from ..references import Reference
-from ..tools.printing import dirt_info
+from ..target_functions import TargetFunc
+from ..tools.printing import dirt_info, format_time
 from ..tools.saving import dict_to_h5, h5_to_dict
 from ..tools import check_finite, compute_f_divergence
 
@@ -833,14 +835,11 @@ class DIRT(AbstractDIRT):
 
     Parameters
     ----------
-    negloglik:
+    target_func:
+        TODO: replace this description.
         A function that receives an $n \times d$ matrix of samples and 
         returns an $n$-dimensional vector containing the negative 
         log-likelihood function evaluated at each sample.
-    neglogpri:
-        A function that receives an $n \times d$ matrix of samples and 
-        returns an $n$-dimensional vector containing the negative 
-        log-prior density evaluated at each sample.
     bases:
         A list of sets of basis functions for each dimension, or a 
         single set of basis functions (to be used in all dimensions), 
@@ -865,8 +864,7 @@ class DIRT(AbstractDIRT):
 
     def __init__(
         self, 
-        negloglik: Callable[[Tensor], Tensor],
-        neglogpri: Callable[[Tensor], Tensor],
+        target_func: Callable[[Tensor], Tensor] | TargetFunc,
         preconditioner: Preconditioner,
         bases: Basis1D | List[Basis1D], 
         bridge: Bridge | None = None,
@@ -874,16 +872,21 @@ class DIRT(AbstractDIRT):
         dirt_options: DIRTOptions | None = None,
         prev_approx: Dict[int, SIRT] | None = None
     ):
+        """TODO: need to reset the bridge prior to starting.
+        Ideally we should be able to use the same bridge object to 
+        build multiple DIRT objects.
+        """
 
+        if not isinstance(target_func, TargetFunc):
+            target_func = TargetFunc(target_func)
         if bridge is None:
             bridge = Tempering()
         if tt_options is None:
             tt_options = TTOptions()
         if dirt_options is None:
             dirt_options = DIRTOptions()
-
-        self.negloglik = negloglik
-        self.neglogpri = neglogpri
+        
+        self.target_func = target_func
         self.preconditioner = preconditioner
         self.bases = ApproxBases(bases, self.domain, self.dim)
         self.bridge = bridge
@@ -894,10 +897,17 @@ class DIRT(AbstractDIRT):
                                 + self.dirt_options.num_debugs)
         self.sirts: Dict[int, SIRT] = {}
         self.num_eval = 0
-        self.log_z = 0.0
 
+        self.bridge.initialise(self.preconditioner, self.target_func)
         self._build()
+        
         return
+    
+    @property
+    def log_z(self) -> float:
+        if not self.sirts.keys():
+            return 0.0
+        return sum([math.log(self.sirts[i].z) for i in self.sirts.keys()])
     
     def neglogfx(self, us: Tensor) -> Tensor:
         """Evaluates the pullback of the target density function at a 
@@ -905,14 +915,13 @@ class DIRT(AbstractDIRT):
         """
         xs = self.preconditioner.Q(us)
         neglogdets = self.preconditioner.neglogdet_Q(us)
-        neglogliks = self.negloglik(xs)
-        neglogpris = self.neglogpri(xs)
+        neglogtarget = self.target_func(xs)
         self.num_eval += us.shape[0]
-        neglogfxs = neglogpris + neglogliks + neglogdets
+        neglogfxs = neglogtarget + neglogdets
         check_finite(neglogfxs)
         return neglogfxs
 
-    def _get_potential_to_density(
+    def _potential2density(
         self, 
         neglogratios: Tensor, 
         xs: Tensor
@@ -976,7 +985,7 @@ class DIRT(AbstractDIRT):
         indices_debug = (torch.arange(self.dirt_options.num_debugs)
                          + self.dirt_options.num_samples)
 
-        fxs_debug = self._get_potential_to_density(
+        fxs_debug = self._potential2density(
             neglogratios[indices_debug], 
             xs[indices_debug]
         )
@@ -984,21 +993,10 @@ class DIRT(AbstractDIRT):
         return InputData(xs[indices], xs[indices_debug], fxs_debug)
     
     def _updated_func(self, rs: Tensor) -> Tensor:
-
-        neglogrefs_rs = self.reference.eval_potential(rs)[0]
-
-        xs, neglogfxs_dirt = self._eval_irt_reference(rs)
-        neglogrefs = self.reference.eval_potential(xs)[0]
-        neglogfxs = self.neglogfx(xs)
-
-        neglogratios = self.bridge._get_ratio_func(
-            self.dirt_options.method,
-            neglogrefs_rs,
-            neglogrefs,
-            neglogfxs,
-            neglogfxs_dirt
-        )
-
+        """Evaluates the current ratio function at each element in rs.
+        """
+        us, neglogfus_dirt = self._eval_irt_reference(rs)
+        neglogratios = self.bridge.ratio_func(self.dirt_options.method, rs, us, neglogfus_dirt)
         return neglogratios
 
     def _get_new_layer(self, xs: Tensor, neglogratios: Tensor) -> SIRT:
@@ -1033,7 +1031,8 @@ class DIRT(AbstractDIRT):
             else:
                 # Use previous approximation as a starting point
                 approx = deepcopy(self.sirts[self.n_layers-1].approx)
-                tt_data = deepcopy(self.sirts[self.n_layers-1].approx._tt_data)
+                approx._round(max_rank=self.tt_options.init_rank)
+                tt_data = approx.tt_data
 
             sirt = SIRT(
                 self._updated_func,
@@ -1067,9 +1066,8 @@ class DIRT(AbstractDIRT):
     def _print_progress(
         self,
         log_weights: Tensor, 
-        neglogrefs: Tensor, 
-        neglogfxs: Tensor, 
-        neglogfxs_dirt: Tensor,
+        neglogfus: Tensor, 
+        neglogfus_dirt: Tensor,
         cum_time: float
     ) -> None:
 
@@ -1078,15 +1076,8 @@ class DIRT(AbstractDIRT):
             f"Cum. Fevals: {self.num_eval:=.2e}",
             f"Cum. Time: {cum_time:=.2e} s"
         ]
-
-        msg_bridge = self.bridge._get_diagnostics(
-            log_weights, 
-            neglogrefs, 
-            neglogfxs, 
-            neglogfxs_dirt
-        )
-
-        dirt_info(" | ".join(msg + msg_bridge))
+        msg += self.bridge._get_diagnostics(log_weights, neglogfus, neglogfus_dirt)
+        dirt_info(" | ".join(msg))
         return
     
     def _build(self) -> None:
@@ -1098,79 +1089,51 @@ class DIRT(AbstractDIRT):
         
         while True:
 
-            # Draw a new set of samples from the reference, then 
-            # push them forward through the current composition of 
-            # (inverse) mappings
             rs = self.reference.random(self.dim, self.pre_sample_size)
-            neglogrefs_rs = self.reference.eval_potential(rs)[0]
+            us, neglogfus_dirt = self._eval_irt_reference(rs)
 
-            xs, neglogfxs_dirt = self._eval_irt_reference(rs)
-            neglogrefs = self.reference.eval_potential(xs)[0]
-            neglogfxs = self.neglogfx(xs)
-        
-            self.bridge._adapt_density(
-                self.dirt_options.method, 
-                neglogrefs, 
-                neglogfxs, 
-                neglogfxs_dirt
-            )
-
-            neglogratios = self.bridge._get_ratio_func(
-                self.dirt_options.method, 
-                neglogrefs_rs,
-                neglogrefs, 
-                neglogfxs, 
-                neglogfxs_dirt
-            )
-            
-            log_weights = self.bridge._compute_log_weights(
-                neglogrefs,
-                neglogfxs, 
-                neglogfxs_dirt
+            log_weights, neglogratios, neglogbridges = self.bridge.update(
+                self.dirt_options.method,
+                rs,
+                us,
+                neglogfus_dirt
             )
 
             if self.dirt_options.verbose:
                 cum_time = time.time() - t0
                 self._print_progress(
                     log_weights, 
-                    neglogrefs, 
-                    neglogfxs, 
-                    neglogfxs_dirt,
+                    neglogbridges, 
+                    neglogfus_dirt,
                     cum_time
                 )
 
             rs, neglogratios = self.bridge._reorder(rs, neglogratios, log_weights)
             self.sirts[self.n_layers] = self._get_new_layer(rs, neglogratios)
-
-            self.log_z += self.sirts[self.n_layers].z.log()
-            self.num_eval += self.sirts[self.n_layers].approx.n_eval
-
+            self.num_eval += self.sirts[self.n_layers].approx.num_eval
             self.n_layers += 1
+
             if self.bridge.is_last:
+                break
 
-                rs = self.reference.random(self.dim, self.pre_sample_size)
-                xs, neglogfxs_dirt = self._eval_irt_reference(rs)
-                neglogfxs = self.neglogfx(xs)
-                dhell2 = compute_f_divergence(-neglogfxs_dirt, -neglogfxs)
-                t1 = time.time()
+        if self.dirt_options.verbose:
 
-                if self.dirt_options.verbose:
+            # Note that the Hellinger divergence is invariant to 
+            # bijective transformations
+            rs = self.reference.random(self.dim, self.pre_sample_size)
+            us, neglogfus_dirt = self._eval_irt_reference(rs)
+            neglogfus = self.neglogfx(us)  # this is fine.
+            dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
 
-                    total_time = t1 - t0
-                    if total_time < 60: 
-                        total_time = f"{total_time:.2f} seconds"
-                    elif total_time < 3600:
-                        total_time = f"{total_time/60.0:2.2f} mins"
-                    else:
-                        total_time = f"{total_time/3600.0:2.2f} hours"
-                    
-                    dirt_info("DIRT construction complete.")
-                    dirt_info(f" • Layers: {self.n_layers}.")
-                    dirt_info(f" • Total function evaluations: {self.num_eval:,}.")
-                    dirt_info(f" • Total time: {total_time}.")
-                    dirt_info(f" • DHell: {dhell2.sqrt():.4f}.")
-
-                return
+            t1 = time.time()
+            
+            dirt_info("DIRT construction complete.")
+            dirt_info(f" • Layers: {self.n_layers}.")
+            dirt_info(f" • Total function evaluations: {self.num_eval:,}.")
+            dirt_info(f" • Total time: {format_time(t1-t0)}.")
+            dirt_info(f" • DHell: {dhell2.sqrt():.4f}.")
+        
+        return
 
 
 class SavedDIRT(AbstractDIRT):

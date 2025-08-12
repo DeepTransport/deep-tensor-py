@@ -55,7 +55,9 @@ def compute_f_divergence(logqs: Tensor, logps: Tensor, div: str = "h2") -> Tenso
     log_norm = compute_log_norm(log_ratios)
 
     if div == "h2":
-        return 1.0 - (compute_log_norm(0.5*log_ratios) - 0.5*log_norm).exp()
+        h2 = 1.0 - (compute_log_norm(0.5*log_ratios) - 0.5*log_norm).exp()
+        h2 = h2.clamp(min=0.0)
+        return h2
     elif div == "kl":
         return -log_ratios.mean() + log_norm
     elif div == "tv":
