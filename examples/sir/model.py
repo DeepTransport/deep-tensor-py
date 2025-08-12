@@ -43,7 +43,7 @@ class SIRModel():
         sol = solve_ivp(
             fun=self.sir_func, 
             t_span=self.t_span,
-            y0=self.y0.repeat(params.shape[0]), 
+            y0=self.y0.repeat(n_params), 
             args=params.T, 
             t_eval=self.t_eval
         )
