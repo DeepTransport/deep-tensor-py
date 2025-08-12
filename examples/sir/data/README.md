@@ -1,4 +1,4 @@
-# SIR Model: Data for the Austria Model
+# SIR Examples: Data for the Austria Model
 
 The nodes associated with the adjacency matrix for the Austria model are:
 
