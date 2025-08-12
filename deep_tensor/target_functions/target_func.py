@@ -17,8 +17,8 @@ class TargetFunc(object):
     """
 
     def __init__(self, neglogfx: Callable[[Tensor], Tensor]):
-        self.neglogfx = neglogfx
+        self.func = neglogfx
         return
     
     def __call__(self, xs: Tensor) -> Tensor:
-        return self.neglogfx(xs)
+        return self.func(xs)

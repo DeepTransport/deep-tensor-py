@@ -12,11 +12,11 @@ from ..tools import compute_f_divergence
 class AbstractTempering(Bridge):
 
     @property 
-    def betas(self) -> List:
+    def betas(self) -> Dict:
         return self._betas
     
     @betas.setter 
-    def betas(self, value: List) -> None:
+    def betas(self, value: Dict) -> None:
         self._betas = value 
         return
     
@@ -113,18 +113,26 @@ class Tempering(AbstractTempering):
             if abs(betas[-1] - 1.0) > 1e-6:
                 msg = "Final beta value must be equal to 1."
                 raise Exception(msg)
+            self.betas = dict(enumerate(betas))
         else:
-            betas = []
+            self.betas = {}
         
-        self.betas = betas
+        self.betas[-1] = 0.0
         self.ess_tol = ess_tol
         self.ess_tol_init = ess_tol_init
         self.beta_factor = beta_factor
         self.min_beta = min_beta
         self.init_beta = min_beta
         self.max_layers = max_layers
-        self.is_adaptive = len(betas) == 0
+        self.is_adaptive = len(self.betas) == 1
         self.n_layers = 0
+        self.initialised = False
+
+        self._ratio_weight_funcs = {
+            "aratio": self._compute_weights_aratio,
+            "eratio": self._compute_weights_eratio
+        }
+
         return
     
     def initialise(
@@ -135,6 +143,7 @@ class Tempering(AbstractTempering):
         self.preconditioner = preconditioner
         self.reference = self.preconditioner.reference
         self.target_func = target_func
+        self.initialised = True
         return
 
     def apply_preconditioner(self, us: Tensor) -> Tuple[Tensor, Tensor]:
@@ -142,21 +151,68 @@ class Tempering(AbstractTempering):
         neglogdets = self.preconditioner.neglogdet_Q(us)
         return xs, neglogdets
     
-    @staticmethod
-    def _compute_ratio_weights(
-        method,
-        beta_p, 
-        beta, 
-        neglogrefs, 
-        neglogfxs, 
-        neglogfxs_dirt
+    def _compute_neglogbridges(
+        self, 
+        neglogref_us: Tensor,
+        neglogfus: Tensor
     ) -> Tensor:
         
-        if method == "aratio":
-            log_weights = -(beta_p-beta)*neglogrefs - (beta-beta_p)*neglogfxs
-        elif method == "eratio":
-            log_weights = -(1-beta)*neglogrefs - beta*neglogfxs + neglogfxs_dirt
-        return log_weights
+        k = self.n_layers
+        neglogbridges = (
+            + (1.0 - self.betas[k-1]) * neglogref_us 
+            + self.betas[k-1] * neglogfus
+        )
+        return neglogbridges
+    
+    def _compute_weights_aratio(
+        self,
+        neglogref_us: Tensor, 
+        neglogfus: Tensor, 
+        neglogfus_dirt: Tensor
+    ) -> Tensor:
+        """Computes the ratio between the current bridging density and 
+        the previous bridging density for each particle.
+        """
+        k = self.n_layers
+        neglogweights = (
+            + (self.betas[k-1] - self.betas[k]) * neglogref_us 
+            + (self.betas[k] - self.betas[k-1]) * neglogfus
+        )
+        return neglogweights
+
+    def _compute_weights_eratio(
+        self,
+        neglogref_us, 
+        neglogfus, 
+        neglogfus_dirt
+    ) -> Tensor:
+        """Computes the ratio between the current bridging density and 
+        the DIRT approximation to the previous bridging density for 
+        each particle.
+        """
+        k = self.n_layers
+        neglogweights = (
+            + (1.0 - self.betas[k]) * neglogref_us 
+            + self.betas[k] * neglogfus
+            - neglogfus_dirt
+        )
+        return neglogweights
+    
+    def _compute_ratio_func(
+        self, 
+        method: str,
+        neglogref_rs: Tensor,
+        neglogref_us: Tensor, 
+        neglogfus: Tensor, 
+        neglogfus_dirt: Tensor
+    ) -> Tensor:
+
+        neglogratios = self._ratio_weight_funcs[method](
+            neglogref_us,
+            neglogfus, 
+            neglogfus_dirt
+        ) + neglogref_rs
+        return neglogratios
     
     def _compute_log_weights(
         self, 
@@ -168,57 +224,61 @@ class Tempering(AbstractTempering):
         log_weights = -beta*neglogfus - (1-beta)*neglogrefs + neglogfus_dirt
         return log_weights
     
-    def _ratio_func(
-        self, 
-        method: str,
-        neglogrefs_rs: Tensor,
-        neglogrefs_us: Tensor, 
-        neglogfus: Tensor, 
-        neglogfus_dirt: Tensor
-    ) -> Tensor:
-        
-        beta = self.betas[self.n_layers]
-
-        if self.n_layers == 0:
-            neglogratios = beta*neglogfus + (1-beta)*neglogrefs_us
-            return neglogratios
-
-        beta_p = self.betas[self.n_layers-1]
-
-        log_weights = Tempering._compute_ratio_weights(
-            method, 
-            beta_p, 
-            beta, 
-            neglogrefs_us, 
-            neglogfus, 
-            neglogfus_dirt
-        )
-        neglogratios = -log_weights + neglogrefs_rs
-        return neglogratios
-
     def ratio_func(
         self,
         method: str,
-        rs: Tensor, 
+        rs: Tensor,
         us: Tensor,
         neglogfus_dirt: Tensor
     ) -> Tensor:
         
-        neglogrefs_rs = self.reference.eval_potential(rs)[0]
-        neglogrefs_us = self.reference.eval_potential(us)[0]
+        if not self.initialised:
+            raise Exception("Need to call self.initialise().")
+        
+        neglogref_rs = self.reference.eval_potential(rs)[0]
+        neglogref_us = self.reference.eval_potential(us)[0]
 
         xs, neglogdets = self.apply_preconditioner(us)
-        neglogfxs = self.target_func(xs)
+        neglogfxs = self.target_func.func(xs)
         neglogfus = neglogfxs + neglogdets
-        
-        neglogratios = self._ratio_func(
+
+        neglogratios = self._compute_ratio_func(
             method,
-            neglogrefs_rs,
-            neglogrefs_us, 
-            neglogfus, 
+            neglogref_rs,
+            neglogref_us,
+            neglogfus,
             neglogfus_dirt
         )
         return neglogratios
+    
+    def _adapt_beta(
+        self,
+        neglogref_us: Tensor,
+        neglogfus: Tensor,
+        neglogfus_dirt: Tensor
+    ):
+        
+        if self.n_layers == 0:
+            self.betas[0] = self.init_beta
+            return
+        
+        k = self.n_layers
+        self.betas[k] = self.betas[k-1] * self.beta_factor
+
+        while True:
+
+            log_weights = self._compute_log_weights(
+                neglogref_us, 
+                neglogfus, 
+                neglogfus_dirt
+            )          
+            if estimate_ess_ratio(log_weights) < self.ess_tol:
+                self.betas[k] = min(self.betas[k], 1.0)
+                break
+            
+            self.betas[k] *= self.beta_factor
+
+        return
     
     def update(
         self, 
@@ -235,68 +295,27 @@ class Tempering(AbstractTempering):
         neglogfxs = self.target_func(xs)
         neglogfus = neglogfxs + neglogdets
 
-        if not self.is_adaptive:
-            log_weights = self._compute_log_weights(neglogref_us, neglogfus, neglogfus_dirt)            
-            neglogratios = self._ratio_func(
-                method,
-                neglogref_rs,
-                neglogref_us, 
-                neglogfus, 
-                neglogfus_dirt
-            )
+        if self.is_adaptive:
+            self._adapt_beta(neglogref_us, neglogfus, neglogfus_dirt)
 
-            # TODO: add a function to do this (avoid the call to this 
-            # function and the below function)
-            # Also fix the case where n_layers == 0
-            beta_p = self.betas[self.n_layers-1]
-            neglogbridges = (1.0 - beta_p) * neglogref_us + beta_p * neglogfus
-
-            return log_weights, neglogratios, neglogbridges
-            
-        if self.n_layers == 0:
-            self.betas = [self.init_beta]
-            log_weights = self._compute_log_weights(neglogref_us, neglogfus, neglogfus_dirt)            
-            neglogratios = self._ratio_func(
-                method,
-                neglogref_rs,
-                neglogref_us, 
-                neglogfus, 
-                neglogfus_dirt
-            )
-            # TODO: fix neglogfus -> neglogbridges
-            return log_weights, neglogratios, neglogfus
-            
-        beta_p = self.betas[self.n_layers-1]
-        beta = beta_p * self.beta_factor
-
-        while True:
-
-            log_weights = Tempering._compute_ratio_weights(
-                method, 
-                beta_p, 
-                beta * self.beta_factor,
-                neglogref_us, 
-                neglogfus, 
-                neglogfus_dirt
-            )
-            
-            if estimate_ess_ratio(log_weights) < self.ess_tol:
-                beta = min(beta, 1.0)
-                self.betas.append(beta)
-                break
-            
-            beta *= self.beta_factor
+        log_weights = self._compute_log_weights(
+            neglogref_us, 
+            neglogfus, 
+            neglogfus_dirt
+        )
         
-        neglogratios = self._ratio_func(
+        neglogratios = self._compute_ratio_func(
             method,
             neglogref_rs,
             neglogref_us, 
             neglogfus, 
             neglogfus_dirt
         )
-
-        beta_p = self.betas[self.n_layers-1]
-        neglogbridges = (1.0 - beta_p) * neglogref_us + beta_p * neglogfus
+        
+        neglogbridges = self._compute_neglogbridges(
+            neglogref_us, 
+            neglogfus
+        )
         
         return log_weights, neglogratios, neglogbridges
 
