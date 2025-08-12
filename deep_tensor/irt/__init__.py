@@ -1,2 +1,2 @@
-from .dirt import AbstractDIRT, DIRT, SavedDIRT
+from .dirt import DIRT
 from .sirt import SIRT

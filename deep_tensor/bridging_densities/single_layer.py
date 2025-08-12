@@ -1,22 +1,11 @@
-from typing import Dict, Tuple
+from typing import Tuple
 
 from torch import Tensor
 
 from .bridge import Bridge
 
 
-class AbstractSingleLayer(Bridge):
-
-    @property 
-    def is_last(self) -> bool:
-        return True
-    
-    @property
-    def params_dict(self) -> Dict:
-        return {"n_layers": self.n_layers}
-
-
-class SingleLayer(AbstractSingleLayer):
+class SingleLayer(Bridge):
     r"""Constructs the DIRT using a single layer.
     
     In this setting, the DIRT algorithm reduces to the SIRT algorithm; 
@@ -28,6 +17,10 @@ class SingleLayer(AbstractSingleLayer):
         self.n_layers = 0
         self.is_adaptive = False
         return
+    
+    @property 
+    def is_last(self) -> bool:
+        return True
 
     def update(self, 
         method: str, 
@@ -54,16 +47,3 @@ class SingleLayer(AbstractSingleLayer):
         neglogfxs = self.target_func(xs)
         neglogfus = neglogfxs + neglogdets
         return neglogfus
-
-
-class SavedSingleLayer(AbstractSingleLayer):
-
-    def __init__(self, n_layers: int):
-        self.n_layers = n_layers
-        return
-    
-    def _compute_log_weights(self, neglogliks, neglogpris, neglogfxs):
-        raise NotImplementedError()
-    
-    def _get_ratio_func(self, reference, method, rs, neglogliks, neglogpris, neglogfxs):
-        raise NotImplementedError()

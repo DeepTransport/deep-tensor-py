@@ -2,36 +2,100 @@ import abc
 from copy import deepcopy
 import math
 import time
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import torch
 from torch import Tensor
 from torch.autograd.functional import jacobian
 
-from .sirt import AbstractSIRT, SIRT, SavedSIRT, SUBSET2DIRECTION
-from ..bridging_densities import (
-    Bridge, Tempering, 
-    BRIDGE2NAME, NAME2SAVEBRIDGE
-)
-from ..domains import Domain
+from .sirt import SIRT, SUBSET2DIRECTION
+from ..bridging_densities import Bridge, Tempering
+from ..domains import Domain 
 from ..ftt import ApproxBases, Direction, InputData
 from ..options import DIRTOptions, TTOptions
-from ..polynomials import (
-    Basis1D, Lagrange1, LagrangeP, Spectral, 
-    POLY2NAME, NAME2POLY
-)
+from ..polynomials import Basis1D
 from ..preconditioners import Preconditioner
 from ..references import Reference
 from ..target_functions import TargetFunc
 from ..tools.printing import dirt_info, format_time
-from ..tools.saving import dict_to_h5, h5_to_dict
 from ..tools import check_finite, compute_f_divergence
 
 import h5py
 
 
-class AbstractDIRT(abc.ABC):
+class DIRT():
+    r"""Deep (squared) inverse Rosenblatt transport.
 
+    Parameters
+    ----------
+    target_func:
+        TODO: replace this description.
+        A function that receives an $n \times d$ matrix of samples and 
+        returns an $n$-dimensional vector containing the negative 
+        log-likelihood function evaluated at each sample.
+    bases:
+        A list of sets of basis functions for each dimension, or a 
+        single set of basis functions (to be used in all dimensions), 
+        used to construct the functional tensor trains at each 
+        iteration.
+    bridge: 
+        An object used to generate the intermediate densities to 
+        approximate at each stage of the DIRT construction.
+    tt_options:
+        Options for constructing the FTT approximation to the square 
+        root of the ratio function (*i.e.*, the pullback of the current 
+        bridging density under the existing composition of mappings) at 
+        each iteration.
+    dirt_options:
+        Options for constructing the DIRT approximation to the 
+        target density.
+    prev_approx:
+        A dictionary containing a set of SIRTs generated as part of 
+        the construction of a previous DIRT object.
+    
+    """
+
+    def __init__(
+        self, 
+        target_func: Callable[[Tensor], Tensor] | TargetFunc,
+        preconditioner: Preconditioner,
+        bases: Basis1D | List[Basis1D], 
+        bridge: Bridge | None = None,
+        tt_options: TTOptions | None = None,
+        dirt_options: DIRTOptions | None = None,
+        prev_approx: Dict[int, SIRT] | None = None
+    ):
+        """TODO: need to reset the bridge prior to starting.
+        Ideally we should be able to use the same bridge object to 
+        build multiple DIRT objects.
+        """
+
+        if not isinstance(target_func, TargetFunc):
+            target_func = TargetFunc(target_func)
+        if bridge is None:
+            bridge = Tempering()
+        if tt_options is None:
+            tt_options = TTOptions()
+        if dirt_options is None:
+            dirt_options = DIRTOptions()
+        
+        self.target_func = target_func
+        self.preconditioner = preconditioner
+        self.bases = ApproxBases(bases, self.domain, self.dim)
+        self.bridge = bridge
+        self.tt_options = tt_options
+        self.dirt_options = dirt_options
+        self.prev_approx = prev_approx
+        self.pre_sample_size = (self.dirt_options.num_samples 
+                                + self.dirt_options.num_debugs)
+        self.sirts: Dict[int, SIRT] = {}
+        self.num_eval = 0
+
+        self.bridge.initialise(self.preconditioner, self.target_func)
+        self._build()
+        
+        return
+    
     @property 
     def preconditioner(self) -> Preconditioner:
         return self._preconditioner
@@ -85,15 +149,6 @@ class AbstractDIRT(abc.ABC):
     def n_layers(self, value: int) -> None:
         self.bridge.n_layers = value 
         return
-
-    @property
-    def sirts(self) -> Dict[int, AbstractSIRT]:
-        return self._sirts
-    
-    @sirts.setter 
-    def sirts(self, value: Dict[int, AbstractSIRT]) -> None:
-        self._sirts = value 
-        return
     
     @property
     def dim(self) -> int:
@@ -106,7 +161,239 @@ class AbstractDIRT(abc.ABC):
     @property
     def domain(self) -> Domain:
         return self.reference.domain
+    
+    @property
+    def log_z(self) -> float:
+        if not self.sirts.keys():
+            return 0.0
+        return sum([math.log(self.sirts[i].z) for i in self.sirts.keys()])
+    
+    def neglogfx(self, us: Tensor) -> Tensor:
+        """Evaluates the pullback of the target density function at a 
+        set of samples in the reference domain.
+        """
+        xs = self.preconditioner.Q(us)
+        neglogdets = self.preconditioner.neglogdet_Q(us)
+        neglogtarget = self.target_func(xs)
+        self.num_eval += us.shape[0]
+        neglogfxs = neglogtarget + neglogdets
+        check_finite(neglogfxs)
+        return neglogfxs
 
+    def _potential2density(
+        self, 
+        neglogratios: Tensor, 
+        xs: Tensor
+    ) -> Tensor:
+        """Returns the function we aim to approximate (i.e., the 
+        square root of the ratio function divided by the weighting 
+        function associated with the reference measure).
+
+        Parameters
+        ----------
+        neglogratios:
+            An n-dimensional vector containing the negative logarithm 
+            of the ratio function associated with each sample.
+        xs:
+            An n * d matrix containing a set of samples distributed 
+            according to the current bridging density.
+        
+        Returns
+        -------
+        ys:
+            An n-dimensional vector containing evaluations of the 
+            target function at each sample in xs.
+        
+        """
+        neglogwrs = self.bases.eval_measure_potential(xs)[0]
+        log_ys = -0.5 * (neglogratios - neglogwrs)
+        return torch.exp(log_ys)
+
+    def _get_inputdata(
+        self,
+        xs: Tensor, 
+        neglogratios: Tensor 
+    ) -> InputData:
+        """Generates a set of input data and debugging samples used to 
+        initialise DIRT.
+        
+        Parameters
+        ----------
+        xs:
+            An n * d matrix containing samples distributed according to
+            the current bridging density.
+        neglogratios:
+            A n-dimensional vector containing the negative logarithm of
+            the current ratio function evaluated at each sample in xs.
+        
+        Returns
+        -------
+        input_data:
+            An InputData object containing a set of samples used to 
+            construct the FTT approximation to the target function, and 
+            (if debugging samples are requested) a set of debugging 
+            samples and the value of the target function evaluated 
+            at each debugging sample.
+            
+        """
+
+        if self.dirt_options.num_debugs == 0:
+            return InputData(xs)
+        
+        indices = torch.arange(self.dirt_options.num_samples)
+        indices_debug = (torch.arange(self.dirt_options.num_debugs)
+                         + self.dirt_options.num_samples)
+
+        fxs_debug = self._potential2density(
+            neglogratios[indices_debug], 
+            xs[indices_debug]
+        )
+
+        return InputData(xs[indices], xs[indices_debug], fxs_debug)
+    
+    def _updated_func(self, rs: Tensor) -> Tensor:
+        """Evaluates the current ratio function at each element in rs.
+        """
+        us, neglogfus_dirt = self._eval_irt_reference(rs)
+        neglogratios = self.bridge.ratio_func(self.dirt_options.method, rs, us, neglogfus_dirt)
+        return neglogratios
+
+    def _get_new_layer(self, xs: Tensor, neglogratios: Tensor) -> SIRT:
+        """Constructs a new SIRT to add to the current composition of 
+        SIRTs.
+
+        Parameters
+        ----------
+        xs:
+            An n * d matrix containing samples distributed according to
+            the current bridging density.
+        neglogratios:
+            An n-dimensional vector containing the negative log-ratio 
+            function evaluated at each element in xs.
+
+        Returns
+        -------
+        sirt:
+            The squared inverse Rosenblatt transport approximation to 
+            the next bridging density.
+        
+        """
+
+        if self.prev_approx is None:
+            
+            # Generate debugging and initialisation samples
+            input_data = self._get_inputdata(xs, neglogratios)
+
+            if self.n_layers == 0:
+                approx = None 
+                tt_data = None
+            else:
+                # Use previous approximation as a starting point
+                approx = deepcopy(self.sirts[self.n_layers-1].approx)
+                approx._round(max_rank=self.tt_options.init_rank)
+                tt_data = approx.tt_data
+
+            sirt = SIRT(
+                self._updated_func,
+                preconditioner=self.preconditioner,
+                bases=self.bases.bases,
+                prev_approx=approx,
+                options=self.tt_options,
+                input_data=input_data,
+                tt_data=tt_data,
+                defensive=self.dirt_options.defensive
+            )
+        
+        else:
+            
+            ind_prev = max(self.prev_approx.keys())
+            sirt_prev = self.prev_approx[min(ind_prev, self.n_layers)]
+            
+            input_data = self._get_inputdata(xs, neglogratios)
+
+            sirt = SIRT(
+                self._updated_func,
+                preconditioner=self.preconditioner,
+                bases=sirt_prev.approx.bases.bases,
+                options=self.tt_options,
+                input_data=input_data, 
+                defensive=self.dirt_options.defensive
+            )
+        
+        return sirt
+
+    def _print_progress(
+        self,
+        log_weights: Tensor, 
+        neglogfus: Tensor, 
+        neglogfus_dirt: Tensor,
+        cum_time: float
+    ) -> None:
+
+        msg = [
+            f"Iter: {self.n_layers+1:=2}",
+            f"Cum. Fevals: {self.num_eval:=.2e}",
+            f"Cum. Time: {cum_time:=.2e} s"
+        ]
+        msg += self.bridge._get_diagnostics(log_weights, neglogfus, neglogfus_dirt)
+        dirt_info(" | ".join(msg))
+        return
+    
+    def _build(self) -> None:
+        """Constructs a DIRT to approximate a given probability 
+        density.
+        """
+
+        t0 = time.time()
+        
+        while True:
+
+            rs = self.reference.random(self.dim, self.pre_sample_size)
+            us, neglogfus_dirt = self._eval_irt_reference(rs)
+
+            log_weights, neglogratios, neglogbridges = self.bridge.update(
+                self.dirt_options.method,
+                rs,
+                us,
+                neglogfus_dirt
+            )
+
+            if self.dirt_options.verbose:
+                cum_time = time.time() - t0
+                self._print_progress(
+                    log_weights, 
+                    neglogbridges, 
+                    neglogfus_dirt,
+                    cum_time
+                )
+
+            rs, neglogratios = self.bridge._reorder(rs, neglogratios, log_weights)
+            self.sirts[self.n_layers] = self._get_new_layer(rs, neglogratios)
+            self.num_eval += self.sirts[self.n_layers].approx.num_eval
+            self.n_layers += 1
+
+            if self.bridge.is_last:
+                break
+
+        if self.dirt_options.verbose:
+
+            # Note that the Hellinger divergence is invariant to 
+            # bijective transformations
+            rs = self.reference.random(self.dim, self.pre_sample_size)
+            us, neglogfus_dirt = self._eval_irt_reference(rs)
+            neglogfus = self.neglogfx(us)  # this is fine.
+            dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
+
+            t1 = time.time()
+            
+            dirt_info("DIRT construction complete.")
+            dirt_info(f" • Layers: {self.n_layers}.")
+            dirt_info(f" • Total function evaluations: {self.num_eval:,}.")
+            dirt_info(f" • Total time: {format_time(t1-t0)}.")
+            dirt_info(f" • DHell: {dhell2.sqrt():.4f}.")
+        
+        return
+    
     def _eval_rt_reference(
         self,
         us: Tensor,
@@ -759,427 +1046,3 @@ class AbstractDIRT(abc.ABC):
         rs = self.reference.sobol(self.dim, n)
         xs = self.eval_irt(rs)[0]
         return xs
-    
-    @staticmethod
-    def parse_filename(fname: str) -> str:
-        return fname.split(".")[0] + ".h5"
-
-    def save(self, fname: str) -> None:
-        """Saves the data associated with a `DIRT` object to a file.
-        
-        Parameters
-        ----------
-        fname:
-            The name of the file to save the data associated with the 
-            `DIRT` object to.
-        
-        """
-
-        fname = DIRT.parse_filename(fname)
-        
-        d: Dict[Any, Any] = {
-            "n_layers": self.n_layers,
-            "bridge": {
-                "name": BRIDGE2NAME[type(self.bridge)],
-                "kwargs": self.bridge.params_dict
-            },
-            "polys": {},
-            "tt_options": self.tt_options.__dict__,
-            "dirt_options": self.dirt_options.__dict__
-        }
-        
-        for k in range(self.dim):
-            poly_k = self.bases[k]
-            if isinstance(poly_k, Lagrange1):
-                kwargs = {"num_elems": poly_k.num_elems}
-            elif isinstance(poly_k, LagrangeP):
-                kwargs = {
-                    "num_elems": poly_k.num_elems, 
-                    "order": poly_k.order
-                }
-            elif isinstance(poly_k, Spectral):
-                kwargs = {"order": poly_k.order}
-            else:
-                msg = f"Unknown polynomial type: {type(poly_k)}."
-                raise Exception(msg)
-            d["polys"][k] = {
-                "type": POLY2NAME[type(poly_k)],
-                "kwargs": kwargs
-            }
-
-        for i in range(self.n_layers):
-            
-            d[i] = {}
-            sirt = self.sirts[i]
-            ftt = sirt.approx
-
-            # Extract SIRT data
-            d[i]["Bs_f"] = sirt._Bs_f
-            d[i]["Bs_b"] = sirt._Bs_b
-            d[i]["Rs_f"] = sirt._Rs_f
-            d[i]["Rs_b"] = sirt._Rs_b
-            d[i]["defensive"] = sirt.defensive
-            # Extract FTT data
-            d[i]["xs_samp"] = ftt.input_data.xs_samp
-            d[i]["xs_debug"] = ftt.input_data.xs_debug
-            d[i]["fxs_debug"] = ftt.input_data.fxs_debug
-            d[i]["direction"] = ftt.tt_data.direction.value
-            d[i]["cores"] = ftt.tt_data.cores
-
-        with h5py.File(fname, "w") as f:
-            dict_to_h5(f, d)
-
-
-class DIRT(AbstractDIRT):
-    r"""Deep (squared) inverse Rosenblatt transport.
-
-    Parameters
-    ----------
-    target_func:
-        TODO: replace this description.
-        A function that receives an $n \times d$ matrix of samples and 
-        returns an $n$-dimensional vector containing the negative 
-        log-likelihood function evaluated at each sample.
-    bases:
-        A list of sets of basis functions for each dimension, or a 
-        single set of basis functions (to be used in all dimensions), 
-        used to construct the functional tensor trains at each 
-        iteration.
-    bridge: 
-        An object used to generate the intermediate densities to 
-        approximate at each stage of the DIRT construction.
-    tt_options:
-        Options for constructing the FTT approximation to the square 
-        root of the ratio function (*i.e.*, the pullback of the current 
-        bridging density under the existing composition of mappings) at 
-        each iteration.
-    dirt_options:
-        Options for constructing the DIRT approximation to the 
-        target density.
-    prev_approx:
-        A dictionary containing a set of SIRTs generated as part of 
-        the construction of a previous DIRT object.
-    
-    """
-
-    def __init__(
-        self, 
-        target_func: Callable[[Tensor], Tensor] | TargetFunc,
-        preconditioner: Preconditioner,
-        bases: Basis1D | List[Basis1D], 
-        bridge: Bridge | None = None,
-        tt_options: TTOptions | None = None,
-        dirt_options: DIRTOptions | None = None,
-        prev_approx: Dict[int, SIRT] | None = None
-    ):
-        """TODO: need to reset the bridge prior to starting.
-        Ideally we should be able to use the same bridge object to 
-        build multiple DIRT objects.
-        """
-
-        if not isinstance(target_func, TargetFunc):
-            target_func = TargetFunc(target_func)
-        if bridge is None:
-            bridge = Tempering()
-        if tt_options is None:
-            tt_options = TTOptions()
-        if dirt_options is None:
-            dirt_options = DIRTOptions()
-        
-        self.target_func = target_func
-        self.preconditioner = preconditioner
-        self.bases = ApproxBases(bases, self.domain, self.dim)
-        self.bridge = bridge
-        self.tt_options = tt_options
-        self.dirt_options = dirt_options
-        self.prev_approx = prev_approx
-        self.pre_sample_size = (self.dirt_options.num_samples 
-                                + self.dirt_options.num_debugs)
-        self.sirts: Dict[int, SIRT] = {}
-        self.num_eval = 0
-
-        self.bridge.initialise(self.preconditioner, self.target_func)
-        self._build()
-        
-        return
-    
-    @property
-    def log_z(self) -> float:
-        if not self.sirts.keys():
-            return 0.0
-        return sum([math.log(self.sirts[i].z) for i in self.sirts.keys()])
-    
-    def neglogfx(self, us: Tensor) -> Tensor:
-        """Evaluates the pullback of the target density function at a 
-        set of samples in the reference domain.
-        """
-        xs = self.preconditioner.Q(us)
-        neglogdets = self.preconditioner.neglogdet_Q(us)
-        neglogtarget = self.target_func(xs)
-        self.num_eval += us.shape[0]
-        neglogfxs = neglogtarget + neglogdets
-        check_finite(neglogfxs)
-        return neglogfxs
-
-    def _potential2density(
-        self, 
-        neglogratios: Tensor, 
-        xs: Tensor
-    ) -> Tensor:
-        """Returns the function we aim to approximate (i.e., the 
-        square root of the ratio function divided by the weighting 
-        function associated with the reference measure).
-
-        Parameters
-        ----------
-        neglogratios:
-            An n-dimensional vector containing the negative logarithm 
-            of the ratio function associated with each sample.
-        xs:
-            An n * d matrix containing a set of samples distributed 
-            according to the current bridging density.
-        
-        Returns
-        -------
-        ys:
-            An n-dimensional vector containing evaluations of the 
-            target function at each sample in xs.
-        
-        """
-        neglogwrs = self.bases.eval_measure_potential(xs)[0]
-        log_ys = -0.5 * (neglogratios - neglogwrs)
-        return torch.exp(log_ys)
-
-    def _get_inputdata(
-        self,
-        xs: Tensor, 
-        neglogratios: Tensor 
-    ) -> InputData:
-        """Generates a set of input data and debugging samples used to 
-        initialise DIRT.
-        
-        Parameters
-        ----------
-        xs:
-            An n * d matrix containing samples distributed according to
-            the current bridging density.
-        neglogratios:
-            A n-dimensional vector containing the negative logarithm of
-            the current ratio function evaluated at each sample in xs.
-        
-        Returns
-        -------
-        input_data:
-            An InputData object containing a set of samples used to 
-            construct the FTT approximation to the target function, and 
-            (if debugging samples are requested) a set of debugging 
-            samples and the value of the target function evaluated 
-            at each debugging sample.
-            
-        """
-
-        if self.dirt_options.num_debugs == 0:
-            return InputData(xs)
-        
-        indices = torch.arange(self.dirt_options.num_samples)
-        indices_debug = (torch.arange(self.dirt_options.num_debugs)
-                         + self.dirt_options.num_samples)
-
-        fxs_debug = self._potential2density(
-            neglogratios[indices_debug], 
-            xs[indices_debug]
-        )
-
-        return InputData(xs[indices], xs[indices_debug], fxs_debug)
-    
-    def _updated_func(self, rs: Tensor) -> Tensor:
-        """Evaluates the current ratio function at each element in rs.
-        """
-        us, neglogfus_dirt = self._eval_irt_reference(rs)
-        neglogratios = self.bridge.ratio_func(self.dirt_options.method, rs, us, neglogfus_dirt)
-        return neglogratios
-
-    def _get_new_layer(self, xs: Tensor, neglogratios: Tensor) -> SIRT:
-        """Constructs a new SIRT to add to the current composition of 
-        SIRTs.
-
-        Parameters
-        ----------
-        xs:
-            An n * d matrix containing samples distributed according to
-            the current bridging density.
-        neglogratios:
-            An n-dimensional vector containing the negative log-ratio 
-            function evaluated at each element in xs.
-
-        Returns
-        -------
-        sirt:
-            The squared inverse Rosenblatt transport approximation to 
-            the next bridging density.
-        
-        """
-
-        if self.prev_approx is None:
-            
-            # Generate debugging and initialisation samples
-            input_data = self._get_inputdata(xs, neglogratios)
-
-            if self.n_layers == 0:
-                approx = None 
-                tt_data = None
-            else:
-                # Use previous approximation as a starting point
-                approx = deepcopy(self.sirts[self.n_layers-1].approx)
-                approx._round(max_rank=self.tt_options.init_rank)
-                tt_data = approx.tt_data
-
-            sirt = SIRT(
-                self._updated_func,
-                preconditioner=self.preconditioner,
-                bases=self.bases.bases,
-                prev_approx=approx,
-                options=self.tt_options,
-                input_data=input_data,
-                tt_data=tt_data,
-                defensive=self.dirt_options.defensive
-            )
-        
-        else:
-            
-            ind_prev = max(self.prev_approx.keys())
-            sirt_prev = self.prev_approx[min(ind_prev, self.n_layers)]
-            
-            input_data = self._get_inputdata(xs, neglogratios)
-
-            sirt = SIRT(
-                self._updated_func,
-                preconditioner=self.preconditioner,
-                bases=sirt_prev.approx.bases.bases,
-                options=self.tt_options,
-                input_data=input_data, 
-                defensive=self.dirt_options.defensive
-            )
-        
-        return sirt
-
-    def _print_progress(
-        self,
-        log_weights: Tensor, 
-        neglogfus: Tensor, 
-        neglogfus_dirt: Tensor,
-        cum_time: float
-    ) -> None:
-
-        msg = [
-            f"Iter: {self.n_layers+1:=2}",
-            f"Cum. Fevals: {self.num_eval:=.2e}",
-            f"Cum. Time: {cum_time:=.2e} s"
-        ]
-        msg += self.bridge._get_diagnostics(log_weights, neglogfus, neglogfus_dirt)
-        dirt_info(" | ".join(msg))
-        return
-    
-    def _build(self) -> None:
-        """Constructs a DIRT to approximate a given probability 
-        density.
-        """
-
-        t0 = time.time()
-        
-        while True:
-
-            rs = self.reference.random(self.dim, self.pre_sample_size)
-            us, neglogfus_dirt = self._eval_irt_reference(rs)
-
-            log_weights, neglogratios, neglogbridges = self.bridge.update(
-                self.dirt_options.method,
-                rs,
-                us,
-                neglogfus_dirt
-            )
-
-            if self.dirt_options.verbose:
-                cum_time = time.time() - t0
-                self._print_progress(
-                    log_weights, 
-                    neglogbridges, 
-                    neglogfus_dirt,
-                    cum_time
-                )
-
-            rs, neglogratios = self.bridge._reorder(rs, neglogratios, log_weights)
-            self.sirts[self.n_layers] = self._get_new_layer(rs, neglogratios)
-            self.num_eval += self.sirts[self.n_layers].approx.num_eval
-            self.n_layers += 1
-
-            if self.bridge.is_last:
-                break
-
-        if self.dirt_options.verbose:
-
-            # Note that the Hellinger divergence is invariant to 
-            # bijective transformations
-            rs = self.reference.random(self.dim, self.pre_sample_size)
-            us, neglogfus_dirt = self._eval_irt_reference(rs)
-            neglogfus = self.neglogfx(us)  # this is fine.
-            dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
-
-            t1 = time.time()
-            
-            dirt_info("DIRT construction complete.")
-            dirt_info(f" • Layers: {self.n_layers}.")
-            dirt_info(f" • Total function evaluations: {self.num_eval:,}.")
-            dirt_info(f" • Total time: {format_time(t1-t0)}.")
-            dirt_info(f" • DHell: {dhell2.sqrt():.4f}.")
-        
-        return
-
-
-class SavedDIRT(AbstractDIRT):
-    r"""Reconstructs a `DIRT` object from a file.
-
-    This class has the same methods as a regular `DIRT` object.
-    
-    Parameters
-    ----------
-    fname: 
-        The name of the file to read the `DIRT` object from.
-    
-    """
-
-    def __init__(self, fname: str, preconditioner: Preconditioner):
-
-        fname = DIRT.parse_filename(fname)
-
-        with h5py.File(fname, "r") as f:
-            d = h5_to_dict(f)
-
-        bridge_name = d["bridge"]["name"]
-        bridge_kwargs = d["bridge"]["kwargs"]
-        
-        self.preconditioner = preconditioner
-        self.bridge = NAME2SAVEBRIDGE[bridge_name](**bridge_kwargs)
-        self.polys = self._parse_polynomials(d["polys"])
-        self.bases = ApproxBases(self.polys, self.domain, self.dim)
-        self.tt_options = TTOptions(**d["tt_options"])
-        self.dirt_options = DIRTOptions(**d["dirt_options"])
-        self.sirts = {
-            i: SavedSIRT(
-                d[str(i)],
-                self.preconditioner, 
-                self.polys,
-                self.tt_options
-            ) for i in range(d["n_layers"])
-        }
-
-        return
-    
-    def _parse_polynomials(self, d: Dict) -> List[Basis1D]:
-        """Extracts a set of saved polynomial bases for each dimension."""
-        polys = []
-        for j in range(self.dim):
-            poly_name = d[str(j)]["type"]
-            poly_kwargs = d[str(j)]["kwargs"]
-            polys.append(NAME2POLY[poly_name](**poly_kwargs))
-        return polys

@@ -1,15 +1,4 @@
 from .bridge import Bridge 
-from .single_layer import SingleLayer, SavedSingleLayer
-from .tempering import Tempering, SavedTempering
+from .single_layer import SingleLayer
+from .tempering import Tempering
 from .rare_event import SigmoidSmoothing
-
-
-BRIDGE2NAME = {
-    SingleLayer: "SingleLayer",
-    Tempering: "Tempering"
-}
-
-NAME2SAVEBRIDGE = {
-    "Tempering": SavedTempering,
-    "SingleLayer": SavedSingleLayer
-}

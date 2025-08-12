@@ -4,7 +4,7 @@ import warnings
 import torch 
 from torch import Tensor
 
-from ..irt import AbstractDIRT
+from ..irt import DIRT
 from ..references import GaussianReference, Reference
 
 
@@ -253,7 +253,7 @@ def _run_irt_pcn(
 
 def run_irt_pcn(
     potential: Callable[[Tensor], Tensor],
-    dirt: AbstractDIRT,
+    dirt: DIRT,
     n: int,
     dt: float = 2.0,
     r0: Tensor | None = None,
@@ -364,7 +364,7 @@ def run_irt_pcn(
 
 def run_cirt_pcn(
     potential: Callable[[Tensor], Tensor],
-    dirt: AbstractDIRT,
+    dirt: DIRT,
     y: Tensor,
     n: int,
     dt: float = 2.0,

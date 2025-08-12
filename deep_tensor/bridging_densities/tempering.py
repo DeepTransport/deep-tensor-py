@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 from torch import Tensor
 
@@ -9,47 +9,7 @@ from ..target_functions import TargetFunc
 from ..tools import compute_f_divergence
 
 
-class AbstractTempering(Bridge):
-
-    @property 
-    def betas(self) -> Dict:
-        return self._betas
-    
-    @betas.setter 
-    def betas(self, value: Dict) -> None:
-        self._betas = value 
-        return
-    
-    @property 
-    def n_layers(self) -> int:
-        return self._n_layers
-    
-    @n_layers.setter 
-    def n_layers(self, value: int) -> None:
-        self._n_layers = value 
-        return
-    
-    @property 
-    def max_layers(self) -> int:
-        return self._max_layers
-    
-    @max_layers.setter 
-    def max_layers(self, value: int) -> None:
-        self._max_layers = value 
-        return
-
-    @property 
-    def is_last(self) -> bool:
-        max_layers_reached = self.n_layers == self.max_layers
-        final_beta_reached = abs(self.betas[self.n_layers-1] - 1.0) < 1e-6
-        return bool(max_layers_reached or final_beta_reached)
-    
-    @property
-    def params_dict(self) -> Dict:
-        return {"betas": self.betas, "n_layers": self.n_layers}
-
-
-class Tempering(AbstractTempering):
+class Tempering(Bridge):
     r"""Likelihood tempering.
     
     The intermediate densities, $\{\pi_{k}(\theta)\}_{k=1}^{N}$, 
@@ -135,6 +95,12 @@ class Tempering(AbstractTempering):
 
         return
     
+    @property 
+    def is_last(self) -> bool:
+        max_layers_reached = self.n_layers == self.max_layers
+        final_beta_reached = abs(self.betas[self.n_layers-1] - 1.0) < 1e-6
+        return bool(max_layers_reached or final_beta_reached)
+
     def initialise(
         self, 
         preconditioner: Preconditioner, 
@@ -239,7 +205,7 @@ class Tempering(AbstractTempering):
         neglogref_us = self.reference.eval_potential(us)[0]
 
         xs, neglogdets = self.apply_preconditioner(us)
-        neglogfxs = self.target_func.func(xs)
+        neglogfxs = self.target_func(xs)
         neglogfus = neglogfxs + neglogdets
 
         neglogratios = self._compute_ratio_func(
@@ -335,17 +301,3 @@ class Tempering(AbstractTempering):
             f"ESS: {ess:.4f}"
         ]
         return msg
-    
-
-class SavedTempering(AbstractTempering):
-
-    def __init__(self, betas: List, n_layers: int):
-        self.betas = betas 
-        self.n_layers = n_layers
-        return
-    
-    def _compute_log_weights(self, neglogliks, neglogpris, neglogfxs):
-        raise NotImplementedError()
-    
-    def _get_ratio_func(self, reference, method, rs, neglogliks, neglogpris, neglogfxs):
-        raise NotImplementedError()

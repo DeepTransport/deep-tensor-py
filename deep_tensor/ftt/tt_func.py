@@ -26,8 +26,57 @@ INTERPOLATION_METHODS = {"deim": deim, "maxvol": maxvol}
 MAX_COND = 1.0e+5
 
 
-class AbstractTTFunc(object):
+class TTFunc():
+    """A multivariate functional tensor-train.
 
+    Parameters
+    ----------
+    target_func:
+        Maps an n * d matrix containing samples from the local domain 
+        to an n-dimensional vector containing the values of the target 
+        function at each sample.
+    bases:
+        The bases associated with the approximation domain.
+    options:
+        Options used when constructing the FTT approximation to the 
+        target function.
+    input_data:
+        Data used for initialising and evaluating the quality of the 
+        FTT approximation to the target function.
+    tt_data:
+        Data used to construct the FTT approximation to the target
+        function.
+
+    """
+
+    def __init__(
+        self, 
+        target_func: Callable[[Tensor], Tensor], 
+        bases: ApproxBases, 
+        options: TTOptions, 
+        input_data: InputData,
+        tt_data: TTData | None = None
+    ):
+
+        if tt_data is None:
+            tt_data = TTData()
+        
+        self.target_func = target_func
+        self.bases = bases 
+        self.options = options
+        self.input_data = input_data
+        self.tt_data = tt_data
+        self.num_eval = 0
+        self.errors = torch.zeros(self.dim)
+        self.l2_err = torch.inf
+        self.linf_err = torch.inf
+
+        self.input_data.set_samples(self.bases, self._sample_size)
+        if self.input_data.is_debug:
+            self.input_data.set_debug(self.target_func, self.bases)
+        
+        return
+    
     @property 
     def bases(self) -> ApproxBases:
         return self._bases
@@ -93,7 +142,7 @@ class AbstractTTFunc(object):
     @property
     def coefs(self) -> Dict[int, Tensor]:
         return self.tt_data.coefs
-
+    
     @staticmethod
     def _check_sample_dim(xs: Tensor, dim: int, strict: bool = False) -> None:
         """Checks that a set of samples is two-dimensional and that the 
@@ -262,6 +311,133 @@ class AbstractTTFunc(object):
         coefficient tensors.
         """
         return float((H_new-H_old).abs().max() / H_new.abs().max())
+
+    def _initialise_coefs(self) -> None:
+        """Initialises the cores and interpolation points in each 
+        dimension.
+        """
+
+        for k in range(self.dim):
+
+            coef_shape = [
+                1 if k == 0 else self.options.init_rank, 
+                self.bases[k].cardinality,
+                1 if k == self.dim-1 else self.options.init_rank
+            ]
+            self.coefs[k] = torch.zeros(coef_shape)
+            self.cores[k] = torch.zeros(coef_shape)
+
+            ls_samp = self.input_data.get_samples(self.options.init_rank)
+            self.tt_data.interp_ls[k] = ls_samp[:, k:]
+
+        self.tt_data.interp_ls[-1] = torch.tensor([])
+        self.tt_data.interp_ls[self.dim] = torch.tensor([])
+        return
+
+    def _initialise_res_x(self) -> None:
+        """Initialises the residual coordinates for AMEN."""
+
+        for k in range(self.dim-1, -1, -1):
+            samples = self.input_data.get_samples(self.options.kick_rank)
+            if self.tt_data.direction == Direction.FORWARD:
+                self.tt_data.res_x[k] = samples[:, k:]
+            else:
+                self.tt_data.res_x[k] = samples[:, :(k+1)]
+
+        self.tt_data.res_x[-1] = torch.tensor([])
+        self.tt_data.res_x[self.dim] = torch.tensor([])
+        return
+    
+    def _initialise_res_w(self) -> None:
+        """Initialises the residual blocks for AMEN."""
+
+        if self.tt_data.direction == Direction.FORWARD:
+            
+            coef_0 = self.coefs[0]
+            shape_0 = (self.options.kick_rank, coef_0.shape[-1])
+            self.tt_data.res_w[0] = torch.ones(shape_0)
+            
+            for k in range(1, self.dim):
+                coef_k = self.coefs[k].shape[0]
+                shape_k = (coef_k, self.options.kick_rank)
+                self.tt_data.res_w[k] = torch.ones(shape_k)
+
+        else:
+
+            for k in range(self.dim-1):
+                coef_k = self.coefs[k]
+                shape_k = (self.options.kick_rank, coef_k.shape[-1])
+                self.tt_data.res_w[k] = torch.ones(shape_k)
+
+            coef_d = self.coefs[self.dim-1]
+            shape_d = (coef_d.shape[0], self.options.kick_rank)
+            self.tt_data.res_w[self.dim-1] = torch.ones(shape_d)
+
+        self.tt_data.res_w[-1] = torch.tensor([[1.0]])
+        self.tt_data.res_w[self.dim] = torch.tensor([[1.0]])
+        return
+
+    def _initialise_amen(self) -> None:
+        """Initialises the residual coordinates and residual blocks 
+        for AMEN.
+        """
+        if self.tt_data.res_x == {}:
+            self._initialise_res_x()
+        if self.tt_data.res_w == {}:
+            self._initialise_res_w()
+        return
+
+    def _print_info_header(self) -> None:
+
+        info_headers = [
+            "Iter", 
+            "Func Evals",
+            "Max Rank", 
+            "Max Local Error", 
+            "Mean Local Error"
+        ]
+        
+        if self.input_data.is_debug:
+            info_headers += ["Max Debug Error", "Mean Debug Error"]
+
+        als_info(" | ".join(info_headers))
+        return
+
+    def _print_info(self, cross_iter: int) -> None:
+        """Prints some diagnostic information about the current cross 
+        iteration.
+        """
+
+        diagnostics = [
+            f"{cross_iter:=4}", 
+            f"{self.num_eval:=10}",
+            f"{self.rank.max():=8}",
+            f"{self.errors.max():=15.5e}",
+            f"{self.errors.mean():=16.5e}"
+        ]
+
+        if self.input_data.is_debug:
+            diagnostics += [
+                f"{self.linf_err:=15.5e}",
+                f"{self.l2_err:=16.5e}"
+            ]
+
+        als_info(" | ".join(diagnostics))
+        return
+
+    def _compute_rel_error(self) -> None:
+        """Computes the relative error between the value of the FTT 
+        approximation to the target function and the true value for the 
+        set of debugging samples.
+        """
+
+        if not self.input_data.is_debug:
+            return
+        
+        ps_approx = self._eval_local(self.input_data.ls_debug, self.tt_data.direction)
+        ps_approx = ps_approx.flatten()
+        self.l2_err, self.linf_err = self.input_data.relative_error(ps_approx)
+        return
 
     def _eval_local_forward(self, ls: Tensor) -> Tensor:
         """Evaluates the FTT approximation to the target function for 
@@ -735,185 +911,6 @@ class AbstractTTFunc(object):
             warnings.warn(msg)
         return inds, B, U_sub
 
-
-class TTFunc(AbstractTTFunc):
-    """A multivariate functional tensor-train.
-
-    Parameters
-    ----------
-    target_func:
-        Maps an n * d matrix containing samples from the local domain 
-        to an n-dimensional vector containing the values of the target 
-        function at each sample.
-    bases:
-        The bases associated with the approximation domain.
-    options:
-        Options used when constructing the FTT approximation to the 
-        target function.
-    input_data:
-        Data used for initialising and evaluating the quality of the 
-        FTT approximation to the target function.
-    tt_data:
-        Data used to construct the FTT approximation to the target
-        function.
-
-    """
-
-    def __init__(
-        self, 
-        target_func: Callable[[Tensor], Tensor], 
-        bases: ApproxBases, 
-        options: TTOptions, 
-        input_data: InputData,
-        tt_data: TTData | None = None
-    ):
-
-        if tt_data is None:
-            tt_data = TTData()
-        
-        self.target_func = target_func
-        self.bases = bases 
-        self.options = options
-        self.input_data = input_data
-        self.tt_data = tt_data
-        self.num_eval = 0
-        self.errors = torch.zeros(self.dim)
-        self.l2_err = torch.inf
-        self.linf_err = torch.inf
-
-        self.input_data.set_samples(self.bases, self._sample_size)
-        if self.input_data.is_debug:
-            self.input_data.set_debug(self.target_func, self.bases)
-        
-        return
-
-    def _initialise_coefs(self) -> None:
-        """Initialises the cores and interpolation points in each 
-        dimension.
-        """
-
-        for k in range(self.dim):
-
-            coef_shape = [
-                1 if k == 0 else self.options.init_rank, 
-                self.bases[k].cardinality,
-                1 if k == self.dim-1 else self.options.init_rank
-            ]
-            self.coefs[k] = torch.zeros(coef_shape)
-            self.cores[k] = torch.zeros(coef_shape)
-
-            ls_samp = self.input_data.get_samples(self.options.init_rank)
-            self.tt_data.interp_ls[k] = ls_samp[:, k:]
-
-        self.tt_data.interp_ls[-1] = torch.tensor([])
-        self.tt_data.interp_ls[self.dim] = torch.tensor([])
-        return
-
-    def _initialise_res_x(self) -> None:
-        """Initialises the residual coordinates for AMEN."""
-
-        for k in range(self.dim-1, -1, -1):
-            samples = self.input_data.get_samples(self.options.kick_rank)
-            if self.tt_data.direction == Direction.FORWARD:
-                self.tt_data.res_x[k] = samples[:, k:]
-            else:
-                self.tt_data.res_x[k] = samples[:, :(k+1)]
-
-        self.tt_data.res_x[-1] = torch.tensor([])
-        self.tt_data.res_x[self.dim] = torch.tensor([])
-        return
-    
-    def _initialise_res_w(self) -> None:
-        """Initialises the residual blocks for AMEN."""
-
-        if self.tt_data.direction == Direction.FORWARD:
-            
-            coef_0 = self.coefs[0]
-            shape_0 = (self.options.kick_rank, coef_0.shape[-1])
-            self.tt_data.res_w[0] = torch.ones(shape_0)
-            
-            for k in range(1, self.dim):
-                coef_k = self.coefs[k].shape[0]
-                shape_k = (coef_k, self.options.kick_rank)
-                self.tt_data.res_w[k] = torch.ones(shape_k)
-
-        else:
-
-            for k in range(self.dim-1):
-                coef_k = self.coefs[k]
-                shape_k = (self.options.kick_rank, coef_k.shape[-1])
-                self.tt_data.res_w[k] = torch.ones(shape_k)
-
-            coef_d = self.coefs[self.dim-1]
-            shape_d = (coef_d.shape[0], self.options.kick_rank)
-            self.tt_data.res_w[self.dim-1] = torch.ones(shape_d)
-
-        self.tt_data.res_w[-1] = torch.tensor([[1.0]])
-        self.tt_data.res_w[self.dim] = torch.tensor([[1.0]])
-        return
-
-    def _initialise_amen(self) -> None:
-        """Initialises the residual coordinates and residual blocks 
-        for AMEN.
-        """
-        if self.tt_data.res_x == {}:
-            self._initialise_res_x()
-        if self.tt_data.res_w == {}:
-            self._initialise_res_w()
-        return
-
-    def _print_info_header(self) -> None:
-
-        info_headers = [
-            "Iter", 
-            "Func Evals",
-            "Max Rank", 
-            "Max Local Error", 
-            "Mean Local Error"
-        ]
-        
-        if self.input_data.is_debug:
-            info_headers += ["Max Debug Error", "Mean Debug Error"]
-
-        als_info(" | ".join(info_headers))
-        return
-
-    def _print_info(self, cross_iter: int) -> None:
-        """Prints some diagnostic information about the current cross 
-        iteration.
-        """
-
-        diagnostics = [
-            f"{cross_iter:=4}", 
-            f"{self.num_eval:=10}",
-            f"{self.rank.max():=8}",
-            f"{self.errors.max():=15.5e}",
-            f"{self.errors.mean():=16.5e}"
-        ]
-
-        if self.input_data.is_debug:
-            diagnostics += [
-                f"{self.linf_err:=15.5e}",
-                f"{self.l2_err:=16.5e}"
-            ]
-
-        als_info(" | ".join(diagnostics))
-        return
-
-    def _compute_rel_error(self) -> None:
-        """Computes the relative error between the value of the FTT 
-        approximation to the target function and the true value for the 
-        set of debugging samples.
-        """
-
-        if not self.input_data.is_debug:
-            return
-        
-        ps_approx = self._eval_local(self.input_data.ls_debug, self.tt_data.direction)
-        ps_approx = ps_approx.flatten()
-        self.l2_err, self.linf_err = self.input_data.relative_error(ps_approx)
-        return
-
     def _build_block_local(self, ls_left: Tensor, ls_right: Tensor, k: int) -> Tensor:
         """Evaluates the function being approximated at a (reduced) set 
         of interpolation points, and returns the corresponding
@@ -1062,8 +1059,7 @@ class TTFunc(AbstractTTFunc):
                     self._compute_cross_block_random(k)
                 elif self.options.tt_method == "amen":
                     self._compute_cross_block_amen(k)
-
-            # if finished:
+            
             if self.options.verbose > 1:
                 msg = f"Building block {self.dim} / {self.dim}..."
                 als_info(msg, end="\r")
@@ -1085,25 +1081,3 @@ class TTFunc(AbstractTTFunc):
                 return
             
             self.tt_data._reverse_direction()
-    
-
-class SavedTTFunc(TTFunc):
-    """A saved functional tensor train.
-    
-    TODO: transfer statistics (number of function evaluations for 
-    construction, etc.) from the previous FTT.
-    """
-
-    def __init__(
-        self, 
-        bases: ApproxBases, 
-        options: TTOptions,
-        input_data: InputData, 
-        tt_data: TTData
-    ):
-        
-        self.bases = bases 
-        self.options = options
-        self.input_data = input_data
-        self.tt_data = tt_data
-        return
