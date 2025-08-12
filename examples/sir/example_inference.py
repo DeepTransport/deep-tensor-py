@@ -10,7 +10,6 @@ from examples.sir import SIRModel
 from examples.plotting import add_arrows
 
 
-torch.set_default_dtype(torch.float64)
 torch.manual_seed(1)
 
 #%% Generation of model and data 
@@ -18,14 +17,14 @@ torch.manual_seed(1)
 model = SIRModel()
 
 xs_true = torch.tensor([[0.1, 1.0]])
-ys_true = model.solve_fwd(xs_true)
+ys_true = model.solve(xs_true)
 noise = torch.randn_like(ys_true)
 ys_obs = ys_true + noise
 
 #%% DIRT construction
 
 def negloglik(xs: torch.Tensor) -> torch.Tensor:
-    ys = model.solve_fwd(xs)
+    ys = model.solve(xs)
     return 0.5 * (ys - ys_obs).square().sum(dim=1)
 
 def neglogpri(xs: torch.Tensor) -> torch.Tensor:
@@ -37,6 +36,8 @@ def neglogpri(xs: torch.Tensor) -> torch.Tensor:
 def neglogpost(xs: torch.Tensor) -> torch.Tensor:
     return negloglik(xs) + neglogpri(xs)
 
+target_func = dt.TargetFunc(neglogpost)
+
 # Define reference density and preconditioner
 bounds = torch.tensor([[0.0, 2.0], [0.0, 2.0]])
 reference = dt.GaussianReference()
@@ -46,7 +47,7 @@ preconditioner = dt.UniformMapping(bounds, reference)
 bases = dt.Legendre(order=30)
 
 # Construct DIRT
-dirt = dt.DIRT(neglogpost, preconditioner, bases)
+dirt = dt.DIRT(target_func, preconditioner, bases)
 
 #%% Sampling, Marginalisation and Conditioning
 
