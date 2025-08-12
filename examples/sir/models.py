@@ -8,6 +8,9 @@ from scipy.integrate import solve_ivp
 
 
 class SIRModel():
+    """An SIR model with a single compartment. Setup replicated from 
+    Cui, Dolgov and Zahm (2023).
+    """
 
     def __init__(
         self, 
@@ -17,9 +20,6 @@ class SIRModel():
         t1: float = 5.0,
         t_eval: Tensor | ndarray | None = None
     ):
-        """A SIR model with a single compartment. Setup replicated from 
-        Cui, Dolgov and Zahm (2023).
-        """
 
         if t_eval is None:
             t_eval = np.array([1.25, 2.5, 3.75, 5.0]) 
@@ -70,6 +70,9 @@ class SIRModel():
 
 
 class SIRCompartmentModel():
+    """An SIR model with multiple compartments. Setup replicated from 
+    Cui, Dolgov and Scheichl (2023).
+    """
 
     def __init__(
         self, 
@@ -81,9 +84,6 @@ class SIRCompartmentModel():
         t_eval: ndarray,
         inds_obs: ndarray
     ):
-        """A simple SIR model. Setup replicated from Cui, Dolgov and 
-        Scheichl (2023).
-        """
         
         self.A = adjacency_mat
         self.K = self.A.shape[0]
