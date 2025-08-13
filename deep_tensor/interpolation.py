@@ -24,6 +24,20 @@ def _check_tall_matrix(A: Tensor) -> None:
     return
 
 
+def _get_lu_pivots(A: Tensor) -> Tensor:
+    # Note: this seems to give the same results at the DEIM 
+    # implementation below.
+
+    n = A.shape[0]
+    inds = torch.arange(n)
+
+    pivots: Tensor = linalg.lu_factor_ex(A)[1] - 1
+    for i, p in enumerate(pivots):
+        inds[[i, p.item()]] = inds[[p.item(), i]]
+
+    return inds
+
+
 def deim(U: Tensor) -> Tuple[Tensor, Tensor]:
     """Computes a submatrix of a matrix of left singular vectors using
     the discrete empirical interpolation method (DEIM).
@@ -52,7 +66,7 @@ def deim(U: Tensor) -> Tuple[Tensor, Tensor]:
     _check_tall_matrix(U)
     n, r = U.shape 
 
-    inds = torch.zeros(r, dtype=torch.int32)
+    inds = torch.zeros(r, dtype=torch.int)
     P = torch.zeros((n, r))
 
     inds[0] = U[:, 0].abs().argmax()
@@ -70,22 +84,6 @@ def deim(U: Tensor) -> Tuple[Tensor, Tensor]:
 
     B = linalg.solve(U[inds], U, left=False)
     return inds, B
-
-
-def lu_deim(A: Tensor):
-    """TODO: tidy this up. Also test to see whether this is the same as 
-    DEIM when applied with spectral polynomials."""
-
-    _check_tall_matrix(A)
-    n = A.shape[0]
-
-    inds = torch.arange(n)
-
-    pivots: Tensor = linalg.lu_factor_ex(A)[1] - 1
-    for i, p in enumerate(pivots):
-        inds[[i, p.item()]] = inds[[p.item(), i]]
-
-    return inds
 
 
 def maxvol(
@@ -121,7 +119,7 @@ def maxvol(
 
     _check_tall_matrix(H)
     _, r = H.shape
-    inds = lu_deim(H)[:r]
+    inds = _get_lu_pivots(H)[:r]
 
     if (rank := linalg.matrix_rank(H[inds])) < r:
         msg = f"Initial submatrix is singular (rank {rank} < {r})."

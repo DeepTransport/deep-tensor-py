@@ -16,14 +16,14 @@ from ..linalg import (
     unfold_left, unfold_right,
     tsvd
 )
+from ..interpolation import deim, maxvol
 from ..options import TTOptions
 from ..polynomials import Basis1D, Spectral
-from ..tools import deim, maxvol
 from ..tools.printing import als_info
 
 
 INTERPOLATION_METHODS = {"deim": deim, "maxvol": maxvol}
-MAX_COND = 1.0e+5
+MAX_CONDITION_NUM = 1.0e+5
 
 
 class TTFunc():
@@ -63,6 +63,7 @@ class TTFunc():
         
         self.target_func = target_func
         self.bases = bases 
+        self.dim = self.bases.dim
         self.options = options
         self.input_data = input_data
         self.tt_data = tt_data
@@ -71,69 +72,21 @@ class TTFunc():
         self.l2_err = torch.inf
         self.linf_err = torch.inf
 
-        self.input_data.set_samples(self.bases, self._sample_size)
+        num_samples_init = self.dim * self.options.init_rank
+        num_samples_enrich = self.dim * self.options.kick_rank * (self.options.max_als + 1)
+        self.num_samples = num_samples_init + num_samples_enrich
+        self.use_amen = self.options.tt_method.lower() == "amen"
+
+        self.input_data.set_samples(self.bases, self.num_samples)
         if self.input_data.is_debug:
             self.input_data.set_debug(self.target_func, self.bases)
         
         return
-    
-    @property 
-    def bases(self) -> ApproxBases:
-        return self._bases
-    
-    @bases.setter 
-    def bases(self, value: ApproxBases) -> None:
-        self._bases = value 
-        return
-    
-    @property
-    def options(self) -> TTOptions:
-        return self._options
-    
-    @options.setter 
-    def options(self, value: TTOptions) -> None:
-        self._options = value 
-        return
-    
-    @property
-    def input_data(self) -> InputData:
-        return self._input_data 
-    
-    @input_data.setter 
-    def input_data(self, value: InputData) -> None:
-        self._input_data = value 
-        return
-    
-    @property
-    def tt_data(self) -> TTData:
-        return self._tt_data 
-    
-    @tt_data.setter 
-    def tt_data(self, value: TTData) -> None:
-        self._tt_data = value 
-        return
-    
-    @property
-    def dim(self) -> int:
-        return self.bases.dim
 
     @property 
     def rank(self) -> Tensor:
         """The ranks of each tensor core."""
         return self.tt_data._rank
-
-    @property
-    def _use_amen(self) -> bool:
-        return self.options.tt_method.lower() == "amen"
-        
-    @property
-    def _sample_size(self) -> int:
-        """An upper bound on the total number of samples required to 
-        construct a FTT approximation to the target function.
-        """
-        n = self.dim * (self.options.init_rank 
-                        + self.options.kick_rank * (self.options.max_als + 1))
-        return n
     
     @property 
     def cores(self) -> Dict[int, Tensor]:
@@ -629,7 +582,7 @@ class TTFunc():
             for k in inds:
                 self._build_basis_svd(self.coefs[k], k, tol, max_rank)
 
-        if self._use_amen:
+        if self.use_amen:
             self.tt_data.res_w = {}
             self.tt_data.res_x = {}
         return
@@ -906,7 +859,7 @@ class TTFunc():
         """
         inds, B = INTERPOLATION_METHODS[self.options.int_method](U)
         U_sub = U[inds]
-        if (cond := linalg.cond(U_sub)) > MAX_COND:
+        if (cond := linalg.cond(U_sub)) > MAX_CONDITION_NUM:
             msg = f"Poor condition number in interpolation: {cond}."
             warnings.warn(msg)
         return inds, B, U_sub
@@ -1029,7 +982,7 @@ class TTFunc():
         """Builds the FTT using cross iterations."""
 
         previously_constructed = self.coefs != {}
-        n_iter = 0
+        num_iter = 0
 
         if self.options.verbose > 0:
             self._print_info_header()
@@ -1039,7 +992,7 @@ class TTFunc():
         else:
             self.tt_data._reverse_direction()
         
-        if self._use_amen:
+        if self.use_amen:
             self._initialise_amen()
 
         while True:
@@ -1065,13 +1018,13 @@ class TTFunc():
                 als_info(msg, end="\r")
             self._compute_final_block()
 
-            n_iter += 1
+            num_iter += 1
             
             self._compute_rel_error()
             if self.options.verbose > 0:
-                self._print_info(n_iter)
+                self._print_info(num_iter)
 
-            if self._is_finished(n_iter):
+            if self._is_finished(num_iter):
                 if self.options.verbose > 0:
                     als_info("ALS complete.")
                 if self.options.verbose > 1:

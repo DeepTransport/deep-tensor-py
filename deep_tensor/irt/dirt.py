@@ -1,4 +1,3 @@
-import abc
 from copy import deepcopy
 import math
 import time
@@ -10,17 +9,13 @@ from torch.autograd.functional import jacobian
 
 from .sirt import SIRT, SUBSET2DIRECTION
 from ..bridging_densities import Bridge, Tempering
-from ..domains import Domain 
 from ..ftt import ApproxBases, Direction, InputData
 from ..options import DIRTOptions, TTOptions
 from ..polynomials import Basis1D
 from ..preconditioners import Preconditioner
-from ..references import Reference
 from ..target_functions import TargetFunc
 from ..tools.printing import dirt_info, format_time
 from ..tools import check_finite, compute_f_divergence
-
-import h5py
 
 
 class DIRT():
@@ -80,65 +75,26 @@ class DIRT():
             dirt_options = DIRTOptions()
         
         self.target_func = target_func
+
+        self.dim = preconditioner.dim
         self.preconditioner = preconditioner
+        self.reference = preconditioner.reference
+        self.domain = preconditioner.reference.domain
+        
         self.bases = ApproxBases(bases, self.domain, self.dim)
         self.bridge = bridge
+        self.bridge.initialise(self.preconditioner, self.target_func)
+
         self.tt_options = tt_options
         self.dirt_options = dirt_options
-        self.prev_approx = prev_approx
         self.pre_sample_size = (self.dirt_options.num_samples 
                                 + self.dirt_options.num_debugs)
-        self.sirts: Dict[int, SIRT] = {}
         self.num_eval = 0
-
-        self.bridge.initialise(self.preconditioner, self.target_func)
-        self._build()
         
-        return
-    
-    @property 
-    def preconditioner(self) -> Preconditioner:
-        return self._preconditioner
-    
-    @preconditioner.setter
-    def preconditioner(self, value: Preconditioner) -> None:
-        self._preconditioner = value 
-        return
-    
-    @property 
-    def bridge(self) -> Bridge:
-        return self._bridge
-    
-    @bridge.setter
-    def bridge(self, value: Bridge) -> None:
-        self._bridge = value 
-        return
+        self.sirts: Dict[int, SIRT] = {}
+        self.prev_approx = prev_approx
 
-    @property 
-    def bases(self) -> ApproxBases:
-        return self._bases 
-    
-    @bases.setter 
-    def bases(self, value: ApproxBases) -> None:
-        self._bases = value 
-        return
-    
-    @property 
-    def tt_options(self) -> TTOptions:
-        return self._tt_options
-    
-    @tt_options.setter 
-    def tt_options(self, value: TTOptions) -> None:
-        self._tt_options = value 
-        return
-    
-    @property 
-    def dirt_options(self) -> DIRTOptions:
-        return self._dirt_options
-    
-    @dirt_options.setter 
-    def dirt_options(self, value: DIRTOptions) -> None:
-        self._dirt_options = value 
+        self._build()
         return
     
     @property 
@@ -149,18 +105,6 @@ class DIRT():
     def n_layers(self, value: int) -> None:
         self.bridge.n_layers = value 
         return
-    
-    @property
-    def dim(self) -> int:
-        return self.preconditioner.dim
-
-    @property 
-    def reference(self) -> Reference:
-        return self.preconditioner.reference
-
-    @property
-    def domain(self) -> Domain:
-        return self.reference.domain
     
     @property
     def log_z(self) -> float:
@@ -244,10 +188,9 @@ class DIRT():
         indices_debug = (torch.arange(self.dirt_options.num_debugs)
                          + self.dirt_options.num_samples)
 
-        fxs_debug = self._potential2density(
-            neglogratios[indices_debug], 
-            xs[indices_debug]
-        )
+        neglogratios_debug = neglogratios[indices_debug]
+        xs_debug = xs[indices_debug]
+        fxs_debug = self._potential2density(neglogratios_debug, xs_debug)
 
         return InputData(xs[indices], xs[indices_debug], fxs_debug)
     

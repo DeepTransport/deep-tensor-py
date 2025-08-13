@@ -84,7 +84,7 @@ class SIRT():
         if prev_approx is not None:
             bases = prev_approx.bases.bases
             options = prev_approx.options
-            tt_data = prev_approx._tt_data
+            tt_data = prev_approx.tt_data
 
         if options is None:
             options = TTOptions()
@@ -92,17 +92,20 @@ class SIRT():
         if input_data is None:
             input_data = InputData()
 
-        domain = preconditioner.reference.domain
-        dim = preconditioner.dim
-
         self.potential = potential
+
         self.preconditioner = preconditioner
+        self.domain = preconditioner.reference.domain
+        self.dim = preconditioner.dim
         self.reference = preconditioner.reference
-        self.bases = ApproxBases(bases, domain, dim)
+
+        self.bases = ApproxBases(bases, self.domain, self.dim)
+        
         self.options = options 
         self.input_data = input_data
         self.tt_data = tt_data
         self.defensive = defensive
+        
         self.cdfs = self._construct_cdfs(self.options.cdf_tol)
 
         self.approx = TTFunc(
@@ -116,120 +119,17 @@ class SIRT():
 
         # Compute coefficient tensors and marginalisation coefficents, 
         # from the first core to the last and the last core to the first
-        self._Bs_f = {}
-        self._Rs_f = {}
-        self._Bs_b = {}
-        self._Rs_b = {}
+        self._Bs_f: Dict[int, Tensor] = {}
+        self._Rs_f: Dict[int, Tensor] = {}
+        self._Bs_b: Dict[int, Tensor] = {}
+        self._Rs_b: Dict[int, Tensor] = {}
         self._marginalise_forward()
         self._marginalise_backward()
         return
     
-    @property 
-    def preconditioner(self) -> Preconditioner:
-        return self._preconditioner
-    
-    @preconditioner.setter
-    def preconditioner(self, value: Preconditioner) -> None:
-        self._preconditioner = value 
-        return
-
-    @property
-    def input_data(self) -> InputData:
-        return self._input_data 
-    
-    @input_data.setter 
-    def input_data(self, value: InputData) -> None:
-        self._input_data = value 
-        return
-    
-    @property 
-    def approx(self) -> TTFunc:
-        return self._approx
-    
-    @approx.setter 
-    def approx(self, value: TTFunc) -> None:
-        self._approx = value 
-        return
-
-    @property 
-    def bases(self) -> ApproxBases:
-        return self._bases 
-    
-    @bases.setter 
-    def bases(self, value: ApproxBases) -> None:
-        self._bases = value 
-        return
-    
-    @property 
-    def cdfs(self) -> Dict[int, CDF1D]:
-        return self._cdfs
-    
-    @cdfs.setter 
-    def cdfs(self, value: Dict[int, CDF1D]) -> None:
-        self._cdfs = value 
-        return
-    
-    @property 
-    def dim(self) -> int:
-        return self.bases.dim 
-    
-    @property 
-    def defensive(self) -> float:
-        return self._defensive
-    
-    @defensive.setter 
-    def defensive(self, value: float) -> None:
-        self._defensive = value 
-        return
-    
-    @property 
-    def z_func(self) -> Tensor:
-        return self._z_func
-    
-    @z_func.setter 
-    def z_func(self, value: Tensor) -> None:
-        self._z_func = value 
-        return 
-    
     @property
     def z(self) -> Tensor:
         return self.defensive + self.z_func
-    
-    @property 
-    def _Bs_f(self) -> Dict[int, Tensor]:
-        return self.__Bs_f
-    
-    @_Bs_f.setter 
-    def _Bs_f(self, value: Dict[int, Tensor]) -> None:
-        self.__Bs_f = value 
-        return
-    
-    @property 
-    def _Bs_b(self) -> Dict[int, Tensor]:
-        return self.__Bs_b
-    
-    @_Bs_b.setter 
-    def _Bs_b(self, value: Dict[int, Tensor]) -> None:
-        self.__Bs_b = value 
-        return
-    
-    @property 
-    def _Rs_f(self) -> Dict[int, Tensor]:
-        return self.__Rs_f
-    
-    @_Rs_f.setter 
-    def _Rs_f(self, value: Dict[int, Tensor]) -> None:
-        self.__Rs_f = value 
-        return
-    
-    @property 
-    def _Rs_b(self) -> Dict[int, Tensor]:
-        return self.__Rs_b
-    
-    @_Rs_b.setter 
-    def _Rs_b(self, value: Dict[int, Tensor]) -> None:
-        self.__Rs_b = value 
-        return
     
     def _target_func(self, ls: Tensor) -> Tensor:
         """Returns the square root of the ratio between the target 

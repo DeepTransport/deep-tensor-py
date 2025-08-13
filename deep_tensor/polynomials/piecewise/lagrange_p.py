@@ -4,7 +4,7 @@ from torch import Tensor
 from .piecewise import Piecewise
 from ..spectral.jacobi_11 import Jacobi11
 from ...constants import EPS
-from ...tools import integrate
+from ...integration import integrate
 
 
 class _LagrangeRef():

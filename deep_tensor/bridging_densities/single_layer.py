@@ -22,7 +22,8 @@ class SingleLayer(Bridge):
     def is_last(self) -> bool:
         return True
 
-    def update(self, 
+    def update(
+        self, 
         method: str, 
         rs: Tensor, 
         us: Tensor, 
