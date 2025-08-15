@@ -10,13 +10,13 @@ from .approx_bases import ApproxBases
 from .directions import Direction
 from .input_data import InputData
 from .tt_data import TTData
+from ..interpolation import deim, maxvol
 from ..linalg import (
     batch_mul, cartesian_prod, 
     fold_left, fold_right, 
     unfold_left, unfold_right,
     tsvd
 )
-from ..interpolation import deim, maxvol
 from ..options import TTOptions
 from ..polynomials import Basis1D, Spectral
 from ..tools.printing import als_info
@@ -229,7 +229,7 @@ class TTFunc():
         interpolation point.
         """
         if isinstance(basis, Spectral): 
-            return torch.einsum("jl, ilk", basis.node2basis, H)
+            return torch.einsum("ilk, jl", H, basis.node2basis)
         # node2basis is an identity operator for piecewise polynomials 
         return H.clone()
 
@@ -892,7 +892,7 @@ class TTFunc():
         r_k = 1 if ls_right.numel() == 0 else ls_right.shape[0]
         n_k = self.bases[k].cardinality
 
-        ls = cartesian_prod((ls_left, self.bases[k].nodes[:, None], ls_right))
+        ls = cartesian_prod(ls_left, self.bases[k].nodes[:, None], ls_right)
         H = self.target_func(ls).reshape(r_p, n_k, r_k)
         self.num_eval += ls.shape[0]
         return H

@@ -22,7 +22,7 @@ def batch_mul(*arrs: Tensor) -> Tensor:
     return prod
 
 
-def cartesian_prod(arrs: Sequence[Tensor]) -> Tensor:
+def cartesian_prod(*arrs: Tensor) -> Tensor:
     """Computes the Cartesian product associated with a set of 2D 
     tensors.
 
@@ -41,21 +41,22 @@ def cartesian_prod(arrs: Sequence[Tensor]) -> Tensor:
     """
 
     # Ignore tensors with no elements
-    arrs = [a for a in arrs if a.numel() > 0]
-    arrs = [torch.atleast_2d(a) for a in arrs]
+    matrices = [a for a in arrs if a.numel() > 0]
+    matrices = [torch.atleast_2d(m) for m in matrices]
 
-    if not arrs:
+    if not matrices:
         msg = "List of empty tensors found."
         warnings.warn(msg)
         return torch.tensor([[]])
     
-    if len(arrs) == 1:
-        return arrs[0]
+    if len(matrices) == 1:
+        return matrices[0]
 
-    prod = arrs[0]
-    for arr in arrs[1:]:
-        prod = torch.tensor([[*p, *a] for p in prod for a in arr])
-
+    prod = matrices[0]
+    for matrix in matrices[1:]:
+        prod = torch.tensor([[*row_p, *row_m] 
+                             for row_p in prod 
+                             for row_m in matrix])
     return prod
 
 
