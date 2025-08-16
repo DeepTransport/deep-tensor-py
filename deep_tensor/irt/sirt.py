@@ -7,7 +7,7 @@ from torch.quasirandom import SobolEngine
 
 from ..ftt import (
     ApproxBases, Direction, InputData, 
-    TTData, TTFunc
+    TTData, TTFunc, EFTT, FTT
 )
 from ..linalg import batch_mul, unfold_left, unfold_right
 from ..options import TTOptions
@@ -103,19 +103,19 @@ class SIRT():
         
         self.options = options 
         self.input_data = input_data
-        self.tt_data = tt_data
         self.defensive = defensive
         
         self.cdfs = self._construct_cdfs(self.options.cdf_tol)
 
-        self.approx = TTFunc(
+        self.approx = FTT(
             self._target_func, 
             self.bases,
             options=self.options, 
             input_data=self.input_data,
-            tt_data=self.tt_data
+            reference=self.reference,
+            tt_data=tt_data
         )
-        self.approx._cross()
+        self.approx.build()
 
         # Compute coefficient tensors and marginalisation coefficents, 
         # from the first core to the last and the last core to the first

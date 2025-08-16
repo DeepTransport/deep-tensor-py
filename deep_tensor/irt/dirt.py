@@ -229,12 +229,10 @@ class DIRT():
 
             if self.n_layers == 0:
                 approx = None 
-                tt_data = None
             else:
                 # Use previous approximation as a starting point
                 approx = deepcopy(self.sirts[self.n_layers-1].approx)
                 approx._round(max_rank=self.tt_options.init_rank)
-                tt_data = approx.tt_data
 
             sirt = SIRT(
                 self._updated_func,
@@ -243,7 +241,6 @@ class DIRT():
                 prev_approx=approx,
                 options=self.tt_options,
                 input_data=input_data,
-                tt_data=tt_data,
                 defensive=self.dirt_options.defensive
             )
         
