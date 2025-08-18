@@ -84,7 +84,7 @@ class SIRT():
         if prev_approx is not None:
             bases = prev_approx.bases.bases
             options = prev_approx.options
-            tt_data = prev_approx.tt_data
+            # tt_data = prev_approx.tt_data
 
         if options is None:
             options = TTOptions()

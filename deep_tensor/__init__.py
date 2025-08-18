@@ -17,7 +17,7 @@ from .domains import (
     LinearDomain, 
     LogarithmicMapping
 )
-from .ftt import ApproxBases, Direction, InputData, TTData, TTFunc
+from .ftt import ApproxBases, Direction, InputData, TTData, FTT, EFTT
 from .irt import DIRT, SIRT
 from .options import TTOptions, DIRTOptions
 from .polynomials import (

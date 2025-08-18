@@ -8,12 +8,27 @@ from .approx_bases import ApproxBases
 from .directions import Direction
 from .input_data import InputData
 from .tt import Grid, TT
+from ..domains import Domain
 from ..interpolation import deim
 from ..linalg import batch_mul, tsvd
 from ..options import TTOptions
 from ..polynomials import Basis1D, Spectral
 from ..references import Reference
 from ..tools.printing import als_info
+
+
+def compute_weights(
+    grid_points: Dict, 
+    domain: Domain, 
+    reference: Reference
+) -> Dict[int, Tensor]:
+    
+    reference_weights = {}
+    for k in grid_points:
+        nodes_approx_k = domain.local2approx(grid_points[k])[0]
+        reference_weights[k] = reference.eval_pdf(nodes_approx_k)[0]
+    
+    return reference_weights
 
 
 class TTFunc(abc.ABC):
@@ -34,15 +49,12 @@ class TTFunc(abc.ABC):
         self.dim = self.bases.dim
         self.options = options
         self.input_data = input_data  # TODO: get rid of this... only using the debugging samples.
+        self.reference = reference
         self.l2_err = torch.inf
         self.linf_err = torch.inf
-
-        reference_weights = {}
-        for k in range(self.dim):
-            nodes_approx_k = bases.domain.local2approx(bases[k].nodes)[0]
-            reference_weights[k] = reference.eval_pdf(nodes_approx_k)[0]
         
         grid_points = {k: self.bases[k].nodes for k in range(self.dim)}
+        reference_weights = compute_weights(grid_points, bases.domain, reference)
 
         self.grid = Grid(grid_points, reference_weights)
         self.tt = TT(target_func, self.grid, options)
@@ -61,8 +73,16 @@ class TTFunc(abc.ABC):
 
     @property 
     def ranks(self) -> Tensor:
-        """The ranks of each tensor core."""
         return self.tt.ranks
+    
+    @property
+    def is_finished(self) -> bool:
+        max_core_error = self.tt.errors.max().item()
+        is_finished = (
+            max_core_error < self.options.als_tol 
+            or self.l2_err < self.options.als_tol
+        )
+        return is_finished
 
     @property
     @abc.abstractmethod
@@ -161,7 +181,7 @@ class TTFunc(abc.ABC):
         als_info(" | ".join(diagnostics))
         return
 
-    def _compute_rel_error(self) -> None:
+    def compute_error_estimates(self) -> None:
         """Computes the relative error between the value of the FTT 
         approximation to the target function and the true value for the 
         set of debugging samples.
@@ -258,11 +278,6 @@ class TTFunc(abc.ABC):
         self.tt.round(tol, max_rank)
         return
 
-    def _is_finished(self) -> bool:
-        max_error_tol = float(self.tt.errors.max()) < self.options.als_tol
-        l2_error_tol = self.l2_err < self.options.als_tol
-        return max_error_tol or l2_error_tol
-
 
 class FTT(TTFunc):
     """A multivariate functional tensor-train.
@@ -290,10 +305,10 @@ class FTT(TTFunc):
         """(Re)-computes the FTT cores from the TT cores.
         """
         for k in range(self.dim):
-            self.cores[k] = self.tt.cores[k].clone()
+            core = self.tt.cores[k].clone()
             if isinstance(basis := self.bases[k], Spectral):
-                self.cores[k] = torch.einsum("ilk, jl", self.cores[k], basis.node2basis)
-        
+                core = torch.einsum("ilk, jl", core, basis.node2basis)
+            self.cores[k] = core
         return
 
     def build(self) -> None:
@@ -302,18 +317,15 @@ class FTT(TTFunc):
         if self.options.verbose > 0:
             self._print_info_header()
 
-        num_iter = 0
-
         for num_iter in range(self.options.max_als): 
 
             self.tt.sweep()
             self.compute_cores()
-            self._compute_rel_error()
+            self.compute_error_estimates()
 
             if self.options.verbose > 0:
                 self._print_info(num_iter)
-
-            if self._is_finished():
+            if self.is_finished:
                 break
             
         if self.options.verbose > 0:
@@ -322,6 +334,7 @@ class FTT(TTFunc):
             ranks = "-".join([str(int(r)) for r in self.ranks])
             msg = f"Final TT ranks: {ranks}."
             als_info(msg)
+        
         return
 
 
@@ -404,7 +417,7 @@ class EFTT(TTFunc):
 
             # TODO: if the matrix is wide (which it probably will be), 
             # computing the eigendecomposition is better here.
-            tol = 1e-6
+            tol = 1e-12
             basis_k = tsvd(fibre_matrix, tol=tol)[0]
 
             msg = f"Computing reduced basis for dimension {k+1} / {self.dim}..."
@@ -415,24 +428,20 @@ class EFTT(TTFunc):
 
         print("", end="\r")
         
-        msg = (
-            "Reduced basis dimensions: "
-            f"-".join([str(int(d)) for d in self.basis_dims])
-        )
-        als_info(msg)
+        if self.options.verbose > 1:
+            basis_dims = f"-".join([str(int(d)) for d in self.basis_dims])
+            als_info(f"Reduced basis dimensions: {basis_dims}.")
 
         return
     
     def compute_cores(self) -> None:
         """(Re)-computes the FTT cores from the TT cores.
         """
-
         for k in range(self.dim):
             core = torch.einsum("ilk, jl", self.tt.cores[k], self.factors[k])
             if isinstance(basis := self.bases[k], Spectral):
                 core = torch.einsum("ilk, jl", core, basis.node2basis)
             self.cores[k] = core
-
         return
 
     def build(self):
@@ -448,7 +457,8 @@ class EFTT(TTFunc):
         self._compute_pod_bases()
 
         deim_nodes = {k: self.bases[k].nodes[self.deim_inds[k]] for k in range(self.dim)}
-        deim_grid = Grid(deim_nodes)
+        deim_weights = compute_weights(deim_nodes, self.bases.domain, self.reference)
+        deim_grid = Grid(deim_nodes, deim_weights)
 
         self.tt = TT(self.target_func, deim_grid, self.options)
 
@@ -460,14 +470,13 @@ class EFTT(TTFunc):
         for num_iter in range(self.options.max_als): 
 
             self.tt.sweep()
-
             self.compute_cores()
-            self._compute_rel_error()
+            self.compute_error_estimates()
             
             if self.options.verbose > 0:
                 self._print_info(num_iter)
 
-            if self._is_finished():
+            if self.is_finished:
                 break
             
         if self.options.verbose > 0:
