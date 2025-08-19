@@ -12,9 +12,6 @@ def batch_mul(*arrs: Tensor) -> Tensor:
         if a.ndim != 3:
             msg = "All input tensors must be three-dimensional."
             raise Exception(msg)
-        
-    if len(arrs) == 1:
-        return arrs[0]
 
     prod = arrs[0]
     for a in arrs[1:]:
@@ -60,27 +57,67 @@ def cartesian_prod(*arrs: Tensor) -> Tensor:
     return prod
 
 
-def unfold_left(H: Tensor) -> Tensor:
+def n_mode_prod(T: Tensor, M: Tensor, n: int) -> Tensor:
+    """Computes the n-mode product of a tensor and a matrix or vector, 
+    as in Kolda and Bader (2009).
+    """
+
+    if M.ndim not in (1, 2):
+        raise Exception("M must be a matrix or vector.")
+
+    prod = T.swapdims(n, -1)
+
+    if M.ndim == 1:
+        prod = torch.einsum("...ij,j", prod, M)
+    else:
+        prod = torch.einsum("...ij, kj", prod, M)
+        prod = prod.swapdims(n, -1)
+    
+    return prod
+
+
+def mode_n_unfolding(T: Tensor, n: int) -> Tensor:
+    """Computes the mode-n unfolding of a tensor. Each row of the 
+    returned matrix contains a mode-n fibre of the input tensor.
+    """
+    num_fibres = T.shape[n]
+    T = T.swapdims(n, -1)
+    T = T.reshape(-1, num_fibres)
+    return T
+
+
+def mode_n_folding(M: Tensor, n: int, newshape: Sequence) -> Tensor:
+    """Computes the inverse of the mode-n unfolding operation."""
+
+    newshape = list(newshape)
+    newshape[n], newshape[-1] = newshape[-1], newshape[n]
+
+    T = M.reshape(*newshape)
+    T = T.swapdims(n, -1)
+    return T
+
+
+def unfold_left(T: Tensor) -> Tensor:
     """Forms the left unfolding matrix of a three-dimensional tensor.
     """
-    if H.ndim != 3:
+    if T.ndim != 3:
         msg = "Input tensor must be 3-dimensional."
         raise ValueError(msg)
-    r_p, n_k, r_k = H.shape
-    H = H.reshape(r_p * n_k, r_k)
-    return H
+    r_p, n_k, r_k = T.shape
+    T = T.reshape(r_p * n_k, r_k)
+    return T
 
 
-def unfold_right(H: Tensor) -> Tensor:
+def unfold_right(T: Tensor) -> Tensor:
     """Forms the transpose of the right unfolding matrix of a 
     3-dimensional tensor.
     """
-    if H.ndim != 3:
+    if T.ndim != 3:
         msg = "Input tensor must be 3-dimensional."
         raise ValueError(msg)
-    r_p, n_k, r_k = H.shape
-    H = H.swapdims(0, 2).reshape(n_k * r_k, r_p)
-    return H
+    r_p, n_k, r_k = T.shape
+    T = T.swapdims(0, 2).reshape(n_k * r_k, r_p)
+    return T
 
 
 def fold_left(H: Tensor, newshape: Sequence) -> Tensor:

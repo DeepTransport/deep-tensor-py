@@ -10,8 +10,9 @@ from .directions import Direction, REVERSE_DIRECTIONS
 from ..interpolation import deim, maxvol
 from ..linalg import (
     cartesian_prod, 
-    fold_left, fold_right, 
-    unfold_left, unfold_right,
+    fold_left, fold_right,
+    unfold_left, unfold_right, 
+    mode_n_folding, mode_n_unfolding, n_mode_prod,
     tsvd
 )
 from ..options import TTOptions
@@ -97,6 +98,10 @@ class TT():
         self.direction = Direction.FORWARD
         self.index_sets: Dict[int, Tensor] = {}
         self.cores: Dict[int, Tensor] = {}
+
+        # AMEN
+        self.res_l = {}
+        self.res_w = {}
         
         return
     
@@ -109,13 +114,13 @@ class TT():
         return ranks
     
     @staticmethod
-    def _get_error_local(H_new: Tensor, H_old: Tensor) -> float:
+    def compute_local_error(H_new: Tensor, H_old: Tensor) -> float:
         """Returns the error between the current and previous 
         coefficient tensors.
         """
         return float((H_new-H_old).abs().max() / H_new.abs().max())  
 
-    def _initialise(self) -> None:
+    def initialise(self) -> None:
         """Initialises the cores and interpolation points in each 
         dimension.
         """
@@ -136,14 +141,65 @@ class TT():
         self.index_sets[self.dim] = torch.tensor([])
         return
     
-    def _reverse_direction(self) -> None:
+    def initialise_res_l(self) -> None:
+        """Initialises the residual coordinates for AMEN."""
+
+        for k in range(self.dim-1, -1, -1):
+            samples = self.grid.sample_indices(self.options.kick_rank)
+            if self.direction == Direction.FORWARD:
+                self.res_l[k] = samples[:, k:]
+            else:
+                self.res_l[k] = samples[:, :(k+1)]
+
+        self.res_l[-1] = torch.tensor([])
+        self.res_l[self.dim] = torch.tensor([])
+        return
+    
+    def initialise_res_w(self) -> None:
+        """Initialises the residual blocks for AMEN."""
+
+        kick_rank = self.options.kick_rank
+
+        if self.direction == Direction.FORWARD:
+            
+            shape_0 = (kick_rank, self.cores[0].shape[-1])
+            self.res_w[0] = torch.ones(shape_0)
+            
+            for k in range(1, self.dim):
+                shape_k = (self.cores[k].shape[0], kick_rank)
+                self.res_w[k] = torch.ones(shape_k)
+
+        else:
+
+            for k in range(self.dim-1):
+                shape_k = (kick_rank, self.cores[k].shape[-1])
+                self.res_w[k] = torch.ones(shape_k)
+
+            shape_d = (self.cores[self.dim-1].shape[0], kick_rank)
+            self.res_w[self.dim-1] = torch.ones(shape_d)
+
+        self.res_w[-1] = torch.tensor([[1.0]])
+        self.res_w[self.dim] = torch.tensor([[1.0]])
+        return
+
+    def _initialise_amen(self) -> None:
+        """Initialises the residual coordinates and residual blocks 
+        for AMEN.
+        """
+        if self.res_l == {}:
+            self.initialise_res_l()
+        if self.res_w == {}:
+            self.initialise_res_w()
+        return
+    
+    def reverse_direction(self) -> None:
         """Reverses the direction in which the dimensions of the 
         function are iterated over.
         """
         self.direction = REVERSE_DIRECTIONS[self.direction]
         return
     
-    def _get_local_index(
+    def merge_indices(
         self,
         index_set_prev: Tensor,
         indices_k: Tensor,
@@ -151,24 +207,6 @@ class TT():
     ) -> Tensor:
         """Updates the set of interpolation points for the current 
         dimension.
-        
-        Parameters
-        ----------
-        basis:
-            The polynomial basis for the current dimension of the 
-            approximation.
-        ls_int_p: 
-            The previous set of interpolation points.
-        inds:
-            The set of indices of the maximum-volume submatrix of the 
-            current (unfolded) tensor core.
-        
-        Returns
-        -------
-        ls_int_k:
-            The set of updated interpolation points for the current 
-            dimension.
-        
         """
 
         if index_set_prev.numel() == 0:
@@ -188,7 +226,7 @@ class TT():
 
         return index_set_k
  
-    def _select_points(self, U: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+    def select_points(self, U: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """Selects a square submatrix within a tall matrix.
 
         Parameters
@@ -215,29 +253,117 @@ class TT():
             warnings.warn(msg)
         return inds, B, U_sub
 
-    def build_cross_block_fixed(self, k: int) -> None:
+    def compute_block(
+        self, 
+        index_set_left: Tensor, 
+        inds_k: Tensor,
+        index_set_right: Tensor
+    ) -> Tensor:
+        """Evaluates the function being approximated at a (reduced) set 
+        of interpolation points, and returns the corresponding
+        local coefficient matrix.
+        """
+
+        r_p = 1 if index_set_left.numel() == 0 else index_set_left.shape[0]
+        r_k = 1 if index_set_right.numel() == 0 else index_set_right.shape[0]
+        n_k = inds_k.numel()
+
+        indices_prod = cartesian_prod(index_set_left, inds_k, index_set_right)
+
+        ls = self.grid.indices2points(indices_prod)
+        block = self.target_func(ls).reshape(r_p, n_k, r_k)
+        self.num_eval += block.numel()
+
+        return block
+    
+    def build_cross_block_amen(self, k: int) -> None:
         
-        H = self.compute_block(self.index_sets[k-1], self.index_sets[k+1], k) 
-        self.errors[k] = TT._get_error_local(H, self.cores[k])
-        self._build_basis_svd(H, k)
+        index_set_left = self.index_sets[k-1]
+        inds = self.indices[k][:, None]
+        index_set_right = self.index_sets[k+1]
+        r_left = self.res_l[k-1]
+        r_right = self.res_l[k+1]
+
+        # Evaluate the interpolant function at x_k nodes
+        H = self.compute_block(index_set_left, inds, index_set_right)
+        self.errors[k] = self.compute_local_error(H, self.cores[k])
+
+        # Evaluate residual function at x_k nodes
+        H_res = self.compute_block(r_left, inds, r_right)
+
+        if self.direction == Direction.FORWARD and k > 0:
+            H_up = self.compute_block(index_set_left, inds, r_right)
+        elif self.direction == Direction.BACKWARD and k < self.dim-1: 
+            H_up = self.compute_block(r_left, inds, index_set_right)
+        else:
+            H_up = H_res.clone()
+
+        self.build_basis_amen(H, H_res, H_up, k)
+        return 
+
+    def build_cross_block_random(self, k: int) -> None:
+
+        index_set_left = self.index_sets[k-1]
+        inds = self.indices[k][:, None]
+        index_set_right = self.index_sets[k+1]
+        index_set_enrich = self.grid.sample_indices(n=self.options.kick_rank)
+        
+        block = self.compute_block(index_set_left, inds, index_set_right) 
+        self.errors[k] = TT.compute_local_error(block, self.cores[k])
+
+        if self.direction == Direction.FORWARD:
+            block_indices = (index_set_left, inds, index_set_enrich[:, k+1:])
+            block_enrich = self.compute_block(*block_indices)
+            block = torch.concatenate((block, block_enrich), dim=2)
+        else:
+            block_indices = (index_set_enrich[:, :k], inds, index_set_right)
+            block_enrich = self.compute_block(*block_indices)
+            block = torch.concatenate((block, block_enrich), dim=0)
+        
+        self.build_basis_svd(block, k)
+
+        return
+    
+    def build_cross_block_fixed(self, k: int) -> None:
+
+        index_set_left = self.index_sets[k-1]
+        inds = self.indices[k][:, None]
+        index_set_right = self.index_sets[k+1]
+
+        block = self.compute_block(index_set_left, inds, index_set_right)
+        self.errors[k] = TT.compute_local_error(block, self.cores[k])
+        self.build_basis_svd(block, k)
+        
         return
 
-    def build_block_final(self) -> None:
+    def build_cross_block(self, k: int) -> None:
+
+        if self.options.tt_method == "fixed_rank":
+            self.build_cross_block_fixed(k)
+        elif self.options.tt_method == "random":
+            self.build_cross_block_random(k)
+        else:
+            # print("AMEN not supported yet. Using random enrichment.")
+            self.build_cross_block_amen(k)
+        
+        return
+
+    def build_block_final(self, k: int) -> None:
         """Computes the final block of the FTT approximation to the 
         target function.
         """
 
-        if self.direction == Direction.FORWARD:
-            k = self.dim - 1
-        else:
-            k = 0
+        index_set_prev = self.index_sets[k-1]
+        inds = self.indices[k][:, None]
+        index_set_next = self.index_sets[k+1]
 
-        H = self.compute_block(self.index_sets[k-1], self.index_sets[k+1], k)
-        self.errors[k] = TT._get_error_local(H, self.cores[k])
-        self.cores[k] = H
+        block = self.compute_block(index_set_prev, inds, index_set_next)
+        self.errors[k] = TT.compute_local_error(block, self.cores[k])
+        self.cores[k] = block
+
         return
        
-    def _truncate_local(
+    def truncate_local(
         self, 
         H: Tensor, 
         tol: float | None = None,
@@ -275,9 +401,9 @@ class TT():
         sVhr = sr[:, None] * Vhr
         return Ur, sVhr, rank
     
-    def _build_basis_svd(
+    def build_basis_svd(
         self, 
-        H: Tensor, 
+        T: Tensor, 
         k: int, 
         tol: float | None = None,
         max_rank: int | None = None
@@ -307,61 +433,132 @@ class TT():
 
         k_prev = k - self.direction.value
         k_next = k + self.direction.value
-        r_p, n_k, r_k = H.shape
+
+        if self.direction == Direction.BACKWARD:
+            T = T.swapdims(0, 2)
+            self.cores[k_next] = self.cores[k_next].swapdims(0, 2)
+
+        r_prev, n_k = T.shape[:2]
+        r_next = self.cores[k_next].shape[0]
+
+        T = mode_n_unfolding(T, n=2)
+        U, sVh, rank = self.truncate_local(T, tol, max_rank)
+
+        # Select a set of interpolation points
+        indices_global, B, U_interp = self.select_points(U)
+        core_shape = (r_prev, n_k, rank)
+        self.cores[k] = mode_n_folding(B, n=2, newshape=core_shape)
         
-        index_set_prev = self.index_sets[k_prev]
+        self.index_sets[k] = self.merge_indices(
+            self.index_sets[k_prev], 
+            self.indices[k], 
+            indices_global
+        )
+
+        couple = (U_interp @ sVh)[:, :r_next]
+        self.cores[k_next] = n_mode_prod(self.cores[k_next], couple, n=0)
+
+        if self.direction == Direction.BACKWARD:
+            self.cores[k] = self.cores[k].swapdims(0, 2)
+            self.cores[k_next] = self.cores[k_next].swapdims(0, 2)
+
+        return
+
+    def build_basis_amen(
+        self, 
+        H: Tensor,
+        H_res: Tensor,
+        H_up: Tensor,
+        k: int
+    ) -> None:
+        """Computes the coefficients of the kth tensor core."""
+        
+        k_prev = k - self.direction.value
+        k_next = k + self.direction.value
+
+        res_w_prev = self.res_w[k-1]
+        res_w_next = self.res_w[k+1]
+
         A_next = self.cores[k_next]
+
+        n_left, n_k, n_right = H.shape
+        r_0_next, _, r_1_next = A_next.shape
 
         if self.direction == Direction.FORWARD:
             H = unfold_left(H)
-        else: 
-            H = unfold_right(H)
-
-        # tol = 0.0  # TEMP!!
-        U, sVh, rank = self._truncate_local(H, tol, max_rank)
-
-        # Select a set of interpolation points
-        indices_global, B, U_interp = self._select_points(U)
-        index_set_k = self._get_local_index(index_set_prev, self.indices[k], indices_global)
-        couple = U_interp @ sVh
-
-        # Form the current coefficient tensor and update the next one
-        if self.direction == Direction.FORWARD:
-            A = fold_left(B, (r_p, n_k, rank))
-            r_next = A_next.shape[0]
-            A_next = torch.einsum("il, ljk", couple[:, :r_next], A_next)
+            H_up = unfold_left(H_up)
         else:
-            A = fold_right(B, (rank, n_k, r_k))
-            r_next = A_next.shape[2]
-            A_next = torch.einsum("ijl, kl", A_next, couple[:, :r_next])
+            H = unfold_right(H)
+            H_up = unfold_right(H_up)
+        
+        U, sVh, rank = self.truncate_local(H)
 
-        self.cores[k] = A
+        if self.direction == Direction.FORWARD:
+            temp_l = fold_left(U, (n_left, n_k, rank))
+            temp_l = torch.einsum("il, ljk", res_w_prev, temp_l)
+            temp_r = sVh @ res_w_next
+            H_up -= U @ temp_r
+            H_res -= torch.einsum("ijl, lk", temp_l, temp_r)
+            H_res = unfold_left(H_res)
+
+        else: 
+            temp_r = fold_right(U, (rank, n_k, n_right))
+            temp_r = torch.einsum("ijl, lk", temp_r, res_w_next)
+            temp_lt = sVh @ res_w_prev.T
+            H_up -= U @ temp_lt
+            H_res -= torch.einsum("li, ljk", temp_lt, temp_r)
+            H_res = unfold_right(H_res)
+        
+        # Enrich basis
+        T = torch.cat((U, H_up), dim=1)
+        U, R = linalg.qr(T)
+        r_new = U.shape[1]
+
+        indices_global, B, U_interp = self.select_points(U)
+        couple = U_interp @ R[:r_new, :rank] @ sVh
+
+        self.index_sets[k] = self.merge_indices(
+            self.index_sets[k_prev], 
+            self.indices[k], 
+            indices_global
+        )
+
+        U_res = self.truncate_local(H_res, tol=0.0)[0]
+        indices_res_global = self.select_points(U_res)[0]
+        
+        self.res_l[k] = self.merge_indices(
+            self.res_l[k_prev], 
+            self.indices[k],
+            indices_res_global
+        )
+
+        if self.direction == Direction.FORWARD:
+            
+            A = fold_left(B, (n_left, n_k, r_new))
+
+            temp = torch.einsum("il, ljk", res_w_prev, A)
+            temp = unfold_left(temp)
+            res_w = temp[indices_res_global]
+
+            couple = couple[:, :r_0_next]
+            A_next = torch.einsum("il, ljk", couple, A_next)
+
+        else:
+            
+            A = fold_right(B, (r_new, n_k, n_right))
+
+            temp = torch.einsum("ijl, lk", A, res_w_next)
+            temp = unfold_right(temp)
+            res_w = temp[indices_res_global].T
+
+            couple = couple[:, :r_1_next]
+            A_next = torch.einsum("ijl, kl", A_next, couple)
+
+        self.cores[k] = A 
         self.cores[k_next] = A_next
-        self.index_sets[k] = index_set_k
+        self.res_w[k] = res_w 
         return
 
-    def compute_block(
-        self, 
-        inds_left: Tensor, 
-        inds_right: Tensor, 
-        k: int
-    ) -> Tensor:
-        """Evaluates the function being approximated at a (reduced) set 
-        of interpolation points, and returns the corresponding
-        local coefficient matrix.
-        """
-
-        r_p = 1 if inds_left.numel() == 0 else inds_left.shape[0]
-        r_k = 1 if inds_right.numel() == 0 else inds_right.shape[0]
-        n_k = self.points[k].numel()
-
-        inds = cartesian_prod(inds_left, self.indices[k][:, None], inds_right)
-        ls = self.grid.indices2points(inds)
-        H = self.target_func(ls).reshape(r_p, n_k, r_k)
-        self.num_eval += H.numel()
-
-        return H
-    
     def round(
         self, 
         tol: float | None = None, 
@@ -382,39 +579,34 @@ class TT():
             tol = self.options.local_tol
 
         for _ in range(2):
-            
-            self._reverse_direction()
-
+            self.reverse_direction()
             if self.direction == Direction.FORWARD:
                 inds = range(self.dim-1)
             else:
                 inds = range(self.dim-1, 0, -1)
-
             for k in inds:
-                self._build_basis_svd(self.cores[k], k, tol, max_rank)
+                self.build_basis_svd(self.cores[k], k, tol, max_rank)
 
-        # if self.use_amen:
-        #     self.tt_data.res_w = {}
-        #     self.tt_data.res_x = {}
+        if self.options.tt_method == "amen":
+            self.res_l = {}
+            self.res_w = {}
         return
 
     def sweep(self):
-        """Runs a single cross iteration.
-        NOTE: start this without any adaptivity (then add enrichment in later).
-        """
+        """Runs a single cross iteration."""
 
         if self.cores == {}:
-            self._initialise()
+            self.initialise()
         else:
-            self._reverse_direction()
+            self.reverse_direction()
         
-        # if self.use_amen:
-        #     self._initialise_amen()
+        if self.options.tt_method == "amen":
+            self._initialise_amen()
 
         if self.direction == Direction.FORWARD:
-            inds = range(self.dim-1)
+            inds = range(self.dim)
         else:
-            inds = range(self.dim-1, 0, -1)
+            inds = range(self.dim-1, -1, -1)
         
         for i, k in enumerate(inds):
             
@@ -422,19 +614,9 @@ class TT():
                 msg = f"Building block {i+1} / {self.dim}..."
                 als_info(msg, end="\r")
             
-            # TODO: support enrichment methods...
-            self.build_cross_block_fixed(k)
-            # if self.options.tt_method == "fixed_rank":
-            #     self._compute_cross_block_fixed(k)
-            # elif self.options.tt_method == "random":
-            #     self._compute_cross_block_random(k)
-            # elif self.options.tt_method == "amen":
-            #     self._compute_cross_block_amen(k)
-        
-        if self.options.verbose > 1:
-            msg = f"Building block {self.dim} / {self.dim}..."
-            als_info(msg, end="\r")
-        self.build_block_final()
+            if i < self.dim-1:
+                self.build_cross_block(k)
+            else:
+                self.build_block_final(k)
 
         return
-

@@ -10,7 +10,7 @@ from .input_data import InputData
 from .tt import Grid, TT
 from ..domains import Domain
 from ..interpolation import deim
-from ..linalg import batch_mul, tsvd
+from ..linalg import batch_mul, n_mode_prod, tsvd
 from ..options import TTOptions
 from ..polynomials import Basis1D, Spectral
 from ..references import Reference
@@ -110,6 +110,16 @@ class TTFunc(abc.ABC):
             raise Exception(msg)
 
         return
+    
+    @staticmethod
+    def eval_core(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
+        """Evaluates a tensor core.
+        """
+        r_p, n_k, r_k = A.shape
+        n_ls = ls.numel()
+        coeffs = A.permute(1, 0, 2).reshape(n_k, r_p * r_k)
+        Gs = poly.eval_radon(coeffs, ls).reshape(n_ls, r_p, r_k)
+        return Gs
     
     @staticmethod
     def _eval_core_213(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
@@ -307,7 +317,7 @@ class FTT(TTFunc):
         for k in range(self.dim):
             core = self.tt.cores[k].clone()
             if isinstance(basis := self.bases[k], Spectral):
-                core = torch.einsum("ilk, jl", core, basis.node2basis)
+                core = n_mode_prod(core, basis.node2basis, n=1)
             self.cores[k] = core
         return
 
@@ -387,37 +397,38 @@ class EFTT(TTFunc):
     def _compute_pod_bases(self):
         """Computes the POD bases in each dimension.
         
-        TODO: add an option to set the number of samples here...
-        TODO: add an option to set the tolerance here...
+        TODO: add an option to set the number of samples here.
+        TODO: add an option to set the tolerance here.
 
         TODO: give this a more descriptive name--it also does the DEIM 
         indices too... (perhaps this part of the code could be a 
         separate function).
 
-        TODO: the samples should probably be drawn directly from the 
-        reference rather than being on the grid...
+        TODO: the samples could be drawn directly from the 
+        reference rather than the (weighted) grid.
 
         """
 
         N = 25  # number of snaphots
 
         for k in range(self.dim):
-
-            points_k = self.grid.points[k]
-            n_k = points_k.numel()
+            
+            n_k = self.grid.points[k].numel()
 
             index_samples = self.grid.sample_indices(N)
             point_samples = self.grid.indices2points(index_samples)
 
             point_samples = point_samples.repeat((n_k, 1))
-            point_samples[:, k] = points_k.repeat_interleave(N)
+            point_samples[:, k] = self.grid.points[k].repeat_interleave(N)
 
+            # Note: each column is a fibre
             fibre_matrix = self.target_func(point_samples).reshape(n_k, N)
             self.num_eval_pod += fibre_matrix.numel()
 
-            # TODO: if the matrix is wide (which it probably will be), 
-            # computing the eigendecomposition is better here.
-            tol = 1e-12
+            # NOTE: if the matrix is wide (i.e., more POD samples than 
+            # interpolation points), computing the eigendecomposition
+            # of FF' is better here.
+            tol = 1e-6
             basis_k = tsvd(fibre_matrix, tol=tol)[0]
 
             msg = f"Computing reduced basis for dimension {k+1} / {self.dim}..."
@@ -438,9 +449,9 @@ class EFTT(TTFunc):
         """(Re)-computes the FTT cores from the TT cores.
         """
         for k in range(self.dim):
-            core = torch.einsum("ilk, jl", self.tt.cores[k], self.factors[k])
+            core = n_mode_prod(self.tt.cores[k], self.factors[k], n=1)
             if isinstance(basis := self.bases[k], Spectral):
-                core = torch.einsum("ilk, jl", core, basis.node2basis)
+                core = n_mode_prod(core, basis.node2basis, n=1)
             self.cores[k] = core
         return
 

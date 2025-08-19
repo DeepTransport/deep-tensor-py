@@ -9,7 +9,7 @@ from ..ftt import (
     ApproxBases, Direction, InputData, 
     TTData, TTFunc, EFTT, FTT
 )
-from ..linalg import batch_mul, unfold_left, unfold_right
+from ..linalg import batch_mul, n_mode_prod, unfold_left, unfold_right
 from ..options import TTOptions
 from ..polynomials import Basis1D, CDF1D, construct_cdf
 from ..preconditioners.preconditioner import Preconditioner
@@ -156,8 +156,8 @@ class SIRT():
         cores = self.approx.cores
 
         for k in range(self.dim-1, -1, -1):
-            self._Bs_f[k] = torch.einsum("ijl, lk", cores[k], self._Rs_f[k+1])
-            C_k = torch.einsum("ilk, lj", self._Bs_f[k], self.bases[k].mass_R)
+            self._Bs_f[k] = n_mode_prod(cores[k], self._Rs_f[k+1].T, n=2)
+            C_k = n_mode_prod(self._Bs_f[k], self.bases[k].mass_R.T, n=1)
             C_k = unfold_right(C_k)
             self._Rs_f[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
@@ -174,8 +174,8 @@ class SIRT():
         cores = self.approx.cores
 
         for k in range(self.dim):
-            self._Bs_b[k] = torch.einsum("il, ljk", self._Rs_b[k-1], cores[k])
-            C_k = torch.einsum("jl, ilk", self.bases[k].mass_R, self._Bs_b[k])
+            self._Bs_b[k] = n_mode_prod(cores[k], self._Rs_b[k-1], n=0)
+            C_k = n_mode_prod(self._Bs_b[k], self.bases[k].mass_R, n=1)
             C_k = unfold_left(C_k)
             self._Rs_b[k] = torch.linalg.qr(C_k, mode="reduced")[1]
 
@@ -295,7 +295,7 @@ class SIRT():
         for k in range(d_zs):
             
             Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
-            gls = torch.einsum("jl, ilk", gs, Ps)
+            gls = n_mode_prod(Ps, gs, n=1)
             ps = gls.square().sum(dim=2) + self.defensive
             ls[:, k] = self.cdfs[k].invert_cdf(ps, zs[:, k])
 
@@ -337,7 +337,7 @@ class SIRT():
         for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
 
             Ps = TTFunc._eval_core_231(self.bases[k], Bs[k], self.cdfs[k].nodes)
-            gls = torch.einsum("ilk, jl", Ps, gs)
+            gls = n_mode_prod(Ps, gs, n=1)
             ps = gls.square().sum(dim=2) + self.defensive
             ls[:, -i] = self.cdfs[k].invert_cdf(ps, zs[:, -i])
 
