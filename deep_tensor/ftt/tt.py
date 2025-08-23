@@ -7,6 +7,7 @@ from torch import linalg
 from torch.distributions import Categorical
 
 from .directions import Direction, REVERSE_DIRECTIONS
+from .tt_options import TTOptions
 from ..interpolation import deim, maxvol
 from ..linalg import (
     cartesian_prod, 
@@ -15,7 +16,6 @@ from ..linalg import (
     mode_n_folding, mode_n_unfolding, n_mode_prod,
     tsvd
 )
-from ..options import TTOptions
 from ..tools.printing import als_info
 
 
@@ -78,28 +78,19 @@ class TT():
     implementation.
     """
 
-    def __init__(
-        self, 
-        target_func: Callable[[Tensor], Tensor],
-        grid: Grid,
-        options: TTOptions
-    ):
+    def __init__(self, options: TTOptions | None = None):
 
-        self.target_func = target_func
-        self.grid = grid 
-        self.dim = grid.dim
-        self.indices = grid.indices 
-        self.points = grid.points
+        if options is None:
+            options = TTOptions()
+
         self.options = options
-
-        self.errors = torch.zeros(self.dim)
         self.num_eval = 0
 
         self.direction = Direction.FORWARD
         self.index_sets: Dict[int, Tensor] = {}
         self.cores: Dict[int, Tensor] = {}
 
-        # AMEN
+        # AMEn
         self.res_l = {}
         self.res_w = {}
         
@@ -107,8 +98,7 @@ class TT():
     
     @property
     def ranks(self) -> Tensor:
-        """The ranks of the tensor cores (excluding rank 0 and rank d).
-        """
+        """The ranks of the tensor cores (excluding rank 0 and rank d)."""
         ranks = torch.tensor([self.cores[k].shape[2] 
                               for k in range(self.dim-1)])
         return ranks
@@ -120,7 +110,23 @@ class TT():
         """
         return float((H_new-H_old).abs().max() / H_new.abs().max())  
 
-    def initialise(self) -> None:
+    def initialise(
+        self, 
+        target_func: Callable[[Tensor], Tensor], 
+        grid: Grid
+    ) -> None:
+
+        self.target_func = target_func
+        self.grid = grid 
+        self.dim = grid.dim
+        self.indices = grid.indices 
+        self.points = grid.points
+        self.errors = torch.zeros(self.dim)
+        if self.cores != {}:
+            self.round(max_rank=self.options.init_rank)
+        return
+
+    def initialise_cores(self) -> None:
         """Initialises the cores and interpolation points in each 
         dimension.
         """
@@ -144,7 +150,7 @@ class TT():
     def initialise_res_l(self) -> None:
         """Initialises the residual coordinates for AMEN."""
 
-        for k in range(self.dim-1, -1, -1):
+        for k in range(self.dim):
             samples = self.grid.sample_indices(self.options.kick_rank)
             if self.direction == Direction.FORWARD:
                 self.res_l[k] = samples[:, k:]
@@ -182,7 +188,7 @@ class TT():
         self.res_w[self.dim] = torch.tensor([[1.0]])
         return
 
-    def _initialise_amen(self) -> None:
+    def initialise_amen(self) -> None:
         """Initialises the residual coordinates and residual blocks 
         for AMEN.
         """
@@ -337,14 +343,13 @@ class TT():
         return
 
     def build_cross_block(self, k: int) -> None:
-
-        if self.options.tt_method == "fixed_rank":
-            self.build_cross_block_fixed(k)
-        elif self.options.tt_method == "random":
+        
+        if self.options.tt_method == "random":
             self.build_cross_block_random(k)
-        else:
-            # print("AMEN not supported yet. Using random enrichment.")
+        elif self.options.tt_method == "amen":
             self.build_cross_block_amen(k)
+        else:
+            self.build_cross_block_fixed(k)
         
         return
 
@@ -596,12 +601,12 @@ class TT():
         """Runs a single cross iteration."""
 
         if self.cores == {}:
-            self.initialise()
+            self.initialise_cores()
         else:
             self.reverse_direction()
         
         if self.options.tt_method == "amen":
-            self._initialise_amen()
+            self.initialise_amen()
 
         if self.direction == Direction.FORWARD:
             inds = range(self.dim)

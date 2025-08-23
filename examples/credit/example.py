@@ -1,17 +1,18 @@
-from typing import Tuple
 import os
+from typing import Tuple
 
 import numpy as np
 from scipy import optimize
 import torch
 from torch.autograd.functional import jacobian, hessian
 
-from examples.plotting import pairplot
-
 import deep_tensor as dt
 
+from examples.plotting import pairplot
 
-torch.random.manual_seed(0)
+
+# torch.manual_seed(0)
+torch.set_default_dtype(torch.float64)
 
 
 def read_credit_data(fname: str) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -36,14 +37,16 @@ def read_credit_data(fname: str) -> Tuple[torch.Tensor, torch.Tensor]:
 
     return xs, ys
 
+
 fname = os.path.join("examples", "credit", "german.data-numeric")
 xs, ys = read_credit_data(fname)
 
-n_beta = 1 + xs.shape[1]
+num_beta = 1 + xs.shape[1]
 
-mean_pri = torch.zeros((n_beta,))
+mean_pri = torch.zeros((num_beta,))
 sd_pri = 10.0
-cov_pri = sd_pri ** 2 * torch.eye(n_beta)
+cov_pri = sd_pri ** 2 * torch.eye(num_beta)
+
 
 def negloglik(bs: torch.Tensor) -> torch.Tensor:
 
@@ -57,13 +60,16 @@ def negloglik(bs: torch.Tensor) -> torch.Tensor:
     neglogliks = neglogliks_0 + neglogliks_1 - 500  # numerical stability
     return neglogliks
 
+
 def neglogpri(bs: torch.Tensor) -> torch.Tensor:
     bs = torch.atleast_2d(bs)
     neglogpris = 0.5 * (bs / sd_pri).square().sum(dim=1)
     return neglogpris
 
+
 def neglogpost(bs: torch.Tensor) -> torch.Tensor:
     return negloglik(bs) + neglogpri(bs)
+
 
 def compute_laplace_approx(x0: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """Computes a Laplace approximation to the posterior."""
@@ -90,52 +96,59 @@ def compute_laplace_approx(x0: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor
 
 if __name__ == "__main__":
 
-    x0 = torch.zeros(n_beta)  # I haven't found a different MAP estimate when varying the starting location
+    x0 = torch.zeros(num_beta)  # I haven't found a different MAP estimate when varying the starting location
     bs_map, cov_map = compute_laplace_approx(x0)
 
-    domain = dt.BoundedDomain(torch.tensor([-6.0, 6.0]))
+    domain = dt.BoundedDomain(torch.tensor([-5.0, 5.0]))
     reference = dt.GaussianReference(domain=domain)
     preconditioner = dt.GaussianMapping(bs_map, cov_map, reference)
 
-    bases = dt.Lagrange1(num_elems=20)
+    basis = dt.Lagrange1(num_elems=30)
+    bases = dt.ApproxBases(basis, reference.domain, preconditioner.dim)
+
+    tt_options = dt.TTOptions(max_als=3, verbose=2, init_rank=1, local_tol=0.0, max_rank=12, tt_method="amen",  als_tol=0.0)
+    tt = dt.TT(tt_options)
+    ftt = dt.FTT(bases, tt)
+
+    # betas = 10 ** torch.linspace(-4.0, 0.0, 10)
+    # bridge = dt.Tempering(betas.tolist())
 
     dirt = dt.DIRT(
-        negloglik,
-        neglogpri,
+        neglogpost,
         preconditioner,
-        bases,
-        tt_options=dt.TTOptions(verbose=2, init_rank=10, max_rank=12)
+        ftt,
+        bridge=dt.SingleLayer()
     )
 
-    n_steps = 100
+    num_steps = 2000
 
-    kernel = dt.pCNKernel(neglogpost, dirt, dt=2.0)
-    mcmc = dt.MCMC(kernel, n_steps, n_chains=4)
-    mcmc.run()
+    # kernel = dt.pCNKernel(neglogpost, dirt, dt=10.0)
+    # mcmc = dt.MCMC(kernel, num_steps, num_chains=4)
+    # mcmc.run()
 
-    torch.tensor([1, 2, 3]).share_memory_()
+    norm = torch.distributions.MultivariateNormal(bs_map.flatten(), cov_map)
+    samples_gauss = norm.sample((num_steps,))
+    potentials_norm = -norm.log_prob(samples_gauss)
+    potentials_true = negloglik(samples_gauss) + neglogpri(samples_gauss)
 
-    # norm = torch.distributions.MultivariateNormal(bs_map.flatten(), cov_map)
-    # samples = norm.sample((n_steps,))
-    # potentials_norm = -norm.log_prob(samples)
-    # potentials_true = negloglik(samples) + neglogpri(samples)
+    res = dt.run_independence_sampler(samples_gauss, potentials_norm, potentials_true)
+    print(res.acceptance_rate)
+    print(res.iacts.max())
+    print(res.ess.min())
 
-    # res = dt.run_independence_sampler(samples, potentials_norm, potentials_true)
-    # print(res.acceptance_rate)
-    # print(res.iacts.max())
-    # print(res.ess.min())
+    rs = dirt.reference.random(d=dirt.dim, n=num_steps)
+    samples, potentials_dirt = dirt.eval_irt(rs)
+    potentials_true = negloglik(samples) + neglogpri(samples)
 
-    # rs = dirt.reference.random(d=dirt.dim, n=n_steps)
-    # samples, potentials_dirt = dirt.eval_irt(rs)
-    # potentials_true = negloglik(samples) + neglogpri(samples)
+    res = dt.run_independence_sampler(samples, potentials_dirt, potentials_true)
+    print(res.acceptance_rate)
+    print(res.iacts.max())
+    print(res.ess.min())
 
-    # res = dt.run_independence_sampler(samples, potentials_dirt, potentials_true)
-    # print(res.acceptance_rate)
-    # print(res.iacts.max())
-    # print(res.ess.min())
+    for i in range(5):
+        s = samples[::5, 5*i:5*(i+1)]
+        s_gauss = samples_gauss[::5, 5*i:5*(i+1)]
+        pairplot(s_gauss, s)
 
     # rs = dirt.reference.random(d=dirt.dim, n=1000)
     # samples = preconditioner.Q(rs)
-
-    # for i in range(5):
-    #     pairplot(res.xs[::5, 5*i:5*(i+1)])

@@ -68,11 +68,14 @@ reference = dt.GaussianReference(domain)
 
 # Define preconditioner
 bounds = torch.tensor([[0.0, 2.0]]).tile((dim, 1))
-preconditioner = dt.UniformMapping(bounds=bounds)
+preconditioner = dt.UniformMapping(bounds=bounds, reference=reference)
 
-bases = dt.Lagrange1(num_elems=16)
+basis = dt.Lagrange1(num_elems=16)
+bases = dt.ApproxBases(basis, reference.domain, dim)
 
 tt_options = dt.TTOptions(init_rank=1, max_rank=5, max_als=3, local_tol=0.0, cdf_tol=1e-10, verbose=2)
+tt = dt.TT(tt_options)
+ftt = dt.FTT(bases, tt)
 
 # Construct the numerator of the ratio estimator (i.e., the DIRT 
 # approximation to the optimal biasing density)
@@ -84,13 +87,7 @@ gamma_prime = 1e4 / I_max
 gammas = betas * gamma_prime
 bridge = dt.SigmoidSmoothing(gammas, betas)
 
-numerator = dt.DIRT(
-    rare_event, 
-    preconditioner, 
-    bases, 
-    bridge, 
-    tt_options=tt_options
-)
+numerator = dt.DIRT(rare_event, preconditioner, ftt, bridge)
 
 n_samples = 10_000
 
@@ -110,13 +107,7 @@ betas = 10 ** torch.linspace(-5.0, 0.0, 16)
 betas = betas.tolist()
 bridge = dt.Tempering(betas)
 
-denominator = dt.DIRT(
-    posterior, 
-    preconditioner, 
-    bases, 
-    bridge, 
-    tt_options=tt_options
-)
+denominator = dt.DIRT(posterior, preconditioner, ftt, bridge)
 
 rs = denominator.reference.random(dim, n_samples)
 xs, neglogfxs_dirt = denominator.eval_irt(rs)

@@ -1,7 +1,6 @@
-from copy import deepcopy
 import math
 import time
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, Tuple
 
 import torch
 from torch import Tensor
@@ -9,13 +8,11 @@ from torch.autograd.functional import jacobian
 
 from .sirt import SIRT, SUBSET2DIRECTION
 from ..bridging_densities import Bridge, Tempering
-from ..ftt import ApproxBases, Direction, InputData
-from ..options import DIRTOptions, TTOptions
-from ..polynomials import Basis1D
+from ..ftt import Direction, FTT
 from ..preconditioners import Preconditioner
 from ..target_functions import TargetFunc
 from ..tools.printing import dirt_info, format_time
-from ..tools import check_finite, compute_f_divergence
+from ..tools import compute_f_divergence
 
 
 class DIRT():
@@ -24,15 +21,12 @@ class DIRT():
     Parameters
     ----------
     target_func:
-        TODO: replace this description.
-        A function that receives an $n \times d$ matrix of samples and 
-        returns an $n$-dimensional vector containing the negative 
-        log-likelihood function evaluated at each sample.
-    bases:
-        A list of sets of basis functions for each dimension, or a 
-        single set of basis functions (to be used in all dimensions), 
-        used to construct the functional tensor trains at each 
-        iteration.
+        The function to be approximated.
+    preconditioner:
+        An initial guess as to the mappings between the reference 
+        random variable and the target random variable.
+    ftt:
+        A functional tensor train object.
     bridge: 
         An object used to generate the intermediate densities to 
         approximate at each stage of the DIRT construction.
@@ -44,85 +38,89 @@ class DIRT():
     dirt_options:
         Options for constructing the DIRT approximation to the 
         target density.
-    prev_approx:
-        A dictionary containing a set of SIRTs generated as part of 
-        the construction of a previous DIRT object.
     
     """
 
     def __init__(
         self, 
-        target_func: Callable[[Tensor], Tensor] | TargetFunc,
+        target_func: TargetFunc,
         preconditioner: Preconditioner,
-        bases: Basis1D | List[Basis1D], 
+        ftt: FTT, 
         bridge: Bridge | None = None,
-        tt_options: TTOptions | None = None,
-        dirt_options: DIRTOptions | None = None,
-        prev_approx: Dict[int, SIRT] | None = None
+        ratio_type: str = "aratio",
+        num_error_samples: int = 1000,
+        defensive: float = 1e-08,
+        cdf_tol: float = 1e-10,
+        verbose: float = 1
     ):
-        """TODO: need to reset the bridge prior to starting.
-        Ideally we should be able to use the same bridge object to 
-        build multiple DIRT objects.
+        """TODO: need to reset the bridge prior to starting. Ideally 
+        we should be able to use the same bridge object to build 
+        multiple DIRT objects.
         """
 
         if not isinstance(target_func, TargetFunc):
             target_func = TargetFunc(target_func)
         if bridge is None:
             bridge = Tempering()
-        if tt_options is None:
-            tt_options = TTOptions()
-        if dirt_options is None:
-            dirt_options = DIRTOptions()
         
         self.target_func = target_func
 
-        self.dim = preconditioner.dim
         self.preconditioner = preconditioner
+        self.dim = preconditioner.dim
         self.reference = preconditioner.reference
         self.domain = preconditioner.reference.domain
+
+        self.ftt = ftt
+        self.bases = ftt.bases
         
-        self.bases = ApproxBases(bases, self.domain, self.dim)
         self.bridge = bridge
         self.bridge.initialise(self.preconditioner, self.target_func)
 
-        self.tt_options = tt_options
-        self.dirt_options = dirt_options
-        self.pre_sample_size = (self.dirt_options.num_samples 
-                                + self.dirt_options.num_debugs)
-        self.num_eval = 0
+        self.ratio_type = ratio_type 
+        self.num_error_samples = num_error_samples
+        self.defensive = defensive
+        self.cdf_tol = cdf_tol
+        self.verbose = verbose
+
+        # TODO: need to add weighting by reference ...
+        # self.num_eval = 0
         
         self.sirts: Dict[int, SIRT] = {}
-        self.prev_approx = prev_approx
 
         self._build()
         return
     
     @property 
-    def n_layers(self) -> int:
+    def num_layers(self) -> int:
         return self.bridge.n_layers
     
-    @n_layers.setter
-    def n_layers(self, value: int) -> None:
+    @num_layers.setter
+    def num_layers(self, value: int) -> None:
         self.bridge.n_layers = value 
         return
+
+    @property
+    def num_eval(self) -> int:
+        n = sum([sirt.num_eval for sirt in self.sirts.values()])
+        # TODO: need to add on the debugging samples to this.
+        return n
     
     @property
     def log_z(self) -> float:
         if not self.sirts.keys():
             return 0.0
-        return sum([math.log(self.sirts[i].z) for i in self.sirts.keys()])
+        return sum([math.log(self.sirts[k].z) for k in self.sirts])
     
-    def neglogfx(self, us: Tensor) -> Tensor:
+    def neglogfu(self, us: Tensor) -> Tensor:
         """Evaluates the pullback of the target density function at a 
         set of samples in the reference domain.
         """
         xs = self.preconditioner.Q(us)
         neglogdets = self.preconditioner.neglogdet_Q(us)
-        neglogtarget = self.target_func(xs)
-        self.num_eval += us.shape[0]
-        neglogfxs = neglogtarget + neglogdets
-        check_finite(neglogfxs)
-        return neglogfxs
+        neglogfxs = self.target_func(xs)
+        # self.num_eval += us.shape[0]
+        neglogfus = neglogfxs + neglogdets
+        return neglogfus
 
     def _potential2density(
         self, 
@@ -152,56 +150,14 @@ class DIRT():
         neglogwrs = self.bases.eval_measure_potential(xs)[0]
         log_ys = -0.5 * (neglogratios - neglogwrs)
         return torch.exp(log_ys)
-
-    def _get_inputdata(
-        self,
-        xs: Tensor, 
-        neglogratios: Tensor 
-    ) -> InputData:
-        """Generates a set of input data and debugging samples used to 
-        initialise DIRT.
-        
-        Parameters
-        ----------
-        xs:
-            An n * d matrix containing samples distributed according to
-            the current bridging density.
-        neglogratios:
-            A n-dimensional vector containing the negative logarithm of
-            the current ratio function evaluated at each sample in xs.
-        
-        Returns
-        -------
-        input_data:
-            An InputData object containing a set of samples used to 
-            construct the FTT approximation to the target function, and 
-            (if debugging samples are requested) a set of debugging 
-            samples and the value of the target function evaluated 
-            at each debugging sample.
-            
-        """
-
-        if self.dirt_options.num_debugs == 0:
-            return InputData(xs)
-        
-        indices = torch.arange(self.dirt_options.num_samples)
-        indices_debug = (torch.arange(self.dirt_options.num_debugs)
-                         + self.dirt_options.num_samples)
-
-        neglogratios_debug = neglogratios[indices_debug]
-        xs_debug = xs[indices_debug]
-        fxs_debug = self._potential2density(neglogratios_debug, xs_debug)
-
-        return InputData(xs[indices], xs[indices_debug], fxs_debug)
     
     def _updated_func(self, rs: Tensor) -> Tensor:
-        """Evaluates the current ratio function at each element in rs.
-        """
+        """Evaluates the current ratio function at each element in rs."""
         us, neglogfus_dirt = self._eval_irt_reference(rs)
-        neglogratios = self.bridge.ratio_func(self.dirt_options.method, rs, us, neglogfus_dirt)
+        neglogratios = self.bridge.ratio_func(self.ratio_type, rs, us, neglogfus_dirt)
         return neglogratios
 
-    def _get_new_layer(self, xs: Tensor, neglogratios: Tensor) -> SIRT:
+    def _get_new_layer(self) -> SIRT:
         """Constructs a new SIRT to add to the current composition of 
         SIRTs.
 
@@ -222,44 +178,13 @@ class DIRT():
         
         """
 
-        if self.prev_approx is None:
-            
-            # Generate debugging and initialisation samples
-            input_data = self._get_inputdata(xs, neglogratios)
-
-            if self.n_layers == 0:
-                approx = None 
-            else:
-                # Use previous approximation as a starting point
-                approx = deepcopy(self.sirts[self.n_layers-1].approx)
-                approx._round(max_rank=self.tt_options.init_rank)
-
-            sirt = SIRT(
-                self._updated_func,
-                preconditioner=self.preconditioner,
-                bases=self.bases.bases,
-                prev_approx=approx,
-                options=self.tt_options,
-                input_data=input_data,
-                defensive=self.dirt_options.defensive
-            )
-        
+        if self.num_layers == 0:
+            ftt = self.ftt.clone()
         else:
-            
-            ind_prev = max(self.prev_approx.keys())
-            sirt_prev = self.prev_approx[min(ind_prev, self.n_layers)]
-            
-            input_data = self._get_inputdata(xs, neglogratios)
+            ftt = self.sirts[self.num_layers-1].ftt.clone()
+            # ftt.tt.round(max_rank=ftt.tt.options.init_rank)
 
-            sirt = SIRT(
-                self._updated_func,
-                preconditioner=self.preconditioner,
-                bases=sirt_prev.approx.bases.bases,
-                options=self.tt_options,
-                input_data=input_data, 
-                defensive=self.dirt_options.defensive
-            )
-        
+        sirt = SIRT(self._updated_func, ftt, self.reference, self.defensive, self.cdf_tol)
         return sirt
 
     def _print_progress(
@@ -271,7 +196,7 @@ class DIRT():
     ) -> None:
 
         msg = [
-            f"Iter: {self.n_layers+1:=2}",
+            f"Iter: {self.num_layers+1:=2}",
             f"Cum. Fevals: {self.num_eval:=.2e}",
             f"Cum. Time: {cum_time:=.2e} s"
         ]
@@ -288,46 +213,39 @@ class DIRT():
         
         while True:
 
-            rs = self.reference.random(self.dim, self.pre_sample_size)
+            rs = self.reference.random(self.dim, self.num_error_samples)
             us, neglogfus_dirt = self._eval_irt_reference(rs)
 
             log_weights, neglogratios, neglogbridges = self.bridge.update(
-                self.dirt_options.method,
+                self.ratio_type,
                 rs,
                 us,
                 neglogfus_dirt
             )
 
-            if self.dirt_options.verbose:
+            if self.verbose > 0:
                 cum_time = time.time() - t0
-                self._print_progress(
-                    log_weights, 
-                    neglogbridges, 
-                    neglogfus_dirt,
-                    cum_time
-                )
+                self._print_progress(log_weights, neglogbridges, neglogfus_dirt, cum_time)
 
-            rs, neglogratios = self.bridge._reorder(rs, neglogratios, log_weights)
-            self.sirts[self.n_layers] = self._get_new_layer(rs, neglogratios)
-            self.num_eval += self.sirts[self.n_layers].approx.num_eval
-            self.n_layers += 1
+            self.sirts[self.num_layers] = self._get_new_layer()
+            self.num_layers += 1
 
             if self.bridge.is_last:
                 break
 
-        if self.dirt_options.verbose:
+        if self.verbose:
 
-            # Note that the Hellinger divergence is invariant to 
-            # bijective transformations
-            rs = self.reference.random(self.dim, self.pre_sample_size)
+            # Note: the Hellinger divergence is invariant to bijective 
+            # transformations
+            rs = self.reference.random(self.dim, self.num_error_samples)
             us, neglogfus_dirt = self._eval_irt_reference(rs)
-            neglogfus = self.neglogfx(us)  # this is fine.
+            neglogfus = self.neglogfu(us)
             dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
 
             t1 = time.time()
             
             dirt_info("DIRT construction complete.")
-            dirt_info(f" • Layers: {self.n_layers}.")
+            dirt_info(f" • Layers: {self.num_layers}.")
             dirt_info(f" • Total function evaluations: {self.num_eval:,}.")
             dirt_info(f" • Total time: {format_time(t1-t0)}.")
             dirt_info(f" • DHell: {dhell2.sqrt():.4f}.")
@@ -338,7 +256,7 @@ class DIRT():
         self,
         us: Tensor,
         subset: str,
-        n_layers: int
+        num_layers: int
     ) -> Tuple[Tensor, Tensor]:
         """Evaluates the deep Rosenblatt transport for the pullback of 
         the target density under the preconditioning map.
@@ -347,7 +265,7 @@ class DIRT():
         rs = us.clone()
         neglogfus = torch.zeros(rs.shape[0])
 
-        for i in range(n_layers):
+        for i in range(num_layers):
             zs = self.sirts[i]._eval_rt(rs, subset)
             neglogsirts = self.sirts[i]._eval_potential(rs, subset)
             rs = self.reference.invert_cdf(zs)
@@ -363,19 +281,19 @@ class DIRT():
         self, 
         rs: Tensor, 
         subset: str = "first",
-        n_layers: int | None = None
+        num_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
         """Evaluates the deep inverse Rosenblatt transport for the 
         pullback of the target density under the preconditioning map.
         """
 
-        if n_layers is None:
-            n_layers = self.n_layers
+        if num_layers is None:
+            num_layers = self.num_layers
         
         us = rs.clone()
         neglogfus = self.reference.eval_potential(us)[0]
 
-        for i in range(n_layers-1, -1, -1):
+        for i in range(num_layers-1, -1, -1):
             neglogrefs = self.reference.eval_potential(us)[0]
             zs = self.reference.eval_cdf(us)[0]
             us, neglogsirts = self.sirts[i]._eval_irt(zs, subset)
@@ -390,7 +308,7 @@ class DIRT():
         
         subset = subset.lower()
 
-        if subset == "last" and self.n_layers > 1:
+        if subset == "last" and self.num_layers > 1:
             msg = ("When using a DIRT object with more than one layer, "
                    + "it is not possible to sample from the marginal " 
                    + "densities in the final k variables (where k < d) "
@@ -411,7 +329,7 @@ class DIRT():
         self,
         xs: Tensor,
         subset: str | None = None,
-        n_layers: int | None = None
+        num_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the deep Rosenblatt transport.
         
@@ -425,7 +343,7 @@ class DIRT():
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
-        n_layers:
+        num_layers:
             The number of layers of the deep inverse Rosenblatt 
             transport to push the samples forward under. If not 
             specified, the samples will be pushed forward through all 
@@ -442,12 +360,12 @@ class DIRT():
             composition of mappings evaluated at each sample in `xs`.
 
         """
-        if n_layers is None:
-            n_layers = self.n_layers
+        if num_layers is None:
+            num_layers = self.num_layers
         subset = self._parse_subset(subset)
         neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs, subset)
         us = self.preconditioner.Q_inv(xs, subset)
-        rs, neglogfus = self._eval_rt_reference(us, subset, n_layers)
+        rs, neglogfus = self._eval_rt_reference(us, subset, num_layers)
         neglogfxs = neglogfus + neglogdet_xs
         return rs, neglogfxs
 
@@ -455,7 +373,7 @@ class DIRT():
         self, 
         rs: Tensor, 
         subset: str | None = None,
-        n_layers: int | None = None
+        num_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the deep inverse Rosenblatt transport.
 
@@ -469,7 +387,7 @@ class DIRT():
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
-        n_layers: 
+        num_layers: 
             The number of layers of the deep inverse Rosenblatt 
             transport to pull the samples back under. If not specified,
             the samples will be pulled back through all the layers.
@@ -486,10 +404,10 @@ class DIRT():
             composition of mappings, evaluated at each sample in `xs`.
 
         """
-        if n_layers is None:
-            n_layers = self.n_layers
+        if num_layers is None:
+            num_layers = self.num_layers
         subset = self._parse_subset(subset)
-        us, neglogfus = self._eval_irt_reference(rs, subset, n_layers)
+        us, neglogfus = self._eval_irt_reference(rs, subset, num_layers)
         xs = self.preconditioner.Q(us, subset)
         neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs, subset)
         neglogfxs = neglogfus + neglogdet_xs
@@ -500,7 +418,7 @@ class DIRT():
         ys: Tensor, 
         rs: Tensor, 
         subset: str = "first",
-        n_layers: int | None = None
+        num_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the conditional inverse Rosenblatt transport.
 
@@ -522,7 +440,7 @@ class DIRT():
             Whether `ys` corresponds to the first $k$ variables 
             (`subset='first'`) of the approximation, or the last $k$ 
             variables (`subset='last'`).
-        n_layers:
+        num_layers:
             The number of layers of the DIRT object to use when 
             evaluating the CIRT. If not specified, all layers will be 
             used.
@@ -572,13 +490,13 @@ class DIRT():
             inds_x = torch.arange(d_rs)
         
         # Evaluate marginal RT
-        rs_y, neglogfys = self.eval_rt(ys, subset, n_layers)
+        rs_y, neglogfys = self.eval_rt(ys, subset, num_layers)
 
         # Evaluate joint RT
         rs_yx = torch.empty((n_rs, self.dim))
         rs_yx[:, inds_y] = rs_y 
         rs_yx[:, inds_x] = rs
-        yxs, neglogfyxs = self.eval_irt(rs_yx, subset, n_layers)
+        yxs, neglogfyxs = self.eval_irt(rs_yx, subset, num_layers)
         
         xs = yxs[:, inds_x]
         neglogfxs = neglogfyxs - neglogfys
@@ -589,7 +507,7 @@ class DIRT():
         potential: Callable[[Tensor], Tensor],
         rs: Tensor, 
         subset: str | None = None,
-        n_layers: int | None = None
+        num_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the pullback of a density function.
 
@@ -612,7 +530,7 @@ class DIRT():
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
-        n_layers: 
+        num_layers: 
             The number of layers of the deep inverse Rosenblatt 
             transport to pull the samples back under. If not specified,
             the samples will be pulled back through all the layers.
@@ -630,7 +548,7 @@ class DIRT():
         
         """
         neglogrefs = self.reference.eval_potential(rs)[0]
-        xs, neglogfxs_irt = self.eval_irt(rs, subset, n_layers)
+        xs, neglogfxs_irt = self.eval_irt(rs, subset, num_layers)
         neglogfxs = potential(xs)
         neglogTfrs = neglogfxs + neglogrefs - neglogfxs_irt
         return neglogTfrs, neglogfxs
@@ -641,7 +559,7 @@ class DIRT():
         ys: Tensor,
         rs: Tensor,
         subset: str = "first",
-        n_layers: int | None = None
+        num_layers: int | None = None
     ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the pullback of a conditional density function.
 
@@ -670,7 +588,7 @@ class DIRT():
             Whether `ys` corresponds to the first $k$ variables 
             (`subset='first'`) of the approximation, or the last $k$ 
             variables (`subset='last'`).
-        n_layers: 
+        num_layers: 
             The number of layers of the deep inverse Rosenblatt 
             transport to pull the samples back under. If not specified,
             the samples will be pulled back through all the layers.
@@ -688,7 +606,7 @@ class DIRT():
         
         """
         neglogrefs = self.reference.eval_potential(rs)[0]
-        xs, neglogfxs_cirt = self.eval_cirt(ys, rs, subset, n_layers)
+        xs, neglogfxs_cirt = self.eval_cirt(ys, rs, subset, num_layers)
         neglogfxs = potential(xs)
         neglogTfrs = neglogfxs + neglogrefs - neglogfxs_cirt
         return neglogTfrs, neglogfxs
@@ -697,7 +615,7 @@ class DIRT():
         self, 
         xs: Tensor,
         subset: str | None = None,
-        n_layers: int | None = None
+        num_layers: int | None = None
     ) -> Tensor:
         r"""Evaluates the potential function.
         
@@ -716,7 +634,7 @@ class DIRT():
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
-        n_layers:
+        num_layers:
             The number of layers of the current DIRT construction to
             use when computing the potential. If not specified, all 
             layers will be used when computing the potential.
@@ -728,14 +646,14 @@ class DIRT():
             of the target density evaluated at each element in `xs`.
 
         """
-        neglogfxs = self.eval_rt(xs, subset, n_layers)[1]
+        neglogfxs = self.eval_rt(xs, subset, num_layers)[1]
         return neglogfxs
     
     def eval_pdf(
         self, 
         xs: Tensor,
         subset: str | None = None,
-        n_layers: int | None = None
+        num_layers: int | None = None
     ) -> Tensor: 
         r"""Evaluates the density function.
         
@@ -754,7 +672,7 @@ class DIRT():
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
-        n_layers:
+        num_layers:
             The number of layers of the current DIRT construction to 
             use. If not specified, all 
 
@@ -766,7 +684,7 @@ class DIRT():
             element in `xs`.
         
         """
-        neglogfxs = self.eval_potential(xs, subset, n_layers)
+        neglogfxs = self.eval_potential(xs, subset, num_layers)
         fxs = torch.exp(-neglogfxs)
         return fxs
 
@@ -775,7 +693,7 @@ class DIRT():
         ys: Tensor, 
         xs: Tensor, 
         subset: str = "first",
-        n_layers: int | None = None
+        num_layers: int | None = None
     ) -> Tensor:
         r"""Evaluates the conditional potential function.
 
@@ -794,7 +712,7 @@ class DIRT():
             Whether `ys` corresponds to the first $k$ variables 
             (`subset='first'`) of the approximation, or the last $k$ 
             variables (`subset='last'`).
-        n_layers:
+        num_layers:
             The number of layers of the deep inverse Rosenblatt 
             transport to push the samples forward under. If not 
             specified, the samples will be pushed forward through all 
@@ -840,8 +758,8 @@ class DIRT():
             yxs = torch.hstack((xs, ys))
         
         # Evaluate marginal RT
-        neglogfys = self.eval_potential(ys, subset, n_layers)
-        neglogfyxs = self.eval_potential(yxs, subset, n_layers)
+        neglogfys = self.eval_potential(ys, subset, num_layers)
+        neglogfyxs = self.eval_potential(yxs, subset, num_layers)
 
         neglogfxs = neglogfyxs - neglogfys
         return neglogfxs
@@ -850,7 +768,7 @@ class DIRT():
         self, 
         xs: Tensor, 
         subset: str | None = None,
-        n_layers: int | None = None 
+        num_layers: int | None = None 
     ) -> Tensor:
         r"""Evaluates the Jacobian of the deep Rosenblatt transport.
 
@@ -872,7 +790,7 @@ class DIRT():
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
-        n_layers: 
+        num_layers: 
             The number of layers of the deep Rosenblatt transport to 
             evaluate the Jacobian for. If not specified, the Jacobian 
             for the full Rosenblatt transport will be evaluated.
@@ -890,7 +808,7 @@ class DIRT():
 
         def _eval_rt(xs: Tensor) -> Tensor:
             xs = xs.reshape(n_xs, d_xs)
-            return self.eval_rt(xs, subset, n_layers)[0].sum(dim=0)
+            return self.eval_rt(xs, subset, num_layers)[0].sum(dim=0)
         
         Js: Tensor = jacobian(_eval_rt, xs.flatten(), vectorize=True)
         return Js.reshape(d_xs, n_xs, d_xs)
@@ -899,7 +817,7 @@ class DIRT():
         self, 
         rs: Tensor, 
         subset: str | None = None,
-        n_layers: int | None = None 
+        num_layers: int | None = None 
     ) -> Tensor:
         r"""Evaluates the Jacobian of the deep inverse Rosenblatt transport.
 
@@ -921,7 +839,7 @@ class DIRT():
             $k < d$), whether they correspond to the first $k$ 
             variables (`subset='first'`) or the last $k$ variables 
             (`subset='last'`).
-        n_layers: 
+        num_layers: 
             The number of layers of the deep inverse Rosenblatt 
             transport to evaluate the Jacobian for. If not specified,
             the Jacobian for the full inverse Rosenblatt transport will
@@ -940,7 +858,7 @@ class DIRT():
 
         def _eval_irt(rs: Tensor) -> Tensor:
             rs = rs.reshape(n_rs, d_rs)
-            return self.eval_irt(rs, subset, n_layers)[0].sum(dim=0)
+            return self.eval_irt(rs, subset, num_layers)[0].sum(dim=0)
         
         Js: Tensor = jacobian(_eval_irt, rs.flatten(), vectorize=True)
         return Js.reshape(d_rs, n_rs, d_rs)

@@ -8,26 +8,26 @@ from ..polynomials import Basis1D
 
 
 class ApproxBases():
-    """Container of information on the approximation bases.
-    
-    This class contains information on the set of polynomial basis 
-    functions used the construct the FTT, and the mapping from the 
-    approximation domain to the domain of the polynomial basis.
+    """An object that contains a polynomial basis in each dimension, 
+    used for an FTT approximation.
 
     Parameters
     ----------
-    polys:
-        Tensor-product univariate polynomial basis functions, defined 
-        on a local domain (generally (-1, 1)).
-    domains:
-        An invertible mapping between the approximation domain and the 
-        domain of the polynomial basis functions.
+    bases:
+        Tensor-product univariate polynomial basis functions.
+    domain:
+        The domain of the reference density in each dimension.
     dim:
         The dimension of the domain.
     
     """
 
-    def __init__(self, bases: Basis1D | List[Basis1D], domain: Domain, dim: int):
+    def __init__(
+        self, 
+        bases: Basis1D | List[Basis1D], 
+        domain: Domain, 
+        dim: int
+    ):
         
         if isinstance(bases, Basis1D):
             bases = [bases]

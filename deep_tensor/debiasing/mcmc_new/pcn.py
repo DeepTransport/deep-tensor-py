@@ -1,11 +1,13 @@
 import math
+import random
 from typing import Callable, Tuple
+import warnings
 
 import torch 
 from torch import Tensor
 
 from .kernel import Kernel
-from ...irt import AbstractDIRT
+from ...irt import DIRT
 from ...references import GaussianReference
 
 
@@ -14,7 +16,7 @@ class pCNKernel(Kernel):
     def __init__(
         self, 
         potential: Callable[[Tensor], Tensor], 
-        dirt: AbstractDIRT, 
+        dirt: DIRT, 
         y: Tensor | None = None,
         subset: str = "first",
         dt: float = 10.0
@@ -27,11 +29,19 @@ class pCNKernel(Kernel):
         if dt <= 0.0:
             msg = "Stepsize must be positive."
             raise Exception(msg)
-
-        Kernel.__init__(self, potential, dirt, y, subset)
         
+        if dt == 2.0:
+            msg = (
+                "Setting dt=2.0 in the pCN kernel results in an " 
+                "independence sampler. It is probably more efficient "
+                "to use the dedicated independence sampling function."
+            )
+            warnings.warn(msg)
+
         self.a = 2.0 * math.sqrt(2.0*dt) / (2.0+dt)
         self.b = (2.0-dt) / (2.0+dt)
+
+        Kernel.__init__(self, potential, dirt, y, subset)
         return
     
     def _step(self) -> Tuple[Tensor, Tensor]:
@@ -57,7 +67,7 @@ class pCNKernel(Kernel):
         alpha = self._negloglik_prev - negloglik_prop
         self.n_steps += 1
 
-        if torch.exp(alpha) > torch.rand(1):
+        if torch.exp(alpha) > random.random():
             self.n_accept += 1
             x_prop = self._irt_func(r_prop)
             self._r_prev = r_prop.clone()

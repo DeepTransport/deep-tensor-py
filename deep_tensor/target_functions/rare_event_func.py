@@ -1,4 +1,5 @@
 from typing import Callable, Tuple
+import warnings
 
 import torch
 from torch import Tensor
@@ -42,10 +43,12 @@ class RareEventFunc(TargetFunc):
     def __init__(
         self, 
         func: Callable[[Tensor], Tuple[Tensor, Tensor]],
-        threshold: float
+        threshold: float,
+        vectorised: bool = True
     ):
-        self.func = func
+        self._func = func
         self.threshold = threshold
+        self.vectorised = vectorised
         return
     
     def __call__(self, xs: Tensor) -> Tensor:
@@ -57,3 +60,22 @@ class RareEventFunc(TargetFunc):
         rare_event_indicator = responses > self.threshold
         neglogfxs[~rare_event_indicator] = torch.inf
         return neglogfxs
+    
+    def _func_vectorised(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
+        
+        if self.vectorised:
+            return self._func(xs)
+        
+        neglogfxs = torch.zeros((xs.shape[0],))
+        responses = torch.zeros((xs.shape[0],))
+        for i, x in enumerate(xs.T):
+            neglogfxs[i], responses[i] = self._func(x)
+        return neglogfxs, responses
+    
+    def func(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
+        neglogfxs, responses = self._func_vectorised(xs)
+        num_infs = torch.sum(neglogfxs == -torch.inf)
+        if num_infs > 0:
+            msg = "Target function takes values of infinity."
+            warnings.warn(msg)
+        return neglogfxs, responses

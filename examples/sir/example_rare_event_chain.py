@@ -20,7 +20,7 @@ def build_adjacency_mat(K: int) -> np.ndarray:
     return A
 
 
-num_compartments = 3
+num_compartments = 12
 dim = 2 * num_compartments
 
 adjacency_mat = build_adjacency_mat(num_compartments)
@@ -68,11 +68,15 @@ I_max = 88.0
 domain = dt.BoundedDomain(bounds=torch.tensor([-3.0, 3.0]))
 reference = dt.GaussianReference(domain)
 bounds = torch.tensor([[0.0, 2.0]]).tile((dim, 1))
-preconditioner = dt.UniformMapping(bounds=bounds)
+preconditioner = dt.UniformMapping(bounds=bounds, reference=reference)
 
-bases = dt.Lagrange1(num_elems=17)
+basis = dt.Lagrange1(num_elems=17)
+bases = dt.ApproxBases(basis, domain, dim)
 
-tt_options = dt.TTOptions(init_rank=7, tt_method="fixed_rank", local_tol=0.0, cdf_tol=1e-10, verbose=2)
+tt_options = dt.TTOptions(max_als=1, init_rank=7, tt_method="fixed_rank", local_tol=0.0, verbose=2, als_tol=0.1)
+
+tt = dt.TT(tt_options)
+ftt = dt.FTT(bases, tt)
 
 # Numerator
 
@@ -83,13 +87,7 @@ gamma_prime = 3e3 / I_max
 gammas = betas * gamma_prime
 bridge = dt.SigmoidSmoothing(gammas, betas)
 
-numerator = dt.DIRT(
-    rare_event, 
-    preconditioner, 
-    bases, 
-    bridge, 
-    tt_options=tt_options
-)
+numerator = dt.DIRT(rare_event, preconditioner, ftt, bridge)
 
 # Denominator
 
@@ -102,9 +100,8 @@ posterior = dt.TargetFunc(neglogpost)
 denominator = dt.DIRT(
     posterior, 
     preconditioner, 
-    bases, 
-    bridge, 
-    tt_options=tt_options
+    ftt, 
+    bridge
 )
 
 n_samples = 10_000

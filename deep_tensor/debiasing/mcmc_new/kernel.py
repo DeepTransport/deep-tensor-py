@@ -4,7 +4,7 @@ from typing import Callable, Tuple
 import torch
 from torch import Tensor
 
-from ...irt import AbstractDIRT
+from ...irt import DIRT
 
 
 # TODO: could support an n_layers parameter (sometimes it could be a 
@@ -16,7 +16,7 @@ class Kernel(abc.ABC):
     def __init__(
         self, 
         potential: Callable[[Tensor], Tensor], 
-        dirt: AbstractDIRT, 
+        dirt: DIRT, 
         ys: Tensor | None = None, 
         subset: str = "first"
     ):

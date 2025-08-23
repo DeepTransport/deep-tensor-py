@@ -11,15 +11,15 @@ from .debiasing.mcmc import (
     run_cirt_pcn,
     run_independence_sampler
 )
+from .debiasing.mcmc_new import pCNKernel, MCMC
 from .domains import (
     AlgebraicMapping, 
     BoundedDomain, 
     LinearDomain, 
     LogarithmicMapping
 )
-from .ftt import ApproxBases, Direction, InputData, TTData, FTT, EFTT
+from .ftt import ApproxBases, Direction, FTT, EFTT, TT, TTOptions
 from .irt import DIRT, SIRT
-from .options import TTOptions, DIRTOptions
 from .polynomials import (
     Basis1D,
     Chebyshev1st, 

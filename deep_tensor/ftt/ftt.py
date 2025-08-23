@@ -1,17 +1,15 @@
-import abc
 from typing import Callable, Dict
 
 import torch
+from torch import linalg
 from torch import Tensor
 
 from .approx_bases import ApproxBases
 from .directions import Direction
-from .input_data import InputData
 from .tt import Grid, TT
 from ..domains import Domain
 from ..interpolation import deim
 from ..linalg import batch_mul, n_mode_prod, tsvd
-from ..options import TTOptions
 from ..polynomials import Basis1D, Spectral
 from ..references import Reference
 from ..tools.printing import als_info
@@ -31,40 +29,27 @@ def compute_weights(
     return reference_weights
 
 
-class TTFunc(abc.ABC):
-    """Base class for functional tensor trains."""
+class FTT():
+    """A multivariate functional tensor-train.
+
+    TODO: write out the arguments for this class.
+    
+    """
 
     def __init__(
-        self,
-        target_func: Callable[[Tensor], Tensor], 
+        self, 
         bases: ApproxBases, 
-        options: TTOptions, 
-        input_data: InputData, 
-        reference: Reference,
-        tt_data = None
+        tt: TT | None = None,
+        num_error_samples: int = 1000
     ):
-
-        self.target_func = target_func
-        self.bases = bases
-        self.dim = self.bases.dim
-        self.options = options
-        self.input_data = input_data  # TODO: get rid of this... only using the debugging samples.
-        self.reference = reference
-        self.l2_err = torch.inf
-        self.linf_err = torch.inf
-        
-        grid_points = {k: self.bases[k].nodes for k in range(self.dim)}
-        reference_weights = compute_weights(grid_points, bases.domain, reference)
-
-        self.grid = Grid(grid_points, reference_weights)
-        self.tt = TT(target_func, self.grid, options)
+        if tt is None:
+            tt = TT()
+        self.tt = tt
+        self.bases = bases 
+        self.dim = bases.dim
+        self.num_error_samples = num_error_samples
+        self.l2_error = None
         self.cores = {}
-        self.tt_data = tt_data
-
-        # Generate debugging samples.
-        if self.input_data.is_debug:
-            self.input_data.set_debug(self.target_func, self.bases)
-
         return
     
     @property
@@ -74,23 +59,31 @@ class TTFunc(abc.ABC):
     @property 
     def ranks(self) -> Tensor:
         return self.tt.ranks
+
+    @property
+    def num_eval(self) -> int:
+        return self.tt.num_eval + self.num_error_samples
     
     @property
     def is_finished(self) -> bool:
-        max_core_error = self.tt.errors.max().item()
+        max_core_error = float(self.tt.errors.max())
         is_finished = (
-            max_core_error < self.options.als_tol 
-            or self.l2_err < self.options.als_tol
+            max_core_error < self.tt.options.als_tol
+            or self.l2_error < self.tt.options.als_tol
         )
         return is_finished
 
-    @property
-    @abc.abstractmethod
-    def num_eval(self) -> int:
-        pass
+    @property 
+    def l2_error_samples(self) -> bool:
+        """Whether to form a sample-based estimate of the L2 error."""
+        return self.num_error_samples > 0
+
+    def __call__(self, ls: Tensor, direction: Direction | None = None) -> Tensor:
+        """Syntax sugar for self.eval()."""
+        return self.eval(ls, direction)
 
     @staticmethod
-    def _check_sample_dim(xs: Tensor, dim: int, strict: bool = False) -> None:
+    def check_sample_dim(xs: Tensor, dim: int, strict: bool = False) -> None:
         """Checks that a set of samples is two-dimensional and that the 
         dimension does not exceed the expected dimension.
         """
@@ -122,17 +115,7 @@ class TTFunc(abc.ABC):
         return Gs
     
     @staticmethod
-    def _eval_core_213(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        """Evaluates a tensor core.
-        """
-        r_p, n_k, r_k = A.shape
-        n_ls = ls.numel()
-        coeffs = A.permute(1, 0, 2).reshape(n_k, r_p * r_k)
-        Gs = poly.eval_radon(coeffs, ls).reshape(n_ls, r_p, r_k)
-        return Gs
-
-    @staticmethod
-    def _eval_core_213_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
+    def eval_core_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the derivative of a tensor core.
         """
         r_p, n_k, r_k = A.shape 
@@ -142,34 +125,45 @@ class TTFunc(abc.ABC):
         return dGdls
 
     @staticmethod
+    def _eval_core_213(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
+        """Evaluates a tensor core.
+        """
+        return FTT.eval_core(poly, A, ls)
+
+    @staticmethod
+    def _eval_core_213_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
+        """Evaluates the derivative of a tensor core.
+        """
+        return FTT._eval_core_213_deriv(poly, A, ls)
+
+    @staticmethod
     def _eval_core_231(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         """Evaluates a tensor core.
         """
-        return TTFunc._eval_core_213(poly, A, ls).swapdims(1, 2)
+        return FTT.eval_core(poly, A, ls).swapdims(1, 2)
     
     @staticmethod
     def _eval_core_231_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the derivative of a tensor core.
         """
-        return TTFunc._eval_core_213_deriv(poly, A, ls).swapdims(1, 2)
+        return FTT.eval_core_deriv(poly, A, ls).swapdims(1, 2)
 
-    def _print_info_header(self) -> None:
+    def print_info_header(self) -> None:
 
         info_headers = [
             "Iter", 
             "Func Evals",
             "Max Rank", 
-            "Max Local Error", 
-            "Mean Local Error"
+            "Max Core Error", 
+            "Mean Core Error"
         ]
-        
-        if self.input_data.is_debug:
-            info_headers += ["Max Debug Error", "Mean Debug Error"]
+        if self.l2_error_samples:
+            info_headers += ["L2 Error"]
 
         als_info(" | ".join(info_headers))
         return
 
-    def _print_info(self, cross_iter: int) -> None:
+    def print_info(self, cross_iter: int) -> None:
         """Prints some diagnostic information about the current cross 
         iteration.
         """
@@ -178,58 +172,52 @@ class TTFunc(abc.ABC):
             f"{cross_iter+1:=4}", 
             f"{self.num_eval:=10}",
             f"{self.ranks.max():=8}",
-            f"{self.tt.errors.max():=15.5e}",
-            f"{self.tt.errors.mean():=16.5e}"
+            f"{self.tt.errors.max():=14.5e}",
+            f"{self.tt.errors.mean():=15.5e}"
         ]
-
-        if self.input_data.is_debug:
-            diagnostics += [
-                f"{self.linf_err:=15.5e}",
-                f"{self.l2_err:=16.5e}"
-            ]
+        if self.l2_error_samples:
+            diagnostics += [f"{self.l2_error:=12.2e}"]
 
         als_info(" | ".join(diagnostics))
         return
 
-    def compute_error_estimates(self) -> None:
+    def estimate_l2_error(self) -> None:
         """Computes the relative error between the value of the FTT 
         approximation to the target function and the true value for the 
         set of debugging samples.
         """
-
-        if not self.input_data.is_debug:
-            return
-        
-        ps_approx = self._eval_local(self.input_data.ls_debug, self.direction)
-        ps_approx = ps_approx.flatten()
-        self.l2_err, self.linf_err = self.input_data.relative_error(ps_approx)
+        fls_ftt = self.eval(self.ls_error).flatten()
+        self.l2_error = (
+            linalg.norm(self.fls_error - fls_ftt) 
+            / linalg.norm(self.fls_error)
+        )
         return
 
-    def _eval_local_forward(self, ls: Tensor) -> Tensor:
+    def eval_forward(self, ls: Tensor) -> Tensor:
         """Evaluates the FTT approximation to the target function for 
         the first k variables.
         """
         d_ls = ls.shape[1]
         Gs = [
-            FTT._eval_core_213(self.bases[k], self.cores[k], ls[:, k])
+            FTT.eval_core(self.bases[k], self.cores[k], ls[:, k])
             for k in range(d_ls)
         ]
         Gs_prod = batch_mul(*Gs).squeeze(dim=1)
         return Gs_prod
     
-    def _eval_local_backward(self, ls: Tensor) -> Tensor:
+    def eval_backward(self, ls: Tensor) -> Tensor:
         """Evaluates the FTT approximation to the target function for 
         the last k variables.
         """
         d_ls = ls.shape[1]
         Gs = [
-            FTT._eval_core_213(self.bases[k], self.cores[k], ls[:, i])
+            FTT.eval_core(self.bases[k], self.cores[k], ls[:, i])
             for i, k in enumerate(range(self.dim-d_ls, self.dim))
         ]
         Gs_prod = batch_mul(*Gs).squeeze(dim=2)
         return Gs_prod
 
-    def _eval_local(self, ls: Tensor, direction: Direction) -> Tensor:
+    def eval(self, ls: Tensor, direction: Direction | None = None) -> Tensor:
         """Evaluates the functional tensor train approximation to the 
         target function for either the first or last k variables, for a 
         set of points in the local domain ([-1, 1]).
@@ -250,70 +238,44 @@ class TTFunc(abc.ABC):
             evaluated at the corresponding sample in ls.
             
         """
-        self._check_sample_dim(ls, self.dim)
-        if direction == Direction.FORWARD:
-            Gs_prod = self._eval_local_forward(ls)
+        
+        self.check_sample_dim(ls, self.dim)
+        
+        # TODO: tidy this up.
+        if ls.shape[1] != self.dim and direction is None:
+            msg = "Need to give direction if marginal is being evaluated."
+            raise Exception(msg)
+
+        if direction in (Direction.FORWARD, None):
+            Gs_prod = self.eval_forward(ls)
         else: 
-            Gs_prod = self._eval_local_backward(ls)
+            Gs_prod = self.eval_backward(ls)
+        
         return Gs_prod
+    
+    def initialise_l2_error_samples(self):
+        # TODO: figure out whether these should be drawn from the 
+        # measure associated with the basis in each dimension.
 
-    def eval(self, xs: Tensor) -> Tensor:
-        """Evaluates the target function at a set of points in the 
-        approximation domain.
-        
-        Parameters
-        ----------
-        xs:
-            An n * d matrix containing samples from the approximation 
-            domain.
-            
-        Returns
-        -------
-        gs:
-            An n-dimensional vector containing the values of the 
-            approximation to the target function function at each x 
-            value.
-        
-        """
-        FTT._check_sample_dim(xs, self.dim, strict=True)
-        ls = self.bases.approx2local(xs)[0]
-        gs = self._eval_local(ls, self.direction).flatten()
-        return gs
+        self.ls_error = torch.vstack([
+            self.bases[k].sample_measure(self.num_error_samples)
+            for k in range(self.dim)
+        ]).T
 
-    def _round(
+        self.fls_error = self.target_func(self.ls_error)
+
+        return 
+
+    def round(
         self, 
         tol: float | None = None, 
         max_rank: int | None = None
     ) -> None:
         self.tt.round(tol, max_rank)
         return
-
-
-class FTT(TTFunc):
-    """A multivariate functional tensor-train.
-
-    General idea:
-        Build TT. at the end of each TT sweep, evaluate the debug 
-        samples to give an error estimate.
-
-    """
-    
-    @property
-    def direction(self) -> Direction:
-        return self.tt.direction
-
-    @property 
-    def ranks(self) -> Tensor:
-        """The ranks of each tensor core."""
-        return self.tt.ranks
-    
-    @property
-    def num_eval(self) -> int:
-        return self.tt.num_eval
      
     def compute_cores(self) -> None:
-        """(Re)-computes the FTT cores from the TT cores.
-        """
+        """(Re)-computes the FTT cores from the TT cores."""
         for k in range(self.dim):
             core = self.tt.cores[k].clone()
             if isinstance(basis := self.bases[k], Spectral):
@@ -321,34 +283,69 @@ class FTT(TTFunc):
             self.cores[k] = core
         return
 
-    def build(self) -> None:
-        """Builds the FTT approximation."""
+    def approximate(
+        self, 
+        target_func: Callable[[Tensor], Tensor],
+        reference: Reference | None = None
+    ) -> None:
+        r"""Constructs a FTT approximation to a target function.
 
-        if self.options.verbose > 0:
-            self._print_info_header()
+        Parameters
+        ----------
+        target_func: 
+            The target function $f : [0, 1]^{d} \rightarrow \mathbb{R}$. 
+        
+        """
 
-        for num_iter in range(self.options.max_als): 
+        self.target_func = target_func
 
+        # Build grid (TODO: add an option to weight by the reference 
+        # measure when sampling initial index sets).
+        points = {k: self.bases[k].nodes for k in range(self.dim)}
+        if reference is None:
+            print("warning, this probably isn't great...")
+            grid = Grid(points)
+        else:
+            weights = compute_weights(points, reference.domain, reference)
+            grid = Grid(points, weights)
+
+        self.tt.initialise(target_func, grid)
+        if self.l2_error_samples:
+            self.initialise_l2_error_samples()
+        if self.tt.options.verbose > 0:
+            self.print_info_header()
+        
+        for num_iter in range(self.tt.options.max_als): 
             self.tt.sweep()
             self.compute_cores()
-            self.compute_error_estimates()
-
-            if self.options.verbose > 0:
-                self._print_info(num_iter)
+            if self.l2_error_samples:
+                self.estimate_l2_error()
+            if self.tt.options.verbose > 0:
+                self.print_info(num_iter)
             if self.is_finished:
                 break
             
-        if self.options.verbose > 0:
+        if self.tt.options.verbose > 0:
             als_info("ALS complete.")
-        if self.options.verbose > 1:
+        if self.tt.options.verbose > 1:
             ranks = "-".join([str(int(r)) for r in self.ranks])
             msg = f"Final TT ranks: {ranks}."
             als_info(msg)
         
         return
+    
+    def clone(self):
+
+        tt = TT(self.tt.options)
+        tt.cores = {k: self.tt.cores[k].clone() for k in self.tt.cores}
+        tt.index_sets = {k: self.tt.index_sets[k].clone() for k in self.tt.index_sets}
+        tt.direction = self.tt.direction
+
+        ftt = FTT(self.bases, tt)
+        return ftt
 
 
-class EFTT(TTFunc):
+class EFTT(FTT):
     """Extended functional tensor train.
     
     TODO: it could be nice if this could work with alternative TT 
@@ -357,33 +354,24 @@ class EFTT(TTFunc):
 
     def __init__(
         self, 
-        target_func: Callable[[Tensor], Tensor], 
-        bases: ApproxBases, 
-        options: TTOptions, 
-        input_data: InputData, 
-        reference: Reference,
-        tt_data = None
+        bases: ApproxBases,
+        tt: TT,
+        num_error_samples: int = 1000, 
+        num_pod_samples: int = 30,
+        tol_pod: float = 1e-12
     ):
-        
-        TTFunc.__init__(
-            self, 
-            target_func, 
-            bases, 
-            options, 
-            input_data, 
-            reference, 
-            tt_data
-        )
-
+        FTT.__init__(self, bases, tt, num_error_samples)
+        self.num_pod_samples = num_pod_samples
+        self.tol_pod = tol_pod
         self.num_eval_pod = 0
         self.pod_bases: Dict[int, Tensor] = {}
-        self.deim_inds: Dict[int, Tensor] = {}     # DEIM indices for interpolating the reduced basis in each dimension
-        self.factors: Dict[int, Tensor] = {}       # Tucker factor matrices in each dimension 
+        self.deim_inds: Dict[int, Tensor] = {}
+        self.factors: Dict[int, Tensor] = {}
         return
     
     @property
     def num_eval(self) -> int:
-        return self.tt.num_eval + self.num_eval_pod
+        return self.num_error_samples + self.num_eval_pod + self.tt.num_eval
     
     @property 
     def basis_dims(self) -> Tensor:
@@ -394,52 +382,47 @@ class EFTT(TTFunc):
                                    for k in range(self.dim)])
         return basis_dims
     
-    def _compute_pod_bases(self):
+    def compute_reduced_indices(self):
         """Computes the POD bases in each dimension.
-        
-        TODO: add an option to set the number of samples here.
-        TODO: add an option to set the tolerance here.
 
-        TODO: give this a more descriptive name--it also does the DEIM 
-        indices too... (perhaps this part of the code could be a 
-        separate function).
-
-        TODO: the samples could be drawn directly from the 
-        reference rather than the (weighted) grid.
+        TODO: the samples should be drawn directly from the 
+        reference (or from [-1, 1]^d) rather than the (weighted or 
+        unweighted) grid.
 
         """
 
-        N = 25  # number of snaphots
+        points = {k: self.bases[k].nodes for k in range(self.dim)}
+        grid = Grid(points)
 
         for k in range(self.dim):
             
-            n_k = self.grid.points[k].numel()
+            n_k = grid.points[k].numel()
 
-            index_samples = self.grid.sample_indices(N)
-            point_samples = self.grid.indices2points(index_samples)
+            # index_samples = grid.sample_indices(self.num_pod_samples)
+            # point_samples = grid.indices2points(index_samples)
+            # TEMP...
+            point_samples = 2.0 * torch.rand((self.num_pod_samples, self.dim)) - 1.0
 
             point_samples = point_samples.repeat((n_k, 1))
-            point_samples[:, k] = self.grid.points[k].repeat_interleave(N)
+            point_samples[:, k] = grid.points[k].repeat_interleave(self.num_pod_samples)
 
             # Note: each column is a fibre
-            fibre_matrix = self.target_func(point_samples).reshape(n_k, N)
+            fibre_matrix = self.target_func(point_samples).reshape(n_k, self.num_pod_samples)
             self.num_eval_pod += fibre_matrix.numel()
 
             # NOTE: if the matrix is wide (i.e., more POD samples than 
             # interpolation points), computing the eigendecomposition
             # of FF' is better here.
-            tol = 1e-6
-            basis_k = tsvd(fibre_matrix, tol=tol)[0]
+            basis_k = tsvd(fibre_matrix, tol=self.tol_pod)[0]
 
-            msg = f"Computing reduced basis for dimension {k+1} / {self.dim}..."
-            als_info(msg, end="\r")
+            if self.tt.options.verbose > 1:
+                msg = f"Computing reduced basis for dimension {k+1} / {self.dim}..."
+                als_info(msg, end="\r")
 
             self.pod_bases[k] = basis_k
             self.deim_inds[k], self.factors[k] = deim(basis_k)
-
-        print("", end="\r")
         
-        if self.options.verbose > 1:
+        if self.tt.options.verbose > 1:
             basis_dims = f"-".join([str(int(d)) for d in self.basis_dims])
             als_info(f"Reduced basis dimensions: {basis_dims}.")
 
@@ -455,44 +438,38 @@ class EFTT(TTFunc):
             self.cores[k] = core
         return
 
-    def build(self):
-        """Steps to take:
-        
-        1. build snapshot matrices in each dimension
-        2. compute bases in each dimension
-        3. compute index sets using DEIM...
-        4. compute TT decomposition of reduced tensor.
+    def approximate(self, target_func: Callable[[Tensor], Tensor]) -> None:
 
-        """ 
-
-        self._compute_pod_bases()
+        self.target_func = target_func
+        self.compute_reduced_indices()
 
         deim_nodes = {k: self.bases[k].nodes[self.deim_inds[k]] for k in range(self.dim)}
-        deim_weights = compute_weights(deim_nodes, self.bases.domain, self.reference)
-        deim_grid = Grid(deim_nodes, deim_weights)
+        # deim_weights = compute_weights(deim_nodes, self.bases.domain, self.reference)
+        deim_grid = Grid(deim_nodes)#, deim_weights)
 
-        self.tt = TT(self.target_func, deim_grid, self.options)
+        # TODO: all of the below is common to the FTT and EFTT 
+        # implementations and could go into the parent class.
+        self.tt.initialise(self.target_func, deim_grid)
+        if self.l2_error_samples:
+            self.initialise_l2_error_samples()
+        if self.tt.options.verbose > 0:
+            self.print_info_header()
 
-        if self.options.verbose > 0:
-            self._print_info_header()
-
-        num_iter = 0
-
-        for num_iter in range(self.options.max_als): 
+        for num_iter in range(self.tt.options.max_als): 
 
             self.tt.sweep()
             self.compute_cores()
-            self.compute_error_estimates()
             
-            if self.options.verbose > 0:
-                self._print_info(num_iter)
-
+            if self.l2_error_samples:
+                self.estimate_l2_error()
+            if self.tt.options.verbose > 0:
+                self.print_info(num_iter)
             if self.is_finished:
                 break
             
-        if self.options.verbose > 0:
+        if self.tt.options.verbose > 0:
             als_info("ALS complete.")
-        if self.options.verbose > 1:
+        if self.tt.options.verbose > 1:
             ranks = "-".join([str(int(r)) for r in self.ranks])
             msg = f"Final TT ranks: {ranks}."
             als_info(msg)

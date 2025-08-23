@@ -11,6 +11,7 @@ from examples.plotting import add_arrows
 
 
 torch.manual_seed(1)
+torch.set_default_dtype(torch.float64)
 
 #%% Generation of model and data 
 
@@ -44,10 +45,14 @@ reference = dt.GaussianReference()
 preconditioner = dt.UniformMapping(bounds, reference)
 
 # Define approximation bases
-bases = dt.Legendre(order=30)
+basis = dt.Legendre(order=30)
+bases = dt.ApproxBases(basis, reference.domain, dim=2)
+
+tt = dt.TT()
+ftt = dt.FTT(bases, tt)
 
 # Construct DIRT
-dirt = dt.DIRT(target_func, preconditioner, bases)
+dirt = dt.DIRT(target_func, preconditioner, ftt)
 
 #%% Sampling, Marginalisation and Conditioning
 

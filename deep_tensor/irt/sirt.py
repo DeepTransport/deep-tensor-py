@@ -1,22 +1,13 @@
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, Tuple
 
 import torch
 from torch import Tensor
-from torch.autograd.functional import jacobian
-from torch.quasirandom import SobolEngine
 
-from ..ftt import (
-    ApproxBases, Direction, InputData, 
-    TTData, TTFunc, EFTT, FTT
-)
+from ..ftt import ApproxBases, Direction, FTT
 from ..linalg import batch_mul, n_mode_prod, unfold_left, unfold_right
-from ..options import TTOptions
-from ..polynomials import Basis1D, CDF1D, construct_cdf
-from ..preconditioners.preconditioner import Preconditioner
+from ..polynomials import CDF1D, construct_cdf
 from ..tools import check_finite
 
-
-PotentialFunc = Callable[[Tensor], Tensor]
 
 SUBSET2DIRECTION = {
     "first": Direction.FORWARD,
@@ -33,28 +24,15 @@ class SIRT():
         A function that receives an $n \times d$ matrix of samples and 
         returns an $n$-dimensional vector containing the potential 
         function of the target density evaluated at each sample.
-    bases:
-        An object containing information on the basis functions in each 
-        dimension used during the FTT construction, and the mapping 
-        between the approximation domain and the domain of the basis 
-        functions.
-    prev_approx: 
-        A previously-constructed FTT object to use as a starting point 
-        when constructing the FTT part of the TTSIRT. If passed in, the 
-        bases and options associated with this approximation will be 
-        inherited by the new TTSIRT, and the cores and interpolation 
-        points will be used as a starting point for the new FTT.
-    options:
-        A set of options that control the construction of the FTT.
-    input_data:
-        An object that holds data used to construct and evaluate the 
-        quality of the FTT approximation to the target function.
-    tt_data:
-        An object that holds information about the FTT, including the 
-        cores and interpolation points.
+    ftt:
+        TODO
+    defensive: 
+        TODO
     defensive:
         The defensive parameter, $\tau$, which ensures that the tails
         of the approximation are sufficiently heavy.
+    cdf_tol:
+        TODO
 
     References
     ----------
@@ -66,56 +44,21 @@ class SIRT():
 
     def __init__(
         self, 
-        potential: Callable[[Tensor], Tensor], 
-        preconditioner: Preconditioner,
-        bases: Basis1D | List[Basis1D],
-        prev_approx: TTFunc | None = None,
-        options: TTOptions | None = None, 
-        input_data: InputData | None = None, 
-        tt_data: TTData | None = None,
-        defensive: float = 1e-8
+        target_func: Callable[[Tensor], Tensor], 
+        ftt: FTT,
+        reference,
+        defensive: float,
+        cdf_tol: float
     ):
-        
-        if bases is None and prev_approx is None:
-            msg = ("Must pass in a previous approximation or a set of "
-                   + "approximation bases.")
-            raise Exception(msg)
 
-        if prev_approx is not None:
-            bases = prev_approx.bases.bases
-            options = prev_approx.options
-            # tt_data = prev_approx.tt_data
-
-        if options is None:
-            options = TTOptions()
-        
-        if input_data is None:
-            input_data = InputData()
-
-        self.potential = potential
-
-        self.preconditioner = preconditioner
-        self.domain = preconditioner.reference.domain
-        self.dim = preconditioner.dim
-        self.reference = preconditioner.reference
-
-        self.bases = ApproxBases(bases, self.domain, self.dim)
-        
-        self.options = options 
-        self.input_data = input_data
+        self.potential = target_func
+        self.ftt = ftt
+        self.bases = self.ftt.bases
+        self.dim = self.ftt.dim
         self.defensive = defensive
-        
-        self.cdfs = self._construct_cdfs(self.options.cdf_tol)
+        self.cdfs = self.construct_cdfs(self.bases, cdf_tol)
 
-        self.approx = FTT(
-            self._target_func, 
-            self.bases,
-            options=self.options, 
-            input_data=self.input_data,
-            reference=self.reference,
-            tt_data=tt_data
-        )
-        self.approx.build()
+        self.ftt.approximate(self._target_func, reference)
 
         # Compute coefficient tensors and marginalisation coefficents, 
         # from the first core to the last and the last core to the first
@@ -131,6 +74,17 @@ class SIRT():
     def z(self) -> Tensor:
         return self.defensive + self.z_func
     
+    @property 
+    def num_eval(self) -> int:
+        return self.ftt.num_eval
+
+    @staticmethod
+    def construct_cdfs(bases: ApproxBases, tol: float) -> Dict[int, CDF1D]:
+        cdfs = {}
+        for k in range(bases.dim):
+            cdfs[k] = construct_cdf(bases[k], error_tol=tol) 
+        return cdfs
+
     def _target_func(self, ls: Tensor) -> Tensor:
         """Returns the square root of the ratio between the target 
         density and the weighting function evaluated at a set of points 
@@ -153,7 +107,7 @@ class SIRT():
         """
 
         self._Rs_f[self.dim] = torch.tensor([[1.0]])
-        cores = self.approx.cores
+        cores = self.ftt.cores
 
         for k in range(self.dim-1, -1, -1):
             self._Bs_f[k] = n_mode_prod(cores[k], self._Rs_f[k+1].T, n=2)
@@ -171,7 +125,7 @@ class SIRT():
         """
         
         self._Rs_b[-1] = torch.tensor([[1.0]])
-        cores = self.approx.cores
+        cores = self.ftt.cores
 
         for k in range(self.dim):
             self._Bs_b[k] = n_mode_prod(cores[k], self._Rs_b[k-1], n=0)
@@ -182,25 +136,19 @@ class SIRT():
         self.z_func = self._Rs_b[self.dim-1].square().sum()
         return
 
-    def _construct_cdfs(self, tol: float) -> Dict[int, CDF1D]:
-        cdfs = {}
-        for k in range(self.dim):
-            cdfs[k] = construct_cdf(self.bases[k], error_tol=tol)
-        return cdfs
-
     def _eval_rt_local_forward(self, ls: Tensor) -> Tensor:
 
         n_ls, d_ls = ls.shape
         zs = torch.zeros_like(ls)
         Gs_prod = torch.ones((n_ls, 1))
 
-        cores = self.approx.cores
+        cores = self.ftt.cores
         Bs = self._Bs_f 
             
         for k in range(d_ls):
             
             # Compute (unnormalised) conditional PDF for each sample
-            Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("jl, ilk -> ijk", Gs_prod, Ps)
             ps = gs.square().sum(dim=2) + self.defensive
 
@@ -208,7 +156,7 @@ class SIRT():
             zs[:, k] = self.cdfs[k].eval_cdf(ps, ls[:, k])
 
             # Compute incremental product of tensor cores for each sample
-            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls[:, k])
+            Gs = FTT._eval_core_213(self.bases[k], cores[k], ls[:, k])
             Gs_prod = torch.einsum("il, ilk -> ik", Gs_prod, Gs)
 
         return zs
@@ -220,13 +168,13 @@ class SIRT():
         d_min = self.dim - d_ls
         Gs_prod = torch.ones((1, n_ls))
 
-        cores = self.approx.cores
+        cores = self.ftt.cores
         Bs = self._Bs_b 
 
         for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
 
             # Compute (unnormalised) conditional PDF for each sample
-            Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("ijl, lk -> ijk", Ps, Gs_prod)
             ps = gs.square().sum(dim=1) + self.defensive
 
@@ -234,7 +182,7 @@ class SIRT():
             zs[:, -i] = self.cdfs[k].eval_cdf(ps, ls[:, -i])
             
             # Compute incremental product of tensor cores for each sample
-            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls[:, -i])
+            Gs = FTT._eval_core_213(self.bases[k], cores[k], ls[:, -i])
             Gs_prod = torch.einsum("ijl, li -> ji", Gs, Gs_prod)
 
         return zs
@@ -289,17 +237,16 @@ class SIRT():
         ls = torch.zeros_like(zs)
         gs = torch.ones((n_zs, 1))
 
-        cores = self.approx.cores
         Bs = self._Bs_f
 
         for k in range(d_zs):
             
-            Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gls = n_mode_prod(Ps, gs, n=1)
             ps = gls.square().sum(dim=2) + self.defensive
             ls[:, k] = self.cdfs[k].invert_cdf(ps, zs[:, k])
 
-            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls[:, k])
+            Gs = FTT.eval_core(self.bases[k], self.ftt.cores[k], ls[:, k])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
         
         gs_sq = (gs @ self._Rs_f[d_zs]).square().sum(dim=1)
@@ -331,17 +278,17 @@ class SIRT():
         gs = torch.ones((n_zs, 1))
         d_min = self.dim - d_zs
 
-        cores = self.approx.cores
+        cores = self.ftt.cores
         Bs = self._Bs_b
 
         for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
 
-            Ps = TTFunc._eval_core_231(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT._eval_core_231(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gls = n_mode_prod(Ps, gs, n=1)
             ps = gls.square().sum(dim=2) + self.defensive
             ls[:, -i] = self.cdfs[k].invert_cdf(ps, zs[:, -i])
 
-            Gs = TTFunc._eval_core_231(self.bases[k], cores[k], ls[:, -i])
+            Gs = FTT._eval_core_231(self.bases[k], cores[k], ls[:, -i])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
         gs_sq = (self._Rs_b[d_min-1] @ gs.T).square().sum(dim=0)
@@ -399,33 +346,33 @@ class SIRT():
         n_zs, d_zs = zs.shape
         ls_y = torch.zeros_like(zs)
 
-        cores = self.approx.cores
+        cores = self.ftt.cores
         Bs = self._Bs_f
         
         Gs_prod = torch.ones((n_xs, 1, 1))
 
         for k in range(d_xs-1):
-            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls_x[:, k])
+            Gs = FTT._eval_core_213(self.bases[k], cores[k], ls_x[:, k])
             Gs_prod = batch_mul(Gs_prod, Gs)
         
         k = d_xs-1
 
-        Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], ls_x[:, k])
+        Ps = FTT._eval_core_213(self.bases[k], Bs[k], ls_x[:, k])
         gs_marg = batch_mul(Gs_prod, Ps)
         ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.defensive
 
-        Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls_x[:, k])
+        Gs = FTT._eval_core_213(self.bases[k], cores[k], ls_x[:, k])
         Gs_prod = batch_mul(Gs_prod, Gs)
 
         # Generate conditional samples
         for i, k in enumerate(range(d_xs, self.dim)):
             
-            Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("mij, ljk -> lmk", Gs_prod, Ps)
             ps = gs.square().sum(dim=2) + self.defensive
             ls_y[:, i] = self.cdfs[k].invert_cdf(ps, zs[:, i])
 
-            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls_y[:, i])
+            Gs = FTT._eval_core_213(self.bases[k], cores[k], ls_y[:, i])
             Gs_prod = batch_mul(Gs_prod, Gs)
 
         ps = Gs_prod.flatten().square() + self.defensive
@@ -445,31 +392,31 @@ class SIRT():
         n_zs, d_zs = zs.shape
         ls_y = torch.zeros_like(zs)
 
-        cores = self.approx.cores
+        cores = self.ftt.cores
         Bs = self._Bs_b
 
         Gs_prod = torch.ones((n_zs, 1, 1))
 
         for i, k in enumerate(range(self.dim-1, d_zs, -1), start=1):
-            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls_x[:, -i])
+            Gs = FTT._eval_core_213(self.bases[k], cores[k], ls_x[:, -i])
             Gs_prod = batch_mul(Gs, Gs_prod)
 
-        Ps = TTFunc._eval_core_213(self.bases[d_zs], Bs[d_zs], ls_x[:, 0])
+        Ps = FTT._eval_core_213(self.bases[d_zs], Bs[d_zs], ls_x[:, 0])
         gs_marg = batch_mul(Ps, Gs_prod)
         ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.defensive
 
-        Gs = TTFunc._eval_core_213(self.bases[d_zs], cores[d_zs], ls_x[:, 0])
+        Gs = FTT._eval_core_213(self.bases[d_zs], cores[d_zs], ls_x[:, 0])
         Gs_prod = batch_mul(Gs, Gs_prod)
 
         # Generate conditional samples
         for k in range(d_zs-1, -1, -1):
 
-            Ps = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("lij, mjk -> lmi", Ps, Gs_prod)
             ps = gs.square().sum(dim=2) + self.defensive
             ls_y[:, k] = self.cdfs[k].invert_cdf(ps, zs[:, k])
 
-            Gs = TTFunc._eval_core_213(self.bases[k], cores[k], ls_y[:, k])
+            Gs = FTT._eval_core_213(self.bases[k], cores[k], ls_y[:, k])
             Gs_prod = batch_mul(Gs, Gs_prod)
 
         ps = Gs_prod.flatten().square() + self.defensive
@@ -536,7 +483,7 @@ class SIRT():
         
         """
 
-        cores = self.approx.cores
+        cores = self.ftt.cores
 
         zs = self._eval_rt_local_forward(ls)
         ls, gs_sq = self._eval_irt_local_forward(zs)
@@ -556,8 +503,8 @@ class SIRT():
             ws_k = self.bases[k].eval_measure(ls[:, k])
             dwdls_k = self.bases[k].eval_measure_deriv(ls[:, k])
 
-            Gs_k = TTFunc._eval_core_213(self.bases[k], cores[k], ls[:, k])
-            dGdls_k = TTFunc._eval_core_213_deriv(self.bases[k], cores[k], ls[:, k])
+            Gs_k = FTT._eval_core_213(self.bases[k], cores[k], ls[:, k])
+            dGdls_k = FTT._eval_core_213_deriv(self.bases[k], cores[k], ls[:, k])
             Gs_prod = batch_mul(Gs_prod, Gs_k)
             
             for j in range(self.dim):
@@ -581,7 +528,7 @@ class SIRT():
 
     def _eval_rt_jac_local_forward(self, ls: Tensor) -> Tensor:
 
-        cores = self.approx.cores
+        cores = self.ftt.cores
         Bs = self._Bs_f
 
         Gs: Dict[int, Tensor] = {}
@@ -609,14 +556,14 @@ class SIRT():
             wls[k] = self.bases[k].eval_measure(ls[:, k])
 
             # Evaluate kth tensor core and derivative
-            Gs[k] = TTFunc._eval_core_213(self.bases[k], cores[k], ls[:, k])
-            Gs_deriv[k] = TTFunc._eval_core_213_deriv(self.bases[k], cores[k], ls[:, k])
+            Gs[k] = FTT._eval_core_213(self.bases[k], cores[k], ls[:, k])
+            Gs_deriv[k] = FTT._eval_core_213_deriv(self.bases[k], cores[k], ls[:, k])
             Gs_prod[k] = batch_mul(Gs_prod[k-1], Gs[k])
 
             # Evaluate kth marginalisation core and derivative
-            Ps[k] = TTFunc._eval_core_213(self.bases[k], Bs[k], ls[:, k])
-            Ps_deriv[k] = TTFunc._eval_core_213_deriv(self.bases[k], Bs[k], ls[:, k])
-            Ps_grid[k] = TTFunc._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps[k] = FTT._eval_core_213(self.bases[k], Bs[k], ls[:, k])
+            Ps_deriv[k] = FTT._eval_core_213_deriv(self.bases[k], Bs[k], ls[:, k])
+            Ps_grid[k] = FTT._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
 
             # Evaluate marginal probability for the first k elements of 
             # each sample
@@ -676,7 +623,7 @@ class SIRT():
     
     def _eval_rt_jac_local_backward(self, ls: Tensor) -> Tensor:
 
-        cores = self.approx.cores
+        cores = self.ftt.cores
         Bs = self._Bs_b
 
         Gs: dict[int, Tensor] = {}
@@ -704,14 +651,14 @@ class SIRT():
             wls[k] = self.bases[k].eval_measure(ls[:, k])
 
             # Evaluate kth tensor core and derivative
-            Gs[k] = TTFunc._eval_core_231(self.bases[k], cores[k], ls[:, k])
-            Gs_deriv[k] = TTFunc._eval_core_231_deriv(self.bases[k], cores[k], ls[:, k])
+            Gs[k] = FTT._eval_core_231(self.bases[k], cores[k], ls[:, k])
+            Gs_deriv[k] = FTT._eval_core_231_deriv(self.bases[k], cores[k], ls[:, k])
             Gs_prod[k] = batch_mul(Gs_prod[k+1], Gs[k])
 
             # Evaluate kth marginalisation core and derivative
-            Ps[k] = TTFunc._eval_core_231(self.bases[k], Bs[k], ls[:, k])
-            Ps_deriv[k] = TTFunc._eval_core_231_deriv(self.bases[k], Bs[k], ls[:, k])
-            Ps_grid[k] = TTFunc._eval_core_231(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps[k] = FTT._eval_core_231(self.bases[k], Bs[k], ls[:, k])
+            Ps_deriv[k] = FTT._eval_core_231_deriv(self.bases[k], Bs[k], ls[:, k])
+            Ps_grid[k] = FTT._eval_core_231(self.bases[k], Bs[k], self.cdfs[k].nodes)
 
             # Evaluate marginal probability for the first k elements of 
             # each sample
@@ -801,32 +748,6 @@ class SIRT():
             return torch.arange(dim_z)
         elif direction == Direction.BACKWARD:
             return torch.arange(self.dim-dim_z, self.dim)
-
-    def _eval_potential_grad_autodiff(self, xs: Tensor, subset: str = "first") -> Tensor:
-        """Evaluates the gradient of the potential using autodiff."""
-
-        xs_shape = xs.shape
-
-        def _eval_potential(xs: Tensor) -> Tensor:
-            xs = xs.reshape(*xs_shape)
-            return self.eval_potential(xs, subset).sum(dim=0)
-        
-        derivs = jacobian(_eval_potential, xs.flatten(), vectorize=True)
-        return derivs.reshape(*xs_shape)
-
-    def _eval_rt_jac_autodiff(self, xs: Tensor, subset: str) -> Tensor:
-        """Evaluates the gradient of the Rosenblatt transport using 
-        autodiff.
-        """
-
-        n_xs, d_xs = xs.shape
-
-        def _eval_rt(xs: Tensor) -> Tensor:
-            xs = xs.reshape(n_xs, d_xs)
-            return self.eval_rt(xs, subset).sum(dim=0)
-        
-        Js = jacobian(_eval_rt, xs.flatten(), vectorize=True)
-        return Js.reshape(d_xs, n_xs, d_xs)
     
     def _round(
         self, 
@@ -844,7 +765,7 @@ class SIRT():
             each core. If `None`, will use `self.options.local_tol`.
         
         """
-        self.approx._round(tol, max_rank)
+        self.ftt.round(tol, max_rank)
         return
     
     def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
@@ -872,13 +793,13 @@ class SIRT():
 
         if direction == Direction.FORWARD:
             indices = torch.arange(dim_l)
-            gs = self.approx._eval_local(ls, direction=direction)
+            gs = self.ftt(ls, direction=direction)
             gs_sq = (gs @ self._Rs_f[dim_l]).square().sum(dim=1)
             
         else:
             i_min = self.dim - dim_l
             indices = torch.arange(self.dim-1, self.dim-dim_l-1, -1)
-            gs = self.approx._eval_local(ls, direction=direction)
+            gs = self.ftt(ls, direction=direction)
             gs_sq = (self._Rs_b[i_min-1] @ gs.T).square().sum(dim=0)
             
         # TODO: check that indices go backwards. This could be an issue 
@@ -918,68 +839,7 @@ class SIRT():
         neglogfls = self._eval_potential_local(ls, direction)
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
-    
-    def eval_potential(self, ms: Tensor, subset: str = "first") -> Tensor:
-        r"""Evaluates the potential function.
 
-        Returns the joint potential function, or the marginal potential 
-        function for the first $k$ variables or the last $k$ variables,
-        evaluated at a set of samples.
-
-        Parameters
-        ----------
-        ms:
-            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
-            samples from the approximation domain.
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-        
-        Returns
-        -------
-        neglogfxs:
-            The potential function of the approximation to the target 
-            density evaluated at each sample in `xs`.
-
-        """
-        xs = self.preconditioner.Q_inv(ms, subset)
-        neglogfxs = self._eval_potential(xs, subset)
-        neglogabsdet_ms = self.preconditioner.neglogdet_Q_inv(ms, subset)
-        neglogfms = neglogfxs + neglogabsdet_ms
-        return neglogfms
-
-    def eval_pdf(self, ms: Tensor, subset: str = "first") -> Tensor: 
-        r"""Evaluates the density function.
-
-        Returns the joint density function, or the marginal density 
-        function for the first $k$ variables or the last $k$ variables, 
-        evaluated at a set of samples.
-        
-        Parameters
-        ----------
-        ms:
-            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
-            samples from the approximation domain.
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-
-        Returns
-        -------
-        fms:
-            An $n$-dimensional vector containing the value of the 
-            approximation to the target density evaluated at each 
-            element in `xs`.
-        
-        """
-        neglogfms = self.eval_potential(ms, subset)
-        fms = torch.exp(-neglogfms)
-        return fms
-    
     def _eval_rt(self, xs: Tensor, subset: str) -> Tensor:
         r"""Evaluates the Rosenblatt transport.
 
@@ -1008,40 +868,10 @@ class SIRT():
         """
         direction = SUBSET2DIRECTION[subset]
         indices = self._get_transform_indices(xs.shape[1], direction)
-        ls = self.approx.bases.approx2local(xs, indices)[0]
+        ls = self.ftt.bases.approx2local(xs, indices)[0]
         zs = self._eval_rt_local(ls, direction)
         return zs
 
-    def eval_rt(self, ms: Tensor, subset: str = "first") -> Tensor:
-        r"""Evaluates the Rosenblatt transport.
-
-        Returns the joint Rosenblatt transport, or the marginal 
-        Rosenblatt transport for the first $k$ variables or the last 
-        $k$ variables, evaluated at a set of samples.
-
-        Parameters
-        ----------
-        xs: 
-            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
-            samples from the approximation domain.
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-        
-        Returns
-        -------
-        zs:
-            An $n \times k$ matrix containing the corresponding 
-            samples, from the unit hypercube, after applying the 
-            Rosenblatt transport.
-
-        """
-        xs = self.preconditioner.Q_inv(ms, subset)
-        zs = self._eval_rt(xs, subset)
-        return zs
-    
     def _eval_irt(self, zs: Tensor, subset: str) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the inverse Rosenblatt transport.
         
@@ -1076,263 +906,3 @@ class SIRT():
         xs, dxdls = self.bases.local2approx(ls, indices)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs
-
-    def eval_irt(self, zs: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
-        r"""Evaluates the inverse Rosenblatt transport.
-        
-        Returns the joint inverse Rosenblatt transport, or the marginal 
-        inverse Rosenblatt transport for the first $k$ variables or the 
-        last $k$ variables, evaluated at a set of samples.
-        
-        Parameters
-        ----------
-        zs: 
-            An $n \times k$ matrix containing samples from the unit 
-            hypercube.
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-        
-        Returns
-        -------
-        xs: 
-            An $n \times k$ matrix containing the corresponding samples 
-            from the approximation to the target density function.
-        neglogfxs: 
-            An $n$-dimensional vector containing the approximation to 
-            the potential function evaluated at each sample in `xs`.
-        
-        """
-        xs, neglogfxs = self._eval_irt(zs, subset)
-
-        # Map samples back into actual domain
-        ms = self.preconditioner.Q(xs, subset)
-        neglogabsdet_ms = self.preconditioner.neglogdet_Q_inv(ms, subset)
-        neglogfms = neglogfxs + neglogabsdet_ms
-
-        return ms, neglogfms
-    
-    def eval_cirt(
-        self, 
-        xs: Tensor, 
-        zs: Tensor, 
-        subset: str
-    ) -> Tuple[Tensor, Tensor]:
-        r"""Evaluates the conditional inverse Rosenblatt transport.
-
-        Returns the conditional inverse Rosenblatt transport evaluated
-        at a set of samples in the approximation domain. 
-        
-        The conditional inverse Rosenblatt transport takes the form
-        $$Y|X = R^{-1}(R_{k}(X), Z),$$
-        where $X$ is a $k$-dimensional random variable, $Z$ is an 
-        $n-k$-dimensional uniform random variable, $R(\,\cdot\,)$ 
-        denotes the (full) Rosenblatt transport, and $R_{k}(\,\cdot\,)$ 
-        denotes the Rosenblatt transport for the first (or last) $k$ 
-        variables.
-        
-        Parameters
-        ----------
-        xs:
-            An $n \times k$ matrix containing samples from the 
-            approximation domain.
-        zs:
-            An $n \times (d-k)$ matrix containing samples from the unit 
-            hypercube of dimension $d-k$.
-        subset: 
-            Whether `xs` corresponds to the first $k$ variables 
-            (`subset='first'`) of the approximation, or the last $k$ 
-            variables (`subset='last'`).
-        
-        Returns
-        -------
-        ys:
-            An $n \times (d-k)$ matrix containing the realisations of 
-            $Y$ corresponding to the values of `zs` after applying the 
-            conditional inverse Rosenblatt transport.
-        neglogfys:
-            An $n$-dimensional vector containing the potential function 
-            of the approximation to the conditional density of 
-            $Y \textbar X$ evaluated at each sample in `ys`.
-    
-        """
-        
-        n_zs, d_zs = zs.shape
-        n_xs, d_xs = xs.shape
-
-        if d_zs == 0 or d_xs == 0:
-            msg = "The dimensions of both X and Z must be at least 1."
-            raise Exception(msg)
-        
-        if d_zs + d_xs != self.dim:
-            msg = ("The dimensions of X and Z must sum " 
-                   + "to the dimension of the approximation.")
-            raise Exception(msg)
-        
-        if n_zs != n_xs: 
-            if n_xs != 1:
-                msg = "The number of samples of X and Z must be equal."
-                raise Exception(msg)
-            xs = xs.repeat(n_zs, 1)
-        
-        direction = SUBSET2DIRECTION[subset]
-        if direction == Direction.FORWARD:
-            inds_x = torch.arange(d_xs)
-            inds_z = torch.arange(d_xs, self.dim)
-        else:
-            inds_x = torch.arange(d_zs, self.dim)
-            inds_z = torch.arange(d_zs)
-        
-        ls_x = self.bases.approx2local(xs, inds_x)[0]
-        ls_y, neglogfys = self._eval_cirt_local(ls_x, zs, direction)
-        ys, dydlys = self.bases.local2approx(ls_y, inds_z)
-        neglogfys += dydlys.log().sum(dim=1)
-
-        return ys, neglogfys
-    
-    def eval_potential_grad(
-        self, 
-        xs: Tensor, 
-        method: str = "autodiff",
-        subset: str = "first"
-    ) -> Tensor:
-        r"""Evaluates the gradient of the potential function.
-        
-        Parameters
-        ----------
-        xs:
-            An $n \times k$ matrix containing samples from the 
-            approximation domain.
-        method: 
-            The method by which to compute the gradient. This can be 
-            `autodiff`, or `manual`. Generally, `manual` is faster than 
-            `autodiff`, but can only be used to evaluate the gradient 
-            of the full potential function (*i.e.*, when $k=d$).
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-
-        Returns
-        -------
-        grads:
-            An $n \times k$ matrix containing the gradient of the 
-            potential function evaluated at each sample in `xs`.
-
-        """
-
-        method = method.lower()
-        if method not in ("manual", "autodiff"):
-            raise Exception("Unknown method.")
-
-        if method == "autodiff":
-            TTFunc._check_sample_dim(xs, self.dim)
-            grad = self._eval_potential_grad_autodiff(xs, subset)
-            return grad
-        
-        TTFunc._check_sample_dim(xs, self.dim, strict=True)
-        ls, dldxs = self.bases.approx2local(xs)
-        grad = self._eval_potential_grad_local(ls)
-        grad *= dldxs
-        return grad
-
-    def eval_rt_jac(
-        self, 
-        xs: Tensor, 
-        method: str = "autodiff",
-        subset: str = "first"
-    ) -> Tensor:
-        r"""Evaluates the Jacobian of the Rosenblatt transport.
-
-        Evaluates the Jacobian of the mapping $Z = R(X)$, where $Z$ is 
-        a standard $k$-dimensional uniform random variable and $X$ is 
-        the approximation to the target random variable. 
-
-        Note that element $J_{ij}$ of the Jacobian is given by
-        $$J_{ij} = \frac{\partial z_{i}}{\partial x_{j}}.$$
-
-        Parameters
-        ----------
-        xs:
-            An $n \times d$ matrix containing a set of samples from the 
-            approximation domain.
-        method:
-            The method by which to compute the Jacobian. This can be 
-            `autodiff`, or `manual`. Generally, `manual` is faster than 
-            `autodiff`, but can only be used to evaluate the Jacobian 
-            of the full Rosenblatt transport (*i.e.*, when $k=d$).
-        subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
-
-        Returns
-        -------
-        Jacs:
-            A $k \times n \times k$ tensor, where element $ijk$ 
-            contains element $ik$ of the Jacobian for the $j$th sample 
-            in `xs`.
-
-        """
-
-        direction = SUBSET2DIRECTION[subset]
-        method = method.lower()
-        if method not in ("manual", "autodiff"):
-            raise Exception("Unknown method.")
-
-        if method == "autodiff":
-            TTFunc._check_sample_dim(xs, self.dim)
-            Jacs = self._eval_rt_jac_autodiff(xs, subset)
-            return Jacs
-        
-        TTFunc._check_sample_dim(xs, self.dim, strict=True)
-        ls, dldxs = self.bases.approx2local(xs)
-        Jacs = self._eval_rt_jac_local(ls, direction)
-        for k in range(self.dim):
-            Jacs[:, :, k] *= dldxs[:, k]
-        return Jacs
-
-    def random(self, n: int) -> Tensor: 
-        """Generates a set of random samples.
-
-        Samples are generated from the joint density defined by the SIRT. 
-        
-        Parameters
-        ----------
-        n:  
-            The number of samples to generate.
-
-        Returns
-        -------
-        xs:
-            The generated samples.
-        
-        """
-        zs = torch.rand(n, self.dim)
-        xs = self.eval_irt(zs)[0]
-        return xs 
-    
-    def sobol(self, n: int) -> Tensor:
-        """Generates a set of QMC samples.
-
-        Samples are generated from the joint density defined by the SIRT. 
-        
-        Parameters
-        ----------
-        n:
-            The number of samples to generate.
-        
-        Returns
-        -------
-        xs:
-            The generated samples.
-
-        """
-        S = SobolEngine(dimension=self.dim)
-        zs = S.draw(n)
-        xs = self.eval_irt(zs)[0]
-        return xs

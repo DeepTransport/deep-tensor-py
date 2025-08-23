@@ -1,10 +1,21 @@
 from dataclasses import dataclass
-
-from .verification import verify_method
+from typing import Sequence
 
 
 TT_METHODS = ["random", "amen", "fixed_rank"]
 INT_METHODS = ["deim", "maxvol"]
+
+
+def verify_method(method: str, accepted_methods: Sequence[str]) -> None:
+        
+    if method in accepted_methods:
+        return 
+    
+    msg = (
+        f"Method '{method}' not recognised. Expected one of: " 
+        ", ".join(accepted_methods) + "."
+    )
+    raise ValueError(msg)
 
 
 @dataclass
@@ -27,7 +38,7 @@ class TTOptions():
     max_rank:
         The maximum allowable rank of each tensor core (prior to the 
         enrichment set being added).
-    local_tol:
+    local_tol: # TODO: rename to svd_tol or similar.
         The threshold to use when applying truncated SVD to the tensor 
         cores when building the FTT. The minimum number of singular 
         values such that the sum of their squares exceeds (1 - local_tol) 

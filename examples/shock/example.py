@@ -9,6 +9,7 @@ from examples.plotting import add_arrows, pairplot
 
 
 torch.manual_seed(0)
+torch.set_default_dtype(torch.float64)
 
 
 # Define failure distances (km)
@@ -87,6 +88,10 @@ def neglogpri(params: torch.Tensor) -> torch.Tensor:
     return neglogpris
 
 
+def neglogpost(params):
+    return negloglik(params) + neglogpri(params)
+
+
 # Define bounds for parameters
 bounds = torch.zeros((D+2, 2))
 bounds[:-1] = torch.vstack((ms - 3.0*sds, ms + 3.0*sds)).T 
@@ -101,17 +106,19 @@ preconditioner = GammaNormalMapping(
     ms, sds, dim
 )
 
-bases = dt.Lagrange1(num_elems=20)
+target_func = dt.TargetFunc(neglogpost)
+basis = dt.Lagrange1(num_elems=30)
+bases = dt.ApproxBases(basis, preconditioner.reference.domain, dim)
+options = dt.TTOptions(verbose=2, max_als=4, init_rank=1, local_tol=0.0, tt_method="amen")
+tt = dt.TT(options)
+ftt = dt.FTT(bases, tt)
 bridge = dt.SingleLayer()
-tt_options = dt.TTOptions(verbose=2, max_als=2, init_rank=10, max_rank=14)
 
 dirt = dt.DIRT(
-    negloglik=negloglik,
-    neglogpri=neglogpri,
+    target_func=target_func,
     preconditioner=preconditioner,
-    bases=bases,
-    bridge=bridge,
-    tt_options=tt_options
+    ftt=ftt,
+    bridge=bridge
 )
 
 #%% Debiasing
@@ -185,26 +192,24 @@ colours = {
 results = {name: {"iact": [], "num_eval": []} for name in bases_dict}
 
 tt_options = dt.TTOptions(verbose=False)
-dirt_options = dt.DIRTOptions(verbose=False)
 
 for name in bases_dict:
     for args in args_dict[name]:
 
         bases = bases_dict[name](args)
+        bridge = dt.SingleLayer()
 
         dirt = dt.DIRT(
-            negloglik,
-            neglogpri, 
+            target_func,
             preconditioner,
             bases,
-            bridge=dt.SingleLayer(),
-            tt_options=tt_options,
-            dirt_options=dirt_options
+            bridge=bridge,
+            verbose=False
         )
 
         # Run independence MCMC sampler
         samples_dirt, potentials_dirt = dirt.eval_irt(rs)
-        potentials_true = negloglik(samples_dirt) + neglogpri(samples_dirt)
+        potentials_true = neglogpost(samples_dirt)
         res = dt.run_independence_sampler(samples_dirt, potentials_dirt, potentials_true)
 
         results[name]["iact"].append(res.iacts.max())
