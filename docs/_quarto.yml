@@ -35,6 +35,8 @@ website:
             href: examples/sir/example_inference.ipynb
           - title: Shock Absorber Model
             href: examples/shock/example_inference.ipynb
+          - title: Logistic Regression
+            href: examples/logistic/example_inference.ipynb
           - title: Heat Equation
             href: examples/heat/example_inference.ipynb
         - section: Rare Event Estimation
