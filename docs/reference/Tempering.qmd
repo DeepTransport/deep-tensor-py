@@ -3,11 +3,11 @@
 ```python
 Tempering(
     self,
-    betas: Tensor | None = None,
-    ess_tol: Tensor | float = 0.5,
-    ess_tol_init: Tensor | float = 0.5,
-    beta_factor: Tensor | float = 1.05,
-    min_beta: Tensor | float = 0.0001,
+    betas: List | Tensor | None = None,
+    ess_tol: float = 0.5,
+    ess_tol_init: float = 0.5,
+    beta_factor: float = 1.05,
+    min_beta: float = 0.0001,
     max_layers: int = 20,
 )
 ```
@@ -16,11 +16,13 @@ Likelihood tempering.
 
 The intermediate densities, $\{\pi_{k}(\theta)\}_{k=1}^{N}$, 
 generated using this approach take the form
-$$\pi_{k}(\theta) \propto (Q_{\sharp}\rho(\theta))^{1-\beta_{k}}\pi(\theta)^{\beta_{k}},$$
+$$
+    \pi_{k}(\theta) \propto (Q_{\sharp}\rho(\theta))^{1-\beta_{k}}\pi(\theta)^{\beta_{k}},
+$$
 where $Q_{\sharp}\rho(\cdot)$ denotes the pushforward of the 
 reference density, $\rho(\cdot)$, under the preconditioner, 
 $Q(\cdot)$, $\pi(\cdot)$ denotes the target density, and 
-$0 \leq \beta_{1} < \cdots < \beta_{N} = 1$.
+$0 \leq \beta_{1} \leq \cdots \leq \beta_{N} = 1$.
 
 It is possible to provide this class with a set of $\beta$ values to 
 use. If these are not provided, they will be determined 
@@ -31,23 +33,23 @@ bridging density does not fall below a given value.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**betas**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**betas**]{.parameter-name} [:]{.parameter-annotation-sep} [List \| Tensor \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   A set of $\beta$ values to use for the intermediate  distributions. If not specified, these will be determined  automatically.
 
-<code>[**ess_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.5]{.parameter-default}</code>
+<code>[**ess_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.5]{.parameter-default}</code>
 
 :   If selecting the $\beta$ values adaptively, the minimum  allowable ESS of the samples (distributed according to an  approximation of the previous bridging density) when selecting  the next bridging density.
 
-<code>[**ess_tol_init**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.5]{.parameter-default}</code>
+<code>[**ess_tol_init**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.5]{.parameter-default}</code>
 
 :   If selecting the $\beta$ values adaptively, the minimum  allowable ESS of the samples when selecting the initial  bridging density.
 
-<code>[**beta_factor**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1.05]{.parameter-default}</code>
+<code>[**beta_factor**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1.05]{.parameter-default}</code>
 
 :   If selecting the $\beta$ values adaptively, the factor by which  to increase the current $\beta$ value by prior to checking  whether the ESS of the reweighted samples is sufficiently high.
 
-<code>[**min_beta**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0001]{.parameter-default}</code>
+<code>[**min_beta**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0001]{.parameter-default}</code>
 
 :   If selecting the $\beta$ values adaptively, the minimum  allowable $\beta$ value.
 

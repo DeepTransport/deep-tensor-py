@@ -20,7 +20,7 @@ from ..tools.printing import als_info
 
 
 INTERPOLATION_METHODS = {"deim": deim, "maxvol": maxvol}
-MAX_CONDITION_NUM = 1.0e+5
+MAX_CONDITION_NUM = 1e+05
 
 
 class Grid():
@@ -31,12 +31,12 @@ class Grid():
         weights: Dict[int, Tensor] | None = None
     ):
 
-        self.points = points 
-        self.indices = {k: torch.arange(points[k].numel()) for k in self.points}
-        self.dim = len(points.keys())
-
         if weights is None:
-            weights = {k: torch.ones_like(points[k]) for k in self.points}
+            weights = {k: torch.ones_like(points[k]) for k in points}
+
+        self.points = points 
+        self.indices = {k: torch.arange(points[k].numel()) for k in points}
+        self.dim = len(points.keys())
 
         self.weights = weights  # unnormalised
         self.point_densities = {k: Categorical(self.weights[k]) for k in self.weights}
@@ -48,7 +48,7 @@ class Grid():
         proportionally to their weights..
         
         TODO: ideally it wouldn't be possible to have the same sample 
-        multiple times...
+        multiple times.
         """
 
         sample = torch.vstack([
@@ -70,12 +70,19 @@ class Grid():
 
 
 class TT():
-    """Computes a tensor train factorisation of the discretisation of 
-    an arbitrary function on a tensor-product grid using the 
-    alternating cross approximation algorithm. 
+    """A tensor train factorisation.
+    
+    This class computes an stores a tensor train factorisation of the 
+    discretisation of an arbitrary function on a tensor-product grid, 
+    using the alternating cross approximation algorithm outlined in 
+    @Oseledets2010. 
 
-    user could possibly call this from their own custom ftt 
-    implementation.
+    Parameters
+    ----------
+    options:
+        Parameters which control the construction of the tensor train 
+        factorisation.
+
     """
 
     def __init__(self, options: TTOptions | None = None):
@@ -115,7 +122,7 @@ class TT():
         target_func: Callable[[Tensor], Tensor], 
         grid: Grid
     ) -> None:
-
+        """TODO: write docstring..."""
         self.target_func = target_func
         self.grid = grid 
         self.dim = grid.dim
@@ -132,14 +139,12 @@ class TT():
         """
 
         for k in range(self.dim):
-
             core_shape = (
                 1 if k == 0 else self.options.init_rank, 
                 self.indices[k].numel(),
                 1 if k == self.dim-1 else self.options.init_rank
             )
             self.cores[k] = torch.zeros(core_shape)
-
             inds_sample = self.grid.sample_indices(self.options.init_rank)
             self.index_sets[k] = inds_sample[:, k:]
 
@@ -282,7 +287,7 @@ class TT():
 
         return block
     
-    def build_cross_block_amen(self, k: int) -> None:
+    def build_core_amen(self, k: int) -> None:
         
         index_set_left = self.index_sets[k-1]
         inds = self.indices[k][:, None]
@@ -290,11 +295,11 @@ class TT():
         r_left = self.res_l[k-1]
         r_right = self.res_l[k+1]
 
-        # Evaluate the interpolant function at x_k nodes
+        # Evaluate the interpolant function at l_k nodes
         H = self.compute_block(index_set_left, inds, index_set_right)
         self.errors[k] = self.compute_local_error(H, self.cores[k])
 
-        # Evaluate residual function at x_k nodes
+        # Evaluate the residual function at r_k nodes
         H_res = self.compute_block(r_left, inds, r_right)
 
         if self.direction == Direction.FORWARD and k > 0:
@@ -307,7 +312,7 @@ class TT():
         self.build_basis_amen(H, H_res, H_up, k)
         return 
 
-    def build_cross_block_random(self, k: int) -> None:
+    def build_core_random(self, k: int) -> None:
 
         index_set_left = self.index_sets[k-1]
         inds = self.indices[k][:, None]
@@ -330,7 +335,7 @@ class TT():
 
         return
     
-    def build_cross_block_fixed(self, k: int) -> None:
+    def build_core_fixed(self, k: int) -> None:
 
         index_set_left = self.index_sets[k-1]
         inds = self.indices[k][:, None]
@@ -342,15 +347,18 @@ class TT():
         
         return
 
-    def build_cross_block(self, k: int) -> None:
-        
-        if self.options.tt_method == "random":
-            self.build_cross_block_random(k)
-        elif self.options.tt_method == "amen":
-            self.build_cross_block_amen(k)
-        else:
-            self.build_cross_block_fixed(k)
-        
+    def build_core(self, k: int) -> None:
+        """Builds a single TT core."""
+        match self.options.tt_method:
+            case "fixed_rank":
+                self.build_core_fixed(k)
+            case "random":
+                self.build_core_random(k)
+            case "amen":
+                self.build_core_amen(k)
+            case _:
+                msg = f"Unknown TT method: {self.options.tt_method}."
+                raise Exception(msg)
         return
 
     def build_block_final(self, k: int) -> None:
@@ -399,7 +407,7 @@ class TT():
 
         """
         if tol is None: 
-            tol = self.options.local_tol
+            tol = self.options.svd_tol
         if max_rank is None:
             max_rank = self.options.max_rank
         Ur, sr, Vhr, rank = tsvd(H, tol, max_rank)
@@ -417,7 +425,7 @@ class TT():
         
         Parameters
         ----------
-        H:
+        T:
             An r_{k-1} * n_{k} * r_{k} tensor containing the 
             coefficients of the kth TT block.
         k:
@@ -450,9 +458,9 @@ class TT():
         U, sVh, rank = self.truncate_local(T, tol, max_rank)
 
         # Select a set of interpolation points
-        indices_global, B, U_interp = self.select_points(U)
+        indices_global, UU_inv, U_sub = self.select_points(U)
         core_shape = (r_prev, n_k, rank)
-        self.cores[k] = mode_n_folding(B, n=2, newshape=core_shape)
+        self.cores[k] = mode_n_folding(UU_inv, n=2, newshape=core_shape)
         
         self.index_sets[k] = self.merge_indices(
             self.index_sets[k_prev], 
@@ -460,7 +468,7 @@ class TT():
             indices_global
         )
 
-        couple = (U_interp @ sVh)[:, :r_next]
+        couple = (U_sub @ sVh)[:, :r_next]
         self.cores[k_next] = n_mode_prod(self.cores[k_next], couple, n=0)
 
         if self.direction == Direction.BACKWARD:
@@ -569,8 +577,9 @@ class TT():
         tol: float | None = None, 
         max_rank: int | None = None
     ) -> None:
-        """Rounds the TT cores. Applies double rounding to get back 
-        to the starting direction.
+        """Rounds the TT cores. 
+        
+        Applies double rounding to get back to the starting direction.
 
         Parameters
         ----------
@@ -581,7 +590,7 @@ class TT():
         """
 
         if tol is None:
-            tol = self.options.local_tol
+            tol = self.options.svd_tol
 
         for _ in range(2):
             self.reverse_direction()
@@ -598,30 +607,30 @@ class TT():
         return
 
     def sweep(self):
-        """Runs a single cross iteration."""
+        """Runs a single cross iteration.
+        
+        If cross iterations have been run previously, this performs a 
+        sweep over the cores in the opposite order to the previous 
+        sweep.
+        """
 
         if self.cores == {}:
             self.initialise_cores()
         else:
-            self.reverse_direction()
-        
+            self.reverse_direction()     
         if self.options.tt_method == "amen":
             self.initialise_amen()
-
         if self.direction == Direction.FORWARD:
             inds = range(self.dim)
         else:
             inds = range(self.dim-1, -1, -1)
         
         for i, k in enumerate(inds):
-            
             if self.options.verbose > 1:
                 msg = f"Building block {i+1} / {self.dim}..."
                 als_info(msg, end="\r")
-            
             if i < self.dim-1:
-                self.build_cross_block(k)
+                self.build_core(k)
             else:
                 self.build_block_final(k)
-
         return

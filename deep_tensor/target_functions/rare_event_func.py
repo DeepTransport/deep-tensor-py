@@ -13,14 +13,21 @@ class RareEventFunc(TargetFunc):
     Parameters
     ----------
     func:
-        A function which takes an $n \times d$ matrix in which each row 
-        contains a sample of the parameters, and returns an 
-        $n$-dimensional which contains the negative logarithm of 
-        (a possibly unnormalised version of) the target density, and an 
+        A function which returns the negative logarithm of a (possibly 
+        unnormalised version of) the target density function, and the 
+        response function. If `vectorised=True`, the function should 
+        accept an $n \times d$ matrix (where $n$ denotes the number of 
+        samples and $d$ denotes the dimension of the parameters), and 
+        return an $n$-dimensional vector containing the negative 
+        log-density function evaluated at each sample, and an 
         $n$-dimensional vector containing the response function 
-        evaluated at each sample.
+        evaluated at each sample. If `vectorised=False`, the function 
+        should accept a $d$-dimensional vector and return two scalar 
+        values.
     threshold: 
         The threshold, $z$, which defines a rare event.
+    vectorised:
+        Whether the function accepts multiple sets of parameters.
 
     Notes
     -----
@@ -62,10 +69,8 @@ class RareEventFunc(TargetFunc):
         return neglogfxs
     
     def _func_vectorised(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
-        
         if self.vectorised:
             return self._func(xs)
-        
         neglogfxs = torch.zeros((xs.shape[0],))
         responses = torch.zeros((xs.shape[0],))
         for i, x in enumerate(xs.T):

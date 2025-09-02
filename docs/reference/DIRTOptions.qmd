@@ -3,11 +3,11 @@
 ```python
 DIRTOptions(
     self,
-    method: str = 'aratio',
-    num_samples: int = 1000,
-    num_debugs: int = 1000,
+    ratio_type: str = 'aratio',
+    num_error_samples: int = 1000,
     defensive: float = 1e-08,
-    verbose: bool = True,
+    cdf_tol: float = 1e-10,
+    verbose: float = 1,
 )
 ```
 
@@ -15,22 +15,22 @@ Options for configuring the construction of a DIRT object.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'aratio\']{.parameter-default}</code>
+<code>[**ratio_type**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'aratio\']{.parameter-default}</code>
 
-:   The method used for the ratio function at each iteration. Can  be `'aratio'` (approximate ratio) or `'eratio'` (exact ratio).
+:   Whether to approximate the approximate ratio function (`'aratio'`)  or the exact ratio function (`'eratio'`) when constructing each  layer of the DIRT.
 
-<code>[**num_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
+<code>[**num_error_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
 
-:   The number of samples generated to be used as part of the  construction of the DIRT.
-
-<code>[**num_debugs**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
-
-:   The number of samples used to evaluate the quality of each SIRT  constructed during the construction of the DIRT.
+:   The number of samples used to estimate the Hellinger divergence  between each bridging density and its DIRT approximation (and  to choose the parameters of each bridging density, if these are  being chosen adaptively).
 
 <code>[**defensive**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-08]{.parameter-default}</code>
 
-:   The parameter (often referred to as $\gamma$ or $\tau$) used to  make the tails of the FTT approximation to each ratio function  heavier.
+:   The defensive term (often referred to as $\gamma$ or $\tau$)  used to make the tails of the DIRT approximation to the target  density heavier.
 
-<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+<code>[**cdf_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-10]{.parameter-default}</code>
 
-:   Whether to print information on the construction of the DIRT  object.
+:   The numerical tolerance used when evaluating the inverse CDFs  required to evaluate the (deep) inverse Rosenblatt transport.
+
+<code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
+
+:   If `verbose=0`, no information about the construction of the  DIRT will be printed. If `verbose=1`, diagnostic information  will be displayed after the construction of each DIRT layer.

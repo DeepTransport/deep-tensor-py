@@ -1,5 +1,5 @@
 import abc
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 import torch
 from torch import Tensor
@@ -14,11 +14,6 @@ class Bridge(abc.ABC):
     @abc.abstractmethod
     def is_last(self) -> bool:
         pass
-    
-    # @property 
-    # @abc.abstractmethod
-    # def params_dict(self) -> Dict:
-    #     pass
 
     @property 
     def n_layers(self) -> int:
@@ -49,25 +44,13 @@ class Bridge(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def update(
-        self, 
-        method: str,
-        rs: Tensor,
-        us: Tensor,
-        neglogfus_dirt: Tensor
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    def update(self, us: Tensor, neglogfus_dirt: Tensor) -> Tuple[Tensor, Tensor]:
         """Evaluates the current bridging density, the next ratio 
         function and the ratio between the current bridging density and 
         the next bridging density at each of a set of samples.
 
         Parameters
         ----------
-        method:
-            Method for computing the ratio function ('aratio' or 
-            'eratio').
-        rs:
-            An n * d matrix containing a set of samples from the 
-            reference distribution.
         us:
             An n * d matrix containing the samples from `rs` after 
             applying the current DIRT mapping to them.
@@ -77,16 +60,13 @@ class Bridge(abc.ABC):
         
         Returns
         -------
-        neglogbridges:
-            An n-dimensional vector containing the current bridging 
-            density evaluated at each sample.
         log_weights:
             An n-dimensional vector containing the ratio between 
             the current and new bridging densities evaluated at each 
             sample.
-        neglogratios:
-            An n-dimensional vector containing the next ratio function
-            evaluated at each sample.
+        neglogbridges:
+            An n-dimensional vector containing the current bridging 
+            density evaluated at each sample.
         
         """
         pass

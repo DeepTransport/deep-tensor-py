@@ -138,9 +138,11 @@ class CDF1D(abc.ABC):
         """Checks whether a set of evaluations of the target PDF are 
         positive.
         """
-        if (n_violations := (ps < -EPS).sum()) > 0:
-            msg = (f"{n_violations} negative PDF values found. "
-                   + f"Minimum value: {ps.min()}")
+        if (num_violations := (ps < -EPS).sum()) > 0:
+            msg = (
+                f"{num_violations} negative PDF values found. "
+                f"Minimum value: {ps.min()}."
+            )
             warnings.warn(msg)
         return
 
@@ -163,9 +165,9 @@ class CDF1D(abc.ABC):
         None
 
         """
-        if (n_violations := (z0s * z1s > EPS).sum()) > 0:
+        if (num_violations := (z0s * z1s > EPS).sum()) > 0:
             msg = (
-                f"Rootfinding: {n_violations} initial intervals "
+                f"Rootfinding: {num_violations} initial intervals "
                 "without roots found."
             )
             # warnings.warn(msg)
@@ -263,9 +265,10 @@ class CDF1D(abc.ABC):
         max_residual = error_fs.abs().max()
         
         msg = (
-            f"{method} did not converge ({unconverged.sum()} unconverged "
-            f"samples). Maximum residual: {max_residual:.4e}."
+            f"Rootfinding: {method} did not converge "
+            f"({unconverged.sum()} unconverged samples). "
+            f"Maximum residual: {max_residual:.4e}."
         )
         warnings.warn(msg)
-
+        
         return None

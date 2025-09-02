@@ -1,0 +1,62 @@
+# TT { #deep_tensor.TT }
+
+```python
+TT(self, options: TTOptions | None = None)
+```
+
+A tensor train factorisation.
+
+This class computes an stores a tensor train factorisation of the 
+discretisation of an arbitrary function on a tensor-product grid, 
+using the alternating cross approximation algorithm outlined in 
+@Oseledets2010. 
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**options**]{.parameter-name} [:]{.parameter-annotation-sep} [TTOptions \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   Parameters which control the construction of the tensor train  factorisation.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [initialise](#deep_tensor.TT.initialise) | TODO: write docstring... |
+| [sweep](#deep_tensor.TT.sweep) | Runs a single cross iteration. |
+| [round](#deep_tensor.TT.round) | Rounds the TT cores.  |
+
+### initialise { #deep_tensor.TT.initialise }
+
+```python
+TT.initialise(target_func: Callable[[Tensor], Tensor], grid: Grid)
+```
+
+TODO: write docstring...
+
+### sweep { #deep_tensor.TT.sweep }
+
+```python
+TT.sweep()
+```
+
+Runs a single cross iteration.
+
+If cross iterations have been run previously, this performs a 
+sweep over the cores in the opposite order to the previous 
+sweep.
+
+### round { #deep_tensor.TT.round }
+
+```python
+TT.round(tol: float | None = None, max_rank: int | None = None)
+```
+
+Rounds the TT cores. 
+
+Applies double rounding to get back to the starting direction.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**tol**]{.parameter-name} [:]{.parameter-annotation-sep} [float \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The tolerance to use when applying truncated SVD to round  each core.

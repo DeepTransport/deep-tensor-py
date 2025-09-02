@@ -6,16 +6,22 @@ from torch import Tensor
 
 
 class TargetFunc(object):
-    r"""An arbitrary target density function to be approximated.
+    r"""The negative logarithm of a density function to be approximated.
     
     Parameters
     ----------
     neglogfx:
-        A function which takes an $n \times d$ matrix in which each row 
-        contains a sample of the parameters, and returns an 
-        $n$-dimensional vector which contains the negative logarithm of 
-        (a possibly unnormalised version of) the target density.
-        
+        A function which returns the negative logarithm of a (possibly 
+        unnormalised version of) the target density function. If 
+        `vectorised=True`, the function should accept an $n \times d$ 
+        matrix (where $n$ denotes the number of samples and $d$ denotes 
+        the dimension of the parameters), and return an $n$-dimensional 
+        vector containing the function evaluated at each sample. If 
+        `vectorised=False`, the function should accept a $d$-dimensional 
+        vector and return a single scalar value.
+    vectorised:
+        Whether the function accepts multiple sets of parameters.
+
     """
 
     def __init__(
@@ -39,6 +45,6 @@ class TargetFunc(object):
         neglogfxs = self._func_vectorised(xs)
         num_infs = torch.sum(neglogfxs == -torch.inf)
         if num_infs > 0:
-            msg = "Target function takes values of infinity."
+            msg = "Target density is not finite."
             warnings.warn(msg)
         return neglogfxs

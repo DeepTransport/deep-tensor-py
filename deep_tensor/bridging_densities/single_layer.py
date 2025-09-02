@@ -24,18 +24,16 @@ class SingleLayer(Bridge):
 
     def update(
         self, 
-        method: str, 
-        rs: Tensor, 
         us: Tensor, 
         neglogfus_dirt: Tensor
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor]:
         
         xs, neglogdets = self.apply_preconditioner(us)
         neglogfxs = self.target_func(xs)
         neglogfus = neglogfxs + neglogdets
 
         log_weights = -neglogfus + neglogfus_dirt
-        return log_weights, neglogfus, neglogfus
+        return log_weights, neglogfus
         
     def ratio_func(
         self,

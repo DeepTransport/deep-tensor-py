@@ -3,7 +3,7 @@
 ```python
 run_irt_pcn(
     potential: Callable[[Tensor], Tensor],
-    dirt: AbstractDIRT,
+    dirt: DIRT,
     n: int,
     dt: float = 2.0,
     r0: Tensor | None = None,
@@ -29,7 +29,7 @@ Gaussian reference density.
 
 :   A function that returns the negative logarithm of the (possibly  unnormalised) target density at a given sample.
 
-<code>[**dirt**]{.parameter-name} [:]{.parameter-annotation-sep} [AbstractDIRT]{.parameter-annotation}</code>
+<code>[**dirt**]{.parameter-name} [:]{.parameter-annotation-sep} [DIRT]{.parameter-annotation}</code>
 
 :   A previously-constructed DIRT object.
 

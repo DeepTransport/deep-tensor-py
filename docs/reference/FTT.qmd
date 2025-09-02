@@ -1,0 +1,78 @@
+# FTT { #deep_tensor.FTT }
+
+```python
+FTT(
+    self,
+    bases: ApproxBases,
+    tt: TT | None = None,
+    num_error_samples: int = 1000,
+)
+```
+
+A functional tensor train.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**bases**]{.parameter-name} [:]{.parameter-annotation-sep} [ApproxBases]{.parameter-annotation}</code>
+
+:   A set of basis functions for each dimension of the FTT.
+
+<code>[**tt**]{.parameter-name} [:]{.parameter-annotation-sep} [TT \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   A tensor train object.
+
+<code>[**num_error_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
+
+:   The number of samples to use to estimate the $L_{2}$ error of  the FTT during its construction.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [approximate](#deep_tensor.FTT.approximate) | Constructs a FTT approximation to a target function. |
+| [eval](#deep_tensor.FTT.eval) | Evaluates the FTT. |
+
+### approximate { #deep_tensor.FTT.approximate }
+
+```python
+FTT.approximate(
+    target_func: Callable[[Tensor], Tensor],
+    reference: Reference | None = None,
+)
+```
+
+Constructs a FTT approximation to a target function.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**target_func**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor\], Tensor\]]{.parameter-annotation}</code>
+
+:   The target function, $f : [-1, 1]^{d} \rightarrow \mathbb{R}$.
+
+### eval { #deep_tensor.FTT.eval }
+
+```python
+FTT.eval(ls: Tensor, direction: Direction | None = None)
+```
+
+Evaluates the FTT.
+
+Returns the functional tensor train approximation to the target 
+function for either the first or last $k$ variables, for a set 
+of points mapped to the domain of the basis functions.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**ls**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times d$ matrix containing a set of samples mapped  to the domain of the FTT basis functions.
+
+<code>[**direction**]{.parameter-name} [:]{.parameter-annotation-sep} [Direction \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The direction in which to iterate over the cores.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**Gs_prod**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times n_{k}$ matrix, where each row contains the  product of the first or last (depending on direction) $k$  tensor cores evaluated at the corresponding sample in `ls`.

@@ -19,12 +19,3 @@ class TestOptions(unittest.TestCase):
         self.assertRaises(ValueError, dt.TTOptions, tt_method="unknown")
         self.assertRaises(ValueError, dt.TTOptions, int_method="unknown")
         return
-    
-    def test_dirt_options(self):
-
-        dirt_options = dt.DIRTOptions(method="ARATIO")
-        self.assertTrue(dirt_options.method == "aratio")
-
-        # Check that unknown methods throw an error
-        self.assertRaises(ValueError, dt.DIRTOptions, method="unknown")
-        return

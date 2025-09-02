@@ -1,0 +1,18 @@
+# ApproxBases { #deep_tensor.ApproxBases }
+
+```python
+ApproxBases(self, bases: Basis1D | List[Basis1D], dim: int)
+```
+
+An object that contains a polynomial basis in each dimension, 
+used to construct a FTT approximation.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**bases**]{.parameter-name} [:]{.parameter-annotation-sep} [Basis1D \| List\[Basis1D\]]{.parameter-annotation}</code>
+
+:   A single set of basis functions (to be used in all dimensions), or a list of basis functions to be used in each dimension.
+
+<code>[**dim**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The dimension of the function being approximated.

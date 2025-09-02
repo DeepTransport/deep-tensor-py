@@ -21,28 +21,24 @@ class TestDIRTStandardGaussian(unittest.TestCase):
     def build_dirt(
         self, 
         dim: int = 5, 
-        bases: dt.Basis1D | None = None
+        basis: dt.Basis1D | None = None
     ):
         
-        if bases is None:
-            bases = dt.Lagrange1(num_elems=30)
+        if basis is None:
+            basis = dt.Lagrange1(num_elems=30)
 
         target_func = dt.TargetFunc(self.neglogtarget)
         preconditioner = dt.IdentityMapping(dim=dim)
+        
+        bases = dt.ApproxBases(basis, dim)
+        tt = dt.TT(options=dt.TTOptions(verbose=0))
+        ftt = dt.FTT(bases, tt)
 
         # bounds = torch.tensor([[-4.0] * dim, [4.0] * dim]).T
         # preconditioner = dt.UniformMapping(bounds, reference=dt.UniformReference())
 
-        tt_options = dt.TTOptions(verbose=0)
         dirt_options = dt.DIRTOptions(verbose=False)
-
-        dirt = dt.DIRT(
-            target_func, 
-            preconditioner=preconditioner, 
-            bases=bases,
-            tt_options=tt_options,
-            dirt_options=dirt_options
-        )
+        dirt = dt.DIRT(target_func, preconditioner, ftt, options=dirt_options)
         
         return dirt
     
@@ -101,7 +97,7 @@ class TestDIRTStandardGaussian(unittest.TestCase):
         different approximation bases are used.
         """
 
-        bases_list = [
+        basis_list = [
             dt.Chebyshev1st(order=30),
             dt.Chebyshev2nd(order=30),
             dt.Lagrange1(num_elems=30),
@@ -110,9 +106,9 @@ class TestDIRTStandardGaussian(unittest.TestCase):
             dt.Fourier(order=15)
         ]
 
-        for bases in bases_list:
-            with self.subTest(bases=bases):
-                dirt = self.build_dirt(bases=bases)
+        for basis in basis_list:
+            with self.subTest(basis=basis):
+                dirt = self.build_dirt(basis=basis)
                 self._test_sampling(dirt)
                 self._test_rt_irt(dirt)
 

@@ -34,10 +34,7 @@ POLY_CDFS = {
 
 
 def construct_cdf(poly: Basis1D, **kwargs: dict) -> CDF1D:
-    """Selects the one-dimensional CDF function for a given polynomial
-    basis.
-    """
-
+    """Selects the one-dimensional CDF for a given basis."""
     try: 
         return POLY_CDFS[type(poly)](poly, **kwargs)
     except KeyError:

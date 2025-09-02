@@ -1,4 +1,7 @@
+__version__ = "0.0.4"
+
 import torch
+torch.set_default_dtype(torch.float64)
 
 from .bridging_densities import SingleLayer, Tempering, SigmoidSmoothing
 from .debiasing.importance_sampling import (
@@ -19,7 +22,7 @@ from .domains import (
     LogarithmicMapping
 )
 from .ftt import ApproxBases, Direction, FTT, EFTT, TT, TTOptions
-from .irt import DIRT, SIRT
+from .irt import DIRT, DIRTOptions, SIRT
 from .polynomials import (
     Basis1D,
     Chebyshev1st, 

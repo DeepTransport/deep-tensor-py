@@ -55,23 +55,13 @@ class TestTTFunc(unittest.TestCase):
         evaluating the marginal PDF).
         """
 
-        dummy_func = lambda _: torch.tensor([1.0])
-
-        poly = dt.Lagrange1(num_elems=2)
-        domain = dt.BoundedDomain()
         dim = 3
-        bases = dt.ApproxBases(poly, domain, dim)
-        options = dt.TTOptions()
-        input_data = dt.InputData()
-        reference = dt.GaussianReference()
-
-        tt_func = dt.FTT(
-            dummy_func, 
-            bases, 
-            options=options,
-            input_data=input_data,
-            reference=reference
-        )
+        
+        basis = dt.Lagrange1(num_elems=2)
+        bases = dt.ApproxBases(basis, dim)
+        tt_options = dt.TTOptions(verbose=0)
+        tt = dt.TT(tt_options)
+        ftt = dt.FTT(bases, tt)
 
         A_0 = torch.tensor([[[1.0, 2.0], 
                              [2.0, 2.0], 
@@ -89,19 +79,19 @@ class TestTTFunc(unittest.TestCase):
                              [1.0], 
                              [2.0]]])
 
-        tt_func.tt.cores = {
+        ftt.tt.cores = {
             0: A_0,
             1: A_1,
             2: A_2
         }
 
-        tt_func.compute_cores()
+        ftt.compute_cores()
 
         ls_marg = torch.tensor([[-0.5, -0.5, -0.5],
                                 [-0.5,  0.0,  0.5]])
         
-        ps_forward = tt_func._eval_local(ls_marg, dt.Direction.FORWARD)
-        ps_backward = tt_func._eval_local(ls_marg, dt.Direction.BACKWARD)
+        ps_forward = ftt.eval(ls_marg, dt.Direction.FORWARD)
+        ps_backward = ftt.eval(ls_marg, dt.Direction.BACKWARD)
 
         ps_true = torch.tensor([[33.1250], [24.5]])
 

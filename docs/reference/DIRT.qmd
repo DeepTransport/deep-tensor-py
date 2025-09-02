@@ -3,14 +3,11 @@
 ```python
 DIRT(
     self,
-    negloglik: Callable[[Tensor], Tensor],
-    neglogpri: Callable[[Tensor], Tensor],
+    target_func: TargetFunc,
     preconditioner: Preconditioner,
-    bases: Basis1D | List[Basis1D],
+    ftt: FTT,
     bridge: Bridge | None = None,
-    tt_options: TTOptions | None = None,
-    dirt_options: DIRTOptions | None = None,
-    prev_approx: Dict[int, SIRT] | None = None,
+    options: DIRTOptions | None = None,
 )
 ```
 
@@ -18,33 +15,25 @@ Deep (squared) inverse Rosenblatt transport.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**negloglik**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor\], Tensor\]]{.parameter-annotation}</code>
+<code>[**target_func**]{.parameter-name} [:]{.parameter-annotation-sep} [TargetFunc]{.parameter-annotation}</code>
 
-:   A function that receives an $n \times d$ matrix of samples and  returns an $n$-dimensional vector containing the negative  log-likelihood function evaluated at each sample.
+:   The density function to be approximated.
 
-<code>[**neglogpri**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor\], Tensor\]]{.parameter-annotation}</code>
+<code>[**preconditioner**]{.parameter-name} [:]{.parameter-annotation-sep} [Preconditioner]{.parameter-annotation}</code>
 
-:   A function that receives an $n \times d$ matrix of samples and  returns an $n$-dimensional vector containing the negative  log-prior density evaluated at each sample.
+:   An initial guess as to the mappings between the reference  random variable and the target random variable.
 
-<code>[**bases**]{.parameter-name} [:]{.parameter-annotation-sep} [Basis1D \| List\[Basis1D\]]{.parameter-annotation}</code>
+<code>[**ftt**]{.parameter-name} [:]{.parameter-annotation-sep} [FTT]{.parameter-annotation}</code>
 
-:   A list of sets of basis functions for each dimension, or a  single set of basis functions (to be used in all dimensions),  used to construct the functional tensor trains at each  iteration.
+:   A functional tensor train object (used to construct each layer  of the DIRT).
 
 <code>[**bridge**]{.parameter-name} [:]{.parameter-annotation-sep} [Bridge \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   An object used to generate the intermediate densities to  approximate at each stage of the DIRT construction.
+:   An object used to generate the ratio functions to approximate  at each layer of the DIRT construction.
 
-<code>[**tt_options**]{.parameter-name} [:]{.parameter-annotation-sep} [TTOptions \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**options**]{.parameter-name} [:]{.parameter-annotation-sep} [DIRTOptions \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   Options for constructing the FTT approximation to the square  root of the ratio function (*i.e.*, the pullback of the current  bridging density under the existing composition of mappings) at  each iteration.
-
-<code>[**dirt_options**]{.parameter-name} [:]{.parameter-annotation-sep} [DIRTOptions \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
-
-:   Options for constructing the DIRT approximation to the  target density.
-
-<code>[**prev_approx**]{.parameter-name} [:]{.parameter-annotation-sep} [Dict\[int, SIRT\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
-
-:   A dictionary containing a set of SIRTs generated as part of  the construction of a previous DIRT object.
+:   Options which control the DIRT construction process.
 
 ## Methods
 
@@ -66,7 +55,7 @@ Deep (squared) inverse Rosenblatt transport.
 DIRT.eval_potential(
     xs: Tensor,
     subset: str | None = None,
-    n_layers: int | None = None,
+    num_layers: int | None = None,
 )
 ```
 
@@ -87,7 +76,7 @@ given number of layers of the DIRT.
 
 :   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
 
-<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**num_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   The number of layers of the current DIRT construction to use when computing the potential. If not specified, all  layers will be used when computing the potential.
 
@@ -104,7 +93,7 @@ DIRT.eval_potential_cond(
     ys: Tensor,
     xs: Tensor,
     subset: str = 'first',
-    n_layers: int | None = None,
+    num_layers: int | None = None,
 )
 ```
 
@@ -127,7 +116,7 @@ at a set of samples in the approximation domain.
 
 :   Whether `ys` corresponds to the first $k$ variables  (`subset='first'`) of the approximation, or the last $k$  variables (`subset='last'`).
 
-<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**num_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   The number of layers of the deep inverse Rosenblatt  transport to push the samples forward under. If not  specified, the samples will be pushed forward through all  the layers.
 
@@ -140,7 +129,11 @@ at a set of samples in the approximation domain.
 ### eval_rt { #deep_tensor.DIRT.eval_rt }
 
 ```python
-DIRT.eval_rt(xs: Tensor, subset: str | None = None, n_layers: int | None = None)
+DIRT.eval_rt(
+    xs: Tensor,
+    subset: str | None = None,
+    num_layers: int | None = None,
+)
 ```
 
 Evaluates the deep Rosenblatt transport.
@@ -155,7 +148,7 @@ Evaluates the deep Rosenblatt transport.
 
 :   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
 
-<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**num_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   The number of layers of the deep inverse Rosenblatt  transport to push the samples forward under. If not  specified, the samples will be pushed forward through all  the layers.
 
@@ -175,7 +168,7 @@ Evaluates the deep Rosenblatt transport.
 DIRT.eval_irt(
     rs: Tensor,
     subset: str | None = None,
-    n_layers: int | None = None,
+    num_layers: int | None = None,
 )
 ```
 
@@ -191,7 +184,7 @@ Evaluates the deep inverse Rosenblatt transport.
 
 :   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
 
-<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**num_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   The number of layers of the deep inverse Rosenblatt  transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.
 
@@ -212,7 +205,7 @@ DIRT.eval_cirt(
     ys: Tensor,
     rs: Tensor,
     subset: str = 'first',
-    n_layers: int | None = None,
+    num_layers: int | None = None,
 )
 ```
 
@@ -235,7 +228,7 @@ at a set of samples in the approximation domain.
 
 :   Whether `ys` corresponds to the first $k$ variables  (`subset='first'`) of the approximation, or the last $k$  variables (`subset='last'`).
 
-<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**num_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   The number of layers of the DIRT object to use when  evaluating the CIRT. If not specified, all layers will be  used.
 
@@ -256,7 +249,7 @@ DIRT.eval_irt_pullback(
     potential: Callable[[Tensor], Tensor],
     rs: Tensor,
     subset: str | None = None,
-    n_layers: int | None = None,
+    num_layers: int | None = None,
 )
 ```
 
@@ -280,7 +273,7 @@ and $f(\cdot)$ denotes an arbitrary density function.
 
 :   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
 
-<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**num_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   The number of layers of the deep inverse Rosenblatt  transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.
 
@@ -302,7 +295,7 @@ DIRT.eval_cirt_pullback(
     ys: Tensor,
     rs: Tensor,
     subset: str = 'first',
-    n_layers: int | None = None,
+    num_layers: int | None = None,
 )
 ```
 
@@ -331,7 +324,7 @@ function.
 
 :   Whether `ys` corresponds to the first $k$ variables  (`subset='first'`) of the approximation, or the last $k$  variables (`subset='last'`).
 
-<code>[**n_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**num_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   The number of layers of the deep inverse Rosenblatt  transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.
 

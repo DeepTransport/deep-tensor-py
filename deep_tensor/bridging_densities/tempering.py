@@ -61,7 +61,7 @@ class Tempering(Bridge):
 
     def __init__(
         self, 
-        betas: List | None = None, 
+        betas: List | Tensor | None = None, 
         ess_tol: float = 0.5, 
         ess_tol_init: float = 0.5,
         beta_factor: float = 1.05,
@@ -69,10 +69,12 @@ class Tempering(Bridge):
         max_layers: int = 20
     ):
         
-        if betas:
+        if betas is not None:
             if abs(betas[-1] - 1.0) > 1e-6:
                 msg = "Final beta value must be equal to 1."
                 raise Exception(msg)
+            if isinstance(betas, Tensor):
+                betas = betas.tolist()
             self.betas = dict(enumerate(betas))
         else:
             self.betas = {}
@@ -248,13 +250,10 @@ class Tempering(Bridge):
     
     def update(
         self, 
-        method: str, 
-        rs: Tensor, 
         us: Tensor, 
         neglogfus_dirt: Tensor
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor]:
         
-        neglogref_rs = self.reference.eval_potential(rs)[0]
         neglogref_us = self.reference.eval_potential(us)[0]
         
         xs, neglogdets = self.apply_preconditioner(us)
@@ -270,20 +269,12 @@ class Tempering(Bridge):
             neglogfus_dirt
         )
         
-        neglogratios = self._compute_ratio_func(
-            method,
-            neglogref_rs,
-            neglogref_us, 
-            neglogfus, 
-            neglogfus_dirt
-        )
-        
         neglogbridges = self._compute_neglogbridges(
             neglogref_us, 
             neglogfus
         )
         
-        return log_weights, neglogratios, neglogbridges
+        return log_weights, neglogbridges
 
     def _get_diagnostics(
         self, 

@@ -1,1 +1,5 @@
 /*-- scss:rules --*/
+
+.breadcrumb {
+    --bs-breadcrumb-bg: #f8f9fa;
+}

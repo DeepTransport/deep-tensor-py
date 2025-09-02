@@ -52,7 +52,7 @@ construct a class derived from this class with methods `Q()`,
 ### Q { #deep_tensor.Preconditioner.Q }
 
 ```python
-Preconditioner.Q(us: Tensor, subset: str | None = None)
+Preconditioner.Q(us: Tensor, subset: str = 'first')
 ```
 
 Applies the mapping $Q(\cdot)$ to a set of samples.
@@ -63,7 +63,7 @@ Applies the mapping $Q(\cdot)$ to a set of samples.
 
 :   An $n \times k$ matrix containing samples from the  reference domain.
 
-<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'first\']{.parameter-default}</code>
 
 :   If $k < d$, whether the samples are samples of the first  (`subset='first'`) or last (`subset='last'`) $k$ variables.
 
@@ -76,7 +76,7 @@ Applies the mapping $Q(\cdot)$ to a set of samples.
 ### Q_inv { #deep_tensor.Preconditioner.Q_inv }
 
 ```python
-Preconditioner.Q_inv(xs: Tensor, subset: str | None = None)
+Preconditioner.Q_inv(xs: Tensor, subset: str = 'first')
 ```
 
 Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
@@ -87,7 +87,7 @@ Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
 
 :   An $n \times k$ matrix containing samples from the  approximation domain.
 
-<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'first\']{.parameter-default}</code>
 
 :   If $k < d$, whether the samples are samples of the first  (`subset='first'`) or last (`subset='last'`) $k$ variables.
 
@@ -100,7 +100,7 @@ Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
 ### neglogdet_Q { #deep_tensor.Preconditioner.neglogdet_Q }
 
 ```python
-Preconditioner.neglogdet_Q(us: Tensor, subset: str | None = None)
+Preconditioner.neglogdet_Q(us: Tensor, subset: str = 'first')
 ```
 
 Applies the mapping $Q(\cdot)$ to a set of samples.
@@ -111,7 +111,7 @@ Applies the mapping $Q(\cdot)$ to a set of samples.
 
 :   An $n \times k$ matrix containing samples from the  reference domain.
 
-<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'first\']{.parameter-default}</code>
 
 :   If $k < d$, whether the samples are samples of the first  (`subset='first'`) or last (`subset='last'`) $k$ variables.
 
@@ -124,7 +124,7 @@ Applies the mapping $Q(\cdot)$ to a set of samples.
 ### neglogdet_Q_inv { #deep_tensor.Preconditioner.neglogdet_Q_inv }
 
 ```python
-Preconditioner.neglogdet_Q_inv(xs: Tensor, subset: str | None = None)
+Preconditioner.neglogdet_Q_inv(xs: Tensor, subset: str = 'first')
 ```
 
 Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
@@ -135,7 +135,7 @@ Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
 
 :   An $n \times k$ matrix containing samples from the  approximation domain.
 
-<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'first\']{.parameter-default}</code>
 
 :   If $k < d$, whether the samples are samples of the first  (`subset='first'`) or last (`subset='last'`) $k$ variables.
 

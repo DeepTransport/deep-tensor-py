@@ -7,6 +7,16 @@ An object used to generate an approximate coupling between random variables usin
 | | |
 | --- | --- |
 | [DIRT](DIRT.qmd#deep_tensor.DIRT) | Deep (squared) inverse Rosenblatt transport. |
+| [DIRTOptions](DIRTOptions.qmd#deep_tensor.DIRTOptions) | Options for configuring the construction of a DIRT object. |
+
+## Target Functions
+
+Functions to approximate.
+
+| | |
+| --- | --- |
+| [TargetFunc](TargetFunc.qmd#deep_tensor.TargetFunc) | The negative logarithm of a density function to be approximated. |
+| [RareEventFunc](RareEventFunc.qmd#deep_tensor.RareEventFunc) | A function for rare event estimation problems. |
 
 ## Preconditioners
 
@@ -19,9 +29,37 @@ Initial guesses for the mapping between the reference random variable and the ta
 | [UniformMapping](UniformMapping.qmd#deep_tensor.UniformMapping) | A mapping between the reference density and a uniform density. |
 | [GaussianMapping](GaussianMapping.qmd#deep_tensor.GaussianMapping) | A mapping between two Gaussian densities. |
 
-## Polynomial Bases
+## Reference Densities
 
-Polynomial bases used to construct a functional tensor train.
+Product-form reference densities used as part of DIRT construction.
+
+| | |
+| --- | --- |
+| [GaussianReference](GaussianReference.qmd#deep_tensor.GaussianReference) | The standard $d$-dimensional Gaussian density, $\mathcal{N}(\boldsymbol{0}_{d}, \boldsymbol{I}_{d})$. |
+| [UniformReference](UniformReference.qmd#deep_tensor.UniformReference) | The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$. |
+
+## Domain Mappings
+
+Mappings between the approximation domain and the basis functions used as part of the functional tensor trains.
+
+| | |
+| --- | --- |
+| [BoundedDomain](BoundedDomain.qmd#deep_tensor.BoundedDomain) | Mapping from a bounded domain to $(-1, 1)$. |
+
+## Functional Tensor Trains
+
+Objects used to construct functional tensor train approximations.
+
+| | |
+| --- | --- |
+| [FTT](FTT.qmd#deep_tensor.FTT) | A functional tensor train. |
+| [ApproxBases](ApproxBases.qmd#deep_tensor.ApproxBases) | An object that contains a polynomial basis in each dimension,  |
+| [TT](TT.qmd#deep_tensor.TT) | A tensor train factorisation. |
+| [TTOptions](TTOptions.qmd#deep_tensor.TTOptions) | Options for configuring the construction of a TT object. |
+
+## Basis Functions
+
+Basis functions used for functional tensor train approximations.
 
 | | |
 | --- | --- |
@@ -32,32 +70,6 @@ Polynomial bases used to construct a functional tensor train.
 | [Fourier](Fourier.qmd#deep_tensor.Fourier) | Fourier polynomials. |
 | [Legendre](Legendre.qmd#deep_tensor.Legendre) | Legendre polynomials. |
 
-## Domain Mappings
-
-Mappings between the approximation domain and the domain of the polynomial basis.
-
-| | |
-| --- | --- |
-| [BoundedDomain](BoundedDomain.qmd#deep_tensor.BoundedDomain) | Mapping from a bounded domain to $(-1, 1)$. |
-
-## Options
-
-Options for configuring the FTT and DIRT construction.
-
-| | |
-| --- | --- |
-| [TTOptions](TTOptions.qmd#deep_tensor.TTOptions) | Options for configuring the construction of an FTT object. |
-| [DIRTOptions](DIRTOptions.qmd#deep_tensor.DIRTOptions) | Options for configuring the construction of a DIRT object. |
-
-## Reference Densities
-
-Product-form reference densities used as part of DIRT construction.
-
-| | |
-| --- | --- |
-| [GaussianReference](GaussianReference.qmd#deep_tensor.GaussianReference) | The standard $d$-dimensional Gaussian density, $\mathcal{N}(\boldsymbol{0}_{d}, \boldsymbol{I}_{d})$. |
-| [UniformReference](UniformReference.qmd#deep_tensor.UniformReference) | The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$. |
-
 ## Bridges
 
 Objects used to generate the intermediate densities approximated during DIRT construction.
@@ -66,6 +78,7 @@ Objects used to generate the intermediate densities approximated during DIRT con
 | --- | --- |
 | [SingleLayer](SingleLayer.qmd#deep_tensor.SingleLayer) | Constructs the DIRT using a single layer. |
 | [Tempering](Tempering.qmd#deep_tensor.Tempering) | Likelihood tempering. |
+| [SigmoidSmoothing](SigmoidSmoothing.qmd#deep_tensor.SigmoidSmoothing) | Uses a sigmoid function in place of an indicator function. |
 
 ## Debiasing
 

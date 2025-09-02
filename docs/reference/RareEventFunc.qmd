@@ -1,0 +1,42 @@
+# RareEventFunc { #deep_tensor.RareEventFunc }
+
+```python
+RareEventFunc(
+    self,
+    func: Callable[[Tensor], Tuple[Tensor, Tensor]],
+    threshold: float,
+    vectorised: bool = True,
+)
+```
+
+A function for rare event estimation problems.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**func**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor\], Tuple\[Tensor, Tensor\]\]]{.parameter-annotation}</code>
+
+:   A function which returns the negative logarithm of a (possibly  unnormalised version of) the target density function, and the  response function. If `vectorised=True`, the function should  accept an $n \times d$ matrix (where $n$ denotes the number of  samples and $d$ denotes the dimension of the parameters), and  return an $n$-dimensional vector containing the negative  log-density function evaluated at each sample, and an  $n$-dimensional vector containing the response function  evaluated at each sample. If `vectorised=False`, the function  should accept a $d$-dimensional vector and return two scalar  values.
+
+<code>[**threshold**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation}</code>
+
+:   The threshold, $z$, which defines a rare event.
+
+<code>[**vectorised**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Whether the function accepts multiple sets of parameters.
+
+## Notes {.doc-section .doc-section-notes}
+
+This target function is used for problems in which we have a set of 
+parameters, $\theta \in \mathbb{R}^{n}$, with density $\pi(\cdot)$, 
+and want to estimate the probability that some response function 
+$F : \mathbb{R}^{n} \rightarrow \mathbb{R}$ is greater than or 
+equal to a threshold, $z$; that is,
+$$
+    \mathbb{E}_{\pi}[\mathbb{I}_{\mathcal{F}}(\theta)], 
+$$
+where $\mathbb{I}_{\mathcal{F}}$ denotes the indicator function of 
+the set $\mathcal{F}$, which is defined as 
+$$
+    \mathcal{F} := \{\theta : F(\theta) \geq z\}.
+$$

@@ -263,18 +263,11 @@ class SigmoidSmoothing(Bridge):
         )
         return neglogratios
 
-    def update(
-        self, 
-        method: str,
-        rs: Tensor,
-        us: Tensor,
-        neglogfus_dirt: Tensor
-    ) -> Tuple[Tensor, Tensor, Tensor]:
+    def update(self, us: Tensor, neglogfus_dirt: Tensor) -> Tuple[Tensor, Tensor]:
         
         if not self.initialised:
             raise Exception("Need to call self.initialise().")
         
-        neglogref_rs = self.reference.eval_potential(rs)[0]
         neglogref_us = self.reference.eval_potential(us)[0]
         
         xs, neglogdets = self.apply_preconditioner(us)
@@ -294,16 +287,7 @@ class SigmoidSmoothing(Bridge):
             neglogfus_dirt
         )
 
-        neglogratios = self._compute_ratio_func(
-            method,
-            neglogref_rs,
-            neglogref_us, 
-            neglogfus, 
-            responses,
-            neglogfus_dirt
-        )
-
-        return log_weights, neglogratios, neglogbridges
+        return log_weights, neglogbridges
 
     def _get_diagnostics(
         self, 

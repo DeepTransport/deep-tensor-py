@@ -1,0 +1,17 @@
+# TargetFunc { #deep_tensor.TargetFunc }
+
+```python
+TargetFunc(self, neglogfx: Callable[[Tensor], Tensor], vectorised: bool = True)
+```
+
+The negative logarithm of a density function to be approximated.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**neglogfx**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor\], Tensor\]]{.parameter-annotation}</code>
+
+:   A function which returns the negative logarithm of a (possibly  unnormalised version of) the target density function. If  `vectorised=True`, the function should accept an $n \times d$  matrix (where $n$ denotes the number of samples and $d$ denotes  the dimension of the parameters), and return an $n$-dimensional  vector containing the function evaluated at each sample. If  `vectorised=False`, the function should accept a $d$-dimensional  vector and return a single scalar value.
+
+<code>[**vectorised**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Whether the function accepts multiple sets of parameters.

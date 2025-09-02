@@ -29,12 +29,18 @@ website:
       contents:
         - title: Examples
           href: examples/index.qmd
-        - title: SIR Model
-          href: examples/sir.qmd
-        - title: Shock Absorber Model
-          href: examples/shock.qmd
-        - title: Heat Equation
-          href: examples/heat.qmd
+        - section: Bayesian Inference
+          contents:
+          - title: SIR Model
+            href: examples/sir/example_inference.ipynb
+          - title: Shock Absorber Model
+            href: examples/shock/example_inference.ipynb
+          - title: Heat Equation
+            href: examples/heat/example_inference.ipynb
+        - section: Rare Event Estimation
+          contents:
+          - title: SIR Model
+            href: examples/sir/example_rare_event.ipynb
 
 execute:
   freeze: auto
@@ -78,6 +84,15 @@ quartodoc:
       contents:
         - name: DIRT
           members: [eval_potential, eval_potential_cond, eval_rt, eval_irt, eval_cirt, eval_irt_pullback, eval_cirt_pullback, random, sobol]
+        - name: DIRTOptions
+
+    - title: Target Functions
+      desc: Functions to approximate.
+      contents: 
+        - name: TargetFunc
+          members: []
+        - name: RareEventFunc
+          members: []
 
     - title: Preconditioners
       desc: Initial guesses for the mapping between the reference random variable and the target random variable.
@@ -91,8 +106,34 @@ quartodoc:
         - name: GaussianMapping
           members: []
 
-    - title: Polynomial Bases
-      desc: Polynomial bases used to construct a functional tensor train.
+    - title: Reference Densities
+      desc: Product-form reference densities used as part of DIRT construction.
+      contents:
+        - name: GaussianReference
+          members: [random, sobol]
+        - name: UniformReference
+          members: [random, sobol]
+
+    - title: Domain Mappings
+      desc: Mappings between the approximation domain and the basis functions used as part of the functional tensor trains.
+      contents:
+        - name: BoundedDomain
+          members: []
+
+    - title: Functional Tensor Trains
+      desc: Objects used to construct functional tensor train approximations.
+      contents:
+        - name: FTT
+          members: [approximate, eval]
+        - name: ApproxBases
+          members: []
+        - name: TT
+          members: [initialise, sweep, round]
+        - name: TTOptions
+          members: []
+
+    - title: Basis Functions
+      desc: Basis functions used for functional tensor train approximations.
       contents:
         - name: Lagrange1
           members: []
@@ -107,32 +148,14 @@ quartodoc:
         - name: Legendre
           members: []
 
-    - title: Domain Mappings
-      desc: Mappings between the approximation domain and the domain of the polynomial basis.
-      contents:
-        - name: BoundedDomain
-          members: []
-    
-    - title: Options
-      desc: Options for configuring the FTT and DIRT construction.
-      contents:
-        - name: TTOptions
-        - name: DIRTOptions
-
-    - title: Reference Densities
-      desc: Product-form reference densities used as part of DIRT construction.
-      contents:
-        - name: GaussianReference
-          members: [random, sobol]
-        - name: UniformReference
-          members: [random, sobol]
-
     - title: Bridges
       desc: Objects used to generate the intermediate densities approximated during DIRT construction.
       contents:
         - name: SingleLayer
           members: []
         - name: Tempering
+          members: []
+        - name: SigmoidSmoothing
           members: []
 
     - title: Debiasing

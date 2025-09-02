@@ -6,6 +6,7 @@ import torch
 from torch import Tensor
 from torch.autograd.functional import jacobian
 
+from .dirt_options import DIRTOptions
 from .sirt import SIRT, SUBSET2DIRECTION
 from ..bridging_densities import Bridge, Tempering
 from ..ftt import Direction, FTT
@@ -21,23 +22,18 @@ class DIRT():
     Parameters
     ----------
     target_func:
-        The function to be approximated.
+        The density function to be approximated.
     preconditioner:
         An initial guess as to the mappings between the reference 
         random variable and the target random variable.
     ftt:
-        A functional tensor train object.
+        A functional tensor train object (used to construct each layer 
+        of the DIRT).
     bridge: 
-        An object used to generate the intermediate densities to 
-        approximate at each stage of the DIRT construction.
-    tt_options:
-        Options for constructing the FTT approximation to the square 
-        root of the ratio function (*i.e.*, the pullback of the current 
-        bridging density under the existing composition of mappings) at 
-        each iteration.
-    dirt_options:
-        Options for constructing the DIRT approximation to the 
-        target density.
+        An object used to generate the ratio functions to approximate 
+        at each layer of the DIRT construction.
+    options: 
+        Options which control the DIRT construction process.
     
     """
 
@@ -47,43 +43,35 @@ class DIRT():
         preconditioner: Preconditioner,
         ftt: FTT, 
         bridge: Bridge | None = None,
-        ratio_type: str = "aratio",
-        num_error_samples: int = 1000,
-        defensive: float = 1e-08,
-        cdf_tol: float = 1e-10,
-        verbose: float = 1
+        options: DIRTOptions | None = None
     ):
-        """TODO: need to reset the bridge prior to starting. Ideally 
-        we should be able to use the same bridge object to build 
-        multiple DIRT objects.
-        """
+        # TODO: need to reset the bridge prior to starting. Ideally we 
+        # should be able to use the same bridge object to build 
+        # multiple DIRT objects.
 
         if not isinstance(target_func, TargetFunc):
             target_func = TargetFunc(target_func)
         if bridge is None:
             bridge = Tempering()
+        if options is None:
+            options = DIRTOptions()
         
         self.target_func = target_func
-
         self.preconditioner = preconditioner
         self.dim = preconditioner.dim
         self.reference = preconditioner.reference
-        self.domain = preconditioner.reference.domain
-
+        self.domain = self.reference.domain
         self.ftt = ftt
-        self.bases = ftt.bases
-        
         self.bridge = bridge
         self.bridge.initialise(self.preconditioner, self.target_func)
 
-        self.ratio_type = ratio_type 
-        self.num_error_samples = num_error_samples
-        self.defensive = defensive
-        self.cdf_tol = cdf_tol
-        self.verbose = verbose
+        self.ratio_type = options.ratio_type 
+        self.num_error_samples = options.num_error_samples
+        self.defensive = options.defensive
+        self.cdf_tol = options.cdf_tol
+        self.verbose = options.verbose
 
-        # TODO: need to add weighting by reference ...
-        # self.num_eval = 0
+        # self.num_eval_diagnostics = 0
         
         self.sirts: Dict[int, SIRT] = {}
 
@@ -111,9 +99,10 @@ class DIRT():
             return 0.0
         return sum([math.log(self.sirts[k].z) for k in self.sirts])
     
-    def neglogfu(self, us: Tensor) -> Tensor:
-        """Evaluates the pullback of the target density function at a 
-        set of samples in the reference domain.
+    def eval_target_pullback(self, us: Tensor) -> Tensor:
+        """Evaluates the pullback of the target density function under 
+        the preconditioning mapping, at a set of samples in the 
+        reference domain.
         """
         xs = self.preconditioner.Q(us)
         neglogdets = self.preconditioner.neglogdet_Q(us)
@@ -121,38 +110,11 @@ class DIRT():
         # self.num_eval += us.shape[0]
         neglogfus = neglogfxs + neglogdets
         return neglogfus
-
-    def _potential2density(
-        self, 
-        neglogratios: Tensor, 
-        xs: Tensor
-    ) -> Tensor:
-        """Returns the function we aim to approximate (i.e., the 
-        square root of the ratio function divided by the weighting 
-        function associated with the reference measure).
-
-        Parameters
-        ----------
-        neglogratios:
-            An n-dimensional vector containing the negative logarithm 
-            of the ratio function associated with each sample.
-        xs:
-            An n * d matrix containing a set of samples distributed 
-            according to the current bridging density.
-        
-        Returns
-        -------
-        ys:
-            An n-dimensional vector containing evaluations of the 
-            target function at each sample in xs.
-        
+  
+    def eval_ratio_func(self, rs: Tensor) -> Tensor:
+        """Evaluates the current ratio function at each element in rs, 
+        where rs is a set of samples from the reference domain.
         """
-        neglogwrs = self.bases.eval_measure_potential(xs)[0]
-        log_ys = -0.5 * (neglogratios - neglogwrs)
-        return torch.exp(log_ys)
-    
-    def _updated_func(self, rs: Tensor) -> Tensor:
-        """Evaluates the current ratio function at each element in rs."""
         us, neglogfus_dirt = self._eval_irt_reference(rs)
         neglogratios = self.bridge.ratio_func(self.ratio_type, rs, us, neglogfus_dirt)
         return neglogratios
@@ -177,14 +139,18 @@ class DIRT():
             the next bridging density.
         
         """
-
         if self.num_layers == 0:
             ftt = self.ftt.clone()
         else:
             ftt = self.sirts[self.num_layers-1].ftt.clone()
-            # ftt.tt.round(max_rank=ftt.tt.options.init_rank)
-
-        sirt = SIRT(self._updated_func, ftt, self.reference, self.defensive, self.cdf_tol)
+        sirt = SIRT(
+            self.eval_ratio_func, 
+            ftt, 
+            self.reference, 
+            self.domain, 
+            self.defensive, 
+            self.cdf_tol
+        )
         return sirt
 
     def _print_progress(
@@ -205,9 +171,7 @@ class DIRT():
         return
     
     def _build(self) -> None:
-        """Constructs a DIRT to approximate a given probability 
-        density.
-        """
+        """Constructs the DIRT object to approximate the target function."""
 
         t0 = time.time()
         
@@ -216,16 +180,12 @@ class DIRT():
             rs = self.reference.random(self.dim, self.num_error_samples)
             us, neglogfus_dirt = self._eval_irt_reference(rs)
 
-            log_weights, neglogratios, neglogbridges = self.bridge.update(
-                self.ratio_type,
-                rs,
-                us,
-                neglogfus_dirt
-            )
+            log_weights, neglogbridges = self.bridge.update(us, neglogfus_dirt)
 
             if self.verbose > 0:
                 cum_time = time.time() - t0
-                self._print_progress(log_weights, neglogbridges, neglogfus_dirt, cum_time)
+                self._print_progress(log_weights, neglogbridges, 
+                                     neglogfus_dirt, cum_time)
 
             self.sirts[self.num_layers] = self._get_new_layer()
             self.num_layers += 1
@@ -239,7 +199,7 @@ class DIRT():
             # transformations
             rs = self.reference.random(self.dim, self.num_error_samples)
             us, neglogfus_dirt = self._eval_irt_reference(rs)
-            neglogfus = self.neglogfu(us)
+            neglogfus = self.eval_target_pullback(us)
             dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
 
             t1 = time.time()
@@ -305,22 +265,23 @@ class DIRT():
         
         if subset is None:
             subset = "first"
-        
         subset = subset.lower()
 
         if subset == "last" and self.num_layers > 1:
-            msg = ("When using a DIRT object with more than one layer, "
-                   + "it is not possible to sample from the marginal " 
-                   + "densities in the final k variables (where k < d) "
-                   + "or the density of the first (d-k) variables "
-                   + "conditioned on the final k variables. "
-                   + "Please reverse the variable ordering or construct "
-                   + "a DIRT object with a single layer.")
+            msg = (
+                "When using a DIRT object with more than one layer, it "
+                "is not possible to sample from the marginal densities "
+                "in the final k variables (where k < d) or the density "
+                "of the first (d-k) variables conditioned on the final "
+                "k variables. Please reverse the variable ordering, or "
+                "construct a DIRT object with a single layer."
+            )
             raise Exception(msg)
         if subset not in ("first", "last"):
-            msg = ("Invalid subset parameter encountered "
-                   + f"(subset='{subset}'). Valid choices are "
-                   + "'first', 'last'.")
+            msg = (
+                f"Invalid subset parameter encountered (subset='{subset}'). "
+                "Valid choices are 'first', 'last'."
+            )
             raise ValueError(msg)
         
         return subset

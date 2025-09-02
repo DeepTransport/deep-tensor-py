@@ -30,9 +30,17 @@ def compute_weights(
 
 
 class FTT():
-    """A multivariate functional tensor-train.
+    r"""A functional tensor train.
 
-    TODO: write out the arguments for this class.
+    Parameters
+    ----------
+    bases:
+        A set of basis functions for each dimension of the FTT.
+    tt: 
+        A tensor train object.
+    num_error_samples:
+        The number of samples to use to estimate the $L_{2}$ error of 
+        the FTT during its construction.
     
     """
 
@@ -42,9 +50,7 @@ class FTT():
         tt: TT | None = None,
         num_error_samples: int = 1000
     ):
-        if tt is None:
-            tt = TT()
-        self.tt = tt
+        self.tt = TT() if tt is None else tt
         self.bases = bases 
         self.dim = bases.dim
         self.num_error_samples = num_error_samples
@@ -67,10 +73,10 @@ class FTT():
     @property
     def is_finished(self) -> bool:
         max_core_error = float(self.tt.errors.max())
-        is_finished = (
-            max_core_error < self.tt.options.als_tol
-            or self.l2_error < self.tt.options.als_tol
-        )
+        is_finished = max_core_error < self.tt.options.als_tol
+        if self.l2_error:
+            error_target_met = self.l2_error < self.tt.options.als_tol
+            is_finished = is_finished or error_target_met
         return is_finished
 
     @property 
@@ -93,21 +99,24 @@ class FTT():
             raise Exception(msg)
         
         if strict and xs.shape[1] != dim:
-            msg = ("Dimension of samples must be equal to dimension "
-                   + "of approximation.")
+            msg = (
+                "Dimension of samples must be equal to dimension of "
+                "approximation."
+            )
             raise Exception(msg)
 
         if xs.shape[1] > dim:
-            msg = ("Dimension of samples may not exceed dimension "
-                   + "of approximation.")
+            msg = (
+                "Dimension of samples may not exceed dimension of "
+                "approximation."
+            )
             raise Exception(msg)
 
         return
     
     @staticmethod
     def eval_core(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        """Evaluates a tensor core.
-        """
+        """Evaluates a tensor core."""
         r_p, n_k, r_k = A.shape
         n_ls = ls.numel()
         coeffs = A.permute(1, 0, 2).reshape(n_k, r_p * r_k)
@@ -116,8 +125,7 @@ class FTT():
     
     @staticmethod
     def eval_core_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        """Evaluates the derivative of a tensor core.
-        """
+        """Evaluates the derivative of a tensor core."""
         r_p, n_k, r_k = A.shape 
         n_ls = ls.numel()
         coeffs = A.permute(1, 0, 2).reshape(n_k, r_p * r_k)
@@ -188,8 +196,7 @@ class FTT():
         """
         fls_ftt = self.eval(self.ls_error).flatten()
         self.l2_error = (
-            linalg.norm(self.fls_error - fls_ftt) 
-            / linalg.norm(self.fls_error)
+            linalg.norm(self.fls_error - fls_ftt) / linalg.norm(self.fls_error)
         )
         return
 
@@ -218,24 +225,26 @@ class FTT():
         return Gs_prod
 
     def eval(self, ls: Tensor, direction: Direction | None = None) -> Tensor:
-        """Evaluates the functional tensor train approximation to the 
-        target function for either the first or last k variables, for a 
-        set of points in the local domain ([-1, 1]).
+        r"""Evaluates the FTT.
+        
+        Returns the functional tensor train approximation to the target 
+        function for either the first or last $k$ variables, for a set 
+        of points mapped to the domain of the basis functions.
         
         Parameters
         ----------
         ls:
-            A n * d matrix containing a set of samples from the local 
-            domain.
+            An $n \times d$ matrix containing a set of samples mapped 
+            to the domain of the FTT basis functions.
         direction:
             The direction in which to iterate over the cores.
         
         Returns
         -------
         Gs_prod:
-            An n * n_k matrix, where each row contains the product of 
-            the first or last (depending on direction) k tensor cores 
-            evaluated at the corresponding sample in ls.
+            An $n \times n_{k}$ matrix, where each row contains the 
+            product of the first or last (depending on direction) $k$ 
+            tensor cores evaluated at the corresponding sample in `ls`.
             
         """
         
@@ -256,14 +265,8 @@ class FTT():
     def initialise_l2_error_samples(self):
         # TODO: figure out whether these should be drawn from the 
         # measure associated with the basis in each dimension.
-
-        self.ls_error = torch.vstack([
-            self.bases[k].sample_measure(self.num_error_samples)
-            for k in range(self.dim)
-        ]).T
-
+        self.ls_error = self.bases.sample_measure(self.num_error_samples)[0]
         self.fls_error = self.target_func(self.ls_error)
-
         return 
 
     def round(
@@ -293,7 +296,7 @@ class FTT():
         Parameters
         ----------
         target_func: 
-            The target function $f : [0, 1]^{d} \rightarrow \mathbb{R}$. 
+            The target function, $f : [-1, 1]^{d} \rightarrow \mathbb{R}$. 
         
         """
 
@@ -303,7 +306,7 @@ class FTT():
         # measure when sampling initial index sets).
         points = {k: self.bases[k].nodes for k in range(self.dim)}
         if reference is None:
-            print("warning, this probably isn't great...")
+            print("warning, no reference passed in..")
             grid = Grid(points)
         else:
             weights = compute_weights(points, reference.domain, reference)
@@ -348,8 +351,10 @@ class FTT():
 class EFTT(FTT):
     """Extended functional tensor train.
     
-    TODO: it could be nice if this could work with alternative TT 
-    construction algorithms.
+    Parameters
+    ----------
+    TODO
+
     """
 
     def __init__(
@@ -401,6 +406,7 @@ class EFTT(FTT):
             # index_samples = grid.sample_indices(self.num_pod_samples)
             # point_samples = grid.indices2points(index_samples)
             # TEMP...
+            # TODO: eventually these should probably be from the reference.
             point_samples = 2.0 * torch.rand((self.num_pod_samples, self.dim)) - 1.0
 
             point_samples = point_samples.repeat((n_k, 1))
@@ -456,10 +462,8 @@ class EFTT(FTT):
             self.print_info_header()
 
         for num_iter in range(self.tt.options.max_als): 
-
             self.tt.sweep()
             self.compute_cores()
-            
             if self.l2_error_samples:
                 self.estimate_l2_error()
             if self.tt.options.verbose > 0:
@@ -473,5 +477,4 @@ class EFTT(FTT):
             ranks = "-".join([str(int(r)) for r in self.ranks])
             msg = f"Final TT ranks: {ranks}."
             als_info(msg)
-        
         return

@@ -20,7 +20,7 @@ def verify_method(method: str, accepted_methods: Sequence[str]) -> None:
 
 @dataclass
 class TTOptions():
-    """Options for configuring the construction of an FTT object.
+    """Options for configuring the construction of a TT object.
     
     Parameters
     ----------
@@ -38,27 +38,25 @@ class TTOptions():
     max_rank:
         The maximum allowable rank of each tensor core (prior to the 
         enrichment set being added).
-    local_tol: # TODO: rename to svd_tol or similar.
+    svd_tol:
         The threshold to use when applying truncated SVD to the tensor 
         cores when building the FTT. The minimum number of singular 
-        values such that the sum of their squares exceeds (1 - local_tol) 
+        values such that the sum of their squares exceeds ($1-$ `svd_tol`) 
         will be retained.
-    cdf_tol:
-        The tolerance used when solving the root-finding problem to 
-        invert the CDF. 
     tt_method:
         The enrichment method used when constructing the TT cores. Can 
-        be `'fixed_rank'` (no enrichment), `'random'`, or `'amen'`.
+        be `'fixed_rank'` (no enrichment), `'random'`, or `'amen'` 
+        [@Dolgov2014].
     int_method:
         The interpolation method used when constructing the tensor 
         cores. Can be `'maxvol'` [@Goreinov2010] or `'deim'` 
         [@Chaturantabut2010].
     verbose:
         If `verbose=0`, no information about the construction of the 
-        FTT will be printed to the screen. If `verbose=1`, diagnostic 
-        information will be prined at the end of each ALS iteration.
-        If `verbose=2`, the tensor core currently being constructed 
-        during each ALS iteration will also be displayed.
+        FTT will be printed. If `verbose=1`, diagnostic information 
+        will be prined at the end of each ALS iteration. If `verbose=2`, 
+        the tensor core currently being constructed during each ALS 
+        iteration will also be displayed.
     
     """
         
@@ -67,8 +65,7 @@ class TTOptions():
     init_rank: int = 20
     kick_rank: int = 2
     max_rank: int = 30
-    local_tol: float = 1e-06
-    cdf_tol: float = 1e-06
+    svd_tol: float = 0.0
     tt_method: str = "amen"
     int_method: str = "maxvol"
     verbose: int = 1

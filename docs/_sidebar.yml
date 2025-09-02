@@ -4,7 +4,12 @@ website:
     - reference/index.qmd
     - contents:
       - reference/DIRT.qmd
+      - reference/DIRTOptions.qmd
       section: Deep Inverse Rosenblatt Transport
+    - contents:
+      - reference/TargetFunc.qmd
+      - reference/RareEventFunc.qmd
+      section: Target Functions
     - contents:
       - reference/Preconditioner.qmd
       - reference/IdentityMapping.qmd
@@ -12,27 +17,30 @@ website:
       - reference/GaussianMapping.qmd
       section: Preconditioners
     - contents:
+      - reference/GaussianReference.qmd
+      - reference/UniformReference.qmd
+      section: Reference Densities
+    - contents:
+      - reference/BoundedDomain.qmd
+      section: Domain Mappings
+    - contents:
+      - reference/FTT.qmd
+      - reference/ApproxBases.qmd
+      - reference/TT.qmd
+      - reference/TTOptions.qmd
+      section: Functional Tensor Trains
+    - contents:
       - reference/Lagrange1.qmd
       - reference/LagrangeP.qmd
       - reference/Chebyshev1st.qmd
       - reference/Chebyshev2nd.qmd
       - reference/Fourier.qmd
       - reference/Legendre.qmd
-      section: Polynomial Bases
-    - contents:
-      - reference/BoundedDomain.qmd
-      section: Domain Mappings
-    - contents:
-      - reference/TTOptions.qmd
-      - reference/DIRTOptions.qmd
-      section: Options
-    - contents:
-      - reference/GaussianReference.qmd
-      - reference/UniformReference.qmd
-      section: Reference Densities
+      section: Basis Functions
     - contents:
       - reference/SingleLayer.qmd
       - reference/Tempering.qmd
+      - reference/SigmoidSmoothing.qmd
       section: Bridges
     - contents:
       - reference/run_importance_sampling.qmd

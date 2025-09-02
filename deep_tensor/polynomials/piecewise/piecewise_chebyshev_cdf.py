@@ -146,6 +146,7 @@ class PiecewiseChebyshevCDF(PiecewiseCDF, abc.ABC):
         # Rescale each element of ls to interval [-1, 1]
         mid = 0.5 * (self.grid[inds_left] + self.grid[inds_left+1])
         ls = (ls - mid) / (0.5 * self.jac)
+        ls = torch.clamp(ls, -1.0, 1.0)
 
         j_inds = torch.arange(cdf_data.n_cdfs)
         ps, dpdls = self.cheby.eval_int_basis_newton(ls)
