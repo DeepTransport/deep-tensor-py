@@ -16,6 +16,8 @@ website:
         href: examples/index.qmd
       - text: "API Reference"
         href: reference/index.qmd
+      - text: "Theory"
+        href: theory.qmd
     right:
       - icon: github
         href: https://github.com/DeepTransport/deep-tensor-py
