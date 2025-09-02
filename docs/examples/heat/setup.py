@@ -88,7 +88,7 @@ def setup_heat_problem():
     xi_samples = torch.randn((n_snapshots, model.prior.dim))
     snapshots = torch.hstack([model.solve(prior.transform(x)) for x in xi_samples])
 
-    print("Computing POD basis...")
+    # print("Computing POD basis...")
     m, V = compute_pod_basis(snapshots)
     K_rs = compute_rom_matrices(model.mesh, V, model.V)
 
