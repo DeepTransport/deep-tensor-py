@@ -1,10 +1,10 @@
 {
-  "hash": "ff3ef0595f928199074d755fced6bbf1",
+  "hash": "5d5aee74ee3933ef24ad7c1f64f5e794",
   "result": {
     "engine": "jupyter",
-    "markdown": "---\nformat: html\nbibliography: \"references.bib\"\nexecute: \n  eval: false\n---\n\n\n\n\nThe $\\texttt{deep\\_tensor}$ package contains a [PyTorch](https://pytorch.org) implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by @Cui2022.\n\n# Installation\n\n$\\texttt{deep\\_tensor}$ can be installed using pip:\n\n::: {#7798d52f .cell execution_count=1}\n``` {.python .cell-code}\npip install deep-tensor-py\n```\n:::\n\n\nThe package can then be imported using\n\n::: {#31858a5f .cell execution_count=2}\n``` {.python .cell-code}\nimport deep_tensor as dt\n```\n:::\n\n\n# Getting Started\n\nCheck out the [examples page](/examples/index.qmd) and [API reference](/reference/index.qmd) for help getting started with $\\texttt{deep\\_tensor}$.\n\n",
+    "markdown": "---\nformat: html\nbibliography: \"references.bib\"\nexecute: \n  eval: false\n---\n\n\n\n\nThe $\\texttt{deep\\_tensor}$ package contains a [PyTorch](https://pytorch.org) implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by @Cui2022.\n\n:::{.callout-warning}\nThis package is currently in a developmental state. Some parts of the API may change without warning in future releases.\n:::\n\n# Installation\n\n$\\texttt{deep\\_tensor}$ can be installed using pip:\n\n::: {#cb70920f .cell execution_count=1}\n``` {.python .cell-code}\npip install deep-tensor-py\n```\n:::\n\n\nThe package can then be imported using\n\n::: {#f40605c9 .cell execution_count=2}\n``` {.python .cell-code}\nimport deep_tensor as dt\n```\n:::\n\n\n# Getting Started\n\nCheck out the [examples page](/examples/index.qmd) and [API reference](/reference/index.qmd) for help getting started with $\\texttt{deep\\_tensor}$.\n\n",
     "supporting": [
-      "index_files"
+      "index_files/figure-html"
     ],
     "filters": [],
     "includes": {}

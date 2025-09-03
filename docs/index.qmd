@@ -7,6 +7,10 @@ execute:
 
 The $\texttt{deep\_tensor}$ package contains a [PyTorch](https://pytorch.org) implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by @Cui2022.
 
+:::{.callout-warning}
+This package is currently in a developmental state. Some parts of the API may change without warning in future releases.
+:::
+
 # Installation
 
 $\texttt{deep\_tensor}$ can be installed using pip:
