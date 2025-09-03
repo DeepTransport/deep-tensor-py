@@ -180,11 +180,11 @@ class FTT():
             f"{cross_iter+1:=4}", 
             f"{self.num_eval:=10}",
             f"{self.ranks.max():=8}",
-            f"{self.tt.errors.max():=14.5e}",
-            f"{self.tt.errors.mean():=15.5e}"
+            f"{self.tt.errors.max():=14.2e}",
+            f"{self.tt.errors.mean():=15.2e}"
         ]
         if self.l2_error_samples:
-            diagnostics += [f"{self.l2_error:=12.2e}"]
+            diagnostics += [f"{self.l2_error:=8.2e}"]
 
         als_info(" | ".join(diagnostics))
         return

@@ -5,4 +5,4 @@ format: html
 
 This page contains examples demonstrating the use of $\texttt{deep\_tensor}$.
 
-See the [examples](https://github.com/DeepTransport/deep-tensor-py/tree/main/examples) directory of the repository for the full code associated with each example. The directory for each example contains a script called `example.py` which can be run to reproduce all the plots shown in the example.
+See the [examples](https://github.com/DeepTransport/deep-tensor-py/tree/main/examples) directory of the repository for the Jupyter notebooks associated with each example.
