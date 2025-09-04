@@ -16,6 +16,9 @@ from ..tools.printing import dirt_info, format_time
 from ..tools import compute_f_divergence
 
 
+from torch import Tensor 
+
+
 class DIRT():
     r"""Deep (squared) inverse Rosenblatt transport.
 
@@ -48,6 +51,8 @@ class DIRT():
         # TODO: need to reset the bridge prior to starting. Ideally we 
         # should be able to use the same bridge object to build 
         # multiple DIRT objects.
+        # TODO: need to make sure samples are available if the adaptive 
+        # bridges are going to be used.
 
         if not isinstance(target_func, TargetFunc):
             target_func = TargetFunc(target_func)
@@ -63,7 +68,7 @@ class DIRT():
         self.domain = self.reference.domain
         self.ftt = ftt
         self.bridge = bridge
-        self.bridge.initialise(self.preconditioner, self.target_func)
+        self.bridge.initialise(preconditioner, target_func)
 
         self.ratio_type = options.ratio_type 
         self.num_error_samples = options.num_error_samples
@@ -199,7 +204,7 @@ class DIRT():
             # transformations
             rs = self.reference.random(self.dim, self.num_error_samples)
             us, neglogfus_dirt = self._eval_irt_reference(rs)
-            neglogfus = self.eval_target_pullback(us)
+            neglogfus = self.eval_target_pullback(us) # TODO: the bridge should probably handle this...
             dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
 
             t1 = time.time()
@@ -865,3 +870,40 @@ class DIRT():
         rs = self.reference.sobol(self.dim, n)
         xs = self.eval_irt(rs)[0]
         return xs
+    
+
+class DIRTMapping(Preconditioner):
+    r"""A preconditioning mapping constructed using a previously 
+    constructed DIRT.
+
+    Parameters
+    ----------
+    dirt: 
+        A previously constructed DIRT object.
+    
+    TODO: it could make sense to have a function which returns Q and 
+    neglogdet_Q together, etc. Otherwise the RT/IRT functions will be 
+    called 2x more than necessary.
+    """
+
+    def __init__(self, dirt: DIRT):
+        self.dirt = dirt
+        self.reference = dirt.reference
+        self.dim = dirt.dim
+        return
+
+    def Q(self, us: Tensor, subset: str = "first") -> Tensor:
+        return self.dirt.eval_irt(us, subset)[0]
+    
+    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
+        return self.dirt.eval_rt(xs, subset)[0]
+    
+    def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:
+        neglogrefs = self.reference.eval_potential(us)[0]
+        neglogfxs = self.dirt.eval_irt(us, subset)[1]
+        return neglogrefs - neglogfxs
+    
+    def neglogdet_Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor: 
+        us, neglogfus = self.dirt.eval_rt(xs, subset)
+        neglogrefs = self.reference.eval_potential(us)[0]
+        return neglogfus - neglogrefs

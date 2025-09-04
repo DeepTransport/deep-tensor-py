@@ -113,12 +113,7 @@ class Tempering(Bridge):
         self.target_func = target_func
         self.initialised = True
         return
-
-    def apply_preconditioner(self, us: Tensor) -> Tuple[Tensor, Tensor]:
-        xs = self.preconditioner.Q(us)
-        neglogdets = self.preconditioner.neglogdet_Q(us)
-        return xs, neglogdets
-    
+  
     def _compute_neglogbridges(
         self, 
         neglogref_us: Tensor,

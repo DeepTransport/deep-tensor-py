@@ -22,7 +22,7 @@ from .domains import (
     LogarithmicMapping
 )
 from .ftt import ApproxBases, Direction, FTT, EFTT, TT, TTOptions
-from .irt import DIRT, DIRTOptions, SIRT
+from .irt import DIRT, DIRTMapping, DIRTOptions, SIRT
 from .polynomials import (
     Basis1D,
     Chebyshev1st, 

@@ -127,11 +127,6 @@ class SigmoidSmoothing(Bridge):
         self.initialised = True
         return
     
-    def apply_preconditioner(self, us: Tensor) -> Tuple[Tensor, Tensor]:
-        xs = self.preconditioner.Q(us)
-        neglogdets = self.preconditioner.neglogdet_Q(us)
-        return xs, neglogdets
-    
     def neglogsigmoid(self, gamma: float, responses: Tensor) -> Tensor:
         dzs = self.target_func.threshold - responses
         neglogsigmoids = torch.log1p(torch.exp(gamma * dzs))
