@@ -1,123 +1,159 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Tempering.html</loc>
-    <lastmod>2025-08-02T05:26:56.452Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Lagrange1.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Legendre.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/IdentityMapping.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/run_importance_sampling.html</loc>
-    <lastmod>2025-08-02T05:26:56.452Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/BoundedDomain.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/run_irt_pcn.html</loc>
-    <lastmod>2025-08-02T05:26:56.452Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Preconditioner.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/TTOptions.html</loc>
-    <lastmod>2025-08-02T05:26:56.452Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/ImportanceSamplingResult.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/DIRT.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/GaussianMapping.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/run_cirt_pcn.html</loc>
-    <lastmod>2025-08-02T05:26:56.452Z</lastmod>
-  </url>
-  <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/examples/shock.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/theory.html</loc>
+    <lastmod>2025-09-09T03:07:58.799Z</lastmod>
   </url>
   <url>
     <loc>https://DeepTransport.github.io/deep-tensor-py/examples/index.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <lastmod>2025-09-09T03:07:58.791Z</lastmod>
   </url>
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/examples/sir.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/examples/sir/example_inference.html</loc>
+    <lastmod>2025-09-09T03:07:58.797Z</lastmod>
   </url>
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/examples/heat.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/examples/shock/example_inference.html</loc>
+    <lastmod>2025-09-09T03:07:58.796Z</lastmod>
   </url>
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/index.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/GaussianMapping.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
   </url>
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/MCMCResult.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/FTT.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
   </url>
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/GaussianReference.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/run_cirt_pcn.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
   </url>
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/SingleLayer.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/DIRT.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
   </url>
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Chebyshev2nd.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/TT.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
   </url>
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/index.html</loc>
-    <lastmod>2025-08-02T05:26:56.452Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/TTOptions.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
   </url>
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/UniformReference.html</loc>
-    <lastmod>2025-08-02T05:26:56.452Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/run_irt_pcn.html</loc>
+    <lastmod>2025-09-09T03:07:58.799Z</lastmod>
   </url>
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/DIRTOptions.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/TargetFunc.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
   </url>
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Chebyshev1st.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/RareEventFunc.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
   </url>
   <url>
     <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Fourier.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/GaussianReference.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/SingleLayer.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Lagrange1.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/ImportanceSamplingResult.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Legendre.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
   </url>
   <url>
     <loc>https://DeepTransport.github.io/deep-tensor-py/reference/run_independence_sampler.html</loc>
-    <lastmod>2025-08-02T05:26:56.452Z</lastmod>
+    <lastmod>2025-09-09T03:07:58.799Z</lastmod>
   </url>
   <url>
-    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/LagrangeP.html</loc>
-    <lastmod>2025-08-02T05:26:56.451Z</lastmod>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/run_importance_sampling.html</loc>
+    <lastmod>2025-09-09T03:07:58.799Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/IdentityMapping.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/UniformReference.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Chebyshev2nd.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Chebyshev1st.html</loc>
+    <lastmod>2025-09-09T03:07:58.797Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/DIRTOptions.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
   </url>
   <url>
     <loc>https://DeepTransport.github.io/deep-tensor-py/reference/UniformMapping.html</loc>
-    <lastmod>2025-08-02T05:26:56.452Z</lastmod>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/LagrangeP.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Tempering.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/ApproxBases.html</loc>
+    <lastmod>2025-09-09T03:07:58.797Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/MCMCResult.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/index.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/Preconditioner.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/BoundedDomain.html</loc>
+    <lastmod>2025-09-09T03:07:58.797Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/reference/SigmoidSmoothing.html</loc>
+    <lastmod>2025-09-09T03:07:58.798Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/index.html</loc>
+    <lastmod>2025-09-09T03:07:58.797Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/examples/sir/example_rare_event.html</loc>
+    <lastmod>2025-09-09T03:07:58.797Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/examples/heat/example_inference.html</loc>
+    <lastmod>2025-09-09T03:07:58.791Z</lastmod>
+  </url>
+  <url>
+    <loc>https://DeepTransport.github.io/deep-tensor-py/examples/logistic/example_inference.html</loc>
+    <lastmod>2025-09-09T03:07:58.793Z</lastmod>
   </url>
 </urlset>

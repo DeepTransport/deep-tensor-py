@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.34">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>SIR Model – deep_tensor</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-befe23ebd2f54d8af2c8a89d1a1611f1.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-97b859373cfbcd8441dbb2234dc23333.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-359ff8416387e9244bb0e835fe8f54f4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-97b859373cfbcd8441dbb2234dc23333.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">deep_tensor</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="../../examples/index.html" aria-current="page"> 
+<span class="menu-text">Examples</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../reference/index.html"> 
+<span class="menu-text">API Reference</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../theory.html"> 
+<span class="menu-text">Theory</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/DeepTransport/deep-tensor-py"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../examples/sir/example_rare_event.html">Rare Event Estimation</a></li><li class="breadcrumb-item"><a href="../../examples/sir/example_rare_event.html">SIR Model</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../examples/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Examples</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Bayesian Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../examples/sir/example_inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SIR Model</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../examples/shock/example_inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Shock Absorber</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../examples/logistic/example_inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Logistic Regression</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../examples/heat/example_inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Heat Equation</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Rare Event Estimation</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../examples/sir/example_rare_event.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">SIR Model</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#problem-setup" id="toc-problem-setup" class="nav-link active" data-scroll-target="#problem-setup">Problem Setup</a>
+  <ul class="collapse">
+  <li><a href="#prior" id="toc-prior" class="nav-link" data-scroll-target="#prior">Prior</a></li>
+  <li><a href="#likelihood" id="toc-likelihood" class="nav-link" data-scroll-target="#likelihood">Likelihood</a></li>
+  <li><a href="#rare-event" id="toc-rare-event" class="nav-link" data-scroll-target="#rare-event">Rare Event</a></li>
+  <li><a href="#rare-event-estimator" id="toc-rare-event-estimator" class="nav-link" data-scroll-target="#rare-event-estimator">Rare Event Estimator</a></li>
+  </ul></li>
+  <li><a href="#implementation-in-mathttdeep_tensor" id="toc-implementation-in-mathttdeep_tensor" class="nav-link" data-scroll-target="#implementation-in-mathttdeep_tensor">Implementation in <span class="math inline">\(\mathtt{deep\_tensor}\)</span></a>
+  <ul class="collapse">
+  <li><a href="#target-functions" id="toc-target-functions" class="nav-link" data-scroll-target="#target-functions">Target Functions</a></li>
+  <li><a href="#preconditioner" id="toc-preconditioner" class="nav-link" data-scroll-target="#preconditioner">Preconditioner</a></li>
+  <li><a href="#functional-tensor-train" id="toc-functional-tensor-train" class="nav-link" data-scroll-target="#functional-tensor-train">Functional Tensor Train</a></li>
+  <li><a href="#bridging-densities" id="toc-bridging-densities" class="nav-link" data-scroll-target="#bridging-densities">Bridging Densities</a></li>
+  <li><a href="#dirt-objects" id="toc-dirt-objects" class="nav-link" data-scroll-target="#dirt-objects">DIRT Objects</a></li>
+  <li><a href="#rare-event-estimation" id="toc-rare-event-estimation" class="nav-link" data-scroll-target="#rare-event-estimation">Rare Event Estimation</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../examples/sir/example_rare_event.html">Rare Event Estimation</a></li><li class="breadcrumb-item"><a href="../../examples/sir/example_rare_event.html">SIR Model</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">SIR Model</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Here, we consider a rare event estimation problem for a susceptible-infectious-removed (SIR) model. Note that the same problem appears in <span class="citation" data-cites="Cui2024">Cui, Dolgov, and Scheichl (<a href="#ref-Cui2024" role="doc-biblioref">2024</a>)</span>, where it is described in further detail.</p>
+<section id="problem-setup" class="level1">
+<h1>Problem Setup</h1>
+<p>We consider an SIR model with <span class="math inline">\(K \in \mathbb{N}\)</span> compartments. The percentage of susceptible, infectious and recovered individuals in the <span class="math inline">\(k\)</span>th compartment at time <span class="math inline">\(t \in [0, T]\)</span> are denoted by <span class="math inline">\(S_{k}(t)\)</span>, <span class="math inline">\(I_{k}(t)\)</span> and <span class="math inline">\(R_{k}(t)\)</span>, respectively. The dynamics of <span class="math inline">\(S_{k}(t)\)</span>, <span class="math inline">\(I_{k}(t)\)</span> and <span class="math inline">\(R_{k}(t)\)</span> are governed by the ODEs</p>
+<p><span class="math display">\[
+\begin{align}
+    \frac{\mathrm{d}S_{k}}{\mathrm{d}t} &amp;= -\theta_{k}S_{k}I_{k} + \frac{1}{2}\sum_{j \in \mathcal{J}_{k}}(S_{j} - S_{k}), \\
+    \frac{\mathrm{d}I_{k}}{\mathrm{d}t} &amp;= \theta_{k}S_{k}I_{k} - \nu_{k}I_{k} + \frac{1}{2}\sum_{j \in \mathcal{J}_{k}}(I_{j} - I_{k}), \\
+    \frac{\mathrm{d}R_{k}}{\mathrm{d}t} &amp;= -\nu_{k}I_{k} + \frac{1}{2}\sum_{j \in \mathcal{J}_{k}}(R_{j} - R_{k}),
+\end{align}
+\]</span></p>
+<p>where <span class="math inline">\(\mathcal{J}_{k}\)</span> denotes the set of neighbours of the <span class="math inline">\(k\)</span>-th compartment, and the parameters <span class="math inline">\(\theta_{k} \in \mathbb{R}\)</span> and <span class="math inline">\(\nu_{k} \in \mathbb{R}\)</span> represent the infection and recovery rates of the <span class="math inline">\(k\)</span>-th compartment.</p>
+<p>In this example, we consider a model with <span class="math inline">\(K = 9\)</span> compartments, where the connectivity of the compartments is based on the adjacency of the nine Austrian states <span class="citation" data-cites="Cui2024">(see <a href="#ref-Cui2024" role="doc-biblioref">Cui, Dolgov, and Scheichl 2024, fig. 1</a>)</span>. For the initial condition, we set <span class="math inline">\(S_{1}(0) = 99, I_{1}(0) = 1, R_{1}(0) = 0\)</span>, and <span class="math inline">\(S_{k}(0) = 100, I_{k}(0) = 0, R_{k}(0) = 0\)</span> in all other compartments. We specify the final time to be <span class="math inline">\(T = 5\)</span>.</p>
+<section id="prior" class="level2">
+<h2 class="anchored" data-anchor-id="prior">Prior</h2>
+<p>To parametrise the prior we treat all parameters, <span class="math inline">\(\boldsymbol{x} := [\theta_{1}, \nu_{1}, \cdots, \theta_{K}, \nu_{K}]^{\top}\)</span>, as independent and uniformly distributed on the interval <span class="math inline">\([0, 2]\)</span>; that is,</p>
+<p><span class="math display">\[
+\pi_{0}(\boldsymbol{x}) \propto \prod_{k=1}^{2K} \mathbb{I}_{[0, 2]}(x_{k}),
+\]</span></p>
+<p>where <span class="math inline">\(\mathbb{I}_{[0, 2]}(\cdot)\)</span> denotes the indicator function for the interval <span class="math inline">\([0, 2]\)</span>.</p>
+</section>
+<section id="likelihood" class="level2">
+<h2 class="anchored" data-anchor-id="likelihood">Likelihood</h2>
+<p>We assume that we have access to noisy observations of the percentage of infected people in each compartment at time points <span class="math inline">\(t_{j} = 5j/6\)</span>, where <span class="math inline">\(j \in \{1, 2, 3, 4, 5, 6\}\)</span>. Each observation is corrupted by independent Gaussian noise; that is,</p>
+<p><span class="math display">\[
+y_{k, j} = I_{k}(t_{j}) + \eta_{k,j},
+    \quad \eta_{k, j} \sim \mathcal{N}(0, 1),
+    \quad k = 1, \dots, K,
+    \quad j = 1, \dots, 6.
+\]</span></p>
+<p>Therefore, the likelihood takes the form</p>
+<p><span class="math display">\[
+\mathcal{L}(\boldsymbol{x}; \boldsymbol{y}) \propto
+    \exp\left(-\frac{1}{2}\sum_{k=1}^{K}\sum_{j=1}^{6}\left(I_{k}(t_{j}; \boldsymbol{x}) - y_{k,j}\right)\right).
+\]</span></p>
+</section>
+<section id="rare-event" class="level2">
+<h2 class="anchored" data-anchor-id="rare-event">Rare Event</h2>
+<p>We wish to quantify the probability (under the posterior, <span class="math inline">\(\pi^{y}(\cdot)\)</span>, associated with the above likelihood and prior) that the percentage of infected people in compartment <span class="math inline">\(k=9\)</span> exceeds the threshold <span class="math inline">\(I_{\mathrm{max}} = 69\)</span> at any point in the time interval under consideration. That is, we aim to quantify the probability <span class="math inline">\(\mathbb{P}_{\pi^{y}}(\mathcal{F})\)</span>, where the set <span class="math inline">\(\mathcal{F}\)</span> is defined by</p>
+<p><span class="math display">\[
+\mathcal{F} := \left\{\boldsymbol{x} \,|\, \max_{t \in [0, 5]} I_{K}(t; \boldsymbol{x}) &gt; I_{\mathrm{max}}\right\}.
+\]</span></p>
+</section>
+<section id="rare-event-estimator" class="level2">
+<h2 class="anchored" data-anchor-id="rare-event-estimator">Rare Event Estimator</h2>
+<p>We now describe how we can use importance sampling techniques to compute the aforementioned rare event probability. First, note that the probability <span class="math inline">\(\mathbb{P}_{\pi^{y}}(\mathcal{F})\)</span> can be recast as the expectation</p>
+<p><span class="math display">\[
+\mathbb{P}_{\pi^{y}}(\mathcal{F}) = \mathbb{E}_{\pi^{y}}[\mathbb{I}_{\mathcal{F}}(\boldsymbol{x})] = \int \mathbb{I}_{\mathcal{F}}(\boldsymbol{x}) \pi^{y}(\boldsymbol{x}) \, \mathrm{d}\boldsymbol{x},
+\]</span></p>
+<p>where <span class="math inline">\(\mathbb{I}_{\mathcal{F}}(\cdot)\)</span> denotes the indicator function associated with set <span class="math inline">\(\mathcal{F}\)</span>. This can be approximated using a Monte Carlo estimate, as</p>
+<p><span class="math display">\[
+\mathbb{P}_{\pi^{y}}(\mathcal{F}) \approx \frac{1}{N}\sum_{i=1}^{N}\mathbb{I}_{\mathcal{F}}(\boldsymbol{x}^{(i)}), \quad \boldsymbol{x}^{(i)} \sim \pi^{y}(\cdot).
+\]</span></p>
+<p>However, we are not able to simulate directly from the posterior (nor is this the optimal way to compute the above estimate); instead, we will use an importance sampling estimate. Given an importance sampling density <span class="math inline">\(p(\cdot)\)</span> such that <span class="math inline">\(\mathrm{supp}(\pi^{y}) \subseteq \mathrm{supp}(p)\)</span>, such an estimate takes the form</p>
+<p><span id="eq-importance-estimate"><span class="math display">\[
+\begin{align}
+    \mathbb{P}_{\pi^{y}}(\mathcal{F}) &amp;= \mathbb{E}_{p}\left[\frac{\mathbb{I}_{\mathcal{F}}(\boldsymbol{x})\pi^{y}(\boldsymbol{x})}{p(\boldsymbol{x})}\right] \\
+    &amp;\approx \sum_{i=1}^{N}\frac{\mathbb{I}_{\mathcal{F}}(\boldsymbol{x}^{(i)})\pi^{y}(\boldsymbol{x}^{(i)})}{p(\boldsymbol{x}^{(i)})}, \quad \boldsymbol{x}^{(i)} \sim p(\cdot).
+\end{align}
+\tag{1}\]</span></span></p>
+<p>The optimal choice of importance density, <span class="math inline">\(\hat{p}(\cdot)\)</span>, is of the form</p>
+<p><span class="math display">\[
+\hat{p}(\boldsymbol{x}) \propto \mathbb{I}_{\mathcal{F}}(\boldsymbol{x})\pi^{y}(\boldsymbol{x}).
+\]</span></p>
+<p>We will construct a DIRT approximation to <span class="math inline">\(\hat{p}(\cdot)\)</span>; this will be denoted by <span class="math inline">\(\tilde{p}(\cdot)\)</span>.</p>
+<p>Note, however, that we are not able to evaluate the posterior density itself, which is required to compute the estimate in <a href="#eq-importance-estimate" class="quarto-xref">Equation&nbsp;1</a>. Instead, we can only evaluate the posterior up to an unknown proportionality constant. To account for this, we will estimate the normalising constant of the posterior using a separate importance sampling estimate. Given an importance sampling density <span class="math inline">\(q(\cdot)\)</span> such that <span class="math inline">\(\mathrm{supp}(\pi^{y}) \subseteq \mathrm{supp}(q)\)</span>, this estimate takes the form</p>
+<p><span id="eq-normalising-const"><span class="math display">\[
+\begin{align}
+\int \pi^{y}(\boldsymbol{x}) \, \mathrm{d}\boldsymbol{x} &amp;= \mathbb{E}_q\left[\frac{\pi^{y}(\boldsymbol{x})}{q(\boldsymbol{x})}\right] \\
+    &amp;\approx \sum_{i=1}^{N} \frac{\pi^{y}(\boldsymbol{x}^{(i)})}{q(\boldsymbol{x}^{(i)})}, \quad \boldsymbol{x}^{(i)} \sim q(\cdot).
+\end{align}
+\tag{2}\]</span></span></p>
+<p>In this case, the optimal choice of importance density, <span class="math inline">\(\hat{q}(\cdot)\)</span>, is equal to the posterior itself; that is,</p>
+<p><span class="math display">\[
+\hat{q}(\boldsymbol{x}) \propto \pi^{y}(\boldsymbol{x}).
+\]</span></p>
+<p>We will also construct a DIRT approximation to <span class="math inline">\(\hat{q}(\cdot)\)</span>; this will be denoted by <span class="math inline">\(\tilde{q}(\cdot)\)</span>.</p>
+<p>Given an estimate in the form of <a href="#eq-importance-estimate" class="quarto-xref">Equation&nbsp;1</a> using <span class="math inline">\(N\)</span> samples from <span class="math inline">\(\tilde{p}(\cdot)\)</span> (the DIRT approximation to the optimal importance sampling density for the rare event), which we denote by <span class="math inline">\(\tilde{P}_{N}\)</span>, and an estimate in the form of <a href="#eq-normalising-const" class="quarto-xref">Equation&nbsp;2</a> using <span class="math inline">\(N\)</span> samples from <span class="math inline">\(\tilde{q}(\cdot)\)</span> (the DIRT approximation to the optimal importance sampling density for the normalising constant), which we denote by <span class="math inline">\(\tilde{Q}_{N}\)</span>, we can estimate the rare event probability using the ratio of these two estimates, <span class="math inline">\(\tilde{R}_{N}\)</span>; that is,</p>
+<p><span id="eq-ratio-estimator"><span class="math display">\[
+\mathbb{P}_{\pi^{y}}(\mathcal{F}) \approx \tilde{R}_{N} = \frac{\tilde{P}_{N}}{\tilde{Q}_{N}}.
+\tag{3}\]</span></span></p>
+<p>We note that estimator <span class="math inline">\(\hat{R}_{N}\)</span> is biased (it is the ratio of two unbiased estimators), but this bias is negligible; see <span class="citation" data-cites="Cui2024">Cui, Dolgov, and Scheichl (<a href="#ref-Cui2024" role="doc-biblioref">2024</a>)</span>.</p>
+</section>
+</section>
+<section id="implementation-in-mathttdeep_tensor" class="level1">
+<h1>Implementation in <span class="math inline">\(\mathtt{deep\_tensor}\)</span></h1>
+<div id="cell-7" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Tuple</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> Tensor</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.sir <span class="im">import</span> SIRCompartmentModel, austria_adjacency</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.plotting <span class="im">import</span> set_plot_style</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-8" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">0</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>torch.set_default_device(<span class="st">"cuda"</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">"cpu"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We begin by defining the model.</p>
+<div id="cell-10" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>num_compartments <span class="op">=</span> <span class="dv">9</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>dim <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> num_compartments</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Specify initial condition</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>S0 <span class="op">=</span> torch.full((num_compartments,), <span class="fl">100.0</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>I0 <span class="op">=</span> torch.zeros((num_compartments,))</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>R0 <span class="op">=</span> torch.zeros((num_compartments,))</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>S0[<span class="dv">0</span>] <span class="op">=</span> <span class="fl">99.0</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>I0[<span class="dv">0</span>] <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Specify time horizon and evaluation times</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>t1 <span class="op">=</span> <span class="fl">5.0</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>t_eval <span class="op">=</span> torch.linspace(<span class="dv">0</span>, <span class="dv">5</span>, <span class="dv">13</span><span class="op">*</span><span class="dv">12</span><span class="op">+</span><span class="dv">1</span>)</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>inds_obs <span class="op">=</span> torch.arange(<span class="dv">0</span>, <span class="dv">13</span><span class="op">*</span><span class="dv">12</span><span class="op">+</span><span class="dv">1</span>, <span class="dv">13</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> SIRCompartmentModel(austria_adjacency, S0, I0, R0, t_eval, inds_obs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Next, we simulate a set of synthetic observations using the true parameters <span class="math inline">\(\boldsymbol{x}_{\mathrm{true}} = [0.1, 1, \dots, 0.1, 1]^{\top}\)</span>.</p>
+<div id="cell-12" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate synthetic observations</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>true_param <span class="op">=</span> torch.tensor([[<span class="fl">0.1</span>, <span class="fl">1.0</span>] <span class="op">*</span> num_compartments])</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>ys_true <span class="op">=</span> model.get_obs(model.solve(true_param))</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>std_noise <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>ys_obs <span class="op">=</span> ys_true <span class="co"># + std_noise * torch.randn_like(ys_true)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="target-functions" class="level3">
+<h3 class="anchored" data-anchor-id="target-functions">Target Functions</h3>
+<p>Next, we define the target functions for the numerator and denominator of the ratio estimator.</p>
+<p>Note that the prior is uniform and we restrict the DIRT approximation domain to the support of the prior, so the posterior density is proportional to the likelihood function.</p>
+<div id="cell-14" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define numerator function. Note that this returns the potential </span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># function associated with the posterior, and the maximum value of the </span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># percentage of infected people over the time horizon, for each set of </span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># parameters.</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rare_event(xs: Tensor) <span class="op">-&gt;</span> Tuple[Tensor, Tensor]:</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    ys_full <span class="op">=</span> model.solve(xs)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    ys <span class="op">=</span> model.get_obs(ys_full)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    neglogliks <span class="op">=</span> (ys<span class="op">-</span>ys_obs).square().<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>) <span class="op">/</span> (<span class="dv">2</span><span class="op">*</span>std_noise<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    response <span class="op">=</span> model.response_func(ys_full)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> neglogliks, response</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Define denominator function</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> neglogpost(xs: Tensor) <span class="op">-&gt;</span> Tensor:</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    ys <span class="op">=</span> model.get_obs(model.solve(xs))</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    neglogliks <span class="op">=</span> (ys<span class="op">-</span>ys_obs).square().<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>) <span class="op">/</span> (<span class="dv">2</span><span class="op">*</span>std_noise<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> neglogliks</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>I_max <span class="op">=</span> <span class="fl">69.0</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>rare_event_func <span class="op">=</span> dt.RareEventFunc(rare_event, threshold<span class="op">=</span>I_max)</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>neglogpost_func <span class="op">=</span> dt.TargetFunc(neglogpost)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="preconditioner" class="level2">
+<h2 class="anchored" data-anchor-id="preconditioner">Preconditioner</h2>
+<p>We now specify a reference density and a preconditioning mapping. Following <span class="citation" data-cites="Cui2024">Cui, Dolgov, and Scheichl (<a href="#ref-Cui2024" role="doc-biblioref">2024</a>)</span>, we will use a Gaussian reference density with support truncated to <span class="math inline">\([-3, 3]^{2K}\)</span>.</p>
+<div id="cell-16" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>domain <span class="op">=</span> dt.BoundedDomain(bounds<span class="op">=</span>torch.tensor([<span class="op">-</span><span class="fl">3.0</span>, <span class="fl">3.0</span>]))</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference(domain)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We will define a preconditioner that maps between this reference density and the uniform density on <span class="math inline">\([0, 2]^{2K}\)</span> (which coincides with the prior).</p>
+<div id="cell-18" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> torch.tensor([[<span class="fl">0.0</span>, <span class="fl">2.0</span>]]).tile((dim, <span class="dv">1</span>))</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.UniformMapping(bounds<span class="op">=</span>bounds, reference<span class="op">=</span>reference)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="functional-tensor-train" class="level2">
+<h2 class="anchored" data-anchor-id="functional-tensor-train">Functional Tensor Train</h2>
+<p>Next, we specify the properties of the functional tensor trains that will be used to approximate each incremental mapping in the final DIRT object.</p>
+<div id="cell-20" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>basis <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">16</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>bases <span class="op">=</span> dt.ApproxBases(basis, dim)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(init_rank<span class="op">=</span><span class="dv">1</span>, max_rank<span class="op">=</span><span class="dv">5</span>, max_als<span class="op">=</span><span class="dv">3</span>, verbose<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>tt <span class="op">=</span> dt.TT(tt_options)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>ftt <span class="op">=</span> dt.FTT(bases, tt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="bridging-densities" class="level2">
+<h2 class="anchored" data-anchor-id="bridging-densities">Bridging Densities</h2>
+<p>Next, we specify a set of intermediate (bridging) densities to approximate using each layer of the DIRT construction.</p>
+<p>Following <span class="citation" data-cites="Cui2024">Cui, Dolgov, and Scheichl (<a href="#ref-Cui2024" role="doc-biblioref">2024</a>)</span>, we use a set of <em>tempered</em> densities, <span class="math inline">\(\{\pi^{(d)}_{k}(\cdot)\}_{k=1}^{N}\)</span> to approximate the optimal importance sampling density associated with the denominator of the ratio function (<em>i.e.</em>, the posterior). In particular, the <span class="math inline">\(k\)</span>-th density takes the form</p>
+<p><span class="math display">\[
+\pi_{k}^{(d)}(\boldsymbol{x}) \propto \mathcal{L}(\boldsymbol{x}; \boldsymbol{y})^{\alpha_{k}} \pi_{0}(\boldsymbol{x}),
+\]</span></p>
+<p>where the tempering parameters start with <span class="math inline">\(\alpha_{1} = 10^{-5}\)</span>, and are incremented such that <span class="math inline">\(\alpha_{k+1} = 10^{1/3}\alpha_{k}\)</span> until <span class="math inline">\(\alpha_{N} = 1\)</span>. This means that <span class="math inline">\(N = 16\)</span>.</p>
+<div id="cell-22" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>betas <span class="op">=</span> <span class="dv">10</span> <span class="op">**</span> torch.linspace(<span class="op">-</span><span class="fl">5.0</span>, <span class="fl">0.0</span>, <span class="dv">16</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>bridge_q_tilde <span class="op">=</span> dt.Tempering(betas)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>To approximate the optimal importance sampling density associated with the numerator of the ratio function, we first note that if the set <span class="math inline">\(\mathcal{F}\)</span> is not aligned with the coordinate axes of the parameters, the FTT approximation of the optimal importance density may require very high ranks. Therefore, following <span class="citation" data-cites="Cui2024">Cui, Dolgov, and Scheichl (<a href="#ref-Cui2024" role="doc-biblioref">2024</a>)</span>, we replace the indicator function <span class="math inline">\(\mathbb{I}_{\mathcal{F}}(\cdot)\)</span> with the (smooth) sigmoid function <span class="math inline">\(g_{\gamma}(\cdot)\)</span>, which is defined as</p>
+<p><span class="math display">\[
+g_{\gamma}(\boldsymbol{x}) := \left(1 + \exp\left[\gamma\left(I_{\mathrm{max}} - \max_{t \in [0, 5]} I_{K}(t; \boldsymbol{x}) \right)\right]\right)^{-1}.
+\]</span></p>
+<p>Observe that in the limit <span class="math inline">\(\gamma \rightarrow \infty\)</span>, the above becomes the indicator function.</p>
+<p>In addition, we employ separate tempering of the posterior density, as above. The intermediate densities therefore take the form</p>
+<p><span class="math display">\[
+\pi_{k}^{(n)}(\boldsymbol{x}) \propto \mathcal{L}(\boldsymbol{x}; \boldsymbol{y})^{\beta_{k}} \pi_{0}(\boldsymbol{x}) g_{\gamma_{k}}(\boldsymbol{x}),
+\]</span></p>
+<p>where <span class="math inline">\(\beta_{k} = \alpha_{k}\)</span> and <span class="math inline">\(\gamma_{k} = \beta_{k}\gamma_{*}\)</span>. We choose a value of <span class="math inline">\(\gamma_{*} = 10^{4}/I_{\mathrm{max}}\)</span>.</p>
+<div id="cell-24" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>betas <span class="op">=</span> <span class="dv">10</span> <span class="op">**</span> torch.linspace(<span class="op">-</span><span class="fl">5.0</span>, <span class="fl">0.0</span>, <span class="dv">16</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>gamma_prime <span class="op">=</span> <span class="fl">1e04</span> <span class="op">/</span> I_max</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>gammas <span class="op">=</span> betas <span class="op">*</span> gamma_prime</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>bridge_p_tilde <span class="op">=</span> dt.SigmoidSmoothing(gammas, betas)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="dirt-objects" class="level2">
+<h2 class="anchored" data-anchor-id="dirt-objects">DIRT Objects</h2>
+<p>We can now construct the DIRT approximations to the importance densities used for the numerator (<span class="math inline">\(\tilde{P}_{N}\)</span>) and denominator (<span class="math inline">\(\tilde{Q}_{N}\)</span>) of the ratio estimator, <span class="math inline">\(\tilde{R}_{N}\)</span> (<a href="#eq-ratio-estimator" class="quarto-xref">Equation&nbsp;3</a>).</p>
+<div id="cell-26" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>dirt_options <span class="op">=</span> dt.DIRTOptions(verbose<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>p_tilde <span class="op">=</span> dt.DIRT(rare_event_func, preconditioner, ftt, bridge_p_tilde, dirt_options)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>q_tilde <span class="op">=</span> dt.DIRT(neglogpost_func, preconditioner, ftt, bridge_q_tilde, dirt_options)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="rare-event-estimation" class="level2">
+<h2 class="anchored" data-anchor-id="rare-event-estimation">Rare Event Estimation</h2>
+<p>Now that the DIRT approximations to the importance densities have been constructed, we can compute an importance sampling estimate of the rare event probability. We begin by defining a function which computes the ratio <span class="math inline">\(\tilde{R}\)</span> using a specified number of samples.</p>
+<div id="cell-28" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> estimate_rare_event(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    rare_event_func: dt.TargetFunc,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    neglogpost_func: dt.TargetFunc,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    p_tilde: dt.DIRT, </span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    q_tilde: dt.DIRT,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    num_samples: <span class="bu">int</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    rs <span class="op">=</span> p_tilde.reference.random(p_tilde.dim, num_samples)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    xs, neglogevents_dirt <span class="op">=</span> p_tilde.eval_irt(rs)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    neglogevents_true <span class="op">=</span> rare_event_func(xs)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    P_is <span class="op">=</span> dt.run_importance_sampling(neglogevents_dirt, neglogevents_true)</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    P_hat <span class="op">=</span> P_is.log_weights.exp().mean()</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    rs <span class="op">=</span> q_tilde.reference.random(q_tilde.dim, num_samples)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    xs, neglogposts_dirt <span class="op">=</span> q_tilde.eval_irt(rs)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    neglogposts_true <span class="op">=</span> neglogpost_func(xs)</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    Q_is <span class="op">=</span> dt.run_importance_sampling(neglogposts_dirt, neglogposts_true)</span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    Q_hat <span class="op">=</span> Q_is.log_weights.exp().mean()</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    R_hat <span class="op">=</span> P_hat <span class="op">/</span> Q_hat</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">float</span>(R_hat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We will then call this function repeatedly to obtain a set of estimates of the rare event probability.</p>
+<div id="cell-30" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>num_estimates <span class="op">=</span> <span class="dv">20</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>num_samples <span class="op">=</span> <span class="dv">10_000</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>R_hats <span class="op">=</span> torch.tensor([</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    estimate_rare_event(</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        rare_event_func,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>        neglogpost_func,</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>        p_tilde, </span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>        q_tilde, </span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        num_samples</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    ) <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(num_estimates)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>])</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Estimate of event probability: </span><span class="sc">{</span>R_hats<span class="sc">.</span>mean()<span class="sc">:.4e}</span><span class="ss">."</span>)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Standard deviation of estimate of event probability: </span><span class="sc">{</span>R_hats<span class="sc">.</span>std()<span class="sc">:.4e}</span><span class="ss">."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Estimate of event probability: 4.3852e-10.
+Standard deviation of estimate of event probability: 3.8439e-12.</code></pre>
+</div>
+</div>
+
+
+
+</section>
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-Cui2024" class="csl-entry" role="listitem">
+Cui, Tiangang, Sergey Dolgov, and Robert Scheichl. 2024. <span>“Deep Importance Sampling Using Tensor Trains with Application to a Priori and a Posteriori Rare Events.”</span> <em>SIAM Journal on Scientific Computing</em> 46 (1): C1–29. <a href="https://doi.org/10.1137/23M1546981">https://doi.org/10.1137/23M1546981</a>.
+</div>
+</div></section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/DeepTransport\.github\.io\/deep-tensor-py\/");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
