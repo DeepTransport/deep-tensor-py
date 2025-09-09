@@ -70,7 +70,7 @@ quartodoc:
   style: pkgdown
   title: API Reference
   package: deep_tensor
-  version: "0.0.4"
+  version: "1.0.0"
   render_interlinks: false
   
   renderer:
