@@ -6,7 +6,7 @@ TT(self, options: TTOptions | None = None)
 
 A tensor train factorisation.
 
-This class computes an stores a tensor train factorisation of the 
+This class computes and stores a tensor train factorisation of the 
 discretisation of an arbitrary function on a tensor-product grid, 
 using the alternating cross approximation algorithm outlined in 
 @Oseledets2010. 
@@ -21,7 +21,7 @@ using the alternating cross approximation algorithm outlined in
 
 | Name | Description |
 | --- | --- |
-| [initialise](#deep_tensor.TT.initialise) | TODO: write docstring... |
+| [initialise](#deep_tensor.TT.initialise) | Initialises the TT. |
 | [sweep](#deep_tensor.TT.sweep) | Runs a single cross iteration. |
 | [round](#deep_tensor.TT.round) | Rounds the TT cores.  |
 
@@ -31,7 +31,17 @@ using the alternating cross approximation algorithm outlined in
 TT.initialise(target_func: Callable[[Tensor], Tensor], grid: Grid)
 ```
 
-TODO: write docstring...
+Initialises the TT.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**target_func**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor\], Tensor\]]{.parameter-annotation}</code>
+
+:   A function that takes an $n \times d$ matrix with rows  containing samples from the tensor product grid, and  returns an $n$-dimensional vector containing the values of  the target function evaluated at each sample.
+
+<code>[**grid**]{.parameter-name} [:]{.parameter-annotation-sep} [Grid]{.parameter-annotation}</code>
+
+:   The tensor product grid used to construct the TT.
 
 ### sweep { #deep_tensor.TT.sweep }
 

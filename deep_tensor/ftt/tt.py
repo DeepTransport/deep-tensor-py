@@ -72,7 +72,7 @@ class Grid():
 class TT():
     """A tensor train factorisation.
     
-    This class computes an stores a tensor train factorisation of the 
+    This class computes and stores a tensor train factorisation of the 
     discretisation of an arbitrary function on a tensor-product grid, 
     using the alternating cross approximation algorithm outlined in 
     @Oseledets2010. 
@@ -122,7 +122,19 @@ class TT():
         target_func: Callable[[Tensor], Tensor], 
         grid: Grid
     ) -> None:
-        """TODO: write docstring..."""
+        r"""Initialises the TT.
+        
+        Parameters
+        ----------
+        target_func:
+            A function that takes an $n \times d$ matrix with rows 
+            containing samples from the tensor product grid, and 
+            returns an $n$-dimensional vector containing the values of 
+            the target function evaluated at each sample.
+        grid:
+            The tensor product grid used to construct the TT.
+
+        """
         self.target_func = target_func
         self.grid = grid 
         self.dim = grid.dim

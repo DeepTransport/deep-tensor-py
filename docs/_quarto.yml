@@ -129,6 +129,8 @@ quartodoc:
       contents:
         - name: FTT
           members: [approximate, eval]
+        - name: EFTT
+          members: [approximate, eval]
         - name: ApproxBases
           members: []
         - name: TT

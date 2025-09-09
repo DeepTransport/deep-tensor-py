@@ -25,6 +25,7 @@ website:
       section: Domain Mappings
     - contents:
       - reference/FTT.qmd
+      - reference/EFTT.qmd
       - reference/ApproxBases.qmd
       - reference/TT.qmd
       - reference/TTOptions.qmd

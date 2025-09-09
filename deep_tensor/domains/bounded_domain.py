@@ -5,20 +5,21 @@ from .linear_domain import LinearDomain
 
 
 class BoundedDomain(LinearDomain):
-    r"""Mapping from a bounded domain to $(-1, 1)$.
+    r"""Mapping from a bounded domain to $[-1, 1]$.
     
     This class provides a linear mapping from a bounded domain, 
-    $(x_{0}, x_{1})$, to $(-1, 1)$.
+    $[x_{0}, x_{1}]$, to $[-1, 1]$.
     
     Parameters
     ----------
     bounds:
-        A set of bounds, $(x_{0}, x_{1})$. The default choice is 
-        `torch.tensor([-1.0, 1.0])`.
+        A set of bounds, $[x_{0}, x_{1}]$. The default choice is 
+        `torch.tensor([-1.0, 1.0])` (in which case the mapping is the 
+        identity mapping).
     
     """
 
-    def __init__(self, bounds: Tensor|None = None):
+    def __init__(self, bounds: Tensor | None = None):
         
         if bounds is None:
             bounds = torch.tensor([-1.0, 1.0])
