@@ -1,6 +1,8 @@
-# SIR Examples: Data for the Austria Model
+# SIR Examples
 
-The nodes associated with the adjacency matrix for the Austria model are:
+## Data for the Austria Model
+
+The nodes associated with the adjacency matrix for the Austria model (in `austria_adjacency.pt`) are:
 
 1: Vorarlberg \
 2: Tirol (Tyrol) \
