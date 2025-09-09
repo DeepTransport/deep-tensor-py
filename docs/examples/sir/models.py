@@ -1,4 +1,3 @@
-from numpy import ndarray
 import torch 
 from torch import Tensor 
 from torchdiffeq import odeint
@@ -35,7 +34,7 @@ class SIRModel():
         b, g = params.T
         num_params = params.shape[0]
 
-        def sir_func(t, y: ndarray) -> Tensor:
+        def sir_func(t, y: Tensor) -> Tensor:
             S, I, _ = y.reshape(3, -1)
             return torch.vstack([-b*S*I, b*S*I - g*I, g*I]).flatten()
         
