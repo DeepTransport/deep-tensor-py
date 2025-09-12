@@ -20,6 +20,8 @@ def compute_weights(
     domain: Domain, 
     reference: Reference
 ) -> Dict[int, Tensor]:
+    # TODO: this won't have quite the indended effect when the 
+    # collocation points are not spaced equally--need to fix.
     
     reference_weights = {}
     for k in grid_points:
@@ -73,9 +75,9 @@ class FTT():
     @property
     def is_finished(self) -> bool:
         max_core_error = float(self.tt.errors.max())
-        is_finished = max_core_error < self.tt.options.als_tol
+        is_finished = max_core_error < self.tt.options.tol_max_core_error
         if self.l2_error:
-            error_target_met = self.l2_error < self.tt.options.als_tol
+            error_target_met = self.l2_error < self.tt.options.tol_l2_error
             is_finished = is_finished or error_target_met
         return is_finished
 
@@ -115,46 +117,30 @@ class FTT():
         return
     
     @staticmethod
-    def eval_core(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
+    def eval_core(basis: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         """Evaluates a tensor core."""
         r_p, n_k, r_k = A.shape
         n_ls = ls.numel()
         coeffs = A.permute(1, 0, 2).reshape(n_k, r_p * r_k)
-        Gs = poly.eval_radon(coeffs, ls).reshape(n_ls, r_p, r_k)
+        Gs = basis.eval_radon(coeffs, ls).reshape(n_ls, r_p, r_k)
         return Gs
     
     @staticmethod
-    def eval_core_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
+    def eval_core_rev(basis: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
+        return FTT.eval_core(basis, A, ls).swapdims(0, 2)
+    
+    @staticmethod
+    def eval_core_deriv(basis: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the derivative of a tensor core."""
         r_p, n_k, r_k = A.shape 
         n_ls = ls.numel()
         coeffs = A.permute(1, 0, 2).reshape(n_k, r_p * r_k)
-        dGdls = poly.eval_radon_deriv(coeffs, ls).reshape(n_ls, r_p, r_k)
+        dGdls = basis.eval_radon_deriv(coeffs, ls).reshape(n_ls, r_p, r_k)
         return dGdls
-
-    @staticmethod
-    def _eval_core_213(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        """Evaluates a tensor core.
-        """
-        return FTT.eval_core(poly, A, ls)
-
-    @staticmethod
-    def _eval_core_213_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        """Evaluates the derivative of a tensor core.
-        """
-        return FTT._eval_core_213_deriv(poly, A, ls)
-
-    @staticmethod
-    def _eval_core_231(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        """Evaluates a tensor core.
-        """
-        return FTT.eval_core(poly, A, ls).swapdims(1, 2)
     
     @staticmethod
-    def _eval_core_231_deriv(poly: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        """Evaluates the derivative of a tensor core.
-        """
-        return FTT.eval_core_deriv(poly, A, ls).swapdims(1, 2)
+    def eval_core_deriv_rev(basis: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
+        return FTT.eval_core_deriv(basis, A, ls).swapdims(0, 2)
 
     def print_info_header(self) -> None:
 
@@ -307,11 +293,8 @@ class FTT():
 
         self.target_func = target_func
 
-        # Build grid (TODO: add an option to weight by the reference 
-        # measure when sampling initial index sets).
         points = {k: self.bases[k].nodes for k in range(self.dim)}
         if reference is None:
-            print("warning, no reference passed in..")
             grid = Grid(points)
         else:
             weights = compute_weights(points, reference.domain, reference)

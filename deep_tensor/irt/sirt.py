@@ -91,9 +91,9 @@ class SIRT():
         self, 
         ls: Tensor, 
         inds: Tensor | None = None
-    ) -> tuple[Tensor, Tensor]:
-        """Maps a set of samples drawn distributed in (a subset of) the 
-        local domain to the approximation domain.
+    ) -> Tuple[Tensor, Tensor]:
+        """Maps a set of samples distributed in (a subset of) the local 
+        domain to the approximation domain.
         """
         if inds is None:
             inds = torch.arange(self.dim)
@@ -359,12 +359,12 @@ class SIRT():
 
         for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
 
-            Ps = FTT._eval_core_231(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT.eval_core_rev(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gls = n_mode_prod(Ps, gs, n=1)
             ps = gls.square().sum(dim=2) + self.defensive
             ls[:, -i] = self.cdfs[k].invert_cdf(ps, zs[:, -i])
 
-            Gs = FTT._eval_core_231(self.bases[k], cores[k], ls[:, -i])
+            Gs = FTT.eval_core_rev(self.bases[k], cores[k], ls[:, -i])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
         gs_sq = (self._Rs_b[d_min-1] @ gs.T).square().sum(dim=0)
@@ -428,27 +428,27 @@ class SIRT():
         Gs_prod = torch.ones((n_xs, 1, 1))
 
         for k in range(d_xs-1):
-            Gs = FTT._eval_core_213(self.bases[k], cores[k], ls_x[:, k])
+            Gs = FTT.eval_core(self.bases[k], cores[k], ls_x[:, k])
             Gs_prod = batch_mul(Gs_prod, Gs)
         
         k = d_xs-1
 
-        Ps = FTT._eval_core_213(self.bases[k], Bs[k], ls_x[:, k])
+        Ps = FTT.eval_core(self.bases[k], Bs[k], ls_x[:, k])
         gs_marg = batch_mul(Gs_prod, Ps)
         ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.defensive
 
-        Gs = FTT._eval_core_213(self.bases[k], cores[k], ls_x[:, k])
+        Gs = FTT.eval_core(self.bases[k], cores[k], ls_x[:, k])
         Gs_prod = batch_mul(Gs_prod, Gs)
 
         # Generate conditional samples
         for i, k in enumerate(range(d_xs, self.dim)):
             
-            Ps = FTT._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("mij, ljk -> lmk", Gs_prod, Ps)
             ps = gs.square().sum(dim=2) + self.defensive
             ls_y[:, i] = self.cdfs[k].invert_cdf(ps, zs[:, i])
 
-            Gs = FTT._eval_core_213(self.bases[k], cores[k], ls_y[:, i])
+            Gs = FTT.eval_core(self.bases[k], cores[k], ls_y[:, i])
             Gs_prod = batch_mul(Gs_prod, Gs)
 
         ps = Gs_prod.flatten().square() + self.defensive
@@ -474,25 +474,25 @@ class SIRT():
         Gs_prod = torch.ones((n_zs, 1, 1))
 
         for i, k in enumerate(range(self.dim-1, d_zs, -1), start=1):
-            Gs = FTT._eval_core_213(self.bases[k], cores[k], ls_x[:, -i])
+            Gs = FTT.eval_core(self.bases[k], cores[k], ls_x[:, -i])
             Gs_prod = batch_mul(Gs, Gs_prod)
 
-        Ps = FTT._eval_core_213(self.bases[d_zs], Bs[d_zs], ls_x[:, 0])
+        Ps = FTT.eval_core(self.bases[d_zs], Bs[d_zs], ls_x[:, 0])
         gs_marg = batch_mul(Ps, Gs_prod)
         ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.defensive
 
-        Gs = FTT._eval_core_213(self.bases[d_zs], cores[d_zs], ls_x[:, 0])
+        Gs = FTT.eval_core(self.bases[d_zs], cores[d_zs], ls_x[:, 0])
         Gs_prod = batch_mul(Gs, Gs_prod)
 
         # Generate conditional samples
         for k in range(d_zs-1, -1, -1):
 
-            Ps = FTT._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("lij, mjk -> lmi", Ps, Gs_prod)
             ps = gs.square().sum(dim=2) + self.defensive
             ls_y[:, k] = self.cdfs[k].invert_cdf(ps, zs[:, k])
 
-            Gs = FTT._eval_core_213(self.bases[k], cores[k], ls_y[:, k])
+            Gs = FTT.eval_core(self.bases[k], cores[k], ls_y[:, k])
             Gs_prod = batch_mul(Gs, Gs_prod)
 
         ps = Gs_prod.flatten().square() + self.defensive
@@ -579,8 +579,8 @@ class SIRT():
             ws_k = self.bases[k].eval_measure(ls[:, k])
             dwdls_k = self.bases[k].eval_measure_deriv(ls[:, k])
 
-            Gs_k = FTT._eval_core_213(self.bases[k], cores[k], ls[:, k])
-            dGdls_k = FTT._eval_core_213_deriv(self.bases[k], cores[k], ls[:, k])
+            Gs_k = FTT.eval_core(self.bases[k], cores[k], ls[:, k])
+            dGdls_k = FTT.eval_core_deriv(self.bases[k], cores[k], ls[:, k])
             Gs_prod = batch_mul(Gs_prod, Gs_k)
             
             for j in range(self.dim):
@@ -632,14 +632,14 @@ class SIRT():
             wls[k] = self.bases[k].eval_measure(ls[:, k])
 
             # Evaluate kth tensor core and derivative
-            Gs[k] = FTT._eval_core_213(self.bases[k], cores[k], ls[:, k])
-            Gs_deriv[k] = FTT._eval_core_213_deriv(self.bases[k], cores[k], ls[:, k])
+            Gs[k] = FTT.eval_core(self.bases[k], cores[k], ls[:, k])
+            Gs_deriv[k] = FTT.eval_core_deriv(self.bases[k], cores[k], ls[:, k])
             Gs_prod[k] = batch_mul(Gs_prod[k-1], Gs[k])
 
             # Evaluate kth marginalisation core and derivative
-            Ps[k] = FTT._eval_core_213(self.bases[k], Bs[k], ls[:, k])
-            Ps_deriv[k] = FTT._eval_core_213_deriv(self.bases[k], Bs[k], ls[:, k])
-            Ps_grid[k] = FTT._eval_core_213(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps[k] = FTT.eval_core(self.bases[k], Bs[k], ls[:, k])
+            Ps_deriv[k] = FTT.eval_core_deriv(self.bases[k], Bs[k], ls[:, k])
+            Ps_grid[k] = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
 
             # Evaluate marginal probability for the first k elements of 
             # each sample
@@ -727,14 +727,14 @@ class SIRT():
             wls[k] = self.bases[k].eval_measure(ls[:, k])
 
             # Evaluate kth tensor core and derivative
-            Gs[k] = FTT._eval_core_231(self.bases[k], cores[k], ls[:, k])
-            Gs_deriv[k] = FTT._eval_core_231_deriv(self.bases[k], cores[k], ls[:, k])
+            Gs[k] = FTT.eval_core_rev(self.bases[k], cores[k], ls[:, k])
+            Gs_deriv[k] = FTT.eval_core_deriv_rev(self.bases[k], cores[k], ls[:, k])
             Gs_prod[k] = batch_mul(Gs_prod[k+1], Gs[k])
 
             # Evaluate kth marginalisation core and derivative
-            Ps[k] = FTT._eval_core_231(self.bases[k], Bs[k], ls[:, k])
-            Ps_deriv[k] = FTT._eval_core_231_deriv(self.bases[k], Bs[k], ls[:, k])
-            Ps_grid[k] = FTT._eval_core_231(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps[k] = FTT.eval_core_rev(self.bases[k], Bs[k], ls[:, k])
+            Ps_deriv[k] = FTT.eval_core_deriv_rev(self.bases[k], Bs[k], ls[:, k])
+            Ps_grid[k] = FTT.eval_core_rev(self.bases[k], Bs[k], self.cdfs[k].nodes)
 
             # Evaluate marginal probability for the first k elements of 
             # each sample

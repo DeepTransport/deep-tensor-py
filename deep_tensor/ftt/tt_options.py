@@ -27,9 +27,10 @@ class TTOptions():
     max_als:
         The maximum number of ALS iterations to be carried out during 
         the FTT construction.
-    als_tol:
-        The tolerance to use to determine whether the ALS iterations 
-        should be terminated.
+    tol_max_core_error: 
+        TODO
+    tol_l2_error:
+        TODO
     init_rank:
         The initial rank of each tensor core.
     kick_rank:
@@ -61,7 +62,8 @@ class TTOptions():
     """
         
     max_als: int = 1
-    als_tol: float = 1e-01
+    tol_max_core_error: float = 1e-01
+    tol_l2_error: float = 1e-01
     init_rank: int = 20
     kick_rank: int = 2
     max_rank: int = 30
