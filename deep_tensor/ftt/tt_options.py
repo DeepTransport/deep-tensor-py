@@ -62,8 +62,8 @@ class TTOptions():
     """
         
     max_als: int = 1
-    tol_max_core_error: float = 1e-01
-    tol_l2_error: float = 1e-01
+    tol_max_core_error: float = 0.0
+    tol_l2_error: float = 0.0
     init_rank: int = 20
     kick_rank: int = 2
     max_rank: int = 30
