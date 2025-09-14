@@ -129,7 +129,7 @@ class FTT():
     
     @staticmethod
     def eval_core_rev(basis: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        return FTT.eval_core(basis, A, ls).swapdims(0, 2)
+        return FTT.eval_core(basis, A, ls).swapdims(1, 2)
     
     @staticmethod
     def eval_core_deriv(basis: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
