@@ -27,8 +27,8 @@ class TestTTFunc(unittest.TestCase):
 
         ls = torch.tensor([-0.5, 0.0, 0.5])
 
-        G_213 = dt.FTT._eval_core_213(poly, A, ls)
-        G_231 = dt.FTT._eval_core_231(poly, A, ls)
+        G_213 = dt.FTT.eval_core(poly, A, ls)
+        G_231 = dt.FTT.eval_core_rev(poly, A, ls)
 
         G_213_true = torch.tensor([[[2.0, 1.5],
                                     [2.0, 2.0]],
