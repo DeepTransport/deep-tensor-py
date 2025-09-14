@@ -419,7 +419,7 @@ class TT():
 
         """
         if tol is None: 
-            tol = self.options.svd_tol
+            tol = self.options.tol_svd
         if max_rank is None:
             max_rank = self.options.max_rank
         Ur, sr, Vhr, rank = tsvd(H, tol, max_rank)
@@ -602,7 +602,7 @@ class TT():
         """
 
         if tol is None:
-            tol = self.options.svd_tol
+            tol = self.options.tol_svd
 
         for _ in range(2):
             self.reverse_direction()
@@ -624,6 +624,7 @@ class TT():
         If cross iterations have been run previously, this performs a 
         sweep over the cores in the opposite order to the previous 
         sweep.
+        
         """
 
         if self.cores == {}:

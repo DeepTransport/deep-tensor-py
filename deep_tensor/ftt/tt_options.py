@@ -1,21 +1,10 @@
 from dataclasses import dataclass
-from typing import Sequence
+
+from ..verification import verify_method
 
 
 TT_METHODS = ["random", "amen", "fixed_rank"]
 INT_METHODS = ["deim", "maxvol"]
-
-
-def verify_method(method: str, accepted_methods: Sequence[str]) -> None:
-        
-    if method in accepted_methods:
-        return 
-    
-    msg = (
-        f"Method '{method}' not recognised. Expected one of: " 
-        ", ".join(accepted_methods) + "."
-    )
-    raise ValueError(msg)
 
 
 @dataclass
@@ -24,26 +13,6 @@ class TTOptions():
     
     Parameters
     ----------
-    max_als:
-        The maximum number of ALS iterations to be carried out during 
-        the FTT construction.
-    tol_max_core_error: 
-        TODO
-    tol_l2_error:
-        TODO
-    init_rank:
-        The initial rank of each tensor core.
-    kick_rank:
-        The rank of the enrichment set of samples added at each ALS 
-        iteration.
-    max_rank:
-        The maximum allowable rank of each tensor core (prior to the 
-        enrichment set being added).
-    svd_tol:
-        The threshold to use when applying truncated SVD to the tensor 
-        cores when building the FTT. The minimum number of singular 
-        values such that the sum of their squares exceeds ($1-$ `svd_tol`) 
-        will be retained.
     tt_method:
         The enrichment method used when constructing the TT cores. Can 
         be `'fixed_rank'` (no enrichment), `'random'`, or `'amen'` 
@@ -52,6 +21,29 @@ class TTOptions():
         The interpolation method used when constructing the tensor 
         cores. Can be `'maxvol'` [@Goreinov2010] or `'deim'` 
         [@Chaturantabut2010].
+    max_als:
+        The maximum number of ALS iterations to be carried out during 
+        the FTT construction.
+    init_rank:
+        The initial rank of each tensor core.
+    kick_rank:
+        The rank of the enrichment set of samples added at each ALS 
+        iteration.
+    max_rank:
+        The maximum allowable rank of each tensor core (prior to the 
+        enrichment set being added).
+    tol_svd:
+        The threshold to use when applying truncated SVD to the tensor 
+        cores when building the TT. The minimum number of singular 
+        values such that the sum of their squares exceeds ($1-$ `tol_svd`) 
+        will be retained.
+    tol_max_core_error: 
+        A stopping tolerance (TODO: finish)
+        $$
+            \max_{k \in \{1, \dots, d\}}\frac{||H^{(i)}-H^{(i-1)}||}{||H^{(i)}||} < \delta
+        $$
+    tol_l2_error:
+        TODO
     verbose:
         If `verbose=0`, no information about the construction of the 
         FTT will be printed. If `verbose=1`, diagnostic information 
@@ -60,16 +52,16 @@ class TTOptions():
         iteration will also be displayed.
     
     """
-        
+    
+    tt_method: str = "amen"
+    int_method: str = "maxvol"
     max_als: int = 1
-    tol_max_core_error: float = 0.0
-    tol_l2_error: float = 0.0
     init_rank: int = 20
     kick_rank: int = 2
     max_rank: int = 30
-    svd_tol: float = 0.0
-    tt_method: str = "amen"
-    int_method: str = "maxvol"
+    tol_svd: float = 0.0
+    tol_max_core_error: float = 0.0
+    tol_l2_error: float = 0.0
     verbose: int = 1
     
     def __post_init__(self):

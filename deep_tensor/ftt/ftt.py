@@ -6,6 +6,7 @@ from torch import Tensor
 
 from .approx_bases import ApproxBases
 from .directions import Direction
+from .eftt_options import EFTTOptions
 from .tt import Grid, TT
 from ..constants import EPS
 from ..domains import Domain
@@ -337,183 +338,6 @@ class FTT():
         return ftt
 
 
-class EFTTPOD(FTT):
-    r"""An extended functional tensor train, defined on $[-1, 1]^{d}$.
-    
-    Parameters
-    ----------
-    bases:
-        A set of basis functions for each dimension of the FTT.
-    tt: 
-        A tensor train object.
-    num_error_samples:
-        The number of samples to use to estimate the $L_{2}$ error of 
-        the FTT during its construction.
-    num_pod_samples:
-        The number of samples to use when generating a fibre matrices 
-        used to compute the reduced bases in each coordinate.
-    tol_pod: 
-        The tolerance to use when truncating singular values when 
-        applying the POD to obtain the reduced bases in each 
-        coordinate.
-
-    """
-
-    def __init__(
-        self, 
-        bases: ApproxBases,
-        tt: TT,
-        num_error_samples: int = 1000, 
-        num_pod_samples: int = 30,
-        tol_pod: float = 1e-12
-    ):
-        FTT.__init__(self, bases, tt, num_error_samples)
-        self.num_pod_samples = num_pod_samples
-        self.tol_pod = tol_pod
-        self.num_eval_pod = 0
-        self.pod_bases: Dict[int, Tensor] = {}
-        self.deim_inds: Dict[int, Tensor] = {}
-        self.factors: Dict[int, Tensor] = {}
-        return
-    
-    @property
-    def num_eval(self) -> int:
-        return self.num_error_samples + self.num_eval_pod + self.tt.num_eval
-    
-    @property 
-    def basis_dims(self) -> Tensor:
-        """Returns a tensor containing the dimension of the reduced 
-        basis for each coordinate.
-        """
-        basis_dims = torch.tensor([self.pod_bases[k].shape[1] 
-                                   for k in range(self.dim)])
-        return basis_dims
-    
-    def compute_reduced_indices(
-        self, 
-        reference: Reference | None = None
-    ) -> None:
-        """Computes the POD bases in each dimension."""
-
-        points = {k: self.bases[k].nodes for k in range(self.dim)}
-        grid = Grid(points)
-
-        for k in range(self.dim):
-
-            if self.tt.options.verbose > 1:
-                msg = f"Computing reduced basis for dimension {k+1} / {self.dim}..."
-                als_info(msg, end="\r")
-            
-            n_k = grid.points[k].numel()
-
-            if reference is None:
-                point_samples = 2.0 * torch.rand((self.num_pod_samples, self.dim)) - 1.0
-            else:
-                point_samples = reference.random(self.dim, self.num_pod_samples)
-                point_samples = reference.domain.approx2local(point_samples)[0]
-
-            point_samples = point_samples.repeat((n_k, 1))
-            point_samples[:, k] = grid.points[k].repeat_interleave(self.num_pod_samples)
-
-            # Note: each column is a fibre
-            fibre_matrix = self.target_func(point_samples)
-            fibre_matrix = fibre_matrix.reshape(n_k, self.num_pod_samples)
-            self.num_eval_pod += fibre_matrix.numel()
-
-            basis_k = tsvd(fibre_matrix, tol=self.tol_pod)[0]
-
-            self.pod_bases[k] = basis_k
-            self.deim_inds[k], self.factors[k] = deim(basis_k)
-        
-        if self.tt.options.verbose > 1:
-            basis_dims = f"-".join([str(int(d)) for d in self.basis_dims])
-            als_info(f"Reduced basis dimensions: {basis_dims}.")
-
-        return
-    
-    def compute_cores(self) -> None:
-        """(Re)-computes the FTT cores from the TT cores."""
-        for k in range(self.dim):
-            core = n_mode_prod(self.tt.cores[k], self.factors[k], n=1)
-            if isinstance(basis := self.bases[k], Spectral):
-                core = n_mode_prod(core, basis.node2basis, n=1)
-            self.cores[k] = core
-        return
-
-    def approximate(
-        self, 
-        target_func: Callable[[Tensor], Tensor], 
-        reference: Reference | None = None
-    ) -> None:
-        r"""Constructs a FTT approximation to a target function.
-
-        Parameters
-        ----------
-        target_func: 
-            The target function, $f : [-1, 1]^{d} \rightarrow \mathbb{R}$. 
-        reference:
-            The reference measure. If provided, this will be used to 
-            generate the samples to build the fibre matrices and 
-            generate the initial index sets for the underlying TT. 
-            Otherwise, the samples will be drawn uniformly.
-        
-        """
-
-        self.target_func = target_func
-        self.compute_reduced_indices(reference)
-
-        deim_nodes = {
-            k: self.bases[k].nodes[self.deim_inds[k]] 
-            for k in range(self.dim)
-        }
-        deim_grid = Grid(deim_nodes)
-
-        # TODO: all of the below is common to the FTT and EFTT 
-        # implementations and could go into the parent class.
-        self.tt.initialise(self.target_func, deim_grid)
-        if self.l2_error_samples:
-            self.initialise_l2_error_samples()
-        if self.tt.options.verbose > 0:
-            self.print_info_header()
-
-        for num_iter in range(self.tt.options.max_als): 
-            self.tt.sweep()
-            self.compute_cores()
-            if self.l2_error_samples:
-                self.estimate_l2_error()
-            if self.tt.options.verbose > 0:
-                self.print_info(num_iter)
-            if self.is_finished:
-                break
-            
-        if self.tt.options.verbose > 0:
-            als_info("ALS complete.")
-        if self.tt.options.verbose > 1:
-            ranks = "-".join([str(int(r)) for r in self.ranks])
-            msg = f"Final TT ranks: {ranks}."
-            als_info(msg)
-        return
-    
-    def clone(self):
-
-        tt = TT(self.tt.options)
-        # tt.cores = {k: self.tt.cores[k].clone() for k in self.tt.cores}
-        # tt.index_sets = {
-        #     k: self.tt.index_sets[k].clone() 
-        #     for k in self.tt.index_sets
-        # }
-        # tt.direction = self.tt.direction
-
-        ftt = EFTTPOD(
-            self.bases, 
-            tt, 
-            self.num_error_samples, 
-            self.num_pod_samples, 
-            self.tol_pod
-        )
-        return ftt
-    
-
 class EFTT(FTT):
     r"""An extended functional tensor train, defined on $[-1, 1]^{d}$.
     
@@ -523,16 +347,9 @@ class EFTT(FTT):
         A set of basis functions for each dimension of the FTT.
     tt: 
         A tensor train object.
-    num_error_samples:
-        The number of samples to use to estimate the $L_{2}$ error of 
-        the FTT during its construction.
-    num_pod_samples:
-        The number of samples to use when generating a fibre matrices 
-        used to compute the reduced bases in each coordinate.
-    tol_pod: 
-        The tolerance to use when truncating singular values when 
-        applying the POD to obtain the reduced bases in each 
-        coordinate.
+    options: 
+        A set of tuning parameters used during the construction of the 
+        FTT.
 
     """
 
@@ -540,41 +357,60 @@ class EFTT(FTT):
         self, 
         bases: ApproxBases,
         tt: TT,
-        num_error_samples: int = 1000, 
-        num_aca: int = 50,          # num ACA samples (for determining appropriate index sets for fibre matrices)
-        tol_aca: float = 1e-10,     # tolerance for fiber matrices (this is the default in the implementation from Strossner)
-        tol_pod: float = 1e-12,
-        max_tucker_rank: int = 50   # maximum rank of Tucker tensor (i.e., maximum dimension of reduced basis in each dimension)
+        options: EFTTOptions | None = None
     ):
-        FTT.__init__(self, bases, tt, num_error_samples)
-        self.num_aca = num_aca
-        self.tol_aca = tol_aca
-        self.tol_pod = tol_pod
-        self.max_tucker_rank = max_tucker_rank
-        self.num_eval_aca = 0
-        self.pod_bases: Dict[int, Tensor] = {}
+        if options is None:
+            options = EFTTOptions()
+        FTT.__init__(self, bases, tt, options.num_error_samples)
+        self.options = options
+        self.num_eval_fibres = 0
         self.deim_inds: Dict[int, Tensor] = {}
         self.factors: Dict[int, Tensor] = {}
         return
     
     @property
     def num_eval(self) -> int:
-        return self.num_error_samples + self.num_eval_aca + self.tt.num_eval
+        return self.num_error_samples + self.num_eval_fibres + self.tt.num_eval
     
     @property 
     def basis_dims(self) -> Tensor:
         """Returns a tensor containing the dimension of the reduced 
         basis for each coordinate.
         """
-        basis_dims = torch.tensor([self.pod_bases[k].shape[1] 
+        basis_dims = torch.tensor([self.factors[k].shape[1] 
                                    for k in range(self.dim)])
         return basis_dims
     
-    def compute_fibre_submatrix(self, grid: Grid, k: int) -> Tensor:
+    def compute_fibre_submatrix_random(
+        self, 
+        grid: Grid, 
+        reference: Reference | None,
+        k: int
+    ) -> Tensor:
+        
+        n_k = grid.points[k].numel()
 
-        for iter in range(self.max_tucker_rank):
+        if reference is None:
+            point_samples = 2.0 * torch.rand((self.options.num_snapshots, self.dim)) - 1.0
+        else:
+            point_samples = reference.random(self.dim, self.options.num_snapshots)
+            point_samples = reference.domain.approx2local(point_samples)[0]
+
+        point_samples = point_samples.repeat((n_k, 1))
+        point_samples[:, k] = grid.points[k].repeat_interleave(self.options.num_snapshots)
+
+        # Note: each column is a fibre
+        fibre_matrix = self.target_func(point_samples)
+        fibre_matrix = fibre_matrix.reshape(n_k, self.options.num_snapshots)
+        self.num_eval_fibres += fibre_matrix.numel()
+
+        return fibre_matrix
+    
+    def compute_fibre_submatrix_aca(self, grid: Grid, k: int) -> Tensor:
+
+        for iter in range(self.options.max_tucker_rank):
                 
-            random_inds = grid.sample_indices(self.num_aca)
+            random_inds = grid.sample_indices(self.options.num_aca)
             random_points = grid.indices2points(random_inds)
 
             M_vals = self.target_func(random_points)
@@ -598,9 +434,9 @@ class EFTT(FTT):
                 inds_int[:, k] = inds[:, k].repeat_interleave(num_inds, dim=0)
 
                 inds_row = random_inds.repeat(num_inds, 1)
-                inds_row[:, k] = inds[:, k].repeat_interleave(self.num_aca, dim=0)
+                inds_row[:, k] = inds[:, k].repeat_interleave(self.options.num_aca, dim=0)
 
-                inds_col = inds.repeat(self.num_aca, 1)
+                inds_col = inds.repeat(self.options.num_aca, 1)
                 inds_col[:, k] = random_inds[:, k].repeat_interleave(num_inds, dim=0)
 
                 points_int = grid.indices2points(inds_int)
@@ -608,10 +444,10 @@ class EFTT(FTT):
                 points_col = grid.indices2points(inds_col)
 
                 B_int = self.target_func(points_int).reshape(num_inds, num_inds)
-                B_rows = self.target_func(points_row).reshape(num_inds, self.num_aca)
-                B_cols = self.target_func(points_col).reshape(self.num_aca, num_inds)
+                B_rows = self.target_func(points_row).reshape(num_inds, self.options.num_aca)
+                B_cols = self.target_func(points_col).reshape(self.options.num_aca, num_inds)
 
-                self.num_eval_aca += 2 * num_inds * self.num_aca + num_inds ** 2
+                self.num_eval_fibres += 2 * num_inds * self.options.num_aca + num_inds ** 2
 
                 # Check for (near-)singularity of intersection matrix
                 if linalg.cond(B_int) > 1.0 / EPS:
@@ -625,7 +461,7 @@ class EFTT(FTT):
                 max_index = random_inds[max_residual_index, :]
                 inds = torch.vstack((inds, max_index))
             
-            if max_residual < self.tol_aca and iter > 1:
+            if max_residual < self.options.tol_aca and iter > 1:
                 break
         
         n_k = self.bases[k].cardinality
@@ -636,10 +472,10 @@ class EFTT(FTT):
 
         fibre_points = grid.indices2points(fibre_inds)
         fibre_matrix = self.target_func(fibre_points).reshape(n_k, num_inds)
-        self.num_eval_aca += n_k * num_inds
+        self.num_eval_fibres += n_k * num_inds
 
         return fibre_matrix
-    
+
     def compute_reduced_indices(
         self, 
         reference: Reference | None = None
@@ -652,15 +488,18 @@ class EFTT(FTT):
         for k in range(self.dim):
 
             if self.tt.options.verbose > 1:
-                msg = f"Computing reduced basis for dimension {k+1} / {self.dim}..."
+                msg = (
+                    "Computing reduced basis for dimension "
+                    f"{k+1} / {self.dim}..."
+                )
                 als_info(msg, end="\r")
+
+            if self.options.fibre_method == "random":
+                fibre_matrix = self.compute_fibre_submatrix_random(grid, reference, k)
+            elif self.options.fibre_method == "aca":
+                fibre_matrix = self.compute_fibre_submatrix_aca(grid, k)
             
-            # TODO: geometric mean (I think for max Tucker rank?)
-
-            fibre_matrix = self.compute_fibre_submatrix(grid, k)
-            basis_k = tsvd(fibre_matrix, tol=self.tol_pod)[0]
-
-            self.pod_bases[k] = basis_k
+            basis_k = tsvd(fibre_matrix, tol=self.options.tol_svd)[0]
             self.deim_inds[k], self.factors[k] = deim(basis_k)
         
         if self.tt.options.verbose > 1:
@@ -691,7 +530,7 @@ class EFTT(FTT):
             The target function, $f : [-1, 1]^{d} \rightarrow \mathbb{R}$. 
         reference:
             The reference measure. If provided, this will be used to 
-            generate the samples to build the fibre matrices and 
+            generate the samples to build the fibre matrix bases and 
             generate the initial index sets for the underlying TT. 
             Otherwise, the samples will be drawn uniformly.
         
@@ -733,22 +572,10 @@ class EFTT(FTT):
         return
     
     def clone(self):
-
+        # Note: can't copy the cores over because the number of 
+        # collocation points is not fixed. Could try the index sets 
+        # (and direction) though (although would need to adjust their 
+        # size at some point)...
         tt = TT(self.tt.options)
-        # tt.cores = {k: self.tt.cores[k].clone() for k in self.tt.cores}
-        # tt.index_sets = {
-        #     k: self.tt.index_sets[k].clone() 
-        #     for k in self.tt.index_sets
-        # }
-        # tt.direction = self.tt.direction
-
-        ftt = EFTT(
-            self.bases, 
-            tt, 
-            self.num_error_samples, 
-            self.num_aca, 
-            self.tol_aca, 
-            self.tol_pod,
-            self.max_tucker_rank
-        )
+        ftt = EFTT(self.bases, tt, self.options)
         return ftt
