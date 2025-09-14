@@ -26,6 +26,7 @@ website:
     - contents:
       - reference/FTT.qmd
       - reference/EFTT.qmd
+      - reference/EFTTOptions.qmd
       - reference/ApproxBases.qmd
       - reference/TT.qmd
       - reference/TTOptions.qmd

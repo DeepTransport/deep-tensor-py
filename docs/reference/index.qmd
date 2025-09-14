@@ -54,6 +54,7 @@ Objects used to construct functional tensor train approximations.
 | --- | --- |
 | [FTT](FTT.qmd#deep_tensor.FTT) | A functional tensor train, defined on $[-1, 1]^{d}$. |
 | [EFTT](EFTT.qmd#deep_tensor.EFTT) | An extended functional tensor train, defined on $[-1, 1]^{d}$. |
+| [EFTTOptions](EFTTOptions.qmd#deep_tensor.EFTTOptions) | Options for configuring the construction of an EFTT object. |
 | [ApproxBases](ApproxBases.qmd#deep_tensor.ApproxBases) | An object that contains a polynomial basis in each dimension,  |
 | [TT](TT.qmd#deep_tensor.TT) | A tensor train factorisation. |
 | [TTOptions](TTOptions.qmd#deep_tensor.TTOptions) | Options for configuring the construction of a TT object. |

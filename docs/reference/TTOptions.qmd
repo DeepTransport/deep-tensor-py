@@ -3,14 +3,15 @@
 ```python
 TTOptions(
     self,
+    tt_method: str = 'amen',
+    int_method: str = 'maxvol',
     max_als: int = 1,
-    als_tol: float = 0.1,
     init_rank: int = 20,
     kick_rank: int = 2,
     max_rank: int = 30,
-    svd_tol: float = 0.0,
-    tt_method: str = 'amen',
-    int_method: str = 'maxvol',
+    tol_svd: float = 0.0,
+    tol_max_core_error: float = 0.0,
+    tol_l2_error: float = 0.0,
     verbose: int = 1,
 )
 ```
@@ -19,13 +20,17 @@ Options for configuring the construction of a TT object.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
+<code>[**tt_method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'amen\']{.parameter-default}</code>
+
+:   The enrichment method used when constructing the TT cores. Can  be `'fixed_rank'` (no enrichment), `'random'`, or `'amen'`  [@Dolgov2014].
+
+<code>[**int_method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'maxvol\']{.parameter-default}</code>
+
+:   The interpolation method used when constructing the tensor  cores. Can be `'maxvol'` [@Goreinov2010] or `'deim'`  [@Chaturantabut2010].
+
 <code>[**max_als**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
 
 :   The maximum number of ALS iterations to be carried out during  the FTT construction.
-
-<code>[**als_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.1]{.parameter-default}</code>
-
-:   The tolerance to use to determine whether the ALS iterations  should be terminated.
 
 <code>[**init_rank**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [20]{.parameter-default}</code>
 
@@ -39,17 +44,17 @@ Options for configuring the construction of a TT object.
 
 :   The maximum allowable rank of each tensor core (prior to the  enrichment set being added).
 
-<code>[**svd_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
+<code>[**tol_svd**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
 
-:   The threshold to use when applying truncated SVD to the tensor  cores when building the FTT. The minimum number of singular  values such that the sum of their squares exceeds ($1-$ `svd_tol`)  will be retained.
+:   The threshold to use when applying truncated SVD to the tensor  cores when building the TT. The minimum number of singular  values such that the sum of their squares exceeds ($1-$ `tol_svd`)  will be retained.
 
-<code>[**tt_method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'amen\']{.parameter-default}</code>
+<code>[**tol_max_core_error**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
 
-:   The enrichment method used when constructing the TT cores. Can  be `'fixed_rank'` (no enrichment), `'random'`, or `'amen'`  [@Dolgov2014].
+:   A stopping tolerance (TODO: finish) $$     \max_{k \in \{1, \dots, d\}}    rac{\|\|H^{(i)}-H^{(i-1)}\|\|}{\|\|H^{(i)}\|\|} < \delta $$
 
-<code>[**int_method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'maxvol\']{.parameter-default}</code>
+<code>[**tol_l2_error**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
 
-:   The interpolation method used when constructing the tensor  cores. Can be `'maxvol'` [@Goreinov2010] or `'deim'`  [@Chaturantabut2010].
+:   TODO
 
 <code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
 

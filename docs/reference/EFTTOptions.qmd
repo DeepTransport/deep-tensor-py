@@ -1,0 +1,46 @@
+# EFTTOptions { #deep_tensor.EFTTOptions }
+
+```python
+EFTTOptions(
+    self,
+    num_error_samples: int = 1000,
+    fibre_method: str = 'random',
+    tol_svd: float = 1e-12,
+    num_aca: int = 50,
+    tol_aca: float = 1e-10,
+    max_fibres: int = 30,
+    num_snapshots: int = 30,
+)
+```
+
+Options for configuring the construction of an EFTT object.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**num_error_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
+
+:   The number of samples to use when estimating the $L_{2}$ error  of the FTT approximation to the target function at each  iteration.
+
+<code>[**fibre_method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'random\']{.parameter-default}</code>
+
+:   The method used to compute a set of mode-$k$ fibres in each  dimension $k \in \{1, \dots, d\}$. This can be `"aca"`  [apply adaptive cross approximation, as in @Strossner2024], or  `"random"` (choose a set of fibres at random).
+
+<code>[**tol_svd**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-12]{.parameter-default}</code>
+
+:   The threshold to use when applying truncated SVD to compute an (approximate) orthogonal basis for the mode-$k$ fibres in each  dimension. The minimum number of singular values such that the  sum of their squares exceeds ($1-$ `tol_svd`) will be retained.
+
+<code>[**num_aca**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [50]{.parameter-default}</code>
+
+:   If `fibre_method="aca"`, the number of elements of the fibre  matrix to sample at each iteration when selecting a new pivot  element.
+
+<code>[**tol_aca**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-10]{.parameter-default}</code>
+
+:   If `fibre_method="aca"`, the stopping tolerance, $\epsilon$, to  use. More concretely, if $\mathcal{S}$ denotes a set of  randomly-sampled indices of the mode-$k$ fibre matrix  $\boldsymbol{M}$ (and $\mathcal{I}$ and $\mathcal{J}$  denote the current sets of row and column indices), the  iteration is considered finished when $$     \max_{(i, j) \in \mathcal{S}}\|R_{ij}\| < \epsilon, $$ where the *residual* matrix $\boldsymbol{R}$ is given by $$     \boldsymbol{R} =          \boldsymbol{M} - \boldsymbol{M}[:, \mathcal{J}]             \boldsymbol{M}[\mathcal{I}, \mathcal{J}]^{-1}             \boldsymbol{M}[\mathcal{I}, :]. $$
+
+<code>[**max_fibres**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [30]{.parameter-default}</code>
+
+:   If `fibre_method="aca"`, the maximum number of fibres to  sample.
+
+<code>[**num_snapshots**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [30]{.parameter-default}</code>
+
+:   If `fibre_method="random"`, the number of snapshots to  sample.

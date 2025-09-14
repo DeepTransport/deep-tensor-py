@@ -344,12 +344,18 @@ class EFTT(FTT):
     Parameters
     ----------
     bases:
-        A set of basis functions for each dimension of the FTT.
+        A set of basis functions for each dimension of the EFTT.
     tt: 
         A tensor train object.
     options: 
         A set of tuning parameters used during the construction of the 
-        FTT.
+        EFTT.
+
+    Attributes
+    ----------
+    num_eval:
+        The number of function evaluations required to construct the 
+        EFTT.
 
     """
 
@@ -408,7 +414,7 @@ class EFTT(FTT):
     
     def compute_fibre_submatrix_aca(self, grid: Grid, k: int) -> Tensor:
 
-        for iter in range(self.options.max_tucker_rank):
+        for iter in range(self.options.max_fibres):
                 
             random_inds = grid.sample_indices(self.options.num_aca)
             random_points = grid.indices2points(random_inds)

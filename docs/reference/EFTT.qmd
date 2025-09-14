@@ -1,14 +1,7 @@
 # EFTT { #deep_tensor.EFTT }
 
 ```python
-EFTT(
-    self,
-    bases: ApproxBases,
-    tt: TT,
-    num_error_samples: int = 1000,
-    num_pod_samples: int = 30,
-    tol_pod: float = 1e-12,
-)
+EFTT(self, bases: ApproxBases, tt: TT, options: EFTTOptions | None = None)
 ```
 
 An extended functional tensor train, defined on $[-1, 1]^{d}$.
@@ -17,23 +10,21 @@ An extended functional tensor train, defined on $[-1, 1]^{d}$.
 
 <code>[**bases**]{.parameter-name} [:]{.parameter-annotation-sep} [ApproxBases]{.parameter-annotation}</code>
 
-:   A set of basis functions for each dimension of the FTT.
+:   A set of basis functions for each dimension of the EFTT.
 
 <code>[**tt**]{.parameter-name} [:]{.parameter-annotation-sep} [TT]{.parameter-annotation}</code>
 
 :   A tensor train object.
 
-<code>[**num_error_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
+<code>[**options**]{.parameter-name} [:]{.parameter-annotation-sep} [EFTTOptions \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   The number of samples to use to estimate the $L_{2}$ error of  the FTT during its construction.
+:   A set of tuning parameters used during the construction of the  EFTT.
 
-<code>[**num_pod_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [30]{.parameter-default}</code>
+## Attributes {.doc-section .doc-section-attributes}
 
-:   The number of samples to use when generating a fibre matrices  used to compute the reduced bases in each coordinate.
+<code>[**num_eval**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
 
-<code>[**tol_pod**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-12]{.parameter-default}</code>
-
-:   The tolerance to use when truncating singular values when  applying the POD to obtain the reduced bases in each  coordinate.
+:   The number of function evaluations required to construct the  EFTT.
 
 ## Methods
 
@@ -61,7 +52,7 @@ Constructs a FTT approximation to a target function.
 
 <code>[**reference**]{.parameter-name} [:]{.parameter-annotation-sep} [Reference \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   The reference measure. If provided, this will be used to  generate the samples to build the fibre matrices and  generate the initial index sets for the underlying TT.  Otherwise, the samples will be drawn uniformly.
+:   The reference measure. If provided, this will be used to  generate the samples to build the fibre matrix bases and  generate the initial index sets for the underlying TT.  Otherwise, the samples will be drawn uniformly.
 
 ### eval { #deep_tensor.EFTT.eval }
 
