@@ -5,6 +5,24 @@ bibliography: "references.bib"
 
 # Theory
 
-The deep inverse Rosenblatt transport (DIRT) algorithm [@Cui2022] uses a composition of mappings, constructed using functional tensor trains, to approximate the Rosenblatt transport between an arbitrary target density function and a simple product-form reference density. Early work on functional tensor train (FTT) approximations to probability density functions was conducted by @Dolgov2020. @Cui2022 introduced the idea of using a composition of FTT-based mappings to provide a more accurate characterisation of highly correlated or concentrated probability densities.
+Some references relevant to the algorithms in $\mathtt{deep\_tensor}$ are collected below.
 
-The DIRT methodology has also been used for problems including amortised inference [@Cui2023], rare event estimation [@Cui2024], sequential inference [@Zhao2024], and optimal experimental design [@Koval2024].
+## DIRT Algorithm
+
+  - DIRT algorithm: @Cui2022
+  - TT-IRT (single-layer DIRT) algorithm: @Dolgov2020
+
+## Functional Tensor Trains
+
+  - Functional tensor trains: @Bigoni2016, @Gorodetsky2019
+  - Extended functional tensor trains: @Strossner2024
+  - Tensor train decomposition: @Oseledets2011
+  - TT cross-approximation algorithm: @Oseledets2010
+  - Maxvol algorithm: @Goreinov2010
+
+## Applications and Extensions of the DIRT Algorithm
+
+  - State and parameter estimation: @Zhao2024
+  - Optimal experimental design: @Koval2024
+  - Rare event estimation: @Cui2024
+  - Conditional simulation (amortised inference): @Cui2023

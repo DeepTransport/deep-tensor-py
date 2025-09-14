@@ -1,0 +1,76 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "format: html\n",
+        "bibliography: \"references.bib\"\n",
+        "execute: \n",
+        "  eval: false\n",
+        "---\n",
+        "\n",
+        "\n",
+        "The $\\texttt{deep\\_tensor}$ package contains a [PyTorch](https://pytorch.org) implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by @Cui2022.\n",
+        "\n",
+        ":::{.callout-warning}\n",
+        "This package is currently in a developmental state. Some parts of the API may change without warning in future releases.\n",
+        ":::\n",
+        "\n",
+        "# Installation\n",
+        "\n",
+        "$\\texttt{deep\\_tensor}$ can be installed using pip:\n"
+      ],
+      "id": "598d0e42"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "pip install deep-tensor-py"
+      ],
+      "id": "6ddb5c0d",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "The package can then be imported using\n"
+      ],
+      "id": "cb12b43e"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "import deep_tensor as dt"
+      ],
+      "id": "94c23dd0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "# Getting Started\n",
+        "\n",
+        "Check out the [examples page](/examples/index.qmd) and [API reference](/reference/index.qmd) for help getting started with $\\texttt{deep\\_tensor}$."
+      ],
+      "id": "1fe357d4"
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "/opt/anaconda3/share/jupyter/kernels/python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
