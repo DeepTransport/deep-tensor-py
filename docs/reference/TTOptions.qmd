@@ -50,11 +50,11 @@ Options for configuring the construction of a TT object.
 
 <code>[**tol_max_core_error**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
 
-:   A stopping tolerance (TODO: finish) $$     \max_{k \in \{1, \dots, d\}}    rac{\|\|H^{(i)}-H^{(i-1)}\|\|}{\|\|H^{(i)}\|\|} < \delta $$
+:   A stopping tolerance, $\epsilon$, based on the tensor cores.  More concretely, if $\boldsymbol{H}^{(\ell)}_{k}$ denotes the  $k$th tensor core during sweep $\ell$, the iterations are  stopped if $$     \max_{k \in \{1, \dots, d\}}         \frac{\|\boldsymbol{H}^{(\ell)}_{k}-\boldsymbol{H}^{(\ell-1)}_{k}\|_{\infty}}             {\|\boldsymbol{H}^{(\ell)}_{k}\|_{\infty}} < \epsilon. $$
 
 <code>[**tol_l2_error**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
 
-:   TODO
+:   A stopping tolerance based on the estimated $L_{2}$ error of  the target function.
 
 <code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
 

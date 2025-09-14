@@ -9,7 +9,7 @@ INT_METHODS = ["deim", "maxvol"]
 
 @dataclass
 class TTOptions():
-    """Options for configuring the construction of a TT object.
+    r"""Options for configuring the construction of a TT object.
     
     Parameters
     ----------
@@ -38,12 +38,18 @@ class TTOptions():
         values such that the sum of their squares exceeds ($1-$ `tol_svd`) 
         will be retained.
     tol_max_core_error: 
-        A stopping tolerance (TODO: finish)
+        A stopping tolerance, $\epsilon$, based on the tensor cores. 
+        More concretely, if $\boldsymbol{H}^{(\ell)}_{k}$ denotes the 
+        $k$th tensor core during sweep $\ell$, the iterations are 
+        stopped if
         $$
-            \max_{k \in \{1, \dots, d\}}\frac{||H^{(i)}-H^{(i-1)}||}{||H^{(i)}||} < \delta
+            \max_{k \in \{1, \dots, d\}}
+                \frac{|\boldsymbol{H}^{(\ell)}_{k}-\boldsymbol{H}^{(\ell-1)}_{k}|_{\infty}}
+                    {|\boldsymbol{H}^{(\ell)}_{k}|_{\infty}} < \epsilon.
         $$
     tol_l2_error:
-        TODO
+        A stopping tolerance based on the estimated $L_{2}$ error of 
+        the target function.
     verbose:
         If `verbose=0`, no information about the construction of the 
         FTT will be printed. If `verbose=1`, diagnostic information 
