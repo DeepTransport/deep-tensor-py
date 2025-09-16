@@ -48,7 +48,7 @@ class TTOptions():
                     {|\boldsymbol{H}^{(\ell)}_{k}|_{\infty}} < \epsilon.
         $$
     tol_l2_error:
-        A stopping tolerance based on the estimated $L_{2}$ error of 
+        A stopping tolerance based on the estimated $L^{2}$ error of 
         the target function.
     verbose:
         If `verbose=0`, no information about the construction of the 

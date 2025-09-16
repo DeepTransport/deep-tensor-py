@@ -13,7 +13,7 @@ class EFTTOptions():
     Parameters
     ----------
     num_error_samples:
-        The number of samples to use when estimating the $L_{2}$ error 
+        The number of samples to use when estimating the $L^{2}$ error 
         of the FTT approximation to the target function at each 
         iteration.
     fibre_method:

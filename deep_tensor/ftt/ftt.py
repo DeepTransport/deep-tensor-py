@@ -253,7 +253,8 @@ class FTT():
     def initialise_l2_error_samples(self):
         # TODO: figure out whether these should be drawn from the 
         # measure associated with the basis in each dimension.
-        self.ls_error = self.bases.sample_measure(self.num_error_samples)[0]
+        # self.ls_error = self.bases.sample_measure(self.num_error_samples)[0]
+        self.ls_error = 2.0 * torch.rand((self.num_error_samples, self.dim)) - 1.0
         self.fls_error = self.target_func(self.ls_error)
         return 
 
@@ -424,7 +425,7 @@ class EFTT(FTT):
             if iter == 0:
 
                 max_residual = M_vals.max()
-                max_residual_index = M_vals.abs().argsort(descending=True)[:1]
+                max_residual_index = M_vals.abs().argmax()
                 max_index = random_inds[max_residual_index, :]
 
                 inds = torch.atleast_2d(max_index)
@@ -449,19 +450,25 @@ class EFTT(FTT):
                 points_row = grid.indices2points(inds_row)
                 points_col = grid.indices2points(inds_col)
 
-                B_int = self.target_func(points_int).reshape(num_inds, num_inds)
-                B_rows = self.target_func(points_row).reshape(num_inds, self.options.num_aca)
-                B_cols = self.target_func(points_col).reshape(self.options.num_aca, num_inds)
+                B_int = self.target_func(points_int)
+                B_int = B_int.reshape(num_inds, num_inds)
+                B_rows = self.target_func(points_row)
+                B_rows = B_rows.reshape(num_inds, self.options.num_aca)
+                B_cols = self.target_func(points_col)
+                B_cols = B_cols.reshape(self.options.num_aca, num_inds)
 
-                self.num_eval_fibres += 2 * num_inds * self.options.num_aca + num_inds ** 2
+                self.num_eval_fibres += (
+                    2 * num_inds * self.options.num_aca 
+                    + num_inds ** 2
+                )
 
                 # Check for (near-)singularity of intersection matrix
+                # (also done in implementation by Strossner et al.).
                 if linalg.cond(B_int) > 1.0 / EPS:
                     break
 
-                B_vals = torch.diag(B_cols @ torch.linalg.solve(B_int, B_rows))
-                residuals = (M_vals - B_vals).abs()
-
+                B_vals = B_cols @ linalg.solve(B_int, B_rows)
+                residuals = torch.diag(M_vals - B_vals).abs()
                 max_residual = residuals.max()
                 max_residual_index = residuals.abs().argmax()
                 max_index = random_inds[max_residual_index, :]
