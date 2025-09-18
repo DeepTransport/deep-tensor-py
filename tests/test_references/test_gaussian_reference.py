@@ -45,12 +45,12 @@ class TestGaussianReference(unittest.TestCase):
 
         ref = dt.GaussianReference()
 
-        rs = ref.random(d=3, n=4)
+        rs = ref.random(n=4, d=3)
         self.assertEqual(rs.shape, torch.Size([4, 3]))
         self.assertTrue(rs.min() >= -4.0)
         self.assertTrue(rs.max() <= 4.0)
 
-        rs = ref.sobol(d=3, n=4)
+        rs = ref.sobol(n=4, d=3)
         self.assertEqual(rs.shape, torch.Size([4, 3]))
         self.assertTrue(rs.min() >= -4.0)
         self.assertTrue(rs.max() <= 4.0)

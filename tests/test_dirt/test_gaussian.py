@@ -46,8 +46,8 @@ class TestDIRTStandardGaussian(unittest.TestCase):
         """Verifies whether the eval_irt method is working as intended.
         """
 
-        n_samples = 50_000
-        rs = dirt.reference.random(dirt.dim, n_samples)
+        num_samples = 50_000
+        rs = dirt.reference.random(num_samples, dirt.dim)
 
         xs, potentials_dirt = dirt.eval_irt(rs)
         mean_dirt = xs.mean(dim=0)
@@ -72,8 +72,8 @@ class TestDIRTStandardGaussian(unittest.TestCase):
         Rosenblatt transport methods are inverses of one another.
         """
 
-        n_samples = 10_000
-        rs = dirt.reference.random(dirt.dim, n_samples)
+        num_samples = 10_000
+        rs = dirt.reference.random(num_samples, dirt.dim)
 
         xs_dirt = dirt.eval_irt(rs)[0]
         rs_dirt = dirt.eval_rt(xs_dirt)[0]

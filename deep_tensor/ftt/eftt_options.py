@@ -24,8 +24,8 @@ class EFTTOptions():
     tol_svd: 
         The threshold to use when applying truncated SVD to compute an
         (approximate) orthogonal basis for the mode-$k$ fibres in each 
-        dimension. The minimum number of singular values such that the 
-        sum of their squares exceeds ($1-$ `tol_svd`) will be retained.
+        dimension. The minimum number of singular values such that 
+        their sum exceeds ($1-$ `tol_svd`) will be retained.
     num_aca: 
         If `fibre_method="aca"`, the number of elements of the fibre 
         matrix to sample at each iteration when selecting a new pivot 

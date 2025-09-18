@@ -112,17 +112,15 @@ class Reference(abc.ABC):
         """
         pass
     
-    def random(self, d: int, n: int) -> Tensor:
+    def random(self, n: int, d: int) -> Tensor:
         r"""Generates a set of random samples.
-
-        Generates a set of random samples from the reference density.
         
         Parameters
         ----------
-        d:
-            The dimension of the samples.
         n:
             The number of samples to draw.
+        d:
+            The dimension of the samples.
 
         Returns
         -------
@@ -134,18 +132,15 @@ class Reference(abc.ABC):
         rs = self.invert_cdf(zs)
         return rs
         
-    def sobol(self, d: int, n: int) -> Tensor:
+    def sobol(self, n: int, d: int) -> Tensor:
         r"""Generates a set of QMC samples.
-
-        Generates a set of QMC samples from the reference density using 
-        a Sobol sequence.
         
         Parameters
         ----------
-        d: 
-            The dimension of the samples.
         n:
             The number of samples to generate.
+        d: 
+            The dimension of the samples.
 
         Returns
         -------
@@ -167,7 +162,7 @@ class Reference(abc.ABC):
         domain of the reference.
         """
         outside = self._out_domain(rs)
-        if (n_outside := outside.sum()) > 0:
-            msg = f"{n_outside} points lie outside domain of reference."
+        if (num_outside := outside.sum()) > 0:
+            msg = f"{num_outside} points lie outside domain of reference."
             warnings.warn(msg)
         return

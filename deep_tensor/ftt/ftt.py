@@ -142,7 +142,7 @@ class FTT():
     
     @staticmethod
     def eval_core_deriv_rev(basis: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
-        return FTT.eval_core_deriv(basis, A, ls).swapdims(0, 2)
+        return FTT.eval_core_deriv(basis, A, ls).swapdims(1, 2)
 
     def print_info_header(self) -> None:
 
@@ -182,10 +182,10 @@ class FTT():
         approximation to the target function and the true value for the 
         set of debugging samples.
         """
-        fls_ftt = self.eval(self.ls_error).flatten()
-        self.l2_error = (
-            linalg.norm(self.fls_error - fls_ftt) / linalg.norm(self.fls_error)
-        )
+        fls_ftt = self(self.ls_error).flatten()
+        numer = linalg.norm(self.fls_error - fls_ftt)
+        denom = linalg.norm(self.fls_error)
+        self.l2_error = numer / denom
         return
 
     def eval_forward(self, ls: Tensor) -> Tensor:
@@ -254,7 +254,8 @@ class FTT():
         # TODO: figure out whether these should be drawn from the 
         # measure associated with the basis in each dimension.
         # self.ls_error = self.bases.sample_measure(self.num_error_samples)[0]
-        self.ls_error = 2.0 * torch.rand((self.num_error_samples, self.dim)) - 1.0
+        sample_size = (self.num_error_samples, self.dim)
+        self.ls_error = 2.0 * torch.rand(sample_size) - 1.0
         self.fls_error = self.target_func(self.ls_error)
         return 
 
@@ -273,6 +274,35 @@ class FTT():
             if isinstance(basis := self.bases[k], Spectral):
                 core = n_mode_prod(core, basis.node2basis, n=1)
             self.cores[k] = core
+        return
+    
+    def construct_tt(self, grid: Grid) -> None:
+        """Constructs the underlying tensor train approximation to the 
+        discretisation of the function on the tensor-product grid 
+        formed from the collocation points.
+        """
+        
+        self.tt.initialise(self.target_func, grid)
+        if self.l2_error_samples:
+            self.initialise_l2_error_samples()
+        if self.tt.options.verbose > 0:
+            self.print_info_header()
+
+        for num_iter in range(self.tt.options.max_als): 
+            self.tt.sweep()
+            self.compute_cores()
+            if self.l2_error_samples:
+                self.estimate_l2_error()
+            if self.tt.options.verbose > 0:
+                self.print_info(num_iter)
+            if self.is_finished:
+                break        
+
+        if self.tt.options.verbose > 0:
+            als_info("ALS complete.")
+        if self.tt.options.verbose > 1:
+            als_info(f"Maximum TT rank: {self.tt.ranks.max()}.")
+
         return
 
     def approximate(
@@ -303,29 +333,7 @@ class FTT():
             weights = compute_weights(points, reference.domain, reference)
             grid = Grid(points, weights)
 
-        self.tt.initialise(target_func, grid)
-        if self.l2_error_samples:
-            self.initialise_l2_error_samples()
-        if self.tt.options.verbose > 0:
-            self.print_info_header()
-        
-        for num_iter in range(self.tt.options.max_als): 
-            self.tt.sweep()
-            self.compute_cores()
-            if self.l2_error_samples:
-                self.estimate_l2_error()
-            if self.tt.options.verbose > 0:
-                self.print_info(num_iter)
-            if self.is_finished:
-                break
-            
-        if self.tt.options.verbose > 0:
-            als_info("ALS complete.")
-        if self.tt.options.verbose > 1:
-            ranks = "-".join([str(int(r)) for r in self.ranks])
-            msg = f"Final TT ranks: {ranks}."
-            als_info(msg)
-        
+        self.construct_tt(grid)
         return
     
     def clone(self):
@@ -398,9 +406,10 @@ class EFTT(FTT):
         n_k = grid.points[k].numel()
 
         if reference is None:
-            point_samples = 2.0 * torch.rand((self.options.num_snapshots, self.dim)) - 1.0
+            sample_size = (self.options.num_snapshots, self.dim)
+            point_samples = 2.0 * torch.rand(sample_size) - 1.0
         else:
-            point_samples = reference.random(self.dim, self.options.num_snapshots)
+            point_samples = reference.random(self.options.num_snapshots, self.dim)
             point_samples = reference.domain.approx2local(point_samples)[0]
 
         point_samples = point_samples.repeat((n_k, 1))
@@ -467,6 +476,7 @@ class EFTT(FTT):
                 if linalg.cond(B_int) > 1.0 / EPS:
                     break
 
+                # Update index set with index of maximum residual
                 B_vals = B_cols @ linalg.solve(B_int, B_rows)
                 residuals = torch.diag(M_vals - B_vals).abs()
                 max_residual = residuals.max()
@@ -516,8 +526,12 @@ class EFTT(FTT):
             self.deim_inds[k], self.factors[k] = deim(basis_k)
         
         if self.tt.options.verbose > 1:
-            basis_dims = f"-".join([str(int(d)) for d in self.basis_dims])
-            als_info(f"Reduced basis dimensions: {basis_dims}.")
+            basis_dims = [dim for dim in self.basis_dims]
+            msg = (
+                "Maximum reduced basis dimension: "
+                + f"{max(basis_dims)}."
+            )
+            als_info(msg.ljust(60))
 
         return
     
@@ -557,31 +571,7 @@ class EFTT(FTT):
             for k in range(self.dim)
         }
         deim_grid = Grid(deim_nodes)
-
-        # TODO: all of the below is common to the FTT and EFTT 
-        # implementations and could go into the parent class.
-        self.tt.initialise(self.target_func, deim_grid)
-        if self.l2_error_samples:
-            self.initialise_l2_error_samples()
-        if self.tt.options.verbose > 0:
-            self.print_info_header()
-
-        for num_iter in range(self.tt.options.max_als): 
-            self.tt.sweep()
-            self.compute_cores()
-            if self.l2_error_samples:
-                self.estimate_l2_error()
-            if self.tt.options.verbose > 0:
-                self.print_info(num_iter)
-            if self.is_finished:
-                break
-            
-        if self.tt.options.verbose > 0:
-            als_info("ALS complete.")
-        if self.tt.options.verbose > 1:
-            ranks = "-".join([str(int(r)) for r in self.ranks])
-            msg = f"Final TT ranks: {ranks}."
-            als_info(msg)
+        self.construct_tt(deim_grid)
         return
     
     def clone(self):

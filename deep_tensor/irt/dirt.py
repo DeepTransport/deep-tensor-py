@@ -182,7 +182,7 @@ class DIRT():
         
         while True:
 
-            rs = self.reference.random(self.dim, self.num_error_samples)
+            rs = self.reference.random(self.num_error_samples, self.dim)
             us, neglogfus_dirt = self._eval_irt_reference(rs)
 
             log_weights, neglogbridges = self.bridge.update(us, neglogfus_dirt)
@@ -202,7 +202,7 @@ class DIRT():
 
             # Note: the Hellinger divergence is invariant to bijective 
             # transformations
-            rs = self.reference.random(self.dim, self.num_error_samples)
+            rs = self.reference.random(self.num_error_samples, self.dim)
             us, neglogfus_dirt = self._eval_irt_reference(rs)
             neglogfus = self.eval_target_pullback(us) # TODO: the bridge should probably handle this...
             dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
@@ -846,7 +846,7 @@ class DIRT():
             An $n \times d$ matrix containing the generated samples.
         
         """
-        rs = self.reference.random(self.dim, n)
+        rs = self.reference.random(n, self.dim)
         xs = self.eval_irt(rs)[0]
         return xs
     
@@ -867,7 +867,7 @@ class DIRT():
             An $n \times d$ matrix containing the generated samples.
 
         """
-        rs = self.reference.sobol(self.dim, n)
+        rs = self.reference.sobol(n, self.dim)
         xs = self.eval_irt(rs)[0]
         return xs
     

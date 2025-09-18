@@ -153,8 +153,8 @@ def tsvd(
         An m * n matrix to compute the truncated SVD of.
     tol:
         The tolerance used when truncating the singular values. The 
-        minimum number of singular values such that the sum of their 
-        squares exceeds (1 - tol) will be retained.
+        minimum number of singular values such that their sum exceeds 
+        (1 - tol) will be retained.
     max_rank:
         An optional hard upper limit on the number of singular values, 
         r, to retain.
@@ -166,14 +166,14 @@ def tsvd(
     sr:
         An r-dimensional vector containing the retained singular values.
     Vhr: 
-        An n * r matrix containing the transpose of the retained right 
+        An r * n matrix containing the transpose of the retained right 
         singular vectors.
     
     """
 
     U, s, Vh = torch.linalg.svd(H, full_matrices=False)
             
-    energies = torch.cumsum(s**2, dim=0)
+    energies = torch.cumsum(s, dim=0)
     max_energy = energies[-1].clone()
     energies /= max_energy
 
