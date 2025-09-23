@@ -476,12 +476,16 @@ window.Quarto = {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#problem-setup" id="toc-problem-setup" class="nav-link active" data-scroll-target="#problem-setup">Problem Setup</a></li>
+  <li><a href="#problem-setup" id="toc-problem-setup" class="nav-link active" data-scroll-target="#problem-setup">Problem Setup</a>
+  <ul class="collapse">
   <li><a href="#prior-density" id="toc-prior-density" class="nav-link" data-scroll-target="#prior-density">Prior Density</a></li>
   <li><a href="#data" id="toc-data" class="nav-link" data-scroll-target="#data">Data</a></li>
-  <li><a href="#implementation-in-textttdeep_tensor" id="toc-implementation-in-textttdeep_tensor" class="nav-link" data-scroll-target="#implementation-in-textttdeep_tensor">Implementation in <span class="math inline">\(\texttt{deep\_tensor}\)</span></a></li>
+  </ul></li>
+  <li><a href="#implementation-in-textttdeep_tensor" id="toc-implementation-in-textttdeep_tensor" class="nav-link" data-scroll-target="#implementation-in-textttdeep_tensor">Implementation in <span class="math inline">\(\texttt{deep\_tensor}\)</span></a>
+  <ul class="collapse">
   <li><a href="#dirt-construction" id="toc-dirt-construction" class="nav-link" data-scroll-target="#dirt-construction">DIRT Construction</a></li>
   <li><a href="#amortised-inference" id="toc-amortised-inference" class="nav-link" data-scroll-target="#amortised-inference">Amortised Inference</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -509,8 +513,8 @@ window.Quarto = {
 
 
 <p>In this example, we illustrate how we can build a DIRT to perform (approximate) amortised inference. The key idea is to build a DIRT approximation to the joint density of the observations and parameters; then, as a consequence of the triangular structure of the DIRT mapping, we can sample from the DIRT approximation to the posterior of the parameters, for any realisation of the observations, in real time. For further details on the ideas behind amortised inference, see <span class="citation" data-cites="Cui2023">Cui, Dolgov, and Zahm (<a href="#ref-Cui2023" role="doc-biblioref">2023</a>)</span>.</p>
-<section id="problem-setup" class="level2">
-<h2 class="anchored" data-anchor-id="problem-setup">Problem Setup</h2>
+<section id="problem-setup" class="level1">
+<h1>Problem Setup</h1>
 <p>We consider the Poisson equation defined in domain <span class="math inline">\(\Omega := (0, 1) \times (0, 1)\)</span>, with boundary denoted by <span class="math inline">\(\partial \Omega\)</span>; that is,</p>
 <p><span class="math display">\[
   \nabla \cdot (\kappa(\boldsymbol{x}) \nabla u(\boldsymbol{x})) = 0, \quad \boldsymbol{x} \in \Omega.
@@ -524,7 +528,6 @@ window.Quarto = {
 \end{align*}
 \]</span></p>
 <p>In the above, <span class="math inline">\(\partial\Omega_{\mathrm{L}}\)</span>, <span class="math inline">\(\partial\Omega_{\mathrm{R}}\)</span>, <span class="math inline">\(\partial\Omega_{\mathrm{T}}\)</span>, and <span class="math inline">\(\partial\Omega_{\mathrm{B}}\)</span> denote the left, right, top and bottom boundaries respectively, and <span class="math inline">\(\boldsymbol{n}\)</span> denotes the outward-facing normal vector on the boundary.</p>
-</section>
 <section id="prior-density" class="level2">
 <h2 class="anchored" data-anchor-id="prior-density">Prior Density</h2>
 <p>We endow the logarithm of the unknown diffusion coefficient with a process convolution prior; that is,</p>
@@ -537,8 +540,9 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="data">Data</h2>
 <p>We assume that we will receive four measurements of the fluid pressure, <span class="math inline">\(u(\boldsymbol{x})\)</span>, at locations <span class="math inline">\([0.3, 0.3]^{\top}\)</span>, <span class="math inline">\([0.3, 0.7]^{\top}\)</span>, <span class="math inline">\([0.7, 0.3]^{\top}\)</span>, and <span class="math inline">\([0.7, 0.7]^{\top}\)</span>. All measurements will be corrupted by i.i.d. Gaussian noise with zero mean and a standard deviation of <span class="math inline">\(\sigma = 0.2\)</span>.</p>
 </section>
-<section id="implementation-in-textttdeep_tensor" class="level2">
-<h2 class="anchored" data-anchor-id="implementation-in-textttdeep_tensor">Implementation in <span class="math inline">\(\texttt{deep\_tensor}\)</span></h2>
+</section>
+<section id="implementation-in-textttdeep_tensor" class="level1">
+<h1>Implementation in <span class="math inline">\(\texttt{deep\_tensor}\)</span></h1>
 <div id="cell-1" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
@@ -607,7 +611,6 @@ Figure&nbsp;1: Samples of <span class="math inline">\(\log(\kappa(\boldsymbol{x}
 </div>
 </div>
 </div>
-</section>
 <section id="dirt-construction" class="level2">
 <h2 class="anchored" data-anchor-id="dirt-construction">DIRT Construction</h2>
 <p>We now construct a DIRT approximation to the joint density of the observations and parameters.</p>
@@ -702,20 +705,20 @@ Figure&nbsp;2: Samples of the observations, <span class="math inline">\(\{y_{i}\
 <div id="cell-19" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(target_func, preconditioner, ftt, bridge)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 2.62e+00 s | DHell: 0.0000 | Beta: 0.0010 | ESS: 1.0000
-[DIRT] Iter:  2 | Cum. Fevals: 1.87e+04 | Cum. Time: 5.10e+01 s | DHell: 0.0006 | Beta: 0.0022 | ESS: 1.0000
-[DIRT] Iter:  3 | Cum. Fevals: 3.74e+04 | Cum. Time: 1.00e+02 s | DHell: 0.0008 | Beta: 0.0046 | ESS: 1.0000
-[DIRT] Iter:  4 | Cum. Fevals: 5.61e+04 | Cum. Time: 1.51e+02 s | DHell: 0.0013 | Beta: 0.0100 | ESS: 0.9999
-[DIRT] Iter:  5 | Cum. Fevals: 7.48e+04 | Cum. Time: 2.05e+02 s | DHell: 0.0027 | Beta: 0.0215 | ESS: 0.9996
-[DIRT] Iter:  6 | Cum. Fevals: 9.35e+04 | Cum. Time: 2.62e+02 s | DHell: 0.0059 | Beta: 0.0464 | ESS: 0.9980
-[DIRT] Iter:  7 | Cum. Fevals: 1.12e+05 | Cum. Time: 3.29e+02 s | DHell: 0.0097 | Beta: 0.1000 | ESS: 0.9931
-[DIRT] Iter:  8 | Cum. Fevals: 1.31e+05 | Cum. Time: 3.82e+02 s | DHell: 0.0195 | Beta: 0.2154 | ESS: 0.9763
-[DIRT] Iter:  9 | Cum. Fevals: 1.50e+05 | Cum. Time: 4.37e+02 s | DHell: 0.0400 | Beta: 0.4642 | ESS: 0.9181
-[DIRT] Iter: 10 | Cum. Fevals: 1.68e+05 | Cum. Time: 4.91e+02 s | DHell: 0.0749 | Beta: 1.0000 | ESS: 0.7333
+<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 2.20e+00 s | DHell: 0.0000 | Beta: 0.0010 | ESS: 1.0000
+[DIRT] Iter:  2 | Cum. Fevals: 1.87e+04 | Cum. Time: 4.79e+01 s | DHell: 0.0006 | Beta: 0.0022 | ESS: 1.0000
+[DIRT] Iter:  3 | Cum. Fevals: 3.74e+04 | Cum. Time: 9.47e+01 s | DHell: 0.0008 | Beta: 0.0046 | ESS: 1.0000
+[DIRT] Iter:  4 | Cum. Fevals: 5.61e+04 | Cum. Time: 1.42e+02 s | DHell: 0.0013 | Beta: 0.0100 | ESS: 0.9999
+[DIRT] Iter:  5 | Cum. Fevals: 7.48e+04 | Cum. Time: 1.91e+02 s | DHell: 0.0027 | Beta: 0.0215 | ESS: 0.9996
+[DIRT] Iter:  6 | Cum. Fevals: 9.35e+04 | Cum. Time: 2.40e+02 s | DHell: 0.0059 | Beta: 0.0464 | ESS: 0.9980
+[DIRT] Iter:  7 | Cum. Fevals: 1.12e+05 | Cum. Time: 2.91e+02 s | DHell: 0.0097 | Beta: 0.1000 | ESS: 0.9931
+[DIRT] Iter:  8 | Cum. Fevals: 1.31e+05 | Cum. Time: 3.43e+02 s | DHell: 0.0195 | Beta: 0.2154 | ESS: 0.9763
+[DIRT] Iter:  9 | Cum. Fevals: 1.50e+05 | Cum. Time: 3.97e+02 s | DHell: 0.0400 | Beta: 0.4642 | ESS: 0.9181
+[DIRT] Iter: 10 | Cum. Fevals: 1.68e+05 | Cum. Time: 4.52e+02 s | DHell: 0.0749 | Beta: 1.0000 | ESS: 0.7333
 [DIRT] DIRT construction complete.
 [DIRT]  • Layers: 10.
 [DIRT]  • Total function evaluations: 186,960.
-[DIRT]  • Total time: 9.12 mins.
+[DIRT]  • Total time: 8.46 mins.
 [DIRT]  • DHell: 0.1643.</code></pre>
 </div>
 </div>
@@ -839,6 +842,7 @@ Figure&nbsp;3: The acceptance rate, mean IACT and maximum IACT (across all param
 
 
 
+</section>
 </section>
 
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
