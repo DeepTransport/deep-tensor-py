@@ -45,6 +45,10 @@ website:
           contents:
           - title: SIR Model
             href: examples/sir/example_rare_event.ipynb
+        - section: Amortised Inference
+          contents:
+          - title: Poisson Equation
+            href: examples/poisson/example_amortised.ipynb
 
 execute:
   freeze: auto

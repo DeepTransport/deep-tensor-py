@@ -19,7 +19,7 @@ Options for configuring the construction of an EFTT object.
 
 <code>[**num_error_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
 
-:   The number of samples to use when estimating the $L_{2}$ error  of the FTT approximation to the target function at each  iteration.
+:   The number of samples to use when estimating the $L^{2}$ error  of the FTT approximation to the target function at each  iteration.
 
 <code>[**fibre_method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'random\']{.parameter-default}</code>
 
@@ -27,7 +27,7 @@ Options for configuring the construction of an EFTT object.
 
 <code>[**tol_svd**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-12]{.parameter-default}</code>
 
-:   The threshold to use when applying truncated SVD to compute an (approximate) orthogonal basis for the mode-$k$ fibres in each  dimension. The minimum number of singular values such that the  sum of their squares exceeds ($1-$ `tol_svd`) will be retained.
+:   The threshold to use when applying truncated SVD to compute an (approximate) orthogonal basis for the mode-$k$ fibres in each  dimension. The minimum number of singular values such that  their sum exceeds ($1-$ `tol_svd`) will be retained.
 
 <code>[**num_aca**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [50]{.parameter-default}</code>
 

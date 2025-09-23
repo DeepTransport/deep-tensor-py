@@ -54,7 +54,7 @@ Options for configuring the construction of a TT object.
 
 <code>[**tol_l2_error**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
 
-:   A stopping tolerance based on the estimated $L_{2}$ error of  the target function.
+:   A stopping tolerance based on the estimated $L^{2}$ error of  the target function.
 
 <code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
 

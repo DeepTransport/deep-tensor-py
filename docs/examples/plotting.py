@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import List
 
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, tri
+import numpy as np
 from scipy.stats import gaussian_kde
 import torch 
 from torch import Tensor 
@@ -125,4 +126,39 @@ def pairplot(
             axes[i][j].set_axis_off()
 
     plt.show()
+    return
+
+
+def triangulate(coords, cells) -> tri.Triangulation:
+    return tri.Triangulation(coords[:, 0], coords[:, 1], cells)
+
+
+def plot_dl_function(
+    fig, ax,
+    func, 
+    plot_cbar: bool = True,
+    cbar_label: str | None = None,
+    **kwargs
+) -> None: 
+
+    mesh = func.function_space().mesh()
+    coords = mesh.coordinates()
+    cells = mesh.cells()
+
+    triangulation = triangulate(coords, cells)
+    vals = func.compute_vertex_values(mesh)
+
+    xmin, ymin = np.min(coords, axis=0)
+    xmax, ymax = np.max(coords, axis=0)
+
+    col = ax.tripcolor(triangulation, vals, **kwargs)
+    ax.set_xlim((xmin, xmax))
+    ax.set_ylim((ymin, ymax))
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_xlabel(r"$x$")
+    ax.set_ylabel(r"$y$")
+
+    if plot_cbar:
+        cbar = fig.colorbar(col, ax=ax)
+        cbar.set_label(cbar_label)
     return

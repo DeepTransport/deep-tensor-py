@@ -16,22 +16,20 @@ The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$.
 ### random { #deep_tensor.UniformReference.random }
 
 ```python
-UniformReference.random(d: int, n: int)
+UniformReference.random(n: int, d: int)
 ```
 
 Generates a set of random samples.
 
-Generates a set of random samples from the reference density.
-
 #### Parameters {.doc-section .doc-section-parameters}
-
-<code>[**d**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
-
-:   The dimension of the samples.
 
 <code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
 
 :   The number of samples to draw.
+
+<code>[**d**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The dimension of the samples.
 
 #### Returns {.doc-section .doc-section-returns}
 
@@ -42,23 +40,20 @@ Generates a set of random samples from the reference density.
 ### sobol { #deep_tensor.UniformReference.sobol }
 
 ```python
-UniformReference.sobol(d: int, n: int)
+UniformReference.sobol(n: int, d: int)
 ```
 
 Generates a set of QMC samples.
 
-Generates a set of QMC samples from the reference density using 
-a Sobol sequence.
-
 #### Parameters {.doc-section .doc-section-parameters}
-
-<code>[**d**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
-
-:   The dimension of the samples.
 
 <code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
 
 :   The number of samples to generate.
+
+<code>[**d**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The dimension of the samples.
 
 #### Returns {.doc-section .doc-section-returns}
 
