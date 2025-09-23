@@ -4,7 +4,28 @@
     "href": "theory.html",
     "title": "Theory",
     "section": "",
-    "text": "Theory\nThe deep inverse Rosenblatt transport (DIRT) algorithm (Cui and Dolgov 2022) uses a composition of mappings, constructed using functional tensor trains, to approximate the Rosenblatt transport between an arbitrary target density function and a simple product-form reference density. Early work on functional tensor train (FTT) approximations to probability density functions was conducted by Dolgov et al. (2020). Cui and Dolgov (2022) introduced the idea of using a composition of FTT-based mappings to provide a more accurate characterisation of highly correlated or concentrated probability densities.\nThe DIRT methodology has also been used for problems including amortised inference (Cui, Dolgov, and Zahm 2023), rare event estimation (Cui, Dolgov, and Scheichl 2024), sequential inference (Zhao and Cui 2024), and optimal experimental design (Koval, Herzog, and Scheichl 2024).\n\n\n\n\n\nReferences\n\nCui, Tiangang, and Sergey Dolgov. 2022. “Deep Composition of Tensor-Trains Using Squared Inverse Rosenblatt Transports.” Foundations of Computational Mathematics 22 (6): 1863–1922. https://doi.org/10.1007/s10208-021-09537-5.\n\n\nCui, Tiangang, Sergey Dolgov, and Robert Scheichl. 2024. “Deep Importance Sampling Using Tensor Trains with Application to a Priori and a Posteriori Rare Events.” SIAM Journal on Scientific Computing 46 (1): C1–29. https://doi.org/10.1137/23M1546981.\n\n\nCui, Tiangang, Sergey Dolgov, and Olivier Zahm. 2023. “Scalable Conditional Deep Inverse Rosenblatt Transports Using Tensor Trains and Gradient-Based Dimension Reduction.” Journal of Computational Physics 485: 112103. https://doi.org/10.1016/j.jcp.2023.112103.\n\n\nDolgov, Sergey, Karim Anaya-Izquierdo, Colin Fox, and Robert Scheichl. 2020. “Approximation and Sampling of Multivariate Probability Distributions in the Tensor Train Decomposition.” Statistics and Computing 30: 603–25. https://doi.org/10.1007/s11222-019-09910-z.\n\n\nKoval, Karina, Roland Herzog, and Robert Scheichl. 2024. “Tractable Optimal Experimental Design Using Transport Maps.” Inverse Problems 40 (12): 125002. https://doi.org/10.1088/1361-6420/ad8260.\n\n\nZhao, Yiran, and Tiangang Cui. 2024. “Tensor-Train Methods for Sequential State and Parameter Learning in State-Space Models.” Journal of Machine Learning Research 25 (244): 1–51. http://jmlr.org/papers/v25/23-0743.html."
+    "text": "Some references relevant to the algorithms in \\(\\mathtt{deep\\_tensor}\\) are collected below.\n\n\n\nDIRT algorithm: Cui and Dolgov (2022)\nTT-IRT (single-layer DIRT) algorithm: Dolgov et al. (2020)\n\n\n\n\n\nFunctional tensor trains: Bigoni, Engsig-Karup, and Marzouk (2016), Gorodetsky, Karaman, and Marzouk (2019)\nExtended functional tensor trains: Strössner, Sun, and Kressner (2024)\nTensor train decomposition: Oseledets (2011)\nTT cross-approximation algorithm: Oseledets and Tyrtyshnikov (2010)\nMaxvol algorithm: Goreinov et al. (2010)\n\n\n\n\n\nState and parameter estimation: Zhao and Cui (2024)\nOptimal experimental design: Koval, Herzog, and Scheichl (2024)\nRare event estimation: Cui, Dolgov, and Scheichl (2024)\nConditional simulation (amortised inference): Cui, Dolgov, and Zahm (2023)"
+  },
+  {
+    "objectID": "theory.html#dirt-algorithm",
+    "href": "theory.html#dirt-algorithm",
+    "title": "Theory",
+    "section": "",
+    "text": "DIRT algorithm: Cui and Dolgov (2022)\nTT-IRT (single-layer DIRT) algorithm: Dolgov et al. (2020)"
+  },
+  {
+    "objectID": "theory.html#functional-tensor-trains",
+    "href": "theory.html#functional-tensor-trains",
+    "title": "Theory",
+    "section": "",
+    "text": "Functional tensor trains: Bigoni, Engsig-Karup, and Marzouk (2016), Gorodetsky, Karaman, and Marzouk (2019)\nExtended functional tensor trains: Strössner, Sun, and Kressner (2024)\nTensor train decomposition: Oseledets (2011)\nTT cross-approximation algorithm: Oseledets and Tyrtyshnikov (2010)\nMaxvol algorithm: Goreinov et al. (2010)"
+  },
+  {
+    "objectID": "theory.html#applications-and-extensions-of-the-dirt-algorithm",
+    "href": "theory.html#applications-and-extensions-of-the-dirt-algorithm",
+    "title": "Theory",
+    "section": "",
+    "text": "State and parameter estimation: Zhao and Cui (2024)\nOptimal experimental design: Koval, Herzog, and Scheichl (2024)\nRare event estimation: Cui, Dolgov, and Scheichl (2024)\nConditional simulation (amortised inference): Cui, Dolgov, and Zahm (2023)"
   },
   {
     "objectID": "examples/index.html",
@@ -33,7 +54,7 @@
     "href": "examples/sir/example_inference.html#dirt-construction",
     "title": "SIR Model",
     "section": "DIRT Construction",
-    "text": "DIRT Construction\nWe now illustrate how to construct a DIRT approximation to the posterior.\n\nPosterior Density\nWe first define a function that returns the potential function (i.e., the negative logarithm) of the posterior at a set of samples.\n\n\n\n\n\n\nNote\n\n\n\nThe function below accepts a matrix of samples of the parameter, where each row contains a single sample. It returns a vector containing the potential function evaluated at each sample.\n\n\nIn this example, we will restrict the DIRT approximation to the posterior to the support of the prior, which is uniform. Therefore, the function we define only needs to return the negative log-likelihood of each sample.\n\ndef neglogpost(xs: torch.Tensor) -&gt; torch.Tensor:\n    ys = model.solve(xs)\n    neglogliks = 0.5 * (ys - ys_obs).square().sum(dim=1)\n    return neglogliks\n\ntarget_func = dt.TargetFunc(neglogpost)\n\n\n\nReference Density and Preconditioner\nNext, we specify a product-form reference density. A suitable choice in most cases is the standard Gaussian density.\nWe must also specify a preconditioner. Recall that the DIRT object provides a coupling between a product-form reference density and an approximation to the target density. A preconditioner can be considered an initial guess as to what this coupling is.\nChoosing an suitable preconditioner can reduce the computational expense required to construct the DIRT object significantly. In the context of a Bayesian inverse problem, a suitable choice is a coupling between the reference density and the prior.\n\nbounds = torch.tensor([[0.0, 2.0], [0.0, 2.0]])\nreference = dt.GaussianReference()\npreconditioner = dt.UniformMapping(bounds, reference)\n\n\n\nFunctional Tensor Train\nNext, we construct a functional tensor train (FTT) object, which will be used to approximate each of the layers of the DIRT.\nThe FTT requires a set of the basis functions. We can specify a list of bases in each dimension, or a single basis (which will be used in all dimensions). Here, we use a basis comprised of Legendre polynomials with a maximum degree of 30 in each dimension.\n\nbasis = dt.Legendre(order=30)\nbases = dt.ApproxBases(basis, dim=2)\n\ntt = dt.TT()\nftt = dt.FTT(bases, tt)\n\n\n\nDIRT Approximation\nNow we can construct the DIRT approximation to the posterior.\n\ndirt = dt.DIRT(target_func, preconditioner, ftt)\n\n[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 2.92e-01 s | DHell: 0.0000 | Beta: 0.0001 | ESS: 0.9762\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       1.00e+00 |        1.00e+00 | 1.78e-03\n[ALS]  ALS complete.\n[DIRT] Iter:  2 | Cum. Fevals: 2.36e+03 | Cum. Time: 1.77e+00 s | DHell: 0.0013 | Beta: 0.0039 | ESS: 0.4918\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       6.56e-01 |        3.31e-01 | 3.12e-02\n[ALS]  ALS complete.\n[DIRT] Iter:  3 | Cum. Fevals: 4.73e+03 | Cum. Time: 3.03e+00 s | DHell: 0.0345 | Beta: 0.0236 | ESS: 0.4884\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       2.73e-01 |        1.36e-01 | 1.78e-02\n[ALS]  ALS complete.\n[DIRT] Iter:  4 | Cum. Fevals: 7.09e+03 | Cum. Time: 4.77e+00 s | DHell: 0.0230 | Beta: 0.0725 | ESS: 0.4881\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       4.59e-01 |        2.37e-01 | 1.48e-02\n[ALS]  ALS complete.\n[DIRT] Iter:  5 | Cum. Fevals: 9.46e+03 | Cum. Time: 5.59e+00 s | DHell: 0.0168 | Beta: 0.1583 | ESS: 0.4873\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       3.50e-01 |        1.75e-01 | 8.34e-03\n[ALS]  ALS complete.\n[DIRT] Iter:  6 | Cum. Fevals: 1.18e+04 | Cum. Time: 6.39e+00 s | DHell: 0.0165 | Beta: 0.4863 | ESS: 0.4989\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       5.87e-01 |        4.90e-01 | 1.98e-03\n[ALS]  ALS complete.\n[DIRT] Iter:  7 | Cum. Fevals: 1.42e+04 | Cum. Time: 7.11e+00 s | DHell: 0.0094 | Beta: 1.0000 | ESS: 0.7456\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       5.34e-01 |        2.67e-01 | 7.91e-03\n[ALS]  ALS complete.\n[DIRT] DIRT construction complete.\n[DIRT]  • Layers: 7.\n[DIRT]  • Total function evaluations: 16,548.\n[DIRT]  • Total time: 7.84 secs.\n[DIRT]  • DHell: 0.0086.\n\n\nObserve that a set of diagnostic information is printed at each stage of DIRT construction.\nNote that we did not specify a set of bridging densities to guide the DIRT construction; instead, these were determined adaptively.",
+    "text": "DIRT Construction\nWe now illustrate how to construct a DIRT approximation to the posterior.\n\nPosterior Density\nWe first define a function that returns the potential function (i.e., the negative logarithm) of the posterior at a set of samples.\n\n\n\n\n\n\nNote\n\n\n\nThe function below accepts a matrix of samples of the parameter, where each row contains a single sample. It returns a vector containing the potential function evaluated at each sample.\n\n\nIn this example, we will restrict the DIRT approximation to the posterior to the support of the prior, which is uniform. Therefore, the function we define only needs to return the negative log-likelihood of each sample.\n\ndef neglogpost(xs: torch.Tensor) -&gt; torch.Tensor:\n    ys = model.solve(xs)\n    neglogliks = 0.5 * (ys - ys_obs).square().sum(dim=1)\n    return neglogliks\n\ntarget_func = dt.TargetFunc(neglogpost)\n\n\n\nReference Density and Preconditioner\nNext, we specify a product-form reference density. A suitable choice in most cases is the standard Gaussian density.\nWe must also specify a preconditioner. Recall that the DIRT object provides a coupling between a product-form reference density and an approximation to the target density. A preconditioner can be considered an initial guess as to what this coupling is.\nChoosing an suitable preconditioner can reduce the computational expense required to construct the DIRT object significantly. In the context of a Bayesian inverse problem, a suitable choice is a coupling between the reference density and the prior.\n\nbounds = torch.tensor([[0.0, 2.0], [0.0, 2.0]])\nreference = dt.GaussianReference()\npreconditioner = dt.UniformMapping(bounds, reference)\n\n\n\nFunctional Tensor Train\nNext, we construct a functional tensor train (FTT) object, which will be used to approximate each of the layers of the DIRT.\nThe FTT requires a set of the basis functions. We can specify a list of bases in each dimension, or a single basis (which will be used in all dimensions). Here, we use a basis comprised of Legendre polynomials with a maximum degree of 30 in each dimension.\n\nbasis = dt.Legendre(order=30)\nbases = dt.ApproxBases(basis, dim=2)\n\ntt = dt.TT()\nftt = dt.FTT(bases, tt)\n\n\n\nDIRT Approximation\nNow we can construct the DIRT approximation to the posterior.\n\ndirt = dt.DIRT(target_func, preconditioner, ftt)\n\n[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 3.00e-01 s | DHell: 0.0000 | Beta: 0.0001 | ESS: 0.9762\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       1.00e+00 |        1.00e+00 | 2.05e-03\n[ALS]  ALS complete.\n[DIRT] Iter:  2 | Cum. Fevals: 2.36e+03 | Cum. Time: 1.99e+00 s | DHell: 0.0013 | Beta: 0.0039 | ESS: 0.4918\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       6.56e-01 |        3.31e-01 | 5.46e-02\n[ALS]  ALS complete.\n[DIRT] Iter:  3 | Cum. Fevals: 4.73e+03 | Cum. Time: 3.57e+00 s | DHell: 0.0345 | Beta: 0.0236 | ESS: 0.4884\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       2.73e-01 |        1.36e-01 | 2.21e-02\n[ALS]  ALS complete.\n[DIRT] Iter:  4 | Cum. Fevals: 7.09e+03 | Cum. Time: 5.00e+00 s | DHell: 0.0230 | Beta: 0.0725 | ESS: 0.4881\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       4.59e-01 |        2.37e-01 | 1.70e-02\n[ALS]  ALS complete.\n[DIRT] Iter:  5 | Cum. Fevals: 9.46e+03 | Cum. Time: 5.85e+00 s | DHell: 0.0168 | Beta: 0.1583 | ESS: 0.4873\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       3.50e-01 |        1.75e-01 | 8.62e-03\n[ALS]  ALS complete.\n[DIRT] Iter:  6 | Cum. Fevals: 1.18e+04 | Cum. Time: 6.91e+00 s | DHell: 0.0165 | Beta: 0.4863 | ESS: 0.4989\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       5.87e-01 |        4.90e-01 | 2.07e-03\n[ALS]  ALS complete.\n[DIRT] Iter:  7 | Cum. Fevals: 1.42e+04 | Cum. Time: 7.95e+00 s | DHell: 0.0094 | Beta: 1.0000 | ESS: 0.7456\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       2364 |       22 |       5.34e-01 |        2.67e-01 | 8.31e-03\n[ALS]  ALS complete.\n[DIRT] DIRT construction complete.\n[DIRT]  • Layers: 7.\n[DIRT]  • Total function evaluations: 16,548.\n[DIRT]  • Total time: 9.78 secs.\n[DIRT]  • DHell: 0.0086.\n\n\nObserve that a set of diagnostic information is printed at each stage of DIRT construction.\nNote that we did not specify a set of bridging densities to guide the DIRT construction; instead, these were determined adaptively.",
     "crumbs": [
       "Examples",
       "Bayesian Inference",
@@ -45,7 +66,7 @@
     "href": "examples/sir/example_inference.html#sampling-marginalisation-and-conditioning",
     "title": "SIR Model",
     "section": "Sampling, Marginalisation and Conditioning",
-    "text": "Sampling, Marginalisation and Conditioning\nWe now illustrate how to use the DIRT approximation to carry out a range of tasks.\n\nSampling\nFirst, it is possible to evaluate the DIRT approximation to the target density pointwise. The below code evaluates the potential function associated with the DIRT approximation to the target density, on a grid of \\(\\beta\\) and \\(\\gamma\\) values.\n\n# Define grid to evaluate potential function on\nn_grid = 200\nbeta_grid = torch.linspace(0.05, 0.14, n_grid)\ngamma_grid = torch.linspace(0.80, 1.40, n_grid)\ngrid = torch.tensor([[b, g] for g in gamma_grid for b in beta_grid])\n\n# Evaluate potential function\npotentials_grid = dirt.eval_potential(grid)\n\nFigure 1 shows a plot of the DIRT density evaluated on the above grid and compares it to the true posterior. The posterior is very concentrated in comparison to the prior (particularly for parameter \\(\\beta\\)).\n\n\nCode\nfig, axes = plt.subplots(1, 2, figsize=(7, 3.5), sharex=True, sharey=True)\n\n# Compute true density\npdf_true = torch.exp(-neglogpost(grid))\npdf_true = pdf_true.reshape(n_grid, n_grid)\n\n# Normalise true density\ndb = beta_grid[1] - beta_grid[0]\ndg = gamma_grid[1] - gamma_grid[0]\npdf_true /= (pdf_true.sum() * db * dg)\n\n# Compute DIRT approximation\npdf_dirt = torch.exp(-potentials_grid)\npdf_dirt = pdf_dirt.reshape(n_grid, n_grid)\n\naxes[0].pcolormesh(beta_grid, gamma_grid, pdf_true)\naxes[1].pcolormesh(beta_grid, gamma_grid, pdf_dirt)\naxes[0].set_ylabel(r\"$\\gamma$\")\nfor ax in axes:\n    ax.set_xlabel(r\"$\\beta$\")\n    ax.set_box_aspect(1)\n\nplt.show()\n\n\n\n\n\n\n\n\nFigure 1: A comparison between the true posterior density (left) and the DIRT approximation (right).\n\n\n\n\n\nWe can sample from the DIRT density by drawing a set of samples from the reference density and calling the eval_irt method of the DIRT object. Note that the eval_irt method also returns the potential function of the DIRT density evaluated at each sample.\n\nrs = dirt.reference.random(d=dirt.dim, n=20)\nsamples, potentials = dirt.eval_irt(rs)\n\nFigure 2 shows a plot of the samples.\n\n\nCode\nfig, ax = plt.subplots(figsize=(7, 3.5), sharex=True, sharey=True)\n\nax.pcolormesh(beta_grid, gamma_grid, pdf_dirt)\nax.scatter(*samples.T, c=\"white\", s=4)\nax.set_xlabel(r\"$\\beta$\")\nax.set_ylabel(r\"$\\gamma$\")\nax.set_box_aspect(1)\n\nplt.show()\n\n\n\n\n\n\n\n\nFigure 2: Samples from the DIRT approximation to the posterior.\n\n\n\n\n\n\n\nMarginalisation\nWe can also sample from and evaluate specific marginal densities. In the case of a multi-layered DIRT, we can evaluate the (normalised) DIRT approximation to the marginal density of the first \\(k\\) variables, where \\(1 \\leq k \\leq d\\) (where \\(d\\) denotes the dimension of the target random variable).\nThe below code generates a set of samples from the marginal density of parameter \\(\\beta\\), and evaluates the marginal density on a grid of \\(\\beta\\) values.\n\n# Generate marginal samples of parameter beta\nrs_beta = dirt.reference.random(d=1, n=1000)\nsamples_beta, potentials_beta = dirt.eval_irt(rs_beta, subset=\"first\")\n\n# Evaluate marginal potential on the grid of beta values defined previously\npotentials_grid = dirt.eval_potential(beta_grid[:, None], subset=\"first\")\n\nFigure 3 plots the samples of \\(\\beta\\), and provides a comparison between the DIRT approximation to the density and the true density.\n\n\nCode\npdf_true_marg = pdf_true.sum(dim=0) * dg\npdf_dirt_marg = torch.exp(-potentials_grid)\n\nfig, ax = plt.subplots(figsize=(6.5, 3.5))\n\nax.plot(beta_grid, pdf_true_marg, c=\"k\", label=r\"True density\", zorder=2)\nax.plot(beta_grid, pdf_dirt_marg, c=\"tab:green\", ls=\"--\", label=r\"DIRT density\", zorder=3)\nax.hist(samples_beta, color=\"tab:green\", density=True, alpha=0.5, zorder=1, label=\"Samples\")\nax.set_xlabel(r\"$\\beta$\")\nax.set_ylabel(r\"$f(\\beta)$\")\nax.set_box_aspect(1)\nax.legend(loc=\"center left\", bbox_to_anchor=(1, 0.5))\nadd_arrows(ax)\n\nplt.show()\n\n\n\n\n\n\n\n\nFigure 3: A comparison between the true marginal density of \\(\\beta\\) and the DIRT approximation.\n\n\n\n\n\n\n\nConditioning\nFinally, we can sample from and evaluate specific conditional densities. In the case of a multi-layered DIRT, we can evaluate the (normalised) DIRT approximation to the conditional density of the final \\((d-k)\\) variables conditioned on the first \\(k\\) variables, where \\(1 \\leq k &lt; d\\) (where \\(d\\) denotes the dimension of the target random variable).\nThe below code generates a set of samples from the density of \\(\\gamma\\) conditioned on a value of \\(\\beta=0.1\\), and evaluates the conditional density on a grid of \\(\\gamma\\) values.\n\n# Define beta value to condition on\nbeta_cond = torch.tensor([[0.10]])\n\n# Generate conditional samples of gamma\nrs_cond = dirt.reference.random(d=1, n=1000)\nsamples_gamma, potentials_gamma = dirt.eval_cirt(beta_cond, rs_cond, subset=\"first\")\n\n# Evaluate conditional potential on a grid of gamma values\ngamma_grid = torch.linspace(0.9, 1.1, 200)[:, None]\npotentials_grid = dirt.eval_potential_cond(beta_cond, gamma_grid, subset=\"first\")\n\nFigure 4 plots the conditional samples of \\(\\gamma\\), and provides a comparison between the DIRT approximation to the conditional density and the true density.\n\n\nCode\nbeta_cond = beta_cond.repeat(gamma_grid.shape[0], 1)\ngrid_cond = torch.hstack((beta_cond, gamma_grid))\ndg = gamma_grid[1] - gamma_grid[0]\n\n# Evaluate true conditional density\npdf_true_cond = torch.exp(-neglogpost(grid_cond)).flatten()\npdf_dirt_cond = torch.exp(-potentials_grid)\n\n# Normalise true conditional density\npdf_true_cond /= (pdf_true_cond.sum() * dg)\n\nfig, ax = plt.subplots(figsize=(6.5, 3.5))\n\nax.plot(gamma_grid, pdf_true_cond, c=\"k\", label=r\"True density\", zorder=3)\nax.plot(gamma_grid, pdf_dirt_cond, c=\"tab:purple\", ls=\"--\", label=r\"DIRT density\", zorder=3)\nax.hist(samples_gamma, color=\"tab:purple\", density=True, alpha=0.5, zorder=1, label=\"Samples\")\nax.set_xlabel(r\"$\\gamma$\")\nax.set_ylabel(r\"$f(\\gamma|\\beta=0.1)$\")\nax.set_box_aspect(1)\nax.legend(loc=\"center left\", bbox_to_anchor=(1, 0.5))\nadd_arrows(ax)\n\nplt.show()\n\n\n\n\n\n\n\n\nFigure 4: A comparison between the true conditional density of \\(\\gamma | \\beta = 0.1\\) and the DIRT approximation.",
+    "text": "Sampling, Marginalisation and Conditioning\nWe now illustrate how to use the DIRT approximation to carry out a range of tasks.\n\nSampling\nFirst, it is possible to evaluate the DIRT approximation to the target density pointwise. The below code evaluates the potential function associated with the DIRT approximation to the target density, on a grid of \\(\\beta\\) and \\(\\gamma\\) values.\n\n# Define grid to evaluate potential function on\nn_grid = 200\nbeta_grid = torch.linspace(0.05, 0.14, n_grid)\ngamma_grid = torch.linspace(0.80, 1.40, n_grid)\ngrid = torch.tensor([[b, g] for g in gamma_grid for b in beta_grid])\n\n# Evaluate potential function\npotentials_grid = dirt.eval_potential(grid)\n\nFigure 1 shows a plot of the DIRT density evaluated on the above grid and compares it to the true posterior. The posterior is very concentrated in comparison to the prior (particularly for parameter \\(\\beta\\)).\n\n\nCode\nfig, axes = plt.subplots(1, 2, figsize=(7, 3.5), sharex=True, sharey=True)\n\n# Compute true density\npdf_true = torch.exp(-neglogpost(grid))\npdf_true = pdf_true.reshape(n_grid, n_grid)\n\n# Normalise true density\ndb = beta_grid[1] - beta_grid[0]\ndg = gamma_grid[1] - gamma_grid[0]\npdf_true /= (pdf_true.sum() * db * dg)\n\n# Compute DIRT approximation\npdf_dirt = torch.exp(-potentials_grid)\npdf_dirt = pdf_dirt.reshape(n_grid, n_grid)\n\naxes[0].pcolormesh(beta_grid, gamma_grid, pdf_true)\naxes[1].pcolormesh(beta_grid, gamma_grid, pdf_dirt)\naxes[0].set_ylabel(r\"$\\gamma$\")\nfor ax in axes:\n    ax.set_xlabel(r\"$\\beta$\")\n    ax.set_box_aspect(1)\n\nplt.show()\n\n\n\n\n\n\n\n\nFigure 1: A comparison between the true posterior density (left) and the DIRT approximation (right).\n\n\n\n\n\nWe can sample from the DIRT density by drawing a set of samples from the reference density and calling the eval_irt method of the DIRT object. Note that the eval_irt method also returns the potential function of the DIRT density evaluated at each sample.\n\nrs = dirt.reference.random(n=20, d=dirt.dim)\nsamples, potentials = dirt.eval_irt(rs)\n\nFigure 2 shows a plot of the samples.\n\n\nCode\nfig, ax = plt.subplots(figsize=(7, 3.5), sharex=True, sharey=True)\n\nax.pcolormesh(beta_grid, gamma_grid, pdf_dirt)\nax.scatter(*samples.T, c=\"white\", s=4)\nax.set_xlabel(r\"$\\beta$\")\nax.set_ylabel(r\"$\\gamma$\")\nax.set_box_aspect(1)\n\nplt.show()\n\n\n\n\n\n\n\n\nFigure 2: Samples from the DIRT approximation to the posterior.\n\n\n\n\n\n\n\nMarginalisation\nWe can also sample from and evaluate specific marginal densities. In the case of a multi-layered DIRT, we can evaluate the (normalised) DIRT approximation to the marginal density of the first \\(k\\) variables, where \\(1 \\leq k \\leq d\\) (where \\(d\\) denotes the dimension of the target random variable).\nThe below code generates a set of samples from the marginal density of parameter \\(\\beta\\), and evaluates the marginal density on a grid of \\(\\beta\\) values.\n\n# Generate marginal samples of parameter beta\nrs_beta = dirt.reference.random(n=1000, d=1)\nsamples_beta, potentials_beta = dirt.eval_irt(rs_beta, subset=\"first\")\n\n# Evaluate marginal potential on the grid of beta values defined previously\npotentials_grid = dirt.eval_potential(beta_grid[:, None], subset=\"first\")\n\nFigure 3 plots the samples of \\(\\beta\\), and provides a comparison between the DIRT approximation to the density and the true density.\n\n\nCode\npdf_true_marg = pdf_true.sum(dim=0) * dg\npdf_dirt_marg = torch.exp(-potentials_grid)\n\nfig, ax = plt.subplots(figsize=(6.5, 3.5))\n\nax.plot(beta_grid, pdf_true_marg, c=\"k\", label=r\"True density\", zorder=2)\nax.plot(beta_grid, pdf_dirt_marg, c=\"tab:green\", ls=\"--\", label=r\"DIRT density\", zorder=3)\nax.hist(samples_beta, color=\"tab:green\", density=True, alpha=0.5, zorder=1, label=\"Samples\")\nax.set_xlabel(r\"$\\beta$\")\nax.set_ylabel(r\"$f(\\beta)$\")\nax.set_box_aspect(1)\nax.legend(loc=\"center left\", bbox_to_anchor=(1, 0.5))\nadd_arrows(ax)\n\nplt.show()\n\n\n\n\n\n\n\n\nFigure 3: A comparison between the true marginal density of \\(\\beta\\) and the DIRT approximation.\n\n\n\n\n\n\n\nConditioning\nFinally, we can sample from and evaluate specific conditional densities. In the case of a multi-layered DIRT, we can evaluate the (normalised) DIRT approximation to the conditional density of the final \\((d-k)\\) variables conditioned on the first \\(k\\) variables, where \\(1 \\leq k &lt; d\\) (where \\(d\\) denotes the dimension of the target random variable).\nThe below code generates a set of samples from the density of \\(\\gamma\\) conditioned on a value of \\(\\beta=0.1\\), and evaluates the conditional density on a grid of \\(\\gamma\\) values.\n\n# Define beta value to condition on\nbeta_cond = torch.tensor([[0.10]])\n\n# Generate conditional samples of gamma\nrs_cond = dirt.reference.random(n=1000, d=1)\nsamples_gamma, potentials_gamma = dirt.eval_cirt(beta_cond, rs_cond, subset=\"first\")\n\n# Evaluate conditional potential on a grid of gamma values\ngamma_grid = torch.linspace(0.9, 1.1, 200)[:, None]\npotentials_grid = dirt.eval_potential_cond(beta_cond, gamma_grid, subset=\"first\")\n\nFigure 4 plots the conditional samples of \\(\\gamma\\), and provides a comparison between the DIRT approximation to the conditional density and the true density.\n\n\nCode\nbeta_cond = beta_cond.repeat(gamma_grid.shape[0], 1)\ngrid_cond = torch.hstack((beta_cond, gamma_grid))\ndg = gamma_grid[1] - gamma_grid[0]\n\n# Evaluate true conditional density\npdf_true_cond = torch.exp(-neglogpost(grid_cond)).flatten()\npdf_dirt_cond = torch.exp(-potentials_grid)\n\n# Normalise true conditional density\npdf_true_cond /= (pdf_true_cond.sum() * dg)\n\nfig, ax = plt.subplots(figsize=(6.5, 3.5))\n\nax.plot(gamma_grid, pdf_true_cond, c=\"k\", label=r\"True density\", zorder=3)\nax.plot(gamma_grid, pdf_dirt_cond, c=\"tab:purple\", ls=\"--\", label=r\"DIRT density\", zorder=3)\nax.hist(samples_gamma, color=\"tab:purple\", density=True, alpha=0.5, zorder=1, label=\"Samples\")\nax.set_xlabel(r\"$\\gamma$\")\nax.set_ylabel(r\"$f(\\gamma|\\beta=0.1)$\")\nax.set_box_aspect(1)\nax.legend(loc=\"center left\", bbox_to_anchor=(1, 0.5))\nadd_arrows(ax)\n\nplt.show()\n\n\n\n\n\n\n\n\nFigure 4: A comparison between the true conditional density of \\(\\gamma | \\beta = 0.1\\) and the DIRT approximation.",
     "crumbs": [
       "Examples",
       "Bayesian Inference",
@@ -93,7 +114,7 @@
     "href": "examples/shock/example_inference.html#dirt-construction",
     "title": "Shock Absorber",
     "section": "DIRT Construction",
-    "text": "DIRT Construction\nWe now construct a DIRT approximation to the posterior density associated with the parameters.\n\nPosterior Density\nWe begin by defining a function which evaluates (a quantity proportional to) the posterior potential function at a set of samples.\n\n\n\n\n\n\nNote\n\n\n\nIn this example, the likelihood can take on very small values, so we shift the computed potential values to avoid numerical underflow.\n\n\n\n# Define prior coefficients\nalpha = 6.8757\ngamma = 2.2932\n\n# Define means and standard deviations of beta coefficients\nms = torch.zeros((D+1,))\nms[0] = torch.tensor(30796).log()\nsds = torch.ones((D+1,))\nsds[0] = torch.tensor(0.1563).sqrt()\n\ndef neglogpost(params: torch.Tensor) -&gt; torch.Tensor:\n\n    bs, t2s = params[:, :-1], params[:, -1:]\n\n    # Compute theta_1 values\n    bxs = torch.sum(bs[:, 1:, None] * xs.T[None, :, :], dim=1)\n    t1s = torch.exp(bs[:, :1] + bxs)\n\n    # Add contribution of uncensored failure times\n    neglogliks = (\n        -torch.log(t2s / t1s[:, ~censored]) \n        - (t2s - 1.0) * torch.log(failure_dists[~censored] / t1s[:, ~censored]) \n        + (failure_dists[~censored] / t1s[:, ~censored]) ** t2s\n    ).sum(dim=1)\n    \n    # Add contribution of censored failure times\n    neglogliks += (\n        (failure_dists[censored] / t1s[:, censored]) ** t2s\n    ).sum(dim=1)\n\n    neglogpris = (\n        - (0.5*D + alpha) * t2s.log().flatten()\n        + gamma * t2s.flatten()\n        + 0.5 * torch.sum(t2s * (bs-ms)**2 / sds**2, dim=1)\n    )\n    \n    neglogposts = neglogliks + neglogpris - 120.0  # to avoid underflow\n    return neglogposts\n\ntarget_func = dt.TargetFunc(neglogpost)\n\n\n\nPreconditioner\nNext, we specify a preconditioner. In the absence of any other information, a suitable choice is a mapping between a Gaussian reference density and the prior.\nIn this case, the form of the prior means that, given a sample distributed according to the reference density, we can convert it to a sample distributed according to the prior by first transforming the element of the sample corresponding to \\(\\theta_{2}\\) such that it has a Gamma density, then transforming the remaining elements of the sample such that they are normally distributed with variance dependent on \\(\\theta_{2}\\).\nFollowing Dolgov et al. (2020), we will construct the mapping such that each coefficient \\(\\beta_{i}\\) is bounded within the interval \\([m_{i}-3\\sigma_{i}, m_{i}+3\\sigma_{i}]\\), and \\(\\theta_{2}\\) is bounded within the interval \\([0, 13]\\).\n\n# Define bounds for parameters\nbounds = torch.zeros((D+2, 2))\nbounds[:-1] = torch.vstack((ms - 3.0*sds, ms + 3.0*sds)).T \nbounds[-1] = torch.tensor([1e-8, 13.0])\n\n# Construct mapping from Gaussian reference to prior\ndim = D + 2\nreference = dt.GaussianReference()\npreconditioner = GammaNormalMapping(\n    reference, bounds, \n    alpha, gamma, \n    ms, sds, dim\n)\n\n\n\nFunctional Tensor Train\nNext, we specify a set of basis functions to use when building the functional tensor trains constructed during the DIRT algorithm. In this case, we will use a piecewise linear polynomial with 30 elements as the interpolant in each dimension.\n\nbasis = dt.Lagrange1(num_elems=30)\nbases = dt.ApproxBases(basis, dim)\n\ntt_options = dt.TTOptions(max_als=4, init_rank=1)\ntt = dt.TT(tt_options)\nftt = dt.FTT(bases, tt)\n\n\n\nBridging Densities\nNext, we specify the intermediate densities that are approximated during the DIRT algorithm. In this case, as shown in Dolgov et al. (2020), the posterior is simple enough that it can be approximated directly (i.e., using a DIRT with a single layer) with a high accuracy.\nNote that because we are using a single bridging density, the DIRT algorithm reduces to the SIRT (squared inverse Rosenblatt transport) algorithm (see Cui and Dolgov 2022).\n\nbridge = dt.SingleLayer()\n\nWe now construct the DIRT object.\n\ndirt = dt.DIRT(target_func, preconditioner, ftt, bridge)\n\n[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 5.01e-01 s\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       1992 |        3 |       1.00e+00 |        1.00e+00 | 7.11e-01\n[ALS]     2 |       4100 |        5 |       9.82e-01 |        2.63e-01 | 4.67e-01\n[ALS]     3 |       7820 |        7 |       8.10e-01 |        4.43e-01 | 2.06e-01\n[ALS]     4 |      13648 |        9 |       2.48e-01 |        8.45e-02 | 2.06e-01\n[ALS]  ALS complete.\n[DIRT] DIRT construction complete.\n[DIRT]  • Layers: 1.\n[DIRT]  • Total function evaluations: 13,648.\n[DIRT]  • Total time: 3.78 secs.\n[DIRT]  • DHell: 0.1153.",
+    "text": "DIRT Construction\nWe now construct a DIRT approximation to the posterior density associated with the parameters.\n\nPosterior Density\nWe begin by defining a function which evaluates (a quantity proportional to) the posterior potential function at a set of samples.\n\n\n\n\n\n\nNote\n\n\n\nIn this example, the likelihood can take on very small values, so we shift the computed potential values to avoid numerical underflow.\n\n\n\n# Define prior coefficients\nalpha = 6.8757\ngamma = 2.2932\n\n# Define means and standard deviations of beta coefficients\nms = torch.zeros((D+1,))\nms[0] = torch.tensor(30796).log()\nsds = torch.ones((D+1,))\nsds[0] = torch.tensor(0.1563).sqrt()\n\ndef neglogpost(params: torch.Tensor) -&gt; torch.Tensor:\n\n    bs, t2s = params[:, :-1], params[:, -1:]\n\n    # Compute theta_1 values\n    bxs = torch.sum(bs[:, 1:, None] * xs.T[None, :, :], dim=1)\n    t1s = torch.exp(bs[:, :1] + bxs)\n\n    # Add contribution of uncensored failure times\n    neglogliks = (\n        -torch.log(t2s / t1s[:, ~censored]) \n        - (t2s - 1.0) * torch.log(failure_dists[~censored] / t1s[:, ~censored]) \n        + (failure_dists[~censored] / t1s[:, ~censored]) ** t2s\n    ).sum(dim=1)\n    \n    # Add contribution of censored failure times\n    neglogliks += (\n        (failure_dists[censored] / t1s[:, censored]) ** t2s\n    ).sum(dim=1)\n\n    neglogpris = (\n        - (0.5*D + alpha) * t2s.log().flatten()\n        + gamma * t2s.flatten()\n        + 0.5 * torch.sum(t2s * (bs-ms)**2 / sds**2, dim=1)\n    )\n    \n    neglogposts = neglogliks + neglogpris - 120.0  # to avoid underflow\n    return neglogposts\n\ntarget_func = dt.TargetFunc(neglogpost)\n\n\n\nPreconditioner\nNext, we specify a preconditioner. In the absence of any other information, a suitable choice is a mapping between a Gaussian reference density and the prior.\nIn this case, the form of the prior means that, given a sample distributed according to the reference density, we can convert it to a sample distributed according to the prior by first transforming the element of the sample corresponding to \\(\\theta_{2}\\) such that it has a Gamma density, then transforming the remaining elements of the sample such that they are normally distributed with variance dependent on \\(\\theta_{2}\\).\nFollowing Dolgov et al. (2020), we will construct the mapping such that each coefficient \\(\\beta_{i}\\) is bounded within the interval \\([m_{i}-3\\sigma_{i}, m_{i}+3\\sigma_{i}]\\), and \\(\\theta_{2}\\) is bounded within the interval \\([0, 13]\\).\n\n# Define bounds for parameters\nbounds = torch.zeros((D+2, 2))\nbounds[:-1] = torch.vstack((ms - 3.0*sds, ms + 3.0*sds)).T \nbounds[-1] = torch.tensor([1e-8, 13.0])\n\n# Construct mapping from Gaussian reference to prior\ndim = D + 2\nreference = dt.GaussianReference()\npreconditioner = GammaNormalMapping(\n    reference, bounds, \n    alpha, gamma, \n    ms, sds, dim\n)\n\n\n\nFunctional Tensor Train\nNext, we specify a set of basis functions to use when building the functional tensor trains constructed during the DIRT algorithm. In this case, we will use a piecewise linear polynomial with 30 elements as the interpolant in each dimension.\n\nbasis = dt.Lagrange1(num_elems=30)\nbases = dt.ApproxBases(basis, dim)\n\ntt_options = dt.TTOptions(max_als=4, init_rank=1)\ntt = dt.TT(tt_options)\nftt = dt.FTT(bases, tt)\n\n\n\nBridging Densities\nNext, we specify the intermediate densities that are approximated during the DIRT algorithm. In this case, as shown in Dolgov et al. (2020), the posterior is simple enough that it can be approximated directly (i.e., using a DIRT with a single layer) with a high accuracy.\nNote that because we are using a single bridging density, the DIRT algorithm reduces to the SIRT (squared inverse Rosenblatt transport) algorithm (see Cui and Dolgov 2022).\n\nbridge = dt.SingleLayer()\n\nWe now construct the DIRT object.\n\ndirt = dt.DIRT(target_func, preconditioner, ftt, bridge)\n\n[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 4.23e-01 s\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       1992 |        3 |       1.00e+00 |        1.00e+00 | 9.98e-01\n[ALS]     2 |       4100 |        5 |       9.82e-01 |        2.63e-01 | 9.39e-01\n[ALS]     3 |       7820 |        7 |       8.10e-01 |        4.43e-01 | 8.39e-02\n[ALS]     4 |      13648 |        9 |       2.48e-01 |        8.45e-02 | 1.51e-01\n[ALS]  ALS complete.\n[DIRT] DIRT construction complete.\n[DIRT]  • Layers: 1.\n[DIRT]  • Total function evaluations: 13,648.\n[DIRT]  • Total time: 3.84 secs.\n[DIRT]  • DHell: 0.1153.",
     "crumbs": [
       "Examples",
       "Bayesian Inference",
@@ -105,7 +126,7 @@
     "href": "examples/shock/example_inference.html#debiasing",
     "title": "Shock Absorber",
     "section": "Debiasing",
-    "text": "Debiasing\nWe could use the DIRT object directly as an approximation to the target posterior. However, it is also possible to use the DIRT object to accelerate exact inference.\nWe will illustrate two possibilities to remove the bias from the inference results obtained using DIRT: using the DIRT density as part of a Markov chain Monte Carlo (MCMC) sampler, or as a proposal density for importance sampling.\n\nMCMC Sampling\nFirst, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density.\n\n# Generate a set of samples from the DIRT approximation to the posterior\nrs = reference.random(d=dirt.dim, n=50_000)\nsamples_dirt, potentials_dirt = dirt.eval_irt(rs)\n\n# Run an independence MCMC sampler\npotentials_true = neglogpost(samples_dirt)\nres = dt.run_independence_sampler(samples_dirt, potentials_dirt, potentials_true)\n\nprint(f\"Acceptance rate: {res.acceptance_rate:.2f}\")\nprint(f\"Mean IACT: {res.iacts.mean():.2f}\")\nprint(f\"Max IACT: {res.iacts.max():.2f}\")\n\nAcceptance rate: 0.83\nMean IACT: 1.58\nMax IACT: 2.03\n\n\nFor all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently. Figure 1 shows trace plots for the log-posterior density and selected parameters, which reinforces this idea.\n\n\nCode\nparameters = torch.hstack((res.potentials[:, None], res.xs[:, [0, 3]]))\nylabels = [r\"$-\\log(f(x))$\", r\"$\\beta_{2}$\", r\"$\\theta_{2}$\"]\n\nfig, axes = plt.subplots(1, 3, figsize=(7.5, 3))\n\nfor i, ax in enumerate(axes):\n    ax.plot(parameters[:, i], c=\"tab:red\", lw=0.5)\n    ax.set_ylabel(ylabels[i])\n    ax.set_box_aspect(1)\n    add_arrows(ax)\n\naxes[1].set_xlabel(\"Iteration\")\nplt.show()\n\n\n\n\n\n\n\n\nFigure 1: Trace plots for the negative log-posterior density (left), and coefficients \\(\\xi_{22}\\) (centre) and \\(\\xi_{23}\\) (right).\n\n\n\n\n\nFigure 2 shows a pair plot of prior and posterior samples.\n\n\nCode\n# Generate a set of posterior samples by thinning the chain\nsamples_post = res.xs[::5, :]\n\n# Generate a set of samples from the prior\nsamples_prior = preconditioner.Q(rs[::5, :])\n\nlabels = [r\"$\\beta_{0}$\", r\"$\\beta_{1}$\", r\"$\\beta_{2}$\", r\"$\\theta_{2}$\"]\npairplot(\n    samples_post, \n    samples_prior,\n    labels=labels,\n    x_label=\"Posterior\",\n    y_label=\"Prior\"\n)\n\n\n\n\n\n\n\n\nFigure 2: A pair plot showing 5000 samples from the prior and posterior.\n\n\n\n\n\n\n\nImportance Sampling\nAs an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation to the posterior appropriately.\n\nres = dt.run_importance_sampling(potentials_dirt, potentials_true)\ness_ratio = res.ess / potentials_dirt.numel()\nprint(f\"ESS ratio: {ess_ratio:.2f}\")\n\nESS ratio: 0.91\n\n\nAs expected, the ratio of the ESS (effective sample size) to the number of samples from the DIRT density is quite close to 1.",
+    "text": "Debiasing\nWe could use the DIRT object directly as an approximation to the target posterior. However, it is also possible to use the DIRT object to accelerate exact inference.\nWe will illustrate two possibilities to remove the bias from the inference results obtained using DIRT: using the DIRT density as part of a Markov chain Monte Carlo (MCMC) sampler, or as a proposal density for importance sampling.\n\nMCMC Sampling\nFirst, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density.\n\n# Generate a set of samples from the DIRT approximation to the posterior\nrs = reference.random(n=50_000, d=dirt.dim)\nsamples_dirt, potentials_dirt = dirt.eval_irt(rs)\n\n# Run an independence MCMC sampler\npotentials_true = neglogpost(samples_dirt)\nres = dt.run_independence_sampler(samples_dirt, potentials_dirt, potentials_true)\n\nprint(f\"Acceptance rate: {res.acceptance_rate:.2f}\")\nprint(f\"Mean IACT: {res.iacts.mean():.2f}\")\nprint(f\"Max IACT: {res.iacts.max():.2f}\")\n\nAcceptance rate: 0.83\nMean IACT: 1.58\nMax IACT: 2.03\n\n\nFor all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently. Figure 1 shows trace plots for the log-posterior density and selected parameters, which reinforces this idea.\n\n\nCode\nparameters = torch.hstack((res.potentials[:, None], res.xs[:, [0, 3]]))\nylabels = [r\"$-\\log(f(x))$\", r\"$\\beta_{2}$\", r\"$\\theta_{2}$\"]\n\nfig, axes = plt.subplots(1, 3, figsize=(7.5, 3))\n\nfor i, ax in enumerate(axes):\n    ax.plot(parameters[:, i], c=\"tab:red\", lw=0.5)\n    ax.set_ylabel(ylabels[i])\n    ax.set_box_aspect(1)\n    add_arrows(ax)\n\naxes[1].set_xlabel(\"Iteration\")\nplt.show()\n\n\n\n\n\n\n\n\nFigure 1: Trace plots for the negative log-posterior density (left), and coefficients \\(\\xi_{22}\\) (centre) and \\(\\xi_{23}\\) (right).\n\n\n\n\n\nFigure 2 shows a pair plot of prior and posterior samples.\n\n\nCode\n# Generate a set of posterior samples by thinning the chain\nsamples_post = res.xs[::5, :]\n\n# Generate a set of samples from the prior\nsamples_prior = preconditioner.Q(rs[::5, :])\n\nlabels = [r\"$\\beta_{0}$\", r\"$\\beta_{1}$\", r\"$\\beta_{2}$\", r\"$\\theta_{2}$\"]\npairplot(\n    samples_post, \n    samples_prior,\n    labels=labels,\n    x_label=\"Posterior\",\n    y_label=\"Prior\"\n)\n\n\n\n\n\n\n\n\nFigure 2: A pair plot showing 5000 samples from the prior and posterior.\n\n\n\n\n\n\n\nImportance Sampling\nAs an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation to the posterior appropriately.\n\nres = dt.run_importance_sampling(potentials_dirt, potentials_true)\ness_ratio = res.ess / potentials_dirt.numel()\nprint(f\"ESS ratio: {ess_ratio:.2f}\")\n\nESS ratio: 0.91\n\n\nAs expected, the ratio of the ESS (effective sample size) to the number of samples from the DIRT density is quite close to 1.",
     "crumbs": [
       "Examples",
       "Bayesian Inference",
@@ -117,12 +138,19 @@
     "href": "examples/shock/example_inference.html#comparison-of-approximation-bases",
     "title": "Shock Absorber",
     "section": "Comparison of Approximation Bases",
-    "text": "Comparison of Approximation Bases\nFinally, we show a comparison of different polynomial bases that can be used when constructing the DIRT approximation to the target density. Figure 3 shows the relationship between the number of likelihood evaluations required to construct the DIRT approximation to the posterior, and the maximum IACT of the model parameters for an independence MCMC sampler that uses the DIRT approximation as the proposal density, when bases composed of Fourier, Legendre and piecewise linear polynomials are used. We modify the number of likelihood evaluations used to construct the DIRT approximation by changing the maximum order of the polynomials (Fourier and Legendre polynomials) or the number of linear functions used (piecewise linear polynomials). As before, we construct the DIRT in each case using a single layer.\n\n\nCode\nbasis_dict = {\n    \"Fourier\": dt.Fourier,\n    \"Legendre\": dt.Legendre,\n    \"Piecewise\": dt.Lagrange1\n}\n\nargs_dict = {\n    \"Fourier\": [10, 15, 20, 25],\n    \"Legendre\": [20, 30, 40, 50],\n    \"Piecewise\": [20, 30, 40, 50],\n}\n\ncolours = {\n    \"Fourier\": \"tab:blue\",\n    \"Legendre\": \"tab:green\",\n    \"Piecewise\": \"tab:red\"\n}\n\nresults = {name: {\"iact\": [], \"num_eval\": []} for name in basis_dict}\n\ntt_options = dt.TTOptions(max_als=4, init_rank=8, als_tol=0.0, tt_method=\"fixed_rank\", verbose=0)\ndirt_options = dt.DIRTOptions(verbose=0)\n\nfor name in basis_dict:\n    for args in args_dict[name]:\n\n        basis = basis_dict[name](args)\n        bases = dt.ApproxBases(basis, dim)\n        tt = dt.TT(tt_options)\n        ftt = dt.FTT(bases, tt)\n        bridge = dt.SingleLayer()\n\n        dirt = dt.DIRT(target_func, preconditioner, ftt, bridge, dirt_options)\n\n        # Run independence MCMC sampler\n        samples_dirt, potentials_dirt = dirt.eval_irt(rs)\n        potentials_true = neglogpost(samples_dirt)\n        res = dt.run_independence_sampler(samples_dirt, potentials_dirt, potentials_true)\n\n        results[name][\"iact\"].append(res.iacts.max())\n        results[name][\"num_eval\"].append(dirt.num_eval)\n\nfig, ax = plt.subplots(figsize=(6.5, 3.5))\n\nfor i, name in enumerate(results):\n    num_eval = results[name][\"num_eval\"]\n    iact = results[name][\"iact\"]\n    ax.plot(num_eval, iact, color=colours[name], zorder=i)\n    ax.scatter(num_eval, iact, c=colours[name], marker=\"s\", label=name, zorder=i)\n\nax.set_xlabel(\"Number of likelihood evaluations\")\nax.set_ylabel(\"Max IACT\")\nax.set_box_aspect(1)\nax.legend(loc=\"center left\", bbox_to_anchor=(1, 0.5))\nadd_arrows(ax) \n\nplt.show()\n\n\n/Users/adeb0907/Documents/usyd/deep-tensor-py/deep_tensor/polynomials/cdf_1d.py:272: UserWarning: Rootfinding: Regula falsi did not converge (1 unconverged samples). Maximum residual: 1.6987e-06.\n  warnings.warn(msg)\n/Users/adeb0907/Documents/usyd/deep-tensor-py/deep_tensor/polynomials/cdf_1d.py:272: UserWarning: Rootfinding: Regula falsi did not converge (3 unconverged samples). Maximum residual: 4.5336e-08.\n  warnings.warn(msg)\n/Users/adeb0907/Documents/usyd/deep-tensor-py/deep_tensor/polynomials/cdf_1d.py:272: UserWarning: Rootfinding: Regula falsi did not converge (1 unconverged samples). Maximum residual: 1.3841e-10.\n  warnings.warn(msg)\n\n\n\n\n\n\n\n\nFigure 3: The relationship between the number of likelihood evaluations required to construct the DIRT and the maximum IACT of the parameters, for Fourier, Legendre and piecewise linear polynomials.\n\n\n\n\n\nThe results suggest that for this particular problem, the Fourier basis produces the most accurate approximation to the posterior for a given computational budget.",
+    "text": "Comparison of Approximation Bases\nFinally, we show a comparison of different polynomial bases that can be used when constructing the DIRT approximation to the target density. Figure 3 shows the relationship between the number of likelihood evaluations required to construct the DIRT approximation to the posterior, and the maximum IACT of the model parameters for an independence MCMC sampler that uses the DIRT approximation as the proposal density, when bases composed of Fourier, Legendre and piecewise linear polynomials are used. We modify the number of likelihood evaluations used to construct the DIRT approximation by changing the maximum order of the polynomials (Fourier and Legendre polynomials) or the number of linear functions used (piecewise linear polynomials). As before, we construct the DIRT in each case using a single layer.\n\n\nCode\nbasis_dict = {\n    \"Fourier\": dt.Fourier,\n    \"Legendre\": dt.Legendre,\n    \"Piecewise\": dt.Lagrange1\n}\n\nargs_dict = {\n    \"Fourier\": [10, 15, 20, 25],\n    \"Legendre\": [20, 30, 40, 50],\n    \"Piecewise\": [20, 30, 40, 50],\n}\n\ncolours = {\n    \"Fourier\": \"tab:blue\",\n    \"Legendre\": \"tab:green\",\n    \"Piecewise\": \"tab:red\"\n}\n\nresults = {name: {\"iact\": [], \"num_eval\": []} for name in basis_dict}\n\ntt_options = dt.TTOptions(max_als=4, init_rank=8, tol_l2_error=0.0, tol_max_core_error=0.0, tt_method=\"fixed_rank\", verbose=0)\ndirt_options = dt.DIRTOptions(verbose=0)\n\nfor name in basis_dict:\n    for args in args_dict[name]:\n\n        basis = basis_dict[name](args)\n        bases = dt.ApproxBases(basis, dim)\n        tt = dt.TT(tt_options)\n        ftt = dt.FTT(bases, tt)\n        bridge = dt.SingleLayer()\n\n        dirt = dt.DIRT(target_func, preconditioner, ftt, bridge, dirt_options)\n\n        # Run independence MCMC sampler\n        samples_dirt, potentials_dirt = dirt.eval_irt(rs)\n        potentials_true = neglogpost(samples_dirt)\n        res = dt.run_independence_sampler(samples_dirt, potentials_dirt, potentials_true)\n\n        results[name][\"iact\"].append(res.iacts.max())\n        results[name][\"num_eval\"].append(dirt.num_eval)\n\nfig, ax = plt.subplots(figsize=(6.5, 3.5))\n\nfor i, name in enumerate(results):\n    num_eval = results[name][\"num_eval\"]\n    iact = results[name][\"iact\"]\n    ax.plot(num_eval, iact, color=colours[name], zorder=i)\n    ax.scatter(num_eval, iact, c=colours[name], marker=\"s\", label=name, zorder=i)\n\nax.set_xlabel(\"Number of likelihood evaluations\")\nax.set_ylabel(\"Max IACT\")\nax.set_box_aspect(1)\nax.legend(loc=\"center left\", bbox_to_anchor=(1, 0.5))\nadd_arrows(ax) \n\nplt.show()\n\n\n/Users/adeb0907/Documents/usyd/deep-tensor-py/deep_tensor/polynomials/cdf_1d.py:272: UserWarning: Rootfinding: Regula falsi did not converge (1 unconverged samples). Maximum residual: 1.6987e-06.\n  warnings.warn(msg)\n/Users/adeb0907/Documents/usyd/deep-tensor-py/deep_tensor/polynomials/cdf_1d.py:272: UserWarning: Rootfinding: Regula falsi did not converge (3 unconverged samples). Maximum residual: 4.5336e-08.\n  warnings.warn(msg)\n/Users/adeb0907/Documents/usyd/deep-tensor-py/deep_tensor/polynomials/cdf_1d.py:272: UserWarning: Rootfinding: Regula falsi did not converge (1 unconverged samples). Maximum residual: 1.3841e-10.\n  warnings.warn(msg)\n\n\n\n\n\n\n\n\nFigure 3: The relationship between the number of likelihood evaluations required to construct the DIRT and the maximum IACT of the parameters, for Fourier, Legendre and piecewise linear polynomials.\n\n\n\n\n\nThe results suggest that for this particular problem, the Fourier basis produces the most accurate approximation to the posterior for a given computational budget.",
     "crumbs": [
       "Examples",
       "Bayesian Inference",
       "Shock Absorber"
     ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Installation",
+    "section": "",
+    "text": "The \\(\\texttt{deep\\_tensor}\\) package contains a PyTorch implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by Cui and Dolgov (2022).\n\n\n\n\n\n\nWarning\n\n\n\nThis package is currently in a developmental state. Some parts of the API may change without warning in future releases.\n\n\n\nInstallation\n\\(\\texttt{deep\\_tensor}\\) can be installed using pip:\n\npip install deep-tensor-py\n\nThe package can then be imported using\n\nimport deep_tensor as dt\n\n\n\nGetting Started\nCheck out the examples page and API reference for help getting started with \\(\\texttt{deep\\_tensor}\\).\n\n\n\n\n\nReferences\n\nCui, Tiangang, and Sergey Dolgov. 2022. “Deep Composition of Tensor-Trains Using Squared Inverse Rosenblatt Transports.” Foundations of Computational Mathematics 22 (6): 1863–1922. https://doi.org/10.1007/s10208-021-09537-5."
   },
   {
     "objectID": "reference/GaussianMapping.html",
@@ -153,7 +181,7 @@
     "href": "reference/FTT.html",
     "title": "FTT",
     "section": "",
-    "text": "FTT(\n    self,\n    bases: ApproxBases,\n    tt: TT | None = None,\n    num_error_samples: int = 1000,\n)\nA functional tensor train.\n\n\n\nbases : ApproxBases\n\nA set of basis functions for each dimension of the FTT.\n\ntt : TT | None = None\n\nA tensor train object.\n\nnum_error_samples : int = 1000\n\nThe number of samples to use to estimate the \\(L_{2}\\) error of the FTT during its construction.\n\n\n\n\n\n\n\n\nName\nDescription\n\n\n\n\napproximate\nConstructs a FTT approximation to a target function.\n\n\neval\nEvaluates the FTT.\n\n\n\n\n\nFTT.approximate(\n    target_func: Callable[[Tensor], Tensor],\n    reference: Reference | None = None,\n)\nConstructs a FTT approximation to a target function.\n\n\n\ntarget_func : Callable[[Tensor], Tensor]\n\nThe target function, \\(f : [-1, 1]^{d} \\rightarrow \\mathbb{R}\\).\n\n\n\n\n\n\nFTT.eval(ls: Tensor, direction: Direction | None = None)\nEvaluates the FTT.\nReturns the functional tensor train approximation to the target function for either the first or last \\(k\\) variables, for a set of points mapped to the domain of the basis functions.\n\n\n\nls : Tensor\n\nAn \\(n \\times d\\) matrix containing a set of samples mapped to the domain of the FTT basis functions.\n\ndirection : Direction | None = None\n\nThe direction in which to iterate over the cores.\n\n\n\n\n\n\nGs_prod : Tensor\n\nAn \\(n \\times n_{k}\\) matrix, where each row contains the product of the first or last (depending on direction) \\(k\\) tensor cores evaluated at the corresponding sample in ls.",
+    "text": "FTT(\n    self,\n    bases: ApproxBases,\n    tt: TT | None = None,\n    num_error_samples: int = 1000,\n)\nA functional tensor train, defined on \\([-1, 1]^{d}\\).\n\n\n\nbases : ApproxBases\n\nA set of basis functions for each dimension of the FTT.\n\ntt : TT | None = None\n\nA tensor train object.\n\nnum_error_samples : int = 1000\n\nThe number of samples to use to estimate the \\(L_{2}\\) error of the FTT during its construction.\n\n\n\n\n\n\n\n\nName\nDescription\n\n\n\n\napproximate\nConstructs a FTT approximation to a target function.\n\n\neval\nEvaluates the FTT.\n\n\n\n\n\nFTT.approximate(\n    target_func: Callable[[Tensor], Tensor],\n    reference: Reference | None = None,\n)\nConstructs a FTT approximation to a target function.\n\n\n\ntarget_func : Callable[[Tensor], Tensor]\n\nThe target function, \\(f : [-1, 1]^{d} \\rightarrow \\mathbb{R}\\).\n\nreference : Reference | None = None\n\nThe reference measure. If provided, this will be used to generate the initial index sets for the underlying TT. Otherwise, these sets will be generated by sampling uniformly from the underlying tensor grid.\n\n\n\n\n\n\nFTT.eval(ls: Tensor, direction: Direction | None = None)\nEvaluates the FTT.\nReturns the functional tensor train approximation to the target function for either the first or last \\(k\\) variables, for a set of points mapped to the domain of the basis functions.\n\n\n\nls : Tensor\n\nAn \\(n \\times d\\) matrix containing a set of samples mapped to the domain of the FTT basis functions.\n\ndirection : Direction | None = None\n\nThe direction in which to iterate over the cores.\n\n\n\n\n\n\nGs_prod : Tensor\n\nAn \\(n \\times n_{k}\\) matrix, where each row contains the product of the first or last (depending on direction) \\(k\\) tensor cores evaluated at the corresponding sample in ls.",
     "crumbs": [
       "API Reference",
       "Functional Tensor Trains",
@@ -177,7 +205,7 @@
     "href": "reference/FTT.html#methods",
     "title": "FTT",
     "section": "",
-    "text": "Name\nDescription\n\n\n\n\napproximate\nConstructs a FTT approximation to a target function.\n\n\neval\nEvaluates the FTT.\n\n\n\n\n\nFTT.approximate(\n    target_func: Callable[[Tensor], Tensor],\n    reference: Reference | None = None,\n)\nConstructs a FTT approximation to a target function.\n\n\n\ntarget_func : Callable[[Tensor], Tensor]\n\nThe target function, \\(f : [-1, 1]^{d} \\rightarrow \\mathbb{R}\\).\n\n\n\n\n\n\nFTT.eval(ls: Tensor, direction: Direction | None = None)\nEvaluates the FTT.\nReturns the functional tensor train approximation to the target function for either the first or last \\(k\\) variables, for a set of points mapped to the domain of the basis functions.\n\n\n\nls : Tensor\n\nAn \\(n \\times d\\) matrix containing a set of samples mapped to the domain of the FTT basis functions.\n\ndirection : Direction | None = None\n\nThe direction in which to iterate over the cores.\n\n\n\n\n\n\nGs_prod : Tensor\n\nAn \\(n \\times n_{k}\\) matrix, where each row contains the product of the first or last (depending on direction) \\(k\\) tensor cores evaluated at the corresponding sample in ls.",
+    "text": "Name\nDescription\n\n\n\n\napproximate\nConstructs a FTT approximation to a target function.\n\n\neval\nEvaluates the FTT.\n\n\n\n\n\nFTT.approximate(\n    target_func: Callable[[Tensor], Tensor],\n    reference: Reference | None = None,\n)\nConstructs a FTT approximation to a target function.\n\n\n\ntarget_func : Callable[[Tensor], Tensor]\n\nThe target function, \\(f : [-1, 1]^{d} \\rightarrow \\mathbb{R}\\).\n\nreference : Reference | None = None\n\nThe reference measure. If provided, this will be used to generate the initial index sets for the underlying TT. Otherwise, these sets will be generated by sampling uniformly from the underlying tensor grid.\n\n\n\n\n\n\nFTT.eval(ls: Tensor, direction: Direction | None = None)\nEvaluates the FTT.\nReturns the functional tensor train approximation to the target function for either the first or last \\(k\\) variables, for a set of points mapped to the domain of the basis functions.\n\n\n\nls : Tensor\n\nAn \\(n \\times d\\) matrix containing a set of samples mapped to the domain of the FTT basis functions.\n\ndirection : Direction | None = None\n\nThe direction in which to iterate over the cores.\n\n\n\n\n\n\nGs_prod : Tensor\n\nAn \\(n \\times n_{k}\\) matrix, where each row contains the product of the first or last (depending on direction) \\(k\\) tensor cores evaluated at the corresponding sample in ls.",
     "crumbs": [
       "API Reference",
       "Functional Tensor Trains",
@@ -261,7 +289,7 @@
     "href": "reference/TT.html",
     "title": "TT",
     "section": "",
-    "text": "TT(self, options: TTOptions | None = None)\nA tensor train factorisation.\nThis class computes an stores a tensor train factorisation of the discretisation of an arbitrary function on a tensor-product grid, using the alternating cross approximation algorithm outlined in Oseledets and Tyrtyshnikov (2010).\n\n\n\noptions : TTOptions | None = None\n\nParameters which control the construction of the tensor train factorisation.\n\n\n\n\n\n\n\n\nName\nDescription\n\n\n\n\ninitialise\nTODO: write docstring…\n\n\nsweep\nRuns a single cross iteration.\n\n\nround\nRounds the TT cores.\n\n\n\n\n\nTT.initialise(target_func: Callable[[Tensor], Tensor], grid: Grid)\nTODO: write docstring…\n\n\n\nTT.sweep()\nRuns a single cross iteration.\nIf cross iterations have been run previously, this performs a sweep over the cores in the opposite order to the previous sweep.\n\n\n\nTT.round(tol: float | None = None, max_rank: int | None = None)\nRounds the TT cores.\nApplies double rounding to get back to the starting direction.\n\n\n\ntol : float | None = None\n\nThe tolerance to use when applying truncated SVD to round each core.",
+    "text": "TT(self, options: TTOptions | None = None)\nA tensor train factorisation.\nThis class computes and stores a tensor train factorisation of the discretisation of an arbitrary function on a tensor-product grid, using the alternating cross approximation algorithm outlined in Oseledets and Tyrtyshnikov (2010).\n\n\n\noptions : TTOptions | None = None\n\nParameters which control the construction of the tensor train factorisation.\n\n\n\n\n\n\n\n\nName\nDescription\n\n\n\n\ninitialise\nInitialises the TT.\n\n\nsweep\nRuns a single cross iteration.\n\n\nround\nRounds the TT cores.\n\n\n\n\n\nTT.initialise(target_func: Callable[[Tensor], Tensor], grid: Grid)\nInitialises the TT.\n\n\n\ntarget_func : Callable[[Tensor], Tensor]\n\nA function that takes an \\(n \\times d\\) matrix with rows containing samples from the tensor product grid, and returns an \\(n\\)-dimensional vector containing the values of the target function evaluated at each sample.\n\ngrid : Grid\n\nThe tensor product grid used to construct the TT.\n\n\n\n\n\n\nTT.sweep()\nRuns a single cross iteration.\nIf cross iterations have been run previously, this performs a sweep over the cores in the opposite order to the previous sweep.\n\n\n\nTT.round(tol: float | None = None, max_rank: int | None = None)\nRounds the TT cores.\nApplies double rounding to get back to the starting direction.\n\n\n\ntol : float | None = None\n\nThe tolerance to use when applying truncated SVD to round each core.",
     "crumbs": [
       "API Reference",
       "Functional Tensor Trains",
@@ -285,7 +313,7 @@
     "href": "reference/TT.html#methods",
     "title": "TT",
     "section": "",
-    "text": "Name\nDescription\n\n\n\n\ninitialise\nTODO: write docstring…\n\n\nsweep\nRuns a single cross iteration.\n\n\nround\nRounds the TT cores.\n\n\n\n\n\nTT.initialise(target_func: Callable[[Tensor], Tensor], grid: Grid)\nTODO: write docstring…\n\n\n\nTT.sweep()\nRuns a single cross iteration.\nIf cross iterations have been run previously, this performs a sweep over the cores in the opposite order to the previous sweep.\n\n\n\nTT.round(tol: float | None = None, max_rank: int | None = None)\nRounds the TT cores.\nApplies double rounding to get back to the starting direction.\n\n\n\ntol : float | None = None\n\nThe tolerance to use when applying truncated SVD to round each core.",
+    "text": "Name\nDescription\n\n\n\n\ninitialise\nInitialises the TT.\n\n\nsweep\nRuns a single cross iteration.\n\n\nround\nRounds the TT cores.\n\n\n\n\n\nTT.initialise(target_func: Callable[[Tensor], Tensor], grid: Grid)\nInitialises the TT.\n\n\n\ntarget_func : Callable[[Tensor], Tensor]\n\nA function that takes an \\(n \\times d\\) matrix with rows containing samples from the tensor product grid, and returns an \\(n\\)-dimensional vector containing the values of the target function evaluated at each sample.\n\ngrid : Grid\n\nThe tensor product grid used to construct the TT.\n\n\n\n\n\n\nTT.sweep()\nRuns a single cross iteration.\nIf cross iterations have been run previously, this performs a sweep over the cores in the opposite order to the previous sweep.\n\n\n\nTT.round(tol: float | None = None, max_rank: int | None = None)\nRounds the TT cores.\nApplies double rounding to get back to the starting direction.\n\n\n\ntol : float | None = None\n\nThe tolerance to use when applying truncated SVD to round each core.",
     "crumbs": [
       "API Reference",
       "Functional Tensor Trains",
@@ -297,7 +325,7 @@
     "href": "reference/TTOptions.html",
     "title": "TTOptions",
     "section": "",
-    "text": "TTOptions(\n    self,\n    max_als: int = 1,\n    als_tol: float = 0.1,\n    init_rank: int = 20,\n    kick_rank: int = 2,\n    max_rank: int = 30,\n    svd_tol: float = 0.0,\n    tt_method: str = 'amen',\n    int_method: str = 'maxvol',\n    verbose: int = 1,\n)\nOptions for configuring the construction of a TT object.\n\n\n\nmax_als : int = 1\n\nThe maximum number of ALS iterations to be carried out during the FTT construction.\n\nals_tol : float = 0.1\n\nThe tolerance to use to determine whether the ALS iterations should be terminated.\n\ninit_rank : int = 20\n\nThe initial rank of each tensor core.\n\nkick_rank : int = 2\n\nThe rank of the enrichment set of samples added at each ALS iteration.\n\nmax_rank : int = 30\n\nThe maximum allowable rank of each tensor core (prior to the enrichment set being added).\n\nsvd_tol : float = 0.0\n\nThe threshold to use when applying truncated SVD to the tensor cores when building the FTT. The minimum number of singular values such that the sum of their squares exceeds (\\(1-\\) svd_tol) will be retained.\n\ntt_method : str = 'amen'\n\nThe enrichment method used when constructing the TT cores. Can be 'fixed_rank' (no enrichment), 'random', or 'amen' (Dolgov and Savostyanov 2014).\n\nint_method : str = 'maxvol'\n\nThe interpolation method used when constructing the tensor cores. Can be 'maxvol' (Goreinov et al. 2010) or 'deim' (Chaturantabut and Sorensen 2010).\n\nverbose : int = 1\n\nIf verbose=0, no information about the construction of the FTT will be printed. If verbose=1, diagnostic information will be prined at the end of each ALS iteration. If verbose=2, the tensor core currently being constructed during each ALS iteration will also be displayed.",
+    "text": "TTOptions(\n    self,\n    tt_method: str = 'amen',\n    int_method: str = 'maxvol',\n    max_als: int = 1,\n    init_rank: int = 20,\n    kick_rank: int = 2,\n    max_rank: int = 30,\n    tol_svd: float = 0.0,\n    tol_max_core_error: float = 0.0,\n    tol_l2_error: float = 0.0,\n    verbose: int = 1,\n)\nOptions for configuring the construction of a TT object.\n\n\n\ntt_method : str = 'amen'\n\nThe enrichment method used when constructing the TT cores. Can be 'fixed_rank' (no enrichment), 'random', or 'amen' (Dolgov and Savostyanov 2014).\n\nint_method : str = 'maxvol'\n\nThe interpolation method used when constructing the tensor cores. Can be 'maxvol' (Goreinov et al. 2010) or 'deim' (Chaturantabut and Sorensen 2010).\n\nmax_als : int = 1\n\nThe maximum number of ALS iterations to be carried out during the FTT construction.\n\ninit_rank : int = 20\n\nThe initial rank of each tensor core.\n\nkick_rank : int = 2\n\nThe rank of the enrichment set of samples added at each ALS iteration.\n\nmax_rank : int = 30\n\nThe maximum allowable rank of each tensor core (prior to the enrichment set being added).\n\ntol_svd : float = 0.0\n\nThe threshold to use when applying truncated SVD to the tensor cores when building the TT. The minimum number of singular values such that the sum of their squares exceeds (\\(1-\\) tol_svd) will be retained.\n\ntol_max_core_error : float = 0.0\n\nA stopping tolerance, \\(\\epsilon\\), based on the tensor cores. More concretely, if \\(\\boldsymbol{H}^{(\\ell)}_{k}\\) denotes the \\(k\\)th tensor core during sweep \\(\\ell\\), the iterations are stopped if \\[     \\max_{k \\in \\{1, \\dots, d\\}}         \\frac{\\|\\boldsymbol{H}^{(\\ell)}_{k}-\\boldsymbol{H}^{(\\ell-1)}_{k}\\|_{\\infty}}             {\\|\\boldsymbol{H}^{(\\ell)}_{k}\\|_{\\infty}} &lt; \\epsilon. \\]\n\ntol_l2_error : float = 0.0\n\nA stopping tolerance based on the estimated \\(L^{2}\\) error of the target function.\n\nverbose : int = 1\n\nIf verbose=0, no information about the construction of the FTT will be printed. If verbose=1, diagnostic information will be prined at the end of each ALS iteration. If verbose=2, the tensor core currently being constructed during each ALS iteration will also be displayed.",
     "crumbs": [
       "API Reference",
       "Functional Tensor Trains",
@@ -309,7 +337,7 @@
     "href": "reference/TTOptions.html#parameters",
     "title": "TTOptions",
     "section": "",
-    "text": "max_als : int = 1\n\nThe maximum number of ALS iterations to be carried out during the FTT construction.\n\nals_tol : float = 0.1\n\nThe tolerance to use to determine whether the ALS iterations should be terminated.\n\ninit_rank : int = 20\n\nThe initial rank of each tensor core.\n\nkick_rank : int = 2\n\nThe rank of the enrichment set of samples added at each ALS iteration.\n\nmax_rank : int = 30\n\nThe maximum allowable rank of each tensor core (prior to the enrichment set being added).\n\nsvd_tol : float = 0.0\n\nThe threshold to use when applying truncated SVD to the tensor cores when building the FTT. The minimum number of singular values such that the sum of their squares exceeds (\\(1-\\) svd_tol) will be retained.\n\ntt_method : str = 'amen'\n\nThe enrichment method used when constructing the TT cores. Can be 'fixed_rank' (no enrichment), 'random', or 'amen' (Dolgov and Savostyanov 2014).\n\nint_method : str = 'maxvol'\n\nThe interpolation method used when constructing the tensor cores. Can be 'maxvol' (Goreinov et al. 2010) or 'deim' (Chaturantabut and Sorensen 2010).\n\nverbose : int = 1\n\nIf verbose=0, no information about the construction of the FTT will be printed. If verbose=1, diagnostic information will be prined at the end of each ALS iteration. If verbose=2, the tensor core currently being constructed during each ALS iteration will also be displayed.",
+    "text": "tt_method : str = 'amen'\n\nThe enrichment method used when constructing the TT cores. Can be 'fixed_rank' (no enrichment), 'random', or 'amen' (Dolgov and Savostyanov 2014).\n\nint_method : str = 'maxvol'\n\nThe interpolation method used when constructing the tensor cores. Can be 'maxvol' (Goreinov et al. 2010) or 'deim' (Chaturantabut and Sorensen 2010).\n\nmax_als : int = 1\n\nThe maximum number of ALS iterations to be carried out during the FTT construction.\n\ninit_rank : int = 20\n\nThe initial rank of each tensor core.\n\nkick_rank : int = 2\n\nThe rank of the enrichment set of samples added at each ALS iteration.\n\nmax_rank : int = 30\n\nThe maximum allowable rank of each tensor core (prior to the enrichment set being added).\n\ntol_svd : float = 0.0\n\nThe threshold to use when applying truncated SVD to the tensor cores when building the TT. The minimum number of singular values such that the sum of their squares exceeds (\\(1-\\) tol_svd) will be retained.\n\ntol_max_core_error : float = 0.0\n\nA stopping tolerance, \\(\\epsilon\\), based on the tensor cores. More concretely, if \\(\\boldsymbol{H}^{(\\ell)}_{k}\\) denotes the \\(k\\)th tensor core during sweep \\(\\ell\\), the iterations are stopped if \\[     \\max_{k \\in \\{1, \\dots, d\\}}         \\frac{\\|\\boldsymbol{H}^{(\\ell)}_{k}-\\boldsymbol{H}^{(\\ell-1)}_{k}\\|_{\\infty}}             {\\|\\boldsymbol{H}^{(\\ell)}_{k}\\|_{\\infty}} &lt; \\epsilon. \\]\n\ntol_l2_error : float = 0.0\n\nA stopping tolerance based on the estimated \\(L^{2}\\) error of the target function.\n\nverbose : int = 1\n\nIf verbose=0, no information about the construction of the FTT will be printed. If verbose=1, diagnostic information will be prined at the end of each ALS iteration. If verbose=2, the tensor core currently being constructed during each ALS iteration will also be displayed.",
     "crumbs": [
       "API Reference",
       "Functional Tensor Trains",
@@ -473,315 +501,27 @@
     ]
   },
   {
-    "objectID": "reference/GaussianReference.html",
-    "href": "reference/GaussianReference.html",
-    "title": "GaussianReference",
+    "objectID": "reference/DIRTOptions.html",
+    "href": "reference/DIRTOptions.html",
+    "title": "DIRTOptions",
     "section": "",
-    "text": "GaussianReference(self, domain: Domain | None = None)\nThe standard \\(d\\)-dimensional Gaussian density, \\(\\mathcal{N}(\\boldsymbol{0}_{d}, \\boldsymbol{I}_{d})\\).\nThe density can be truncated to a subinterval of the real numbers in each dimension.\n\n\n\ndomain : Domain | None = None\n\nThe domain on which the density is defined in each dimension.\n\n\n\n\n\n\n\n\nName\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nGaussianReference.random(d: int, n: int)\nGenerates a set of random samples.\nGenerates a set of random samples from the reference density.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to draw.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nGaussianReference.sobol(d: int, n: int)\nGenerates a set of QMC samples.\nGenerates a set of QMC samples from the reference density using a Sobol sequence.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "text": "DIRTOptions(\n    self,\n    ratio_type: str = 'aratio',\n    num_error_samples: int = 1000,\n    defensive: float = 1e-08,\n    cdf_tol: float = 1e-10,\n    verbose: float = 1,\n)\nOptions for configuring the construction of a DIRT object.\n\n\n\nratio_type : str = 'aratio'\n\nWhether to approximate the approximate ratio function ('aratio') or the exact ratio function ('eratio') when constructing each layer of the DIRT.\n\nnum_error_samples : int = 1000\n\nThe number of samples used to estimate the Hellinger divergence between each bridging density and its DIRT approximation (and to choose the parameters of each bridging density, if these are being chosen adaptively).\n\ndefensive : float = 1e-08\n\nThe defensive term (often referred to as \\(\\gamma\\) or \\(\\tau\\)) used to make the tails of the DIRT approximation to the target density heavier.\n\ncdf_tol : float = 1e-10\n\nThe numerical tolerance used when evaluating the inverse CDFs required to evaluate the (deep) inverse Rosenblatt transport.\n\nverbose : float = 1\n\nIf verbose=0, no information about the construction of the DIRT will be printed. If verbose=1, diagnostic information will be displayed after the construction of each DIRT layer.",
     "crumbs": [
       "API Reference",
-      "Reference Densities",
-      "GaussianReference"
+      "Deep Inverse Rosenblatt Transport",
+      "DIRTOptions"
     ]
   },
   {
-    "objectID": "reference/GaussianReference.html#parameters",
-    "href": "reference/GaussianReference.html#parameters",
-    "title": "GaussianReference",
+    "objectID": "reference/DIRTOptions.html#parameters",
+    "href": "reference/DIRTOptions.html#parameters",
+    "title": "DIRTOptions",
     "section": "",
-    "text": "domain : Domain | None = None\n\nThe domain on which the density is defined in each dimension.",
+    "text": "ratio_type : str = 'aratio'\n\nWhether to approximate the approximate ratio function ('aratio') or the exact ratio function ('eratio') when constructing each layer of the DIRT.\n\nnum_error_samples : int = 1000\n\nThe number of samples used to estimate the Hellinger divergence between each bridging density and its DIRT approximation (and to choose the parameters of each bridging density, if these are being chosen adaptively).\n\ndefensive : float = 1e-08\n\nThe defensive term (often referred to as \\(\\gamma\\) or \\(\\tau\\)) used to make the tails of the DIRT approximation to the target density heavier.\n\ncdf_tol : float = 1e-10\n\nThe numerical tolerance used when evaluating the inverse CDFs required to evaluate the (deep) inverse Rosenblatt transport.\n\nverbose : float = 1\n\nIf verbose=0, no information about the construction of the DIRT will be printed. If verbose=1, diagnostic information will be displayed after the construction of each DIRT layer.",
     "crumbs": [
       "API Reference",
-      "Reference Densities",
-      "GaussianReference"
-    ]
-  },
-  {
-    "objectID": "reference/GaussianReference.html#methods",
-    "href": "reference/GaussianReference.html#methods",
-    "title": "GaussianReference",
-    "section": "",
-    "text": "Name\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nGaussianReference.random(d: int, n: int)\nGenerates a set of random samples.\nGenerates a set of random samples from the reference density.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to draw.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nGaussianReference.sobol(d: int, n: int)\nGenerates a set of QMC samples.\nGenerates a set of QMC samples from the reference density using a Sobol sequence.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
-    "crumbs": [
-      "API Reference",
-      "Reference Densities",
-      "GaussianReference"
-    ]
-  },
-  {
-    "objectID": "reference/SingleLayer.html",
-    "href": "reference/SingleLayer.html",
-    "title": "SingleLayer",
-    "section": "",
-    "text": "SingleLayer\nSingleLayer(self)\nConstructs the DIRT using a single layer.\nIn this setting, the DIRT algorithm reduces to the SIRT algorithm; see Cui and Dolgov (2022).\n\n\n\n\n\nReferences\n\nCui, Tiangang, and Sergey Dolgov. 2022. “Deep Composition of Tensor-Trains Using Squared Inverse Rosenblatt Transports.” Foundations of Computational Mathematics 22 (6): 1863–1922. https://doi.org/10.1007/s10208-021-09537-5.",
-    "crumbs": [
-      "API Reference",
-      "Bridges",
-      "SingleLayer"
-    ]
-  },
-  {
-    "objectID": "reference/Lagrange1.html",
-    "href": "reference/Lagrange1.html",
-    "title": "Lagrange1",
-    "section": "",
-    "text": "Lagrange1(self, num_elems: int)\nPiecewise linear polynomials.\n\n\n\nnum_elems : int\n\nThe number of elements to use.\n\n\n\n\n\nTo construct a piecewise linear basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements. Then, within each element a given function can be represented by \\[\n    f(x) \\approx f(x_{0})\n        + \\frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),\n\\] where \\(x_{0}\\) and \\(x_{1}\\) denote the endpoints of the element.\nWe use piecewise cubic polynomials to represent the (conditional) CDFs corresponding to the piecewise linear representation of (the square root of) the target density function.",
-    "crumbs": [
-      "API Reference",
-      "Basis Functions",
-      "Lagrange1"
-    ]
-  },
-  {
-    "objectID": "reference/Lagrange1.html#parameters",
-    "href": "reference/Lagrange1.html#parameters",
-    "title": "Lagrange1",
-    "section": "",
-    "text": "num_elems : int\n\nThe number of elements to use.",
-    "crumbs": [
-      "API Reference",
-      "Basis Functions",
-      "Lagrange1"
-    ]
-  },
-  {
-    "objectID": "reference/Lagrange1.html#notes",
-    "href": "reference/Lagrange1.html#notes",
-    "title": "Lagrange1",
-    "section": "",
-    "text": "To construct a piecewise linear basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements. Then, within each element a given function can be represented by \\[\n    f(x) \\approx f(x_{0})\n        + \\frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),\n\\] where \\(x_{0}\\) and \\(x_{1}\\) denote the endpoints of the element.\nWe use piecewise cubic polynomials to represent the (conditional) CDFs corresponding to the piecewise linear representation of (the square root of) the target density function.",
-    "crumbs": [
-      "API Reference",
-      "Basis Functions",
-      "Lagrange1"
-    ]
-  },
-  {
-    "objectID": "reference/ImportanceSamplingResult.html",
-    "href": "reference/ImportanceSamplingResult.html",
-    "title": "ImportanceSamplingResult",
-    "section": "",
-    "text": "ImportanceSamplingResult(\n    self,\n    log_weights: Tensor,\n    log_norm: Tensor,\n    ess: Tensor,\n)\nAn object containing the results of importance sampling.\n\n\n\nlog_weights : Tensor\n\nAn \\(n\\)-dimensional vector containing the unnormalised importance weights associated with a set of samples.\n\nlog_norm : Tensor\n\nAn estimate of the logarithm of the normalising constant associated with the target density.\n\ness : Tensor\n\nAn estimate of the effective sample size.\n\n\n\n\n\nThe effective sample size is computed using the formula \\[\n    N_{\\mathrm{eff}} = \\frac{(\\sum_{i=1}^{n}w_{i})^{2}}{\\sum_{i=1}^{n}w_{i}^{2}},\n\\] where \\(w_{i}\\) denotes the importance weight associated with particle \\(i\\) (see, e.g., Owen 2013).",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "ImportanceSamplingResult"
-    ]
-  },
-  {
-    "objectID": "reference/ImportanceSamplingResult.html#attributes",
-    "href": "reference/ImportanceSamplingResult.html#attributes",
-    "title": "ImportanceSamplingResult",
-    "section": "",
-    "text": "log_weights : Tensor\n\nAn \\(n\\)-dimensional vector containing the unnormalised importance weights associated with a set of samples.\n\nlog_norm : Tensor\n\nAn estimate of the logarithm of the normalising constant associated with the target density.\n\ness : Tensor\n\nAn estimate of the effective sample size.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "ImportanceSamplingResult"
-    ]
-  },
-  {
-    "objectID": "reference/ImportanceSamplingResult.html#notes",
-    "href": "reference/ImportanceSamplingResult.html#notes",
-    "title": "ImportanceSamplingResult",
-    "section": "",
-    "text": "The effective sample size is computed using the formula \\[\n    N_{\\mathrm{eff}} = \\frac{(\\sum_{i=1}^{n}w_{i})^{2}}{\\sum_{i=1}^{n}w_{i}^{2}},\n\\] where \\(w_{i}\\) denotes the importance weight associated with particle \\(i\\) (see, e.g., Owen 2013).",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "ImportanceSamplingResult"
-    ]
-  },
-  {
-    "objectID": "reference/Legendre.html",
-    "href": "reference/Legendre.html",
-    "title": "Legendre",
-    "section": "",
-    "text": "Legendre(self, order: int)\nLegendre polynomials.\n\n\n\norder : int\n\nThe maximum order of the polynomials, \\(n\\).\n\n\n\n\n\nThe Legendre polynomials, defined on \\((-1, 1)\\), are given by the recurrence relation (Boyd 2001) \\[\n    (k+1)\\hat{p}_{k+1}(x) = (2k+1)x\\hat{p}_{k}(x) - k\\hat{p}_{k-1}(x),\n        \\qquad k = 1, 2, \\dots, n-1,\n\\] where \\(\\hat{p}_{0}(x) = 1, \\hat{p}_{1}(x) = x\\). The corresponding normalised polynomials are given by \\[\n    p_{k}(x) := \\frac{\\hat{p}_{k}(x)}{2k+1},\n        \\qquad k = 0, 1, \\dots, n.\n\\]\nThe polynomials are orthonormal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]\nWe use Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the Legendre representation of (the square root of) the target density function.",
-    "crumbs": [
-      "API Reference",
-      "Basis Functions",
-      "Legendre"
-    ]
-  },
-  {
-    "objectID": "reference/Legendre.html#parameters",
-    "href": "reference/Legendre.html#parameters",
-    "title": "Legendre",
-    "section": "",
-    "text": "order : int\n\nThe maximum order of the polynomials, \\(n\\).",
-    "crumbs": [
-      "API Reference",
-      "Basis Functions",
-      "Legendre"
-    ]
-  },
-  {
-    "objectID": "reference/Legendre.html#notes",
-    "href": "reference/Legendre.html#notes",
-    "title": "Legendre",
-    "section": "",
-    "text": "The Legendre polynomials, defined on \\((-1, 1)\\), are given by the recurrence relation (Boyd 2001) \\[\n    (k+1)\\hat{p}_{k+1}(x) = (2k+1)x\\hat{p}_{k}(x) - k\\hat{p}_{k-1}(x),\n        \\qquad k = 1, 2, \\dots, n-1,\n\\] where \\(\\hat{p}_{0}(x) = 1, \\hat{p}_{1}(x) = x\\). The corresponding normalised polynomials are given by \\[\n    p_{k}(x) := \\frac{\\hat{p}_{k}(x)}{2k+1},\n        \\qquad k = 0, 1, \\dots, n.\n\\]\nThe polynomials are orthonormal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]\nWe use Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the Legendre representation of (the square root of) the target density function.",
-    "crumbs": [
-      "API Reference",
-      "Basis Functions",
-      "Legendre"
-    ]
-  },
-  {
-    "objectID": "reference/run_independence_sampler.html",
-    "href": "reference/run_independence_sampler.html",
-    "title": "run_independence_sampler",
-    "section": "",
-    "text": "run_independence_sampler(\n    xs: Tensor,\n    neglogfxs_irt: Tensor,\n    neglogfxs_exact: Tensor,\n)\nRuns an independence Metropolis-Hastings sampler.\nRuns an independence Metropolis-Hastings sampler which uses a dirt density as a proposal.\n\n\n\nxs : Tensor\n\nAn \\(n \\times d\\) matrix containing independent samples from the DIRT object.\n\nneglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\n\n\n\n\n\nres : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_independence_sampler"
-    ]
-  },
-  {
-    "objectID": "reference/run_independence_sampler.html#parameters",
-    "href": "reference/run_independence_sampler.html#parameters",
-    "title": "run_independence_sampler",
-    "section": "",
-    "text": "xs : Tensor\n\nAn \\(n \\times d\\) matrix containing independent samples from the DIRT object.\n\nneglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_independence_sampler"
-    ]
-  },
-  {
-    "objectID": "reference/run_independence_sampler.html#returns",
-    "href": "reference/run_independence_sampler.html#returns",
-    "title": "run_independence_sampler",
-    "section": "",
-    "text": "res : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_independence_sampler"
-    ]
-  },
-  {
-    "objectID": "reference/run_importance_sampling.html",
-    "href": "reference/run_importance_sampling.html",
-    "title": "run_importance_sampling",
-    "section": "",
-    "text": "run_importance_sampling(\n    neglogfxs_irt: Tensor,\n    neglogfxs_exact: Tensor,\n    self_normalised: bool = False,\n)\nComputes the importance weights associated with a set of samples.\n\n\n\nneglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\nself_normalised : bool = False\n\nWhether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.\n\n\n\n\n\n\nres : ImportanceSamplingResult\n\nA structure containing the log-importance weights, the estimate of the log-normalising constant of the target density (if self_normalised=False), and the effective sample size.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_importance_sampling"
-    ]
-  },
-  {
-    "objectID": "reference/run_importance_sampling.html#parameters",
-    "href": "reference/run_importance_sampling.html#parameters",
-    "title": "run_importance_sampling",
-    "section": "",
-    "text": "neglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\nself_normalised : bool = False\n\nWhether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_importance_sampling"
-    ]
-  },
-  {
-    "objectID": "reference/run_importance_sampling.html#returns",
-    "href": "reference/run_importance_sampling.html#returns",
-    "title": "run_importance_sampling",
-    "section": "",
-    "text": "res : ImportanceSamplingResult\n\nA structure containing the log-importance weights, the estimate of the log-normalising constant of the target density (if self_normalised=False), and the effective sample size.",
-    "crumbs": [
-      "API Reference",
-      "Debiasing",
-      "run_importance_sampling"
-    ]
-  },
-  {
-    "objectID": "reference/IdentityMapping.html",
-    "href": "reference/IdentityMapping.html",
-    "title": "IdentityMapping",
-    "section": "",
-    "text": "IdentityMapping(self, dim: int, reference: Reference | None = None)\nAn identity mapping.\nThis preconditioner is diagonal.\n\n\n\ndim : int\n\nThe dimension of the target (and reference) random variables.\n\nreference : Reference | None = None\n\nThe reference density. If this is not specified, it will default to the unit Gaussian in \\(d\\) dimensions with support truncated to \\([-4, 4]^{d}\\).",
-    "crumbs": [
-      "API Reference",
-      "Preconditioners",
-      "IdentityMapping"
-    ]
-  },
-  {
-    "objectID": "reference/IdentityMapping.html#parameters",
-    "href": "reference/IdentityMapping.html#parameters",
-    "title": "IdentityMapping",
-    "section": "",
-    "text": "dim : int\n\nThe dimension of the target (and reference) random variables.\n\nreference : Reference | None = None\n\nThe reference density. If this is not specified, it will default to the unit Gaussian in \\(d\\) dimensions with support truncated to \\([-4, 4]^{d}\\).",
-    "crumbs": [
-      "API Reference",
-      "Preconditioners",
-      "IdentityMapping"
-    ]
-  },
-  {
-    "objectID": "reference/UniformReference.html",
-    "href": "reference/UniformReference.html",
-    "title": "UniformReference",
-    "section": "",
-    "text": "UniformReference(self)\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).\n\n\n\n\n\nName\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nUniformReference.random(d: int, n: int)\nGenerates a set of random samples.\nGenerates a set of random samples from the reference density.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to draw.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nUniformReference.sobol(d: int, n: int)\nGenerates a set of QMC samples.\nGenerates a set of QMC samples from the reference density using a Sobol sequence.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
-    "crumbs": [
-      "API Reference",
-      "Reference Densities",
-      "UniformReference"
-    ]
-  },
-  {
-    "objectID": "reference/UniformReference.html#methods",
-    "href": "reference/UniformReference.html#methods",
-    "title": "UniformReference",
-    "section": "",
-    "text": "Name\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nUniformReference.random(d: int, n: int)\nGenerates a set of random samples.\nGenerates a set of random samples from the reference density.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to draw.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nUniformReference.sobol(d: int, n: int)\nGenerates a set of QMC samples.\nGenerates a set of QMC samples from the reference density using a Sobol sequence.\n\n\n\nd : int\n\nThe dimension of the samples.\n\nn : int\n\nThe number of samples to generate.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
-    "crumbs": [
-      "API Reference",
-      "Reference Densities",
-      "UniformReference"
-    ]
-  },
-  {
-    "objectID": "reference/Chebyshev2nd.html",
-    "href": "reference/Chebyshev2nd.html",
-    "title": "Chebyshev2nd",
-    "section": "",
-    "text": "Chebyshev2nd(self, order: int)\nChebyshev polynomials of the second kind.\n\n\n\norder : int\n\nThe maximum order of the polynomials.\n\n\n\n\n\nThe (normalised) Chebyshev polynomials of the second kind, defined on \\((-1, 1)\\), are given by (Boyd 2001) \\[\n    p_{k}(x) = \\frac{\\sin((k+1)\\arccos(x))}{\\sin{(\\arccos(x))}},\n        \\qquad k = 0, 1, \\dots, n.\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{2\\sqrt{1-x^{2}}}{\\pi}.\n\\]",
-    "crumbs": [
-      "API Reference",
-      "Basis Functions",
-      "Chebyshev2nd"
-    ]
-  },
-  {
-    "objectID": "reference/Chebyshev2nd.html#parameters",
-    "href": "reference/Chebyshev2nd.html#parameters",
-    "title": "Chebyshev2nd",
-    "section": "",
-    "text": "order : int\n\nThe maximum order of the polynomials.",
-    "crumbs": [
-      "API Reference",
-      "Basis Functions",
-      "Chebyshev2nd"
-    ]
-  },
-  {
-    "objectID": "reference/Chebyshev2nd.html#notes",
-    "href": "reference/Chebyshev2nd.html#notes",
-    "title": "Chebyshev2nd",
-    "section": "",
-    "text": "The (normalised) Chebyshev polynomials of the second kind, defined on \\((-1, 1)\\), are given by (Boyd 2001) \\[\n    p_{k}(x) = \\frac{\\sin((k+1)\\arccos(x))}{\\sin{(\\arccos(x))}},\n        \\qquad k = 0, 1, \\dots, n.\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{2\\sqrt{1-x^{2}}}{\\pi}.\n\\]",
-    "crumbs": [
-      "API Reference",
-      "Basis Functions",
-      "Chebyshev2nd"
+      "Deep Inverse Rosenblatt Transport",
+      "DIRTOptions"
     ]
   },
   {
@@ -821,27 +561,363 @@
     ]
   },
   {
-    "objectID": "reference/DIRTOptions.html",
-    "href": "reference/DIRTOptions.html",
-    "title": "DIRTOptions",
+    "objectID": "reference/Chebyshev2nd.html",
+    "href": "reference/Chebyshev2nd.html",
+    "title": "Chebyshev2nd",
     "section": "",
-    "text": "DIRTOptions(\n    self,\n    ratio_type: str = 'aratio',\n    num_error_samples: int = 1000,\n    defensive: float = 1e-08,\n    cdf_tol: float = 1e-10,\n    verbose: float = 1,\n)\nOptions for configuring the construction of a DIRT object.\n\n\n\nratio_type : str = 'aratio'\n\nWhether to approximate the approximate ratio function ('aratio') or the exact ratio function ('eratio') when constructing each layer of the DIRT.\n\nnum_error_samples : int = 1000\n\nThe number of samples used to estimate the Hellinger divergence between each bridging density and its DIRT approximation (and to choose the parameters of each bridging density, if these are being chosen adaptively).\n\ndefensive : float = 1e-08\n\nThe defensive term (often referred to as \\(\\gamma\\) or \\(\\tau\\)) used to make the tails of the DIRT approximation to the target density heavier.\n\ncdf_tol : float = 1e-10\n\nThe numerical tolerance used when evaluating the inverse CDFs required to evaluate the (deep) inverse Rosenblatt transport.\n\nverbose : float = 1\n\nIf verbose=0, no information about the construction of the DIRT will be printed. If verbose=1, diagnostic information will be displayed after the construction of each DIRT layer.",
+    "text": "Chebyshev2nd(self, order: int)\nChebyshev polynomials of the second kind.\n\n\n\norder : int\n\nThe maximum order of the polynomials.\n\n\n\n\n\nThe (normalised) Chebyshev polynomials of the second kind, defined on \\((-1, 1)\\), are given by (Boyd 2001) \\[\n    p_{k}(x) = \\frac{\\sin((k+1)\\arccos(x))}{\\sin{(\\arccos(x))}},\n        \\qquad k = 0, 1, \\dots, n.\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{2\\sqrt{1-x^{2}}}{\\pi}.\n\\]",
     "crumbs": [
       "API Reference",
-      "Deep Inverse Rosenblatt Transport",
-      "DIRTOptions"
+      "Basis Functions",
+      "Chebyshev2nd"
     ]
   },
   {
-    "objectID": "reference/DIRTOptions.html#parameters",
-    "href": "reference/DIRTOptions.html#parameters",
-    "title": "DIRTOptions",
+    "objectID": "reference/Chebyshev2nd.html#parameters",
+    "href": "reference/Chebyshev2nd.html#parameters",
+    "title": "Chebyshev2nd",
     "section": "",
-    "text": "ratio_type : str = 'aratio'\n\nWhether to approximate the approximate ratio function ('aratio') or the exact ratio function ('eratio') when constructing each layer of the DIRT.\n\nnum_error_samples : int = 1000\n\nThe number of samples used to estimate the Hellinger divergence between each bridging density and its DIRT approximation (and to choose the parameters of each bridging density, if these are being chosen adaptively).\n\ndefensive : float = 1e-08\n\nThe defensive term (often referred to as \\(\\gamma\\) or \\(\\tau\\)) used to make the tails of the DIRT approximation to the target density heavier.\n\ncdf_tol : float = 1e-10\n\nThe numerical tolerance used when evaluating the inverse CDFs required to evaluate the (deep) inverse Rosenblatt transport.\n\nverbose : float = 1\n\nIf verbose=0, no information about the construction of the DIRT will be printed. If verbose=1, diagnostic information will be displayed after the construction of each DIRT layer.",
+    "text": "order : int\n\nThe maximum order of the polynomials.",
     "crumbs": [
       "API Reference",
-      "Deep Inverse Rosenblatt Transport",
-      "DIRTOptions"
+      "Basis Functions",
+      "Chebyshev2nd"
+    ]
+  },
+  {
+    "objectID": "reference/Chebyshev2nd.html#notes",
+    "href": "reference/Chebyshev2nd.html#notes",
+    "title": "Chebyshev2nd",
+    "section": "",
+    "text": "The (normalised) Chebyshev polynomials of the second kind, defined on \\((-1, 1)\\), are given by (Boyd 2001) \\[\n    p_{k}(x) = \\frac{\\sin((k+1)\\arccos(x))}{\\sin{(\\arccos(x))}},\n        \\qquad k = 0, 1, \\dots, n.\n\\] The polynomials are orthogonal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{2\\sqrt{1-x^{2}}}{\\pi}.\n\\]",
+    "crumbs": [
+      "API Reference",
+      "Basis Functions",
+      "Chebyshev2nd"
+    ]
+  },
+  {
+    "objectID": "reference/UniformReference.html",
+    "href": "reference/UniformReference.html",
+    "title": "UniformReference",
+    "section": "",
+    "text": "UniformReference(self)\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).\n\n\n\n\n\nName\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nUniformReference.random(n: int, d: int)\nGenerates a set of random samples.\n\n\n\nn : int\n\nThe number of samples to draw.\n\nd : int\n\nThe dimension of the samples.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nUniformReference.sobol(n: int, d: int)\nGenerates a set of QMC samples.\n\n\n\nn : int\n\nThe number of samples to generate.\n\nd : int\n\nThe dimension of the samples.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "crumbs": [
+      "API Reference",
+      "Reference Densities",
+      "UniformReference"
+    ]
+  },
+  {
+    "objectID": "reference/UniformReference.html#methods",
+    "href": "reference/UniformReference.html#methods",
+    "title": "UniformReference",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nUniformReference.random(n: int, d: int)\nGenerates a set of random samples.\n\n\n\nn : int\n\nThe number of samples to draw.\n\nd : int\n\nThe dimension of the samples.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nUniformReference.sobol(n: int, d: int)\nGenerates a set of QMC samples.\n\n\n\nn : int\n\nThe number of samples to generate.\n\nd : int\n\nThe dimension of the samples.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "crumbs": [
+      "API Reference",
+      "Reference Densities",
+      "UniformReference"
+    ]
+  },
+  {
+    "objectID": "reference/IdentityMapping.html",
+    "href": "reference/IdentityMapping.html",
+    "title": "IdentityMapping",
+    "section": "",
+    "text": "IdentityMapping(self, dim: int, reference: Reference | None = None)\nAn identity mapping.\nThis preconditioner is diagonal.\n\n\n\ndim : int\n\nThe dimension of the target (and reference) random variables.\n\nreference : Reference | None = None\n\nThe reference density. If this is not specified, it will default to the unit Gaussian in \\(d\\) dimensions with support truncated to \\([-4, 4]^{d}\\).",
+    "crumbs": [
+      "API Reference",
+      "Preconditioners",
+      "IdentityMapping"
+    ]
+  },
+  {
+    "objectID": "reference/IdentityMapping.html#parameters",
+    "href": "reference/IdentityMapping.html#parameters",
+    "title": "IdentityMapping",
+    "section": "",
+    "text": "dim : int\n\nThe dimension of the target (and reference) random variables.\n\nreference : Reference | None = None\n\nThe reference density. If this is not specified, it will default to the unit Gaussian in \\(d\\) dimensions with support truncated to \\([-4, 4]^{d}\\).",
+    "crumbs": [
+      "API Reference",
+      "Preconditioners",
+      "IdentityMapping"
+    ]
+  },
+  {
+    "objectID": "reference/run_importance_sampling.html",
+    "href": "reference/run_importance_sampling.html",
+    "title": "run_importance_sampling",
+    "section": "",
+    "text": "run_importance_sampling(\n    neglogfxs_irt: Tensor,\n    neglogfxs_exact: Tensor,\n    self_normalised: bool = False,\n)\nComputes the importance weights associated with a set of samples.\n\n\n\nneglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\nself_normalised : bool = False\n\nWhether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.\n\n\n\n\n\n\nres : ImportanceSamplingResult\n\nA structure containing the log-importance weights, the estimate of the log-normalising constant of the target density (if self_normalised=False), and the effective sample size.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_importance_sampling"
+    ]
+  },
+  {
+    "objectID": "reference/run_importance_sampling.html#parameters",
+    "href": "reference/run_importance_sampling.html#parameters",
+    "title": "run_importance_sampling",
+    "section": "",
+    "text": "neglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\nself_normalised : bool = False\n\nWhether the target density is normalised. If not, the log of the normalising constant will be estimated using the weights.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_importance_sampling"
+    ]
+  },
+  {
+    "objectID": "reference/run_importance_sampling.html#returns",
+    "href": "reference/run_importance_sampling.html#returns",
+    "title": "run_importance_sampling",
+    "section": "",
+    "text": "res : ImportanceSamplingResult\n\nA structure containing the log-importance weights, the estimate of the log-normalising constant of the target density (if self_normalised=False), and the effective sample size.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_importance_sampling"
+    ]
+  },
+  {
+    "objectID": "reference/run_independence_sampler.html",
+    "href": "reference/run_independence_sampler.html",
+    "title": "run_independence_sampler",
+    "section": "",
+    "text": "run_independence_sampler(\n    xs: Tensor,\n    neglogfxs_irt: Tensor,\n    neglogfxs_exact: Tensor,\n)\nRuns an independence Metropolis-Hastings sampler.\nRuns an independence Metropolis-Hastings sampler which uses a dirt density as a proposal.\n\n\n\nxs : Tensor\n\nAn \\(n \\times d\\) matrix containing independent samples from the DIRT object.\n\nneglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.\n\n\n\n\n\n\nres : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_independence_sampler"
+    ]
+  },
+  {
+    "objectID": "reference/run_independence_sampler.html#parameters",
+    "href": "reference/run_independence_sampler.html#parameters",
+    "title": "run_independence_sampler",
+    "section": "",
+    "text": "xs : Tensor\n\nAn \\(n \\times d\\) matrix containing independent samples from the DIRT object.\n\nneglogfxs_irt : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the DIRT object evaluated at each sample.\n\nneglogfxs_exact : Tensor\n\nAn \\(n\\)-dimensional vector containing the potential function associated with the target density evaluated at each sample.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_independence_sampler"
+    ]
+  },
+  {
+    "objectID": "reference/run_independence_sampler.html#returns",
+    "href": "reference/run_independence_sampler.html#returns",
+    "title": "run_independence_sampler",
+    "section": "",
+    "text": "res : MCMCResult\n\nAn object containing the constructed Markov chain and some diagnostic information.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "run_independence_sampler"
+    ]
+  },
+  {
+    "objectID": "reference/Legendre.html",
+    "href": "reference/Legendre.html",
+    "title": "Legendre",
+    "section": "",
+    "text": "Legendre(self, order: int)\nLegendre polynomials.\n\n\n\norder : int\n\nThe maximum order of the polynomials, \\(n\\).\n\n\n\n\n\nThe Legendre polynomials, defined on \\((-1, 1)\\), are given by the recurrence relation (Boyd 2001) \\[\n    (k+1)\\hat{p}_{k+1}(x) = (2k+1)x\\hat{p}_{k}(x) - k\\hat{p}_{k-1}(x),\n        \\qquad k = 1, 2, \\dots, n-1,\n\\] where \\(\\hat{p}_{0}(x) = 1, \\hat{p}_{1}(x) = x\\). The corresponding normalised polynomials are given by \\[\n    p_{k}(x) := \\frac{\\hat{p}_{k}(x)}{2k+1},\n        \\qquad k = 0, 1, \\dots, n.\n\\]\nThe polynomials are orthonormal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]\nWe use Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the Legendre representation of (the square root of) the target density function.",
+    "crumbs": [
+      "API Reference",
+      "Basis Functions",
+      "Legendre"
+    ]
+  },
+  {
+    "objectID": "reference/Legendre.html#parameters",
+    "href": "reference/Legendre.html#parameters",
+    "title": "Legendre",
+    "section": "",
+    "text": "order : int\n\nThe maximum order of the polynomials, \\(n\\).",
+    "crumbs": [
+      "API Reference",
+      "Basis Functions",
+      "Legendre"
+    ]
+  },
+  {
+    "objectID": "reference/Legendre.html#notes",
+    "href": "reference/Legendre.html#notes",
+    "title": "Legendre",
+    "section": "",
+    "text": "The Legendre polynomials, defined on \\((-1, 1)\\), are given by the recurrence relation (Boyd 2001) \\[\n    (k+1)\\hat{p}_{k+1}(x) = (2k+1)x\\hat{p}_{k}(x) - k\\hat{p}_{k-1}(x),\n        \\qquad k = 1, 2, \\dots, n-1,\n\\] where \\(\\hat{p}_{0}(x) = 1, \\hat{p}_{1}(x) = x\\). The corresponding normalised polynomials are given by \\[\n    p_{k}(x) := \\frac{\\hat{p}_{k}(x)}{2k+1},\n        \\qquad k = 0, 1, \\dots, n.\n\\]\nThe polynomials are orthonormal with respect to the (normalised) weighting function given by \\[\n    \\lambda(x) = \\frac{1}{2}.\n\\]\nWe use Chebyshev polynomials of the second kind to represent the (conditional) CDFs corresponding to the Legendre representation of (the square root of) the target density function.",
+    "crumbs": [
+      "API Reference",
+      "Basis Functions",
+      "Legendre"
+    ]
+  },
+  {
+    "objectID": "reference/ImportanceSamplingResult.html",
+    "href": "reference/ImportanceSamplingResult.html",
+    "title": "ImportanceSamplingResult",
+    "section": "",
+    "text": "ImportanceSamplingResult(\n    self,\n    log_weights: Tensor,\n    log_norm: Tensor,\n    ess: Tensor,\n)\nAn object containing the results of importance sampling.\n\n\n\nlog_weights : Tensor\n\nAn \\(n\\)-dimensional vector containing the unnormalised importance weights associated with a set of samples.\n\nlog_norm : Tensor\n\nAn estimate of the logarithm of the normalising constant associated with the target density.\n\ness : Tensor\n\nAn estimate of the effective sample size.\n\n\n\n\n\nThe effective sample size is computed using the formula \\[\n    N_{\\mathrm{eff}} = \\frac{(\\sum_{i=1}^{n}w_{i})^{2}}{\\sum_{i=1}^{n}w_{i}^{2}},\n\\] where \\(w_{i}\\) denotes the importance weight associated with particle \\(i\\) (see, e.g., Owen 2013).",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "ImportanceSamplingResult"
+    ]
+  },
+  {
+    "objectID": "reference/ImportanceSamplingResult.html#attributes",
+    "href": "reference/ImportanceSamplingResult.html#attributes",
+    "title": "ImportanceSamplingResult",
+    "section": "",
+    "text": "log_weights : Tensor\n\nAn \\(n\\)-dimensional vector containing the unnormalised importance weights associated with a set of samples.\n\nlog_norm : Tensor\n\nAn estimate of the logarithm of the normalising constant associated with the target density.\n\ness : Tensor\n\nAn estimate of the effective sample size.",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "ImportanceSamplingResult"
+    ]
+  },
+  {
+    "objectID": "reference/ImportanceSamplingResult.html#notes",
+    "href": "reference/ImportanceSamplingResult.html#notes",
+    "title": "ImportanceSamplingResult",
+    "section": "",
+    "text": "The effective sample size is computed using the formula \\[\n    N_{\\mathrm{eff}} = \\frac{(\\sum_{i=1}^{n}w_{i})^{2}}{\\sum_{i=1}^{n}w_{i}^{2}},\n\\] where \\(w_{i}\\) denotes the importance weight associated with particle \\(i\\) (see, e.g., Owen 2013).",
+    "crumbs": [
+      "API Reference",
+      "Debiasing",
+      "ImportanceSamplingResult"
+    ]
+  },
+  {
+    "objectID": "reference/Lagrange1.html",
+    "href": "reference/Lagrange1.html",
+    "title": "Lagrange1",
+    "section": "",
+    "text": "Lagrange1(self, num_elems: int)\nPiecewise linear polynomials.\n\n\n\nnum_elems : int\n\nThe number of elements to use.\n\n\n\n\n\nTo construct a piecewise linear basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements. Then, within each element a given function can be represented by \\[\n    f(x) \\approx f(x_{0})\n        + \\frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),\n\\] where \\(x_{0}\\) and \\(x_{1}\\) denote the endpoints of the element.\nWe use piecewise cubic polynomials to represent the (conditional) CDFs corresponding to the piecewise linear representation of (the square root of) the target density function.",
+    "crumbs": [
+      "API Reference",
+      "Basis Functions",
+      "Lagrange1"
+    ]
+  },
+  {
+    "objectID": "reference/Lagrange1.html#parameters",
+    "href": "reference/Lagrange1.html#parameters",
+    "title": "Lagrange1",
+    "section": "",
+    "text": "num_elems : int\n\nThe number of elements to use.",
+    "crumbs": [
+      "API Reference",
+      "Basis Functions",
+      "Lagrange1"
+    ]
+  },
+  {
+    "objectID": "reference/Lagrange1.html#notes",
+    "href": "reference/Lagrange1.html#notes",
+    "title": "Lagrange1",
+    "section": "",
+    "text": "To construct a piecewise linear basis, we divide the interval \\([0, 1]\\) into num_elems equisized elements. Then, within each element a given function can be represented by \\[\n    f(x) \\approx f(x_{0})\n        + \\frac{f(x_{1}) - f(x_{0})}{x_{1} - x_{0}}(x - x_{0}),\n\\] where \\(x_{0}\\) and \\(x_{1}\\) denote the endpoints of the element.\nWe use piecewise cubic polynomials to represent the (conditional) CDFs corresponding to the piecewise linear representation of (the square root of) the target density function.",
+    "crumbs": [
+      "API Reference",
+      "Basis Functions",
+      "Lagrange1"
+    ]
+  },
+  {
+    "objectID": "reference/SingleLayer.html",
+    "href": "reference/SingleLayer.html",
+    "title": "SingleLayer",
+    "section": "",
+    "text": "SingleLayer\nSingleLayer(self)\nConstructs the DIRT using a single layer.\nIn this setting, the DIRT algorithm reduces to the SIRT algorithm; see Cui and Dolgov (2022).\n\n\n\n\n\nReferences\n\nCui, Tiangang, and Sergey Dolgov. 2022. “Deep Composition of Tensor-Trains Using Squared Inverse Rosenblatt Transports.” Foundations of Computational Mathematics 22 (6): 1863–1922. https://doi.org/10.1007/s10208-021-09537-5.",
+    "crumbs": [
+      "API Reference",
+      "Bridges",
+      "SingleLayer"
+    ]
+  },
+  {
+    "objectID": "reference/GaussianReference.html",
+    "href": "reference/GaussianReference.html",
+    "title": "GaussianReference",
+    "section": "",
+    "text": "GaussianReference(self, domain: Domain | None = None)\nThe standard \\(d\\)-dimensional Gaussian density, \\(\\mathcal{N}(\\boldsymbol{0}_{d}, \\boldsymbol{I}_{d})\\).\nThe density can be truncated to a subinterval of the real numbers in each dimension.\n\n\n\ndomain : Domain | None = None\n\nThe domain on which the density is defined in each dimension.\n\n\n\n\n\n\n\n\nName\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nGaussianReference.random(n: int, d: int)\nGenerates a set of random samples.\n\n\n\nn : int\n\nThe number of samples to draw.\n\nd : int\n\nThe dimension of the samples.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nGaussianReference.sobol(n: int, d: int)\nGenerates a set of QMC samples.\n\n\n\nn : int\n\nThe number of samples to generate.\n\nd : int\n\nThe dimension of the samples.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "crumbs": [
+      "API Reference",
+      "Reference Densities",
+      "GaussianReference"
+    ]
+  },
+  {
+    "objectID": "reference/GaussianReference.html#parameters",
+    "href": "reference/GaussianReference.html#parameters",
+    "title": "GaussianReference",
+    "section": "",
+    "text": "domain : Domain | None = None\n\nThe domain on which the density is defined in each dimension.",
+    "crumbs": [
+      "API Reference",
+      "Reference Densities",
+      "GaussianReference"
+    ]
+  },
+  {
+    "objectID": "reference/GaussianReference.html#methods",
+    "href": "reference/GaussianReference.html#methods",
+    "title": "GaussianReference",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\nrandom\nGenerates a set of random samples.\n\n\nsobol\nGenerates a set of QMC samples.\n\n\n\n\n\nGaussianReference.random(n: int, d: int)\nGenerates a set of random samples.\n\n\n\nn : int\n\nThe number of samples to draw.\n\nd : int\n\nThe dimension of the samples.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.\n\n\n\n\n\n\nGaussianReference.sobol(n: int, d: int)\nGenerates a set of QMC samples.\n\n\n\nn : int\n\nThe number of samples to generate.\n\nd : int\n\nThe dimension of the samples.\n\n\n\n\n\n\nrs : Tensor\n\nAn \\(n \\times d\\) matrix containing the generated samples.",
+    "crumbs": [
+      "API Reference",
+      "Reference Densities",
+      "GaussianReference"
+    ]
+  },
+  {
+    "objectID": "reference/EFTT.html",
+    "href": "reference/EFTT.html",
+    "title": "EFTT",
+    "section": "",
+    "text": "EFTT(self, bases: ApproxBases, tt: TT, options: EFTTOptions | None = None)\nAn extended functional tensor train, defined on \\([-1, 1]^{d}\\).\n\n\n\nbases : ApproxBases\n\nA set of basis functions for each dimension of the EFTT.\n\ntt : TT\n\nA tensor train object.\n\noptions : EFTTOptions | None = None\n\nA set of tuning parameters used during the construction of the EFTT.\n\n\n\n\n\n\nnum_eval : int\n\nThe number of function evaluations required to construct the EFTT.\n\n\n\n\n\n\n\n\nName\nDescription\n\n\n\n\napproximate\nConstructs a FTT approximation to a target function.\n\n\neval\nEvaluates the FTT.\n\n\n\n\n\nEFTT.approximate(\n    target_func: Callable[[Tensor], Tensor],\n    reference: Reference | None = None,\n)\nConstructs a FTT approximation to a target function.\n\n\n\ntarget_func : Callable[[Tensor], Tensor]\n\nThe target function, \\(f : [-1, 1]^{d} \\rightarrow \\mathbb{R}\\).\n\nreference : Reference | None = None\n\nThe reference measure. If provided, this will be used to generate the samples to build the fibre matrix bases and generate the initial index sets for the underlying TT. Otherwise, the samples will be drawn uniformly.\n\n\n\n\n\n\nEFTT.eval(ls: Tensor, direction: Direction | None = None)\nEvaluates the FTT.\nReturns the functional tensor train approximation to the target function for either the first or last \\(k\\) variables, for a set of points mapped to the domain of the basis functions.\n\n\n\nls : Tensor\n\nAn \\(n \\times d\\) matrix containing a set of samples mapped to the domain of the FTT basis functions.\n\ndirection : Direction | None = None\n\nThe direction in which to iterate over the cores.\n\n\n\n\n\n\nGs_prod : Tensor\n\nAn \\(n \\times n_{k}\\) matrix, where each row contains the product of the first or last (depending on direction) \\(k\\) tensor cores evaluated at the corresponding sample in ls.",
+    "crumbs": [
+      "API Reference",
+      "Functional Tensor Trains",
+      "EFTT"
+    ]
+  },
+  {
+    "objectID": "reference/EFTT.html#parameters",
+    "href": "reference/EFTT.html#parameters",
+    "title": "EFTT",
+    "section": "",
+    "text": "bases : ApproxBases\n\nA set of basis functions for each dimension of the EFTT.\n\ntt : TT\n\nA tensor train object.\n\noptions : EFTTOptions | None = None\n\nA set of tuning parameters used during the construction of the EFTT.",
+    "crumbs": [
+      "API Reference",
+      "Functional Tensor Trains",
+      "EFTT"
+    ]
+  },
+  {
+    "objectID": "reference/EFTT.html#attributes",
+    "href": "reference/EFTT.html#attributes",
+    "title": "EFTT",
+    "section": "",
+    "text": "num_eval : int\n\nThe number of function evaluations required to construct the EFTT.",
+    "crumbs": [
+      "API Reference",
+      "Functional Tensor Trains",
+      "EFTT"
+    ]
+  },
+  {
+    "objectID": "reference/EFTT.html#methods",
+    "href": "reference/EFTT.html#methods",
+    "title": "EFTT",
+    "section": "",
+    "text": "Name\nDescription\n\n\n\n\napproximate\nConstructs a FTT approximation to a target function.\n\n\neval\nEvaluates the FTT.\n\n\n\n\n\nEFTT.approximate(\n    target_func: Callable[[Tensor], Tensor],\n    reference: Reference | None = None,\n)\nConstructs a FTT approximation to a target function.\n\n\n\ntarget_func : Callable[[Tensor], Tensor]\n\nThe target function, \\(f : [-1, 1]^{d} \\rightarrow \\mathbb{R}\\).\n\nreference : Reference | None = None\n\nThe reference measure. If provided, this will be used to generate the samples to build the fibre matrix bases and generate the initial index sets for the underlying TT. Otherwise, the samples will be drawn uniformly.\n\n\n\n\n\n\nEFTT.eval(ls: Tensor, direction: Direction | None = None)\nEvaluates the FTT.\nReturns the functional tensor train approximation to the target function for either the first or last \\(k\\) variables, for a set of points mapped to the domain of the basis functions.\n\n\n\nls : Tensor\n\nAn \\(n \\times d\\) matrix containing a set of samples mapped to the domain of the FTT basis functions.\n\ndirection : Direction | None = None\n\nThe direction in which to iterate over the cores.\n\n\n\n\n\n\nGs_prod : Tensor\n\nAn \\(n \\times n_{k}\\) matrix, where each row contains the product of the first or last (depending on direction) \\(k\\) tensor cores evaluated at the corresponding sample in ls.",
+    "crumbs": [
+      "API Reference",
+      "Functional Tensor Trains",
+      "EFTT"
     ]
   },
   {
@@ -1005,7 +1081,7 @@
     "href": "reference/index.html",
     "title": "API Reference",
     "section": "",
-    "text": "An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.\n\n\n\nDIRT\nDeep (squared) inverse Rosenblatt transport.\n\n\nDIRTOptions\nOptions for configuring the construction of a DIRT object.\n\n\n\n\n\n\nFunctions to approximate.\n\n\n\nTargetFunc\nThe negative logarithm of a density function to be approximated.\n\n\nRareEventFunc\nA function for rare event estimation problems.\n\n\n\n\n\n\nInitial guesses for the mapping between the reference random variable and the target random variable.\n\n\n\nPreconditioner\nThe base class for preconditioning mappings.\n\n\nIdentityMapping\nAn identity mapping.\n\n\nUniformMapping\nA mapping between the reference density and a uniform density.\n\n\nGaussianMapping\nA mapping between two Gaussian densities.\n\n\n\n\n\n\nProduct-form reference densities used as part of DIRT construction.\n\n\n\nGaussianReference\nThe standard \\(d\\)-dimensional Gaussian density, \\(\\mathcal{N}(\\boldsymbol{0}_{d}, \\boldsymbol{I}_{d})\\).\n\n\nUniformReference\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).\n\n\n\n\n\n\nMappings between the approximation domain and the basis functions used as part of the functional tensor trains.\n\n\n\nBoundedDomain\nMapping from a bounded domain to \\((-1, 1)\\).\n\n\n\n\n\n\nObjects used to construct functional tensor train approximations.\n\n\n\nFTT\nA functional tensor train.\n\n\nApproxBases\nAn object that contains a polynomial basis in each dimension,\n\n\nTT\nA tensor train factorisation.\n\n\nTTOptions\nOptions for configuring the construction of a TT object.\n\n\n\n\n\n\nBasis functions used for functional tensor train approximations.\n\n\n\nLagrange1\nPiecewise linear polynomials.\n\n\nLagrangeP\nHigher-order piecewise Lagrange polynomials.\n\n\nChebyshev1st\nChebyshev polynomials of the first kind.\n\n\nChebyshev2nd\nChebyshev polynomials of the second kind.\n\n\nFourier\nFourier polynomials.\n\n\nLegendre\nLegendre polynomials.\n\n\n\n\n\n\nObjects used to generate the intermediate densities approximated during DIRT construction.\n\n\n\nSingleLayer\nConstructs the DIRT using a single layer.\n\n\nTempering\nLikelihood tempering.\n\n\nSigmoidSmoothing\nUses a sigmoid function in place of an indicator function.\n\n\n\n\n\n\nFunctions used to remove the bias associated with the use of an approximation to the target density function.\n\n\n\nrun_importance_sampling\nComputes the importance weights associated with a set of samples.\n\n\nrun_independence_sampler\nRuns an independence Metropolis-Hastings sampler.\n\n\nrun_irt_pcn\nRuns a pCN sampler using the DIRT mapping.\n\n\nrun_cirt_pcn\nRuns a pCN sampler using a conditional of the DIRT mapping.\n\n\nImportanceSamplingResult\nAn object containing the results of importance sampling.\n\n\nMCMCResult\nAn object containing a constructed Markov chain.",
+    "text": "An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.\n\n\n\nDIRT\nDeep (squared) inverse Rosenblatt transport.\n\n\nDIRTOptions\nOptions for configuring the construction of a DIRT object.\n\n\n\n\n\n\nFunctions to approximate.\n\n\n\nTargetFunc\nThe negative logarithm of a density function to be approximated.\n\n\nRareEventFunc\nA function for rare event estimation problems.\n\n\n\n\n\n\nInitial guesses for the mapping between the reference random variable and the target random variable.\n\n\n\nPreconditioner\nThe base class for preconditioning mappings.\n\n\nIdentityMapping\nAn identity mapping.\n\n\nUniformMapping\nA mapping between the reference density and a uniform density.\n\n\nGaussianMapping\nA mapping between two Gaussian densities.\n\n\n\n\n\n\nProduct-form reference densities used as part of DIRT construction.\n\n\n\nGaussianReference\nThe standard \\(d\\)-dimensional Gaussian density, \\(\\mathcal{N}(\\boldsymbol{0}_{d}, \\boldsymbol{I}_{d})\\).\n\n\nUniformReference\nThe standard \\(d\\)-dimensional uniform density, \\(\\mathcal{U}([0, 1]^{d})\\).\n\n\n\n\n\n\nMappings between the approximation domain and the basis functions used as part of the functional tensor trains.\n\n\n\nBoundedDomain\nMapping from a bounded domain to \\([-1, 1]\\).\n\n\n\n\n\n\nObjects used to construct functional tensor train approximations.\n\n\n\nFTT\nA functional tensor train, defined on \\([-1, 1]^{d}\\).\n\n\nEFTT\nAn extended functional tensor train, defined on \\([-1, 1]^{d}\\).\n\n\nEFTTOptions\nOptions for configuring the construction of an EFTT object.\n\n\nApproxBases\nAn object that contains a polynomial basis in each dimension,\n\n\nTT\nA tensor train factorisation.\n\n\nTTOptions\nOptions for configuring the construction of a TT object.\n\n\n\n\n\n\nBasis functions used for functional tensor train approximations.\n\n\n\nLagrange1\nPiecewise linear polynomials.\n\n\nLagrangeP\nHigher-order piecewise Lagrange polynomials.\n\n\nChebyshev1st\nChebyshev polynomials of the first kind.\n\n\nChebyshev2nd\nChebyshev polynomials of the second kind.\n\n\nFourier\nFourier polynomials.\n\n\nLegendre\nLegendre polynomials.\n\n\n\n\n\n\nObjects used to generate the intermediate densities approximated during DIRT construction.\n\n\n\nSingleLayer\nConstructs the DIRT using a single layer.\n\n\nTempering\nLikelihood tempering.\n\n\nSigmoidSmoothing\nUses a sigmoid function in place of an indicator function.\n\n\n\n\n\n\nFunctions used to remove the bias associated with the use of an approximation to the target density function.\n\n\n\nrun_importance_sampling\nComputes the importance weights associated with a set of samples.\n\n\nrun_independence_sampler\nRuns an independence Metropolis-Hastings sampler.\n\n\nrun_irt_pcn\nRuns a pCN sampler using the DIRT mapping.\n\n\nrun_cirt_pcn\nRuns a pCN sampler using a conditional of the DIRT mapping.\n\n\nImportanceSamplingResult\nAn object containing the results of importance sampling.\n\n\nMCMCResult\nAn object containing a constructed Markov chain.",
     "crumbs": [
       "API Reference"
     ]
@@ -1055,7 +1131,7 @@
     "href": "reference/index.html#domain-mappings",
     "title": "API Reference",
     "section": "",
-    "text": "Mappings between the approximation domain and the basis functions used as part of the functional tensor trains.\n\n\n\nBoundedDomain\nMapping from a bounded domain to \\((-1, 1)\\).",
+    "text": "Mappings between the approximation domain and the basis functions used as part of the functional tensor trains.\n\n\n\nBoundedDomain\nMapping from a bounded domain to \\([-1, 1]\\).",
     "crumbs": [
       "API Reference"
     ]
@@ -1065,7 +1141,7 @@
     "href": "reference/index.html#functional-tensor-trains",
     "title": "API Reference",
     "section": "",
-    "text": "Objects used to construct functional tensor train approximations.\n\n\n\nFTT\nA functional tensor train.\n\n\nApproxBases\nAn object that contains a polynomial basis in each dimension,\n\n\nTT\nA tensor train factorisation.\n\n\nTTOptions\nOptions for configuring the construction of a TT object.",
+    "text": "Objects used to construct functional tensor train approximations.\n\n\n\nFTT\nA functional tensor train, defined on \\([-1, 1]^{d}\\).\n\n\nEFTT\nAn extended functional tensor train, defined on \\([-1, 1]^{d}\\).\n\n\nEFTTOptions\nOptions for configuring the construction of an EFTT object.\n\n\nApproxBases\nAn object that contains a polynomial basis in each dimension,\n\n\nTT\nA tensor train factorisation.\n\n\nTTOptions\nOptions for configuring the construction of a TT object.",
     "crumbs": [
       "API Reference"
     ]
@@ -1153,7 +1229,7 @@
     "href": "reference/BoundedDomain.html",
     "title": "BoundedDomain",
     "section": "",
-    "text": "BoundedDomain(self, bounds: Tensor | None = None)\nMapping from a bounded domain to \\((-1, 1)\\).\nThis class provides a linear mapping from a bounded domain, \\((x_{0}, x_{1})\\), to \\((-1, 1)\\).\n\n\n\nbounds : Tensor | None = None\n\nA set of bounds, \\((x_{0}, x_{1})\\). The default choice is torch.tensor([-1.0, 1.0]).",
+    "text": "BoundedDomain(self, bounds: Tensor | None = None)\nMapping from a bounded domain to \\([-1, 1]\\).\nThis class provides a linear mapping from a bounded domain, \\([x_{0}, x_{1}]\\), to \\([-1, 1]\\).\n\n\n\nbounds : Tensor | None = None\n\nA set of bounds, \\([x_{0}, x_{1}]\\). The default choice is torch.tensor([-1.0, 1.0]) (in which case the mapping is the identity mapping).",
     "crumbs": [
       "API Reference",
       "Domain Mappings",
@@ -1165,7 +1241,7 @@
     "href": "reference/BoundedDomain.html#parameters",
     "title": "BoundedDomain",
     "section": "",
-    "text": "bounds : Tensor | None = None\n\nA set of bounds, \\((x_{0}, x_{1})\\). The default choice is torch.tensor([-1.0, 1.0]).",
+    "text": "bounds : Tensor | None = None\n\nA set of bounds, \\([x_{0}, x_{1}]\\). The default choice is torch.tensor([-1.0, 1.0]) (in which case the mapping is the identity mapping).",
     "crumbs": [
       "API Reference",
       "Domain Mappings",
@@ -1209,11 +1285,112 @@
     ]
   },
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "Installation",
+    "objectID": "reference/EFTTOptions.html",
+    "href": "reference/EFTTOptions.html",
+    "title": "EFTTOptions",
     "section": "",
-    "text": "The \\(\\texttt{deep\\_tensor}\\) package contains a PyTorch implementation of the deep inverse Rosenblatt transport (DIRT) algorithm introduced by Cui and Dolgov (2022).\n\n\n\n\n\n\nWarning\n\n\n\nThis package is currently in a developmental state. Some parts of the API may change without warning in future releases.\n\n\n\nInstallation\n\\(\\texttt{deep\\_tensor}\\) can be installed using pip:\n\npip install deep-tensor-py\n\nThe package can then be imported using\n\nimport deep_tensor as dt\n\n\n\nGetting Started\nCheck out the examples page and API reference for help getting started with \\(\\texttt{deep\\_tensor}\\).\n\n\n\n\n\nReferences\n\nCui, Tiangang, and Sergey Dolgov. 2022. “Deep Composition of Tensor-Trains Using Squared Inverse Rosenblatt Transports.” Foundations of Computational Mathematics 22 (6): 1863–1922. https://doi.org/10.1007/s10208-021-09537-5."
+    "text": "EFTTOptions(\n    self,\n    num_error_samples: int = 1000,\n    fibre_method: str = 'random',\n    tol_svd: float = 1e-12,\n    num_aca: int = 50,\n    tol_aca: float = 1e-10,\n    max_fibres: int = 30,\n    num_snapshots: int = 30,\n)\nOptions for configuring the construction of an EFTT object.\n\n\n\nnum_error_samples : int = 1000\n\nThe number of samples to use when estimating the \\(L^{2}\\) error of the FTT approximation to the target function at each iteration.\n\nfibre_method : str = 'random'\n\nThe method used to compute a set of mode-\\(k\\) fibres in each dimension \\(k \\in \\{1, \\dots, d\\}\\). This can be \"aca\" (apply adaptive cross approximation, as in Strössner, Sun, and Kressner 2024), or \"random\" (choose a set of fibres at random).\n\ntol_svd : float = 1e-12\n\nThe threshold to use when applying truncated SVD to compute an (approximate) orthogonal basis for the mode-\\(k\\) fibres in each dimension. The minimum number of singular values such that their sum exceeds (\\(1-\\) tol_svd) will be retained.\n\nnum_aca : int = 50\n\nIf fibre_method=\"aca\", the number of elements of the fibre matrix to sample at each iteration when selecting a new pivot element.\n\ntol_aca : float = 1e-10\n\nIf fibre_method=\"aca\", the stopping tolerance, \\(\\epsilon\\), to use. More concretely, if \\(\\mathcal{S}\\) denotes a set of randomly-sampled indices of the mode-\\(k\\) fibre matrix \\(\\boldsymbol{M}\\) (and \\(\\mathcal{I}\\) and \\(\\mathcal{J}\\) denote the current sets of row and column indices), the iteration is considered finished when \\[     \\max_{(i, j) \\in \\mathcal{S}}\\|R_{ij}\\| &lt; \\epsilon, \\] where the residual matrix \\(\\boldsymbol{R}\\) is given by \\[     \\boldsymbol{R} =          \\boldsymbol{M} - \\boldsymbol{M}[:, \\mathcal{J}]             \\boldsymbol{M}[\\mathcal{I}, \\mathcal{J}]^{-1}             \\boldsymbol{M}[\\mathcal{I}, :]. \\]\n\nmax_fibres : int = 30\n\nIf fibre_method=\"aca\", the maximum number of fibres to sample.\n\nnum_snapshots : int = 30\n\nIf fibre_method=\"random\", the number of snapshots to sample.",
+    "crumbs": [
+      "API Reference",
+      "Functional Tensor Trains",
+      "EFTTOptions"
+    ]
+  },
+  {
+    "objectID": "reference/EFTTOptions.html#parameters",
+    "href": "reference/EFTTOptions.html#parameters",
+    "title": "EFTTOptions",
+    "section": "",
+    "text": "num_error_samples : int = 1000\n\nThe number of samples to use when estimating the \\(L^{2}\\) error of the FTT approximation to the target function at each iteration.\n\nfibre_method : str = 'random'\n\nThe method used to compute a set of mode-\\(k\\) fibres in each dimension \\(k \\in \\{1, \\dots, d\\}\\). This can be \"aca\" (apply adaptive cross approximation, as in Strössner, Sun, and Kressner 2024), or \"random\" (choose a set of fibres at random).\n\ntol_svd : float = 1e-12\n\nThe threshold to use when applying truncated SVD to compute an (approximate) orthogonal basis for the mode-\\(k\\) fibres in each dimension. The minimum number of singular values such that their sum exceeds (\\(1-\\) tol_svd) will be retained.\n\nnum_aca : int = 50\n\nIf fibre_method=\"aca\", the number of elements of the fibre matrix to sample at each iteration when selecting a new pivot element.\n\ntol_aca : float = 1e-10\n\nIf fibre_method=\"aca\", the stopping tolerance, \\(\\epsilon\\), to use. More concretely, if \\(\\mathcal{S}\\) denotes a set of randomly-sampled indices of the mode-\\(k\\) fibre matrix \\(\\boldsymbol{M}\\) (and \\(\\mathcal{I}\\) and \\(\\mathcal{J}\\) denote the current sets of row and column indices), the iteration is considered finished when \\[     \\max_{(i, j) \\in \\mathcal{S}}\\|R_{ij}\\| &lt; \\epsilon, \\] where the residual matrix \\(\\boldsymbol{R}\\) is given by \\[     \\boldsymbol{R} =          \\boldsymbol{M} - \\boldsymbol{M}[:, \\mathcal{J}]             \\boldsymbol{M}[\\mathcal{I}, \\mathcal{J}]^{-1}             \\boldsymbol{M}[\\mathcal{I}, :]. \\]\n\nmax_fibres : int = 30\n\nIf fibre_method=\"aca\", the maximum number of fibres to sample.\n\nnum_snapshots : int = 30\n\nIf fibre_method=\"random\", the number of snapshots to sample.",
+    "crumbs": [
+      "API Reference",
+      "Functional Tensor Trains",
+      "EFTTOptions"
+    ]
+  },
+  {
+    "objectID": "examples/poisson/example_amortised.html",
+    "href": "examples/poisson/example_amortised.html",
+    "title": "Poisson Equation",
+    "section": "",
+    "text": "In this example, we illustrate how we can build a DIRT to perform (approximate) amortised inference. The key idea is to build a DIRT approximation to the joint density of the observations and parameters; then, as a consequence of the triangular structure of the DIRT mapping, we can sample from the DIRT approximation to the posterior of the parameters, for any realisation of the observations, in real time. For further details on the ideas behind amortised inference, see Cui, Dolgov, and Zahm (2023).",
+    "crumbs": [
+      "Examples",
+      "Amortised Inference",
+      "Poisson Equation"
+    ]
+  },
+  {
+    "objectID": "examples/poisson/example_amortised.html#problem-setup",
+    "href": "examples/poisson/example_amortised.html#problem-setup",
+    "title": "Poisson Equation",
+    "section": "Problem Setup",
+    "text": "Problem Setup\nWe consider the Poisson equation defined in domain \\(\\Omega := (0, 1) \\times (0, 1)\\), with boundary denoted by \\(\\partial \\Omega\\); that is,\n\\[\n  \\nabla \\cdot (\\kappa(\\boldsymbol{x}) \\nabla u(\\boldsymbol{x})) = 0, \\quad \\boldsymbol{x} \\in \\Omega.\n\\]\nThis equation can be used to model the flow of fluid in a porous medium, in which case \\(u(\\boldsymbol{x})\\) denotes the fluid pressure and \\(\\kappa(\\boldsymbol{x})\\) denotes the diffusion coefficient. Following Cui et al. (2025), we impose the boundary conditions\n\\[\n\\begin{align*}\n    u(\\boldsymbol{x}) &= 1 + \\frac{x_{1}}{2}, \\qquad &&\\boldsymbol{x} \\in \\partial\\Omega_{\\mathrm{L}}, \\\\\n    u(\\boldsymbol{x}) &= -\\sin(2\\pi x_{2}) - 1, \\qquad &&\\boldsymbol{x} \\in \\partial\\Omega_{\\mathrm{R}}, \\\\\n    (\\kappa(\\boldsymbol{x}) u(\\boldsymbol{x})) \\cdot \\boldsymbol{n} &= 0, \\qquad &&\\boldsymbol{x} \\in \\partial\\Omega_{\\mathrm{T}} \\cup \\partial\\Omega_{\\mathrm{B}}.\n\\end{align*}\n\\]\nIn the above, \\(\\partial\\Omega_{\\mathrm{L}}\\), \\(\\partial\\Omega_{\\mathrm{R}}\\), \\(\\partial\\Omega_{\\mathrm{T}}\\), and \\(\\partial\\Omega_{\\mathrm{B}}\\) denote the left, right, top and bottom boundaries respectively, and \\(\\boldsymbol{n}\\) denotes the outward-facing normal vector on the boundary.",
+    "crumbs": [
+      "Examples",
+      "Amortised Inference",
+      "Poisson Equation"
+    ]
+  },
+  {
+    "objectID": "examples/poisson/example_amortised.html#prior-density",
+    "href": "examples/poisson/example_amortised.html#prior-density",
+    "title": "Poisson Equation",
+    "section": "Prior Density",
+    "text": "Prior Density\nWe endow the logarithm of the unknown diffusion coefficient with a process convolution prior; that is,\n\\[\n    \\log(\\kappa(\\boldsymbol{x})) = \\log(\\bar{\\kappa}(\\boldsymbol{x})) + \\sum_{i=1}^{d} \\xi^{(i)} \\exp\\left(-\\frac{1}{2r^{2}}\\left\\lVert\\boldsymbol{x} - \\boldsymbol{x}^{(i)}\\right\\rVert^{2}\\right),\n\\]\nwhere \\(d=9\\), \\(\\log(\\bar{\\kappa}(\\boldsymbol{x})) = 0\\), \\(r=1/20\\), the coefficients \\(\\{\\xi^{(i)}\\}_{i=1}^{d}\\) are independent and follow the unit Gaussian distribution, and the centres of the kernel functions, \\(\\{\\boldsymbol{x}^{(i)}\\}_{i=1}^{d}\\), are equispaced over the domain (see Figure 1).",
+    "crumbs": [
+      "Examples",
+      "Amortised Inference",
+      "Poisson Equation"
+    ]
+  },
+  {
+    "objectID": "examples/poisson/example_amortised.html#data",
+    "href": "examples/poisson/example_amortised.html#data",
+    "title": "Poisson Equation",
+    "section": "Data",
+    "text": "Data\nWe assume that we will receive four measurements of the fluid pressure, \\(u(\\boldsymbol{x})\\), at locations \\([0.3, 0.3]^{\\top}\\), \\([0.3, 0.7]^{\\top}\\), \\([0.7, 0.3]^{\\top}\\), and \\([0.7, 0.7]^{\\top}\\). All measurements will be corrupted by i.i.d. Gaussian noise with zero mean and a standard deviation of \\(\\sigma = 0.2\\).",
+    "crumbs": [
+      "Examples",
+      "Amortised Inference",
+      "Poisson Equation"
+    ]
+  },
+  {
+    "objectID": "examples/poisson/example_amortised.html#implementation-in-textttdeep_tensor",
+    "href": "examples/poisson/example_amortised.html#implementation-in-textttdeep_tensor",
+    "title": "Poisson Equation",
+    "section": "Implementation in \\(\\texttt{deep\\_tensor}\\)",
+    "text": "Implementation in \\(\\texttt{deep\\_tensor}\\)\n\nfrom matplotlib import pyplot as plt\nimport torch\nfrom torch import Tensor\n\nimport deep_tensor as dt\n\nfrom examples.poisson.setup import setup_poisson_problem\nfrom examples.plotting import (\n    add_arrows, \n    pairplot, \n    plot_dl_function, \n    set_plot_style\n)\n\n\ntorch.manual_seed(0)\ntorch.set_default_device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\nset_plot_style()\n\nWe begin by defining the prior density and forward model. Note that in this example, the forward model is written in FEniCS and discretised on a \\(32 \\times 32\\) mesh.\n\nprior, model = setup_poisson_problem()\n\nFigure 1 shows a set of samples from the prior.\n\n\nCode\nfig, axes = plt.subplots(3, 3, sharex=True, sharey=True, figsize=(6.65, 6.0))\n\nprior_samples = [\n    prior.transform(sample)\n    for sample in prior.sample(n=9)\n]\n\nfor i, ax in enumerate(axes.flat):\n    \n    plot_dl_function(\n        fig, ax, \n        model.vec2func(prior_samples[i]), \n        plot_cbar=(i==5), \n        cbar_label=r\"$\\log(\\kappa(\\bm{x}))$\", \n        cmap=\"magma\",\n        vmin=-4.0, \n        vmax=4.0\n    )\n\n    ax.scatter(*prior.ss.T, c=\"k\", marker=\"x\")\n\n    ax.set_xticks([0.0, 0.5, 1.0])\n    ax.set_yticks([0.0, 0.5, 1.0])\n    ax.tick_params(axis=\"both\", which=\"both\", length=0)\n    ax.set_xlabel(\"$x_{0}$\" if i &gt; 5 else None)\n    ax.set_ylabel(\"$x_{1}$\" if (i % 3) == 0 else None)\n\n\n\n\n\n\n\n\nFigure 1: Samples of \\(\\log(\\kappa(\\boldsymbol{x}))\\) drawn from the prior. The crosses in each plot show the centres of the kernel functions used when defining the prior.",
+    "crumbs": [
+      "Examples",
+      "Amortised Inference",
+      "Poisson Equation"
+    ]
+  },
+  {
+    "objectID": "examples/poisson/example_amortised.html#dirt-construction",
+    "href": "examples/poisson/example_amortised.html#dirt-construction",
+    "title": "Poisson Equation",
+    "section": "DIRT Construction",
+    "text": "DIRT Construction\nWe now construct a DIRT approximation to the joint density of the observations and parameters.\nWe first define a function that returns the potential function of (a quantity proportional to) the joint density.\n\nsd_noise = 0.2\n\ndef neglogjoint(yxs: Tensor) -&gt; Tensor:\n    \"\"\"Evaluates the potential function of (a quantity proportional to) \n    the joint density of the observations and parameters.\n    \"\"\"\n\n    ys_obs, xs = yxs[:, :model.num_obs], yxs[:, model.num_obs:]\n\n    ys = torch.vstack([\n        model.observe(model.solve(prior.transform(x_i)))\n        for x_i in xs\n    ])\n    \n    neglogliks = (0.5 / sd_noise**2) * (ys_obs - ys).square().sum(dim=1)\n    neglogpris = 0.5 * xs.square().sum(dim=1)\n\n    return neglogliks + neglogpris\n\ntarget_func = dt.TargetFunc(neglogjoint)\n\nNext, we specify a preconditioning mapping. Note that in this example, we can easily sample from the joint density of the parameters and observations (by sampling from the prior and applying the forward model to these samples, then adding some synthetic realisations of noise). To create a preconditioner, we will generate a set of samples, fit a Gaussian density to these, and use a coupling between this density and the unit Gaussian density as the initial guess for the DIRT approximation.\nWe begin by generating a set of samples from the joint density. Figure 2 shows a pair plot of the samples of the observations, \\(\\{y_{i}\\}_{i=1}^{4}\\), and the first two parameters, \\(\\{\\xi_{i}\\}_{i=1}^{2}\\).\n\nnum_solves = 5000\n\nx_samples = prior.sample(num_solves)\nlogk_samples = torch.vstack([prior.transform(x_i) for x_i in x_samples])\nnoise_samples = sd_noise * torch.randn((num_solves, model.num_obs))\n\ny_obs_samples = torch.vstack([\n    model.observe(model.solve(logk_samples[i])) + noise_samples[i]\n    for i in range(num_solves)\n])\n\njoint_samples = torch.hstack((y_obs_samples, x_samples))\n\n\n\nCode\nlabels = [r\"$y_{\"+f\"{i+1}\"+r\"}$\" for i in range(4)] + [r\"$\\xi_{\"+f\"{i+1}\"+r\"}$\" for i in range(2)]\npairplot(joint_samples[::5, :6], labels=labels)\n\n\n\n\n\n\n\n\nFigure 2: Samples of the observations, \\(\\{y_{i}\\}_{i=1}^{4}\\), and the first two parameters, \\(\\{\\xi_{i}\\}_{i=1}^{2}\\), drawn from the joint density.\n\n\n\n\n\nWe then fit a Gaussian density to these samples and define the preconditioning mapping.\n\nmean_joint = joint_samples.mean(dim=0)\ncov_joint = joint_samples.T.cov()\ndim_joint = mean_joint.numel()\n\ndomain = dt.BoundedDomain(bounds=torch.tensor([-5.0, 5.0]))\nreference = dt.GaussianReference(domain)\npreconditioner = dt.GaussianMapping(mean_joint, cov_joint, reference)\n\nNext, we construct a functional tensor train (FTT) object.\n\nbasis = dt.Fourier(order=15)\nbases = dt.ApproxBases(basis, dim_joint)\ntt_options = dt.TTOptions(\n    tt_method=\"fixed_rank\", \n    init_rank=7, \n    max_als=1, \n    tol_l2_error=1.0e-01, \n    verbose=0\n)\ntt = dt.TT(tt_options)\nftt = dt.FTT(bases, tt)\n\nWe then define the sequence of bridging densities that will be approximated at each layer of the DIRT construction.\n\nbetas = 10.0 ** torch.linspace(-3.0, 0.0, 10)\nbridge = dt.Tempering(betas)\n\nFinally, we construct the DIRT approximation to the joint density.\n\ndirt = dt.DIRT(target_func, preconditioner, ftt, bridge)\n\n[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 2.62e+00 s | DHell: 0.0000 | Beta: 0.0010 | ESS: 1.0000\n[DIRT] Iter:  2 | Cum. Fevals: 1.87e+04 | Cum. Time: 5.10e+01 s | DHell: 0.0006 | Beta: 0.0022 | ESS: 1.0000\n[DIRT] Iter:  3 | Cum. Fevals: 3.74e+04 | Cum. Time: 1.00e+02 s | DHell: 0.0008 | Beta: 0.0046 | ESS: 1.0000\n[DIRT] Iter:  4 | Cum. Fevals: 5.61e+04 | Cum. Time: 1.51e+02 s | DHell: 0.0013 | Beta: 0.0100 | ESS: 0.9999\n[DIRT] Iter:  5 | Cum. Fevals: 7.48e+04 | Cum. Time: 2.05e+02 s | DHell: 0.0027 | Beta: 0.0215 | ESS: 0.9996\n[DIRT] Iter:  6 | Cum. Fevals: 9.35e+04 | Cum. Time: 2.62e+02 s | DHell: 0.0059 | Beta: 0.0464 | ESS: 0.9980\n[DIRT] Iter:  7 | Cum. Fevals: 1.12e+05 | Cum. Time: 3.29e+02 s | DHell: 0.0097 | Beta: 0.1000 | ESS: 0.9931\n[DIRT] Iter:  8 | Cum. Fevals: 1.31e+05 | Cum. Time: 3.82e+02 s | DHell: 0.0195 | Beta: 0.2154 | ESS: 0.9763\n[DIRT] Iter:  9 | Cum. Fevals: 1.50e+05 | Cum. Time: 4.37e+02 s | DHell: 0.0400 | Beta: 0.4642 | ESS: 0.9181\n[DIRT] Iter: 10 | Cum. Fevals: 1.68e+05 | Cum. Time: 4.91e+02 s | DHell: 0.0749 | Beta: 1.0000 | ESS: 0.7333\n[DIRT] DIRT construction complete.\n[DIRT]  • Layers: 10.\n[DIRT]  • Total function evaluations: 186,960.\n[DIRT]  • Total time: 9.12 mins.\n[DIRT]  • DHell: 0.1643.",
+    "crumbs": [
+      "Examples",
+      "Amortised Inference",
+      "Poisson Equation"
+    ]
+  },
+  {
+    "objectID": "examples/poisson/example_amortised.html#amortised-inference",
+    "href": "examples/poisson/example_amortised.html#amortised-inference",
+    "title": "Poisson Equation",
+    "section": "Amortised Inference",
+    "text": "Amortised Inference\nWe can now use the constructed DIRT object to sample from an approximation to the (parameter) posterior density associated with an arbitrary set of observations.\nThis is done by calling the eval_cirt() method of the DIRT approximation with the set of observations, and a set of samples from the reference density with the same dimension as the parameters. The samples from the reference density will be transformed into samples distributed according to an approximation of the posterior associated with the particular realisation of the data.\n\n# Generate some observations\nx = prior.sample(n=1)\nlogk = prior.transform(x.flatten())\ny_obs = model.observe(model.solve(logk)) + sd_noise * torch.randn(model.num_obs)\n\n# Generate a set of samples from the reference\nnum_conditional_samples = 5000\nrs = dirt.reference.random(n=num_conditional_samples, d=prior.dim)\n\n# Transform the samples such that they are distributed according to the \n# DIRT approximation to the posterior\nxs_cond, neglogfxs_cond_dirt = dirt.eval_cirt(y_obs, rs)\n\nWe can use the DIRT approximation to the posterior to define a proposal density for an MCMC sampler, or for importance sampling. In this example, we will illustrate the use of the DIRT approximation to define proposals for an independence MCMC sampler.\n\ndef neglogpost(xs: Tensor, ys_obs: Tensor) -&gt; Tensor:\n    \"\"\"Evaluates the potential function associated with (a function \n    proportional to) the posterior for a given dataset.\n    \"\"\"\n\n    ys = torch.vstack([\n        model.observe(model.solve(prior.transform(x_i)))\n        for x_i in xs\n    ])\n    \n    neglogliks = (0.5 / sd_noise**2) * (ys_obs - ys).square().sum(dim=1)\n    neglogpris = 0.5 * xs.square().sum(dim=1)\n\n    return neglogliks + neglogpris\n\nneglogfxs_cond_true = neglogpost(xs_cond, y_obs)\n\nres = dt.run_independence_sampler(\n    xs_cond, \n    neglogfxs_cond_dirt, \n    neglogfxs_cond_true\n)\n\nprint(f\"Acceptance rate: {res.acceptance_rate:.2f}.\")\nprint(f\"Mean IACT: {res.iacts.mean():.2f}.\")\nprint(f\"Max IACT: {res.iacts.max():.2f}.\")\n\nAcceptance rate: 0.84.\nMean IACT: 1.85.\nMax IACT: 2.30.\n\n\nThe plots in Figure 3 show the acceptance rate, mean IACT and maximum IACT (across all parameters) for independence MCMC samplers (which use the conditional DIRT to define the proposal density) for 30 random realisations of data. The samplers appear to be quite efficient in most cases.\n\n\nCode\nnum_test_samples = 30\n\nxs_test = prior.sample(num_test_samples)\nlogks_test = torch.vstack([prior.transform(x_i) for x_i in xs_test])\nnoise_test = sd_noise * torch.randn((num_test_samples, model.num_obs))\nys_test = torch.vstack([\n    model.observe(model.solve(logks_test[i])) + noise_test[i]\n    for i in range(num_test_samples)\n])\n\nacceptance_rates = torch.zeros((num_test_samples,))\nmean_iacts = torch.zeros((num_test_samples,))\nmax_iacts = torch.zeros((num_test_samples,))\n\nrs = dirt.reference.random(n=5000, d=prior.dim)\n\nfor i in range(num_test_samples):\n\n    xs_cond, neglogfxs_cond_dirt = dirt.eval_cirt(ys_test[i], rs)\n    neglogfxs_cond_true = neglogpost(xs_cond, ys_test[i])\n\n    res = dt.run_independence_sampler(\n        xs_cond, \n        neglogfxs_cond_dirt, \n        neglogfxs_cond_true\n    )\n\n    acceptance_rates[i] = res.acceptance_rate\n    mean_iacts[i] = res.iacts.mean()\n    max_iacts[i] = res.iacts.max()\n\nfig, axes = plt.subplots(1, 3, figsize=(7, 2.5))\n\naxes[0].hist(acceptance_rates)\naxes[1].hist(mean_iacts)\naxes[2].hist(max_iacts)\n\naxes[0].set_xlabel(\"Acceptance Rate\")\naxes[1].set_xlabel(\"Mean IACT\")\naxes[2].set_xlabel(\"Maximum IACT\")\n\naxes[0].set_ylabel(\"Count\")\n\nfor ax in axes.flat:\n    ax.set_box_aspect(1)\n    add_arrows(ax)\n\n\n\n\n\n\n\n\nFigure 3: The acceptance rate, mean IACT and maximum IACT (across all parameters) for independence MCMC samplers using the conditional DIRT density as the proposal, for 30 random realisations of data.",
+    "crumbs": [
+      "Examples",
+      "Amortised Inference",
+      "Poisson Equation"
+    ]
   },
   {
     "objectID": "examples/sir/example_rare_event.html",
@@ -1328,7 +1505,7 @@
     "href": "examples/sir/example_rare_event.html#rare-event-estimation",
     "title": "SIR Model",
     "section": "Rare Event Estimation",
-    "text": "Rare Event Estimation\nNow that the DIRT approximations to the importance densities have been constructed, we can compute an importance sampling estimate of the rare event probability. We begin by defining a function which computes the ratio \\(\\tilde{R}\\) using a specified number of samples.\n\ndef estimate_rare_event(\n    rare_event_func: dt.TargetFunc,\n    neglogpost_func: dt.TargetFunc,\n    p_tilde: dt.DIRT, \n    q_tilde: dt.DIRT,\n    num_samples: int\n) -&gt; float:\n\n    rs = p_tilde.reference.random(p_tilde.dim, num_samples)\n    xs, neglogevents_dirt = p_tilde.eval_irt(rs)\n    neglogevents_true = rare_event_func(xs)\n\n    P_is = dt.run_importance_sampling(neglogevents_dirt, neglogevents_true)\n    P_hat = P_is.log_weights.exp().mean()\n\n    rs = q_tilde.reference.random(q_tilde.dim, num_samples)\n    xs, neglogposts_dirt = q_tilde.eval_irt(rs)\n    neglogposts_true = neglogpost_func(xs)\n\n    Q_is = dt.run_importance_sampling(neglogposts_dirt, neglogposts_true)\n    Q_hat = Q_is.log_weights.exp().mean()\n\n    R_hat = P_hat / Q_hat\n    return float(R_hat)\n\nWe will then call this function repeatedly to obtain a set of estimates of the rare event probability.\n\nnum_estimates = 20\nnum_samples = 10_000\n\nR_hats = torch.tensor([\n    estimate_rare_event(\n        rare_event_func,\n        neglogpost_func,\n        p_tilde, \n        q_tilde, \n        num_samples\n    ) for _ in range(num_estimates)\n])\n\nprint(f\"Estimate of event probability: {R_hats.mean():.4e}.\")\nprint(f\"Standard deviation of estimate of event probability: {R_hats.std():.4e}.\")\n\nEstimate of event probability: 4.3852e-10.\nStandard deviation of estimate of event probability: 3.8439e-12.",
+    "text": "Rare Event Estimation\nNow that the DIRT approximations to the importance densities have been constructed, we can compute an importance sampling estimate of the rare event probability. We begin by defining a function which computes the ratio \\(\\tilde{R}\\) using a specified number of samples.\n\ndef estimate_rare_event(\n    rare_event_func: dt.TargetFunc,\n    neglogpost_func: dt.TargetFunc,\n    p_tilde: dt.DIRT, \n    q_tilde: dt.DIRT,\n    num_samples: int\n) -&gt; float:\n\n    rs = p_tilde.reference.random(num_samples, p_tilde.dim)\n    xs, neglogevents_dirt = p_tilde.eval_irt(rs)\n    neglogevents_true = rare_event_func(xs)\n\n    P_is = dt.run_importance_sampling(neglogevents_dirt, neglogevents_true)\n    P_hat = P_is.log_weights.exp().mean()\n\n    rs = q_tilde.reference.random(num_samples, q_tilde.dim)\n    xs, neglogposts_dirt = q_tilde.eval_irt(rs)\n    neglogposts_true = neglogpost_func(xs)\n\n    Q_is = dt.run_importance_sampling(neglogposts_dirt, neglogposts_true)\n    Q_hat = Q_is.log_weights.exp().mean()\n\n    R_hat = P_hat / Q_hat\n    return float(R_hat)\n\nWe will then call this function repeatedly to obtain a set of estimates of the rare event probability.\n\nnum_estimates = 20\nnum_samples = 10_000\n\nR_hats = torch.tensor([\n    estimate_rare_event(\n        rare_event_func,\n        neglogpost_func,\n        p_tilde, \n        q_tilde, \n        num_samples\n    ) for _ in range(num_estimates)\n])\n\nprint(f\"Estimate of event probability: {R_hats.mean():.4e}.\")\nprint(f\"Standard deviation of estimate of event probability: {R_hats.std():.4e}.\")\n\nEstimate of event probability: 4.3823e-10.\nStandard deviation of estimate of event probability: 2.9122e-12.",
     "crumbs": [
       "Examples",
       "Rare Event Estimation",
@@ -1376,7 +1553,7 @@
     "href": "examples/heat/example_inference.html#building-the-dirt-object",
     "title": "Heat Equation",
     "section": "Building the DIRT Object",
-    "text": "Building the DIRT Object\nNow we will build a DIRT object to approximate the posterior density of the coefficients, \\(\\{\\xi^{(i)}\\}_{i=1}^{d}\\), used to parametrise the log-diffusion coefficient, for the reduced-order model. We begin by defining functions which return the potential associated with the likelihood and prior.\n\ndef neglogpri(xs: torch.Tensor) -&gt; torch.Tensor:\n    \"\"\"Returns the negative log prior density evaluated a given set of \n    samples.\n    \"\"\"\n    return 0.5 * xs.square().sum(dim=1)\n\ndef negloglik(model, xs: torch.Tensor) -&gt; torch.Tensor:\n    \"\"\"Returns the negative log-likelihood, for a given model, \n    evaluated at each of a set of samples.\n    \"\"\"\n    neglogliks = torch.zeros(xs.shape[0])\n    for i, x in enumerate(xs):\n        k = prior.transform(x)\n        us = model.solve(k)\n        d = model.observe(us)\n        neglogliks[i] = 0.5 * (d - d_obs).square().sum() / var_error\n    return neglogliks\n\ndef neglogpost_full(xs: torch.Tensor) -&gt; torch.Tensor:\n    \"\"\"Returns the negative log-likelihood for the full model (to be \n    used later).\n    \"\"\"\n    return neglogpri(xs) + negloglik(model_full, xs)\n\ndef neglogpost_rom(xs: torch.Tensor) -&gt; torch.Tensor:\n    \"\"\"Returns the negative log-likelihood for the reduced-order model.\"\"\"\n    return neglogpri(xs) + negloglik(model_rom, xs)\n\ntarget_func_rom = dt.TargetFunc(neglogpost_rom)\n\nNext, we specify a preconditioner. Because the prior of the coefficients \\(\\{\\xi^{(i)}\\}_{i=1}^{d}\\) is the standard Gaussian, the mapping between a Gaussian reference and the prior is simply the identity mapping. This is an appropriate choice of preconditioner in the absence of any other information.\n\nreference = dt.GaussianReference()\npreconditioner = dt.IdentityMapping(prior.dim, reference)\n\nNext, we construct a functional tensor train. We will use a piecewise linear basis in each dimension.\n\nbasis = dt.Lagrange1(num_elems=26)\nbases = dt.ApproxBases(basis, dim=prior.dim)\n\ntt_options = dt.TTOptions(max_als=3, init_rank=1)\ntt = dt.TT(tt_options)\nftt = dt.FTT(bases, tt)\n\nFinally, we can construct the DIRT approximation to the posterior of the reduced-order model. We will allow the bridging densities to be determined adaptively.\n\ndirt = dt.DIRT(target_func_rom, preconditioner, ftt)\n\n[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 2.42e+00 s | DHell: 0.0000 | Beta: 0.0001 | ESS: 0.9966\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |    1.00000e+00 |     1.00000e+00 |     8.57e-03\n[ALS]  ALS complete.\n[DIRT] Iter:  2 | Cum. Fevals: 9.94e+03 | Cum. Time: 2.68e+01 s | DHell: 0.0122 | Beta: 0.0103 | ESS: 0.4982\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |    4.44927e-01 |     1.12674e-01 |     4.42e-01\n[ALS]     2 |      29782 |        5 |    3.79323e-01 |     6.13272e-02 |     1.72e-01\n[ALS]     3 |      65935 |        7 |    2.63587e-01 |     2.75966e-02 |     8.46e-02\n[ALS]  ALS complete.\n[DIRT] Iter:  3 | Cum. Fevals: 7.59e+04 | Cum. Time: 1.99e+02 s | DHell: 0.0491 | Beta: 0.0385 | ESS: 0.4848\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |    2.65562e-01 |     8.97591e-02 |     2.33e-01\n[ALS]     2 |      29782 |        5 |    1.68091e-01 |     2.73734e-02 |     7.62e-01\n[ALS]     3 |      65935 |        7 |    5.40052e-02 |     1.18199e-02 |     1.68e-01\n[ALS]  ALS complete.\n[DIRT] Iter:  4 | Cum. Fevals: 1.42e+05 | Cum. Time: 3.81e+02 s | DHell: 0.0768 | Beta: 0.1021 | ESS: 0.4786\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |    8.44623e-01 |     8.47375e-02 |     3.07e-01\n[ALS]     2 |      29782 |        5 |    9.74457e-02 |     2.52641e-02 |     3.24e-01\n[ALS]  ALS complete.\n[DIRT] Iter:  5 | Cum. Fevals: 1.72e+05 | Cum. Time: 4.64e+02 s | DHell: 0.1124 | Beta: 0.2122 | ESS: 0.4896\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |    1.07057e+00 |     9.08789e-02 |     4.82e-01\n[ALS]     2 |      29782 |        5 |    1.01153e-01 |     2.63758e-02 |     2.98e-01\n[ALS]     3 |      65935 |        7 |    3.99190e-02 |     1.36755e-02 |     3.52e-01\n[ALS]  ALS complete.\n[DIRT] Iter:  6 | Cum. Fevals: 2.38e+05 | Cum. Time: 6.38e+02 s | DHell: 0.1191 | Beta: 0.4201 | ESS: 0.4656\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |    3.77990e+00 |     1.93678e-01 |     4.12e+00\n[ALS]     2 |      29782 |        5 |    1.16897e-01 |     2.53153e-02 |     3.38e+00\n[ALS]     3 |      65935 |        7 |    5.03802e-02 |     1.34956e-02 |     3.81e+00\n[ALS]  ALS complete.\n[DIRT] Iter:  7 | Cum. Fevals: 3.03e+05 | Cum. Time: 8.23e+02 s | DHell: 0.1380 | Beta: 0.7545 | ESS: 0.4831\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |    6.67717e+00 |     2.86447e-01 |     2.37e+00\n[ALS]     2 |      29782 |        5 |    1.12010e-01 |     2.89761e-02 |     3.55e+00\n[ALS]     3 |      65935 |        7 |    5.27863e-02 |     1.70419e-02 |     4.51e+00\n[ALS]  ALS complete.\n[DIRT] Iter:  8 | Cum. Fevals: 3.69e+05 | Cum. Time: 1.03e+03 s | DHell: 0.1691 | Beta: 1.0000 | ESS: 0.6083\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |    8.07620e-01 |     7.42857e-02 |     9.98e+04\n[ALS]     2 |      29782 |        5 |    6.73688e-02 |     2.32708e-02 |     1.01e+05\n[ALS]  ALS complete.\n[DIRT] DIRT construction complete.\n[DIRT]  • Layers: 8.\n[DIRT]  • Total function evaluations: 399,176.\n[DIRT]  • Total time: 19.21 mins.\n[DIRT]  • DHell: 0.1928.",
+    "text": "Building the DIRT Object\nNow we will build a DIRT object to approximate the posterior density of the coefficients, \\(\\{\\xi^{(i)}\\}_{i=1}^{d}\\), used to parametrise the log-diffusion coefficient, for the reduced-order model. We begin by defining functions which return the potential associated with the likelihood and prior.\n\ndef neglogpri(xs: torch.Tensor) -&gt; torch.Tensor:\n    \"\"\"Returns the negative log prior density evaluated a given set of \n    samples.\n    \"\"\"\n    return 0.5 * xs.square().sum(dim=1)\n\ndef negloglik(model, xs: torch.Tensor) -&gt; torch.Tensor:\n    \"\"\"Returns the negative log-likelihood, for a given model, \n    evaluated at each of a set of samples.\n    \"\"\"\n    neglogliks = torch.zeros(xs.shape[0])\n    for i, x in enumerate(xs):\n        k = prior.transform(x)\n        us = model.solve(k)\n        d = model.observe(us)\n        neglogliks[i] = 0.5 * (d - d_obs).square().sum() / var_error\n    return neglogliks\n\ndef neglogpost_full(xs: torch.Tensor) -&gt; torch.Tensor:\n    \"\"\"Returns the negative log-likelihood for the full model (to be \n    used later).\n    \"\"\"\n    return neglogpri(xs) + negloglik(model_full, xs)\n\ndef neglogpost_rom(xs: torch.Tensor) -&gt; torch.Tensor:\n    \"\"\"Returns the negative log-likelihood for the reduced-order model.\"\"\"\n    return neglogpri(xs) + negloglik(model_rom, xs)\n\ntarget_func_rom = dt.TargetFunc(neglogpost_rom)\n\nNext, we specify a preconditioner. Because the prior of the coefficients \\(\\{\\xi^{(i)}\\}_{i=1}^{d}\\) is the standard Gaussian, the mapping between a Gaussian reference and the prior is simply the identity mapping. This is an appropriate choice of preconditioner in the absence of any other information.\n\nreference = dt.GaussianReference()\npreconditioner = dt.IdentityMapping(prior.dim, reference)\n\nNext, we construct a functional tensor train. We will use a piecewise linear basis in each dimension.\n\nbasis = dt.Lagrange1(num_elems=26)\nbases = dt.ApproxBases(basis, dim=prior.dim)\n\ntt_options = dt.TTOptions(max_als=3, init_rank=1)\ntt = dt.TT(tt_options)\nftt = dt.FTT(bases, tt)\n\nFinally, we can construct the DIRT approximation to the posterior of the reduced-order model. We will allow the bridging densities to be determined adaptively.\n\ndirt = dt.DIRT(target_func_rom, preconditioner, ftt)\n\n[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 2.03e+00 s | DHell: 0.0000 | Beta: 0.0001 | ESS: 0.9966\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |       1.00e+00 |        1.00e+00 | 2.70e-02\n[ALS]     2 |      29782 |        5 |       9.20e-03 |        8.19e-04 | 1.60e-02\n[ALS]     3 |      65935 |        7 |       6.14e-04 |        1.13e-04 | 1.75e-02\n[ALS]  ALS complete.\n[DIRT] Iter:  2 | Cum. Fevals: 6.59e+04 | Cum. Time: 1.39e+02 s | DHell: 0.0115 | Beta: 0.0103 | ESS: 0.4981\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |       4.40e-01 |        1.14e-01 | 8.41e-01\n[ALS]     2 |      29782 |        5 |       4.65e-01 |        6.50e-02 | 1.88e-01\n[ALS]     3 |      65935 |        7 |       2.23e-01 |        2.66e-02 | 2.79e-01\n[ALS]  ALS complete.\n[DIRT] Iter:  3 | Cum. Fevals: 1.32e+05 | Cum. Time: 2.78e+02 s | DHell: 0.0454 | Beta: 0.0385 | ESS: 0.4876\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |       3.19e-01 |        9.03e-02 | 3.80e-01\n[ALS]     2 |      29782 |        5 |       2.72e-01 |        3.40e-02 | 3.42e-01\n[ALS]     3 |      65935 |        7 |       8.12e-02 |        1.34e-02 | 6.88e-01\n[ALS]  ALS complete.\n[DIRT] Iter:  4 | Cum. Fevals: 1.98e+05 | Cum. Time: 4.23e+02 s | DHell: 0.0665 | Beta: 0.1021 | ESS: 0.4926\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |       8.55e-01 |        8.95e-02 | 2.00e-01\n[ALS]     2 |      29782 |        5 |       1.12e-01 |        2.42e-02 | 1.80e-01\n[ALS]     3 |      65935 |        7 |       7.19e-02 |        1.47e-02 | 2.58e-01\n[ALS]  ALS complete.\n[DIRT] Iter:  5 | Cum. Fevals: 2.64e+05 | Cum. Time: 5.83e+02 s | DHell: 0.0832 | Beta: 0.2228 | ESS: 0.4822\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |       1.59e+00 |        1.13e-01 | 8.65e-01\n[ALS]     2 |      29782 |        5 |       1.00e-01 |        3.53e-02 | 9.02e-01\n[ALS]     3 |      65935 |        7 |       6.20e-02 |        1.81e-02 | 7.44e-01\n[ALS]  ALS complete.\n[DIRT] Iter:  6 | Cum. Fevals: 3.30e+05 | Cum. Time: 7.54e+02 s | DHell: 0.0977 | Beta: 0.4411 | ESS: 0.4649\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |       3.66e+00 |        1.89e-01 | 9.92e-01\n[ALS]     2 |      29782 |        5 |       9.26e-02 |        2.91e-02 | 1.70e-01\n[ALS]     3 |      65935 |        7 |       5.17e-02 |        1.47e-02 | 2.97e-01\n[ALS]  ALS complete.\n[DIRT] Iter:  7 | Cum. Fevals: 3.96e+05 | Cum. Time: 9.23e+02 s | DHell: 0.1111 | Beta: 0.7922 | ESS: 0.4845\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |       7.48e+00 |        3.24e-01 | 7.56e+03\n[ALS]     2 |      29782 |        5 |       1.13e-01 |        2.76e-02 | 1.15e+04\n[ALS]     3 |      65935 |        7 |       4.07e-02 |        1.41e-02 | 1.13e+04\n[ALS]  ALS complete.\n[DIRT] Iter:  8 | Cum. Fevals: 4.62e+05 | Cum. Time: 1.10e+03 s | DHell: 0.1413 | Beta: 1.0000 | ESS: 0.7592\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |       9937 |        3 |       9.22e-01 |        7.57e-02 | 4.40e-01\n[ALS]     2 |      29782 |        5 |       4.83e-02 |        2.40e-02 | 8.44e-02\n[ALS]     3 |      65935 |        7 |       5.16e-02 |        1.83e-02 | 6.30e-02\n[ALS]  ALS complete.\n[DIRT] DIRT construction complete.\n[DIRT]  • Layers: 8.\n[DIRT]  • Total function evaluations: 527,480.\n[DIRT]  • Total time: 21.18 mins.\n[DIRT]  • DHell: 0.1568.",
     "crumbs": [
       "Examples",
       "Bayesian Inference",
@@ -1388,7 +1565,7 @@
     "href": "examples/heat/example_inference.html#debiasing",
     "title": "Heat Equation",
     "section": "Debiasing",
-    "text": "Debiasing\nWe will now use the DIRT density as the proposal density for an independence MCMC sampler. This will allow us to sample exactly from the posterior associated with the full model.\n\n# Generate a set of samples from the DIRT density\nrs = dirt.reference.random(d=dirt.dim, n=5000)\nxs, potentials_dirt = dirt.eval_irt(rs)\n\n# Evaluate the true potential function (for the full model) at each sample\npotentials_exact = neglogpost_full(xs)\n\n# Run independence sampler\nres = dt.run_independence_sampler(xs, potentials_dirt, potentials_exact)\n\nprint(f\"Acceptance rate: {res.acceptance_rate:.2f}\")\nprint(f\"Mean IACT (all parameters): {res.iacts.mean():.2f}\")\nprint(f\"Maximum IACT (all parameters): {res.iacts.max():.2f}\")\n\nAcceptance rate: 0.71\nMean IACT (all parameters): 2.12\nMaximum IACT (all parameters): 2.55\n\n\nFor all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently. Figure 3 shows trace plots for the log-posterior density and selected parameters, which reinforces this idea.\n\n\nCode\nparameters = torch.hstack((res.potentials[:, None], res.xs[:, 21:23]))\nylabels = [r\"$-\\log(f(x))$\", r\"$\\xi_{22}$\", r\"$\\xi_{23}$\"]\n\nfig, axes = plt.subplots(1, 3, figsize=(7.5, 3))\n\nfor i, ax in enumerate(axes):\n    ax.plot(parameters[:, i], c=\"tab:red\", lw=0.5)\n    ax.set_ylabel(ylabels[i])\n    ax.set_box_aspect(1)\n    add_arrows(ax)\n\naxes[1].set_xlabel(\"Iteration\")\nplt.show()\n\n\n\n\n\n\n\n\nFigure 3: Trace plots for the negative log-posterior density (left), and coefficients \\(\\xi_{22}\\) (centre) and \\(\\xi_{23}\\) (right).\n\n\n\n\n\nFinally, Figure 4 shows a set of prior and posterior samples for three selected coefficients. It is evident that the posterior is significantly different to the prior.\n\n\nCode\nxs_pri = dirt.reference.random(d=dirt.dim, n=1000)\nxs_post = res.xs[::10]\n\nlabels = [r\"$\\xi_{\"+f\"{i}\"+r\"}$\" for i in range(22, 25)]\nbounds = torch.tensor([[-4.0, 4.0], [-4.0, 4.0], [-4.0, 4.0]])\n\npairplot(\n    xs_post[:, 21:24], \n    xs_pri[:, 21:24], \n    truth=xi_true[21:24],\n    labels=labels, \n    x_label=\"Posterior\",\n    y_label=\"Prior\", \n    bounds=bounds\n)\n\n\n\n\n\n\n\n\nFigure 4: A pair plot showing 1000 samples from the prior and posterior of three selected coefficients, as well as the true values.",
+    "text": "Debiasing\nWe will now use the DIRT density as the proposal density for an independence MCMC sampler. This will allow us to sample exactly from the posterior associated with the full model.\n\n# Generate a set of samples from the DIRT density\nrs = dirt.reference.random(n=5000, d=dirt.dim)\nxs, potentials_dirt = dirt.eval_irt(rs)\n\n# Evaluate the true potential function (for the full model) at each sample\npotentials_exact = neglogpost_full(xs)\n\n# Run independence sampler\nres = dt.run_independence_sampler(xs, potentials_dirt, potentials_exact)\n\nprint(f\"Acceptance rate: {res.acceptance_rate:.2f}\")\nprint(f\"Mean IACT (all parameters): {res.iacts.mean():.2f}\")\nprint(f\"Maximum IACT (all parameters): {res.iacts.max():.2f}\")\n\nAcceptance rate: 0.74\nMean IACT (all parameters): 1.93\nMaximum IACT (all parameters): 2.70\n\n\nFor all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently. Figure 3 shows trace plots for the log-posterior density and selected parameters, which reinforces this idea.\n\n\nCode\nparameters = torch.hstack((res.potentials[:, None], res.xs[:, 21:23]))\nylabels = [r\"$-\\log(f(x))$\", r\"$\\xi_{22}$\", r\"$\\xi_{23}$\"]\n\nfig, axes = plt.subplots(1, 3, figsize=(7.5, 3))\n\nfor i, ax in enumerate(axes):\n    ax.plot(parameters[:, i], c=\"tab:red\", lw=0.5)\n    ax.set_ylabel(ylabels[i])\n    ax.set_box_aspect(1)\n    add_arrows(ax)\n\naxes[1].set_xlabel(\"Iteration\")\nplt.show()\n\n\n\n\n\n\n\n\nFigure 3: Trace plots for the negative log-posterior density (left), and coefficients \\(\\xi_{22}\\) (centre) and \\(\\xi_{23}\\) (right).\n\n\n\n\n\nFinally, Figure 4 shows a set of prior and posterior samples for three selected coefficients. It is evident that the posterior is significantly different to the prior.\n\n\nCode\nxs_pri = dirt.reference.random(n=1000, d=dirt.dim)\nxs_post = res.xs[::10]\n\nlabels = [r\"$\\xi_{\"+f\"{i}\"+r\"}$\" for i in range(22, 25)]\nbounds = torch.tensor([[-4.0, 4.0], [-4.0, 4.0], [-4.0, 4.0]])\n\npairplot(\n    xs_post[:, 21:24], \n    xs_pri[:, 21:24], \n    truth=xi_true[21:24],\n    labels=labels, \n    x_label=\"Posterior\",\n    y_label=\"Prior\", \n    bounds=bounds\n)\n\n\n\n\n\n\n\n\nFigure 4: A pair plot showing 1000 samples from the prior and posterior of three selected coefficients, as well as the true values.",
     "crumbs": [
       "Examples",
       "Bayesian Inference",
@@ -1448,7 +1625,7 @@
     "href": "examples/logistic/example_inference.html#constructing-a-dirt-approximation-to-the-posterior",
     "title": "Logistic Regression",
     "section": "Constructing a DIRT Approximation to the Posterior",
-    "text": "Constructing a DIRT Approximation to the Posterior\nWe now construct a DIRT approximation to the posterior, using the Laplace approximation as part of the preconditioning mapping.\nWe begin by defining the target function.\n\ntarget_func = dt.TargetFunc(neglogpost)\n\nNext, we define the preconditioning mapping. We use a coupling between the standard Gaussian density and a Gaussian with mean and covariance corresponding to the Laplace approximation computed previously.\nNote that we have used a relatively large domain when truncating the support of the reference density (and, therefore, the transformation of the reference density under the preconditioning mapping). It is possible that the posterior is more dispersed than the Laplace approximation would suggest; using a large domain reduces the likelihood of excluding any region of high posterior density when computing the DIRT approximation to the posterior.\n\ndomain = dt.BoundedDomain(torch.tensor([-5.0, 5.0]))\nreference = dt.GaussianReference(domain=domain)\npreconditioner = dt.GaussianMapping(bs_map, cov_map, reference)\n\nNext, we specify the functional tensor train that will be used to approximate each layer of the DIRT. We use a piecewise linear basis in each dimension.\n\nbasis = dt.Lagrange1(num_elems=30)\nbases = dt.ApproxBases(basis, preconditioner.dim)\n\ntt_options = dt.TTOptions(max_als=3, init_rank=1, als_tol=0.0)\ntt = dt.TT(tt_options)\nftt = dt.FTT(bases, tt)\n\nNext, we specify the bridging densities to be used when constructing the DIRT. For this example, we will construct the DIRT approximation to the posterior in a single step.\n\nbridge = dt.SingleLayer()\n\nFinally, we construct the DIRT approximation to the posterior.\n\ndirt = dt.DIRT(target_func, preconditioner, ftt, bridge)\n\n[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 7.01e-02 s\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |      10455 |        3 |       1.00e+00 |        1.00e+00 | 6.04e-01\n[ALS]     2 |      31442 |        5 |       9.73e-02 |        2.33e-02 | 8.53e-01\n[ALS]     3 |      69665 |        7 |       1.35e-02 |        4.46e-03 | 4.90e-01\n[ALS]  ALS complete.\n[DIRT] DIRT construction complete.\n[DIRT]  • Layers: 1.\n[DIRT]  • Total function evaluations: 69,665.\n[DIRT]  • Total time: 5.72 secs.\n[DIRT]  • DHell: 0.0645.",
+    "text": "Constructing a DIRT Approximation to the Posterior\nWe now construct a DIRT approximation to the posterior, using the Laplace approximation as part of the preconditioning mapping.\nWe begin by defining the target function.\n\ntarget_func = dt.TargetFunc(neglogpost)\n\nNext, we define the preconditioning mapping. We use a coupling between the standard Gaussian density and a Gaussian with mean and covariance corresponding to the Laplace approximation computed previously.\nNote that we have used a relatively large domain when truncating the support of the reference density (and, therefore, the transformation of the reference density under the preconditioning mapping). It is possible that the posterior is more dispersed than the Laplace approximation would suggest; using a large domain reduces the likelihood of excluding any region of high posterior density when computing the DIRT approximation to the posterior.\n\ndomain = dt.BoundedDomain(torch.tensor([-5.0, 5.0]))\nreference = dt.GaussianReference(domain=domain)\npreconditioner = dt.GaussianMapping(bs_map, cov_map, reference)\n\nNext, we specify the functional tensor train that will be used to approximate each layer of the DIRT. We use a piecewise linear basis in each dimension.\n\nbasis = dt.Lagrange1(num_elems=30)\nbases = dt.ApproxBases(basis, preconditioner.dim)\n\ntt_options = dt.TTOptions(\n    max_als=3, \n    init_rank=1, \n    tol_l2_error=0.0, \n    tol_max_core_error=0.0\n)\ntt = dt.TT(tt_options)\nftt = dt.FTT(bases, tt)\n\nNext, we specify the bridging densities to be used when constructing the DIRT. For this example, we will construct the DIRT approximation to the posterior in a single step.\n\nbridge = dt.SingleLayer()\n\nFinally, we construct the DIRT approximation to the posterior.\n\ndirt = dt.DIRT(target_func, preconditioner, ftt, bridge)\n\n[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 5.90e-02 s\n[ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error\n[ALS]     1 |      10455 |        3 |       1.00e+00 |        1.00e+00 | 6.51e-02\n[ALS]     2 |      31442 |        5 |       9.73e-02 |        2.33e-02 | 5.00e-01\n[ALS]     3 |      69665 |        7 |       1.35e-02 |        4.46e-03 | 3.63e-01\n[ALS]  ALS complete.\n[DIRT] DIRT construction complete.\n[DIRT]  • Layers: 1.\n[DIRT]  • Total function evaluations: 69,665.\n[DIRT]  • Total time: 5.64 secs.\n[DIRT]  • DHell: 0.0645.",
     "crumbs": [
       "Examples",
       "Bayesian Inference",
@@ -1460,7 +1637,7 @@
     "href": "examples/logistic/example_inference.html#debiasing",
     "title": "Logistic Regression",
     "section": "Debiasing",
-    "text": "Debiasing\nNow, we evaluate the accuracy of the Laplace approximation to the posterior, and the DIRT approximation, by using each to generate proposals for an independence MCMC sampler.\nFirst, we consider the Laplace approximation.\n\nnum_steps = 10_000\n\nlaplace_approx = torch.distributions.MultivariateNormal(bs_map.flatten(), cov_map)\nsamples_laplace = laplace_approx.sample((num_steps,))\npotentials_laplace = -laplace_approx.log_prob(samples_laplace)\npotentials_true = neglogpost(samples_laplace)\n\nres = dt.run_independence_sampler(\n    samples_laplace, \n    potentials_laplace, \n    potentials_true\n)\n\nprint(f\"Acceptance rate: {res.acceptance_rate:.2f}.\")\nprint(f\"Mean IACT: {res.iacts.mean():.2f}.\")\nprint(f\"Max IACT: {res.iacts.max():.2f}.\")\n\nAcceptance rate: 0.69.\nMean IACT: 2.81.\nMax IACT: 4.01.\n\n\nThese results suggest that the Laplace approximation is a reasonably good approximation to the posterior on its own.\nWe now repeat the same analysis using the DIRT approximation to the posterior as the proposal density.\n\nnum_steps = 10_000\n\nrs = dirt.reference.random(d=dirt.dim, n=num_steps)\nsamples_dirt, potentials_dirt = dirt.eval_irt(rs)\npotentials_true = neglogpost(samples_dirt)\n\nres = dt.run_independence_sampler(\n    samples_dirt, \n    potentials_dirt, \n    potentials_true\n)\n\nprint(f\"Acceptance rate: {res.acceptance_rate:.2f}.\")\nprint(f\"Mean IACT: {res.iacts.mean():.2f}.\")\nprint(f\"Max IACT: {res.iacts.max():.2f}.\")\n\nAcceptance rate: 0.90.\nMean IACT: 1.29.\nMax IACT: 1.51.\n\n\nThese results suggest that the efficiency of the independence sampler improves significantly when the DIRT approximation to the posterior is used as the proposal density (of course, the DIRT density has a significantly greater construction cost than the Laplace approximation, which should also be considered).\nFigure 1 shows a set of samples from the posterior for the first four model parameters (in particular, note that the posterior is highly concentrated relative to the prior).\n\n\nCode\nnum_beta_plot = 4\nnum_thin = 10  # take every nth sample\n\nsamples_thinned = samples_dirt[::num_thin, :num_beta_plot]\nlabels = [r\"$\\beta_{\"+f\"{i}\"+r\"}$\" for i in range(num_beta_plot)]\npairplot(samples_thinned, labels=labels)\n\n\n\n\n\n\n\n\nFigure 1: A pair plot showing samples from the posterior.",
+    "text": "Debiasing\nNow, we evaluate the accuracy of the Laplace approximation to the posterior, and the DIRT approximation, by using each to generate proposals for an independence MCMC sampler.\nFirst, we consider the Laplace approximation.\n\nnum_steps = 10_000\n\nlaplace_approx = torch.distributions.MultivariateNormal(bs_map.flatten(), cov_map)\nsamples_laplace = laplace_approx.sample((num_steps,))\npotentials_laplace = -laplace_approx.log_prob(samples_laplace)\npotentials_true = neglogpost(samples_laplace)\n\nres = dt.run_independence_sampler(\n    samples_laplace, \n    potentials_laplace, \n    potentials_true\n)\n\nprint(f\"Acceptance rate: {res.acceptance_rate:.2f}.\")\nprint(f\"Mean IACT: {res.iacts.mean():.2f}.\")\nprint(f\"Max IACT: {res.iacts.max():.2f}.\")\n\nAcceptance rate: 0.69.\nMean IACT: 2.81.\nMax IACT: 4.01.\n\n\nThese results suggest that the Laplace approximation is a reasonably good approximation to the posterior on its own.\nWe now repeat the same analysis using the DIRT approximation to the posterior as the proposal density.\n\nnum_steps = 10_000\n\nrs = dirt.reference.random(n=num_steps, d=dirt.dim)\nsamples_dirt, potentials_dirt = dirt.eval_irt(rs)\npotentials_true = neglogpost(samples_dirt)\n\nres = dt.run_independence_sampler(\n    samples_dirt, \n    potentials_dirt, \n    potentials_true\n)\n\nprint(f\"Acceptance rate: {res.acceptance_rate:.2f}.\")\nprint(f\"Mean IACT: {res.iacts.mean():.2f}.\")\nprint(f\"Max IACT: {res.iacts.max():.2f}.\")\n\nAcceptance rate: 0.90.\nMean IACT: 1.29.\nMax IACT: 1.51.\n\n\nThese results suggest that the efficiency of the independence sampler improves significantly when the DIRT approximation to the posterior is used as the proposal density (of course, the DIRT density has a significantly greater construction cost than the Laplace approximation, which should also be considered).\nFigure 1 shows a set of samples from the posterior for the first four model parameters (in particular, note that the posterior is highly concentrated relative to the prior).\n\n\nCode\nnum_beta_plot = 4\nnum_thin = 10  # take every nth sample\n\nsamples_thinned = samples_dirt[::num_thin, :num_beta_plot]\nlabels = [r\"$\\beta_{\"+f\"{i}\"+r\"}$\" for i in range(num_beta_plot)]\npairplot(samples_thinned, labels=labels)\n\n\n\n\n\n\n\n\nFigure 1: A pair plot showing samples from the posterior.",
     "crumbs": [
       "Examples",
       "Bayesian Inference",

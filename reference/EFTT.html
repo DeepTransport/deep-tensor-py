@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Examples – deep_tensor</title>
+<title>eftt – deep_tensor</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -19,6 +19,41 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -320,7 +355,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../examples/index.html">Examples</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/FTT.html">Functional Tensor Trains</a></li><li class="breadcrumb-item"><a href="../reference/EFTT.html">EFTT</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -330,7 +365,7 @@ window.Quarto = {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header sidebar-header-stacked">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
       <a href="../index.html" class="sidebar-logo-link">
       </a>
       </div>
@@ -338,14 +373,14 @@ window.Quarto = {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/index.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Examples</span></a>
+  <a href="../reference/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">API Reference</span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
- <span class="menu-text">Bayesian Inference</span></a>
+ <span class="menu-text">Deep Inverse Rosenblatt Transport</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -353,26 +388,14 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/sir/example_inference.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">SIR Model</span></a>
+  <a href="../reference/DIRT.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DIRT</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/shock/example_inference.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Shock Absorber</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../examples/logistic/example_inference.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Logistic Regression</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../examples/heat/example_inference.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Heat Equation</span></a>
+  <a href="../reference/DIRTOptions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DIRTOptions</span></a>
   </div>
 </li>
       </ul>
@@ -380,7 +403,7 @@ window.Quarto = {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Rare Event Estimation</span></a>
+ <span class="menu-text">Target Functions</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -388,8 +411,14 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/sir/example_rare_event.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">SIR Model</span></a>
+  <a href="../reference/TargetFunc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TargetFunc</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/RareEventFunc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">RareEventFunc</span></a>
   </div>
 </li>
       </ul>
@@ -397,7 +426,7 @@ window.Quarto = {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
- <span class="menu-text">Amortised Inference</span></a>
+ <span class="menu-text">Preconditioners</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -405,8 +434,236 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/poisson/example_amortised.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Poisson Equation</span></a>
+  <a href="../reference/Preconditioner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preconditioner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/IdentityMapping.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">IdentityMapping</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/UniformMapping.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">UniformMapping</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/GaussianMapping.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GaussianMapping</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Reference Densities</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/GaussianReference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GaussianReference</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/UniformReference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">UniformReference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Domain Mappings</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/BoundedDomain.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">BoundedDomain</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Functional Tensor Trains</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/FTT.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">FTT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/EFTT.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">EFTT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/EFTTOptions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">EFTTOptions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/ApproxBases.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ApproxBases</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/TT.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/TTOptions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TTOptions</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Basis Functions</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Lagrange1.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lagrange1</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/LagrangeP.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">LagrangeP</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Chebyshev1st.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Chebyshev1st</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Chebyshev2nd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Chebyshev2nd</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Fourier.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fourier</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Legendre.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Legendre</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Bridges</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/SingleLayer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SingleLayer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Tempering.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tempering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/SigmoidSmoothing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SigmoidSmoothing</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="true">
+ <span class="menu-text">Debiasing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_importance_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_importance_sampling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_independence_sampler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_independence_sampler</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_irt_pcn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_irt_pcn</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_cirt_pcn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_cirt_pcn</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/ImportanceSamplingResult.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ImportanceSamplingResult</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/MCMCResult.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MCMCResult</span></a>
   </div>
 </li>
       </ul>
@@ -416,36 +673,134 @@ window.Quarto = {
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#deep_tensor.EFTT" id="toc-deep_tensor.EFTT" class="nav-link active" data-scroll-target="#deep_tensor.EFTT">EFTT</a>
+  <ul class="collapse">
+  <li><a href="#parameters" id="toc-parameters" class="nav-link" data-scroll-target="#parameters">Parameters</a></li>
+  <li><a href="#attributes" id="toc-attributes" class="nav-link" data-scroll-target="#attributes">Attributes</a></li>
+  <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a>
+  <ul class="collapse">
+  <li><a href="#deep_tensor.EFTT.approximate" id="toc-deep_tensor.EFTT.approximate" class="nav-link" data-scroll-target="#deep_tensor.EFTT.approximate">approximate</a></li>
+  <li><a href="#deep_tensor.EFTT.eval" id="toc-deep_tensor.EFTT.eval" class="nav-link" data-scroll-target="#deep_tensor.EFTT.eval">eval</a></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
-
-
-<header id="title-block-header" class="quarto-title-block default">
-<div class="quarto-title">
-<h1 class="title">Examples</h1>
-</div>
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/FTT.html">Functional Tensor Trains</a></li><li class="breadcrumb-item"><a href="../reference/EFTT.html">EFTT</a></li></ol></nav></header>
 
 
 
-<div class="quarto-title-meta">
-
-    
-  
-    
-  </div>
-  
 
 
-</header>
+<section id="deep_tensor.EFTT" class="level1">
+<h1>EFTT</h1>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>EFTT(<span class="va">self</span>, bases: ApproxBases, tt: TT, options: EFTTOptions <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>An extended functional tensor train, defined on <span class="math inline">\([-1, 1]^{d}\)</span>.</p>
+<section id="parameters" class="level2 doc-section doc-section-parameters">
+<h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
+<dl>
+<dt><code><span class="parameter-name"><strong>bases</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">ApproxBases</span></code></dt>
+<dd>
+<p>A set of basis functions for each dimension of the EFTT.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>tt</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">TT</span></code></dt>
+<dd>
+<p>A tensor train object.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>options</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">EFTTOptions | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>A set of tuning parameters used during the construction of the EFTT.</p>
+</dd>
+</dl>
+</section>
+<section id="attributes" class="level2 doc-section doc-section-attributes">
+<h2 class="doc-section doc-section-attributes anchored" data-anchor-id="attributes">Attributes</h2>
+<dl>
+<dt><code><span class="parameter-name"><strong>num_eval</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span></code></dt>
+<dd>
+<p>The number of function evaluations required to construct the EFTT.</p>
+</dd>
+</dl>
+</section>
+<section id="methods" class="level2">
+<h2 class="anchored" data-anchor-id="methods">Methods</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="#deep_tensor.EFTT.approximate">approximate</a></td>
+<td>Constructs a FTT approximation to a target function.</td>
+</tr>
+<tr class="even">
+<td><a href="#deep_tensor.EFTT.eval">eval</a></td>
+<td>Evaluates the FTT.</td>
+</tr>
+</tbody>
+</table>
+<section id="deep_tensor.EFTT.approximate" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.EFTT.approximate">approximate</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>EFTT.approximate(</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    target_func: Callable[[Tensor], Tensor],</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    reference: Reference <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Constructs a FTT approximation to a target function.</p>
+<section id="parameters-1" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-1">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>target_func</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Callable[[Tensor], Tensor]</span></code></dt>
+<dd>
+<p>The target function, <span class="math inline">\(f : [-1, 1]^{d} \rightarrow \mathbb{R}\)</span>.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>reference</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Reference | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>The reference measure. If provided, this will be used to generate the samples to build the fibre matrix bases and generate the initial index sets for the underlying TT. Otherwise, the samples will be drawn uniformly.</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="deep_tensor.EFTT.eval" class="level3">
+<h3 class="anchored" data-anchor-id="deep_tensor.EFTT.eval">eval</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>EFTT.<span class="bu">eval</span>(ls: Tensor, direction: Direction <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Evaluates the FTT.</p>
+<p>Returns the functional tensor train approximation to the target function for either the first or last <span class="math inline">\(k\)</span> variables, for a set of points mapped to the domain of the basis functions.</p>
+<section id="parameters-2" class="level4 doc-section doc-section-parameters">
+<h4 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters-2">Parameters</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>ls</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times d\)</span> matrix containing a set of samples mapped to the domain of the FTT basis functions.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>direction</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Direction | None</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">None</span></code></dt>
+<dd>
+<p>The direction in which to iterate over the cores.</p>
+</dd>
+</dl>
+</section>
+<section id="returns" class="level4 doc-section doc-section-returns">
+<h4 class="doc-section doc-section-returns anchored" data-anchor-id="returns">Returns</h4>
+<dl>
+<dt><code><span class="parameter-name"><strong>Gs_prod</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">Tensor</span></code></dt>
+<dd>
+<p>An <span class="math inline">\(n \times n_{k}\)</span> matrix, where each row contains the product of the first or last (depending on direction) <span class="math inline">\(k\)</span> tensor cores evaluated at the corresponding sample in <code>ls</code>.</p>
+</dd>
+</dl>
 
 
-<p>This page contains examples demonstrating the use of <span class="math inline">\(\texttt{deep\_tensor}\)</span>.</p>
-<p>See the <a href="https://github.com/DeepTransport/deep-tensor-py/tree/main/docs/examples">examples</a> directory of the repository for the Jupyter notebooks associated with each example.</p>
-
-
+</section>
+</section>
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

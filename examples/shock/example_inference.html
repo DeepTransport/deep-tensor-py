@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.34">
+<meta name="generator" content="quarto-1.8.24">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -86,18 +86,19 @@ div.csl-indent {
 <meta name="quarto:offset" content="../../">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-befe23ebd2f54d8af2c8a89d1a1611f1.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-b651517ce65839d647a86e2780455cfb.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-97b859373cfbcd8441dbb2234dc23333.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-359ff8416387e9244bb0e835fe8f54f4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-97b859373cfbcd8441dbb2234dc23333.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-066d717c45830c96d01c487e04e63832.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-5d917d4687dc3ea9ae20de9e3066d9b3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-066d717c45830c96d01c487e04e63832.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -140,7 +141,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -327,6 +328,8 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
+    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
+    </a>
     <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">deep_tensor</span>
     </a>
@@ -338,11 +341,11 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../../index.html"> 
+    <a class="nav-link active" href="../../index.html" aria-current="page"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="../../examples/index.html" aria-current="page"> 
+    <a class="nav-link" href="../../examples/index.html"> 
 <span class="menu-text">Examples</span></a>
   </li>  
   <li class="nav-item">
@@ -382,6 +385,10 @@ window.Quarto = {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header sidebar-header-stacked">
+      <a href="../../index.html" class="sidebar-logo-link">
+      </a>
+      </div>
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -438,6 +445,23 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="../../examples/sir/example_rare_event.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">SIR Model</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Amortised Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../examples/poisson/example_amortised.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Poisson Equation</span></a>
   </div>
 </li>
       </ul>
@@ -541,23 +565,23 @@ P(t_{i} | \theta_{1}, \theta_{2}) = \begin{cases}
 <h1>Implementation in <span class="math inline">\(\texttt{deep\_tensor}\)</span></h1>
 <p>We begin by importing the relevant libraries and reading in failure distance data.</p>
 <div id="cell-1" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.shock <span class="im">import</span> GammaNormalMapping, failure_dists, censored</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.plotting <span class="im">import</span> add_arrows, pairplot, set_plot_style</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.plotting <span class="im">import</span> add_arrows, pairplot, set_plot_style</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="cell-2" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">0</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">0</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>torch.set_default_device(<span class="st">"cuda"</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">"cpu"</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Next, we generate a set of (synthetic) covariates for each shock absorber. We will assume there are two covariates. Following <span class="citation" data-cites="Dolgov2020">Dolgov et al. (<a href="#ref-Dolgov2020" role="doc-biblioref">2020</a>)</span>, we will generate these from a Gaussian distribution.</p>
 <div id="cell-4" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate covariates</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate covariates</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>D <span class="op">=</span> <span class="dv">2</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> torch.randn((failure_dists.numel(), D))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> torch.randn((failure_dists.numel(), D))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="dirt-construction" class="level2">
 <h2 class="anchored" data-anchor-id="dirt-construction">DIRT Construction</h2>
@@ -579,7 +603,7 @@ Note
 </div>
 </div>
 <div id="cell-6" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define prior coefficients</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define prior coefficients</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>alpha <span class="op">=</span> <span class="fl">6.8757</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>gamma <span class="op">=</span> <span class="fl">2.2932</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -618,7 +642,7 @@ Note
 <span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>    neglogposts <span class="op">=</span> neglogliks <span class="op">+</span> neglogpris <span class="op">-</span> <span class="fl">120.0</span>  <span class="co"># to avoid underflow</span></span>
 <span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> neglogposts</span>
 <span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>target_func <span class="op">=</span> dt.TargetFunc(neglogpost)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>target_func <span class="op">=</span> dt.TargetFunc(neglogpost)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="preconditioner" class="level3">
@@ -627,7 +651,7 @@ Note
 <p>In this case, the form of the prior means that, given a sample distributed according to the reference density, we can convert it to a sample distributed according to the prior by first transforming the element of the sample corresponding to <span class="math inline">\(\theta_{2}\)</span> such that it has a Gamma density, then transforming the remaining elements of the sample such that they are normally distributed with variance dependent on <span class="math inline">\(\theta_{2}\)</span>.</p>
 <p>Following <span class="citation" data-cites="Dolgov2020">Dolgov et al. (<a href="#ref-Dolgov2020" role="doc-biblioref">2020</a>)</span>, we will construct the mapping such that each coefficient <span class="math inline">\(\beta_{i}\)</span> is bounded within the interval <span class="math inline">\([m_{i}-3\sigma_{i}, m_{i}+3\sigma_{i}]\)</span>, and <span class="math inline">\(\theta_{2}\)</span> is bounded within the interval <span class="math inline">\([0, 13]\)</span>.</p>
 <div id="cell-8" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define bounds for parameters</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define bounds for parameters</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> torch.zeros((D<span class="op">+</span><span class="dv">2</span>, <span class="dv">2</span>))</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>bounds[:<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> torch.vstack((ms <span class="op">-</span> <span class="fl">3.0</span><span class="op">*</span>sds, ms <span class="op">+</span> <span class="fl">3.0</span><span class="op">*</span>sds)).T </span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>bounds[<span class="op">-</span><span class="dv">1</span>] <span class="op">=</span> torch.tensor([<span class="fl">1e-8</span>, <span class="fl">13.0</span>])</span>
@@ -639,19 +663,19 @@ Note
 <span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    reference, bounds, </span>
 <span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    alpha, gamma, </span>
 <span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    ms, sds, dim</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="functional-tensor-train" class="level3">
 <h3 class="anchored" data-anchor-id="functional-tensor-train">Functional Tensor Train</h3>
 <p>Next, we specify a set of basis functions to use when building the functional tensor trains constructed during the DIRT algorithm. In this case, we will use a piecewise linear polynomial with 30 elements as the interpolant in each dimension.</p>
 <div id="cell-10" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>basis <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">30</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>basis <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">30</span>)</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>bases <span class="op">=</span> dt.ApproxBases(basis, dim)</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(max_als<span class="op">=</span><span class="dv">4</span>, init_rank<span class="op">=</span><span class="dv">1</span>)</span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>tt <span class="op">=</span> dt.TT(tt_options)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>ftt <span class="op">=</span> dt.FTT(bases, tt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>ftt <span class="op">=</span> dt.FTT(bases, tt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="bridging-densities" class="level3">
@@ -659,23 +683,23 @@ Note
 <p>Next, we specify the intermediate densities that are approximated during the DIRT algorithm. In this case, as shown in <span class="citation" data-cites="Dolgov2020">Dolgov et al. (<a href="#ref-Dolgov2020" role="doc-biblioref">2020</a>)</span>, the posterior is simple enough that it can be approximated directly (<em>i.e.</em>, using a DIRT with a single layer) with a high accuracy.</p>
 <p>Note that because we are using a single bridging density, the DIRT algorithm reduces to the SIRT (squared inverse Rosenblatt transport) algorithm <span class="citation" data-cites="Cui2022">(see <a href="#ref-Cui2022" role="doc-biblioref">Cui and Dolgov 2022</a>)</span>.</p>
 <div id="cell-12" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>bridge <span class="op">=</span> dt.SingleLayer()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>bridge <span class="op">=</span> dt.SingleLayer()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>We now construct the DIRT object.</p>
 <div id="cell-14" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(target_func, preconditioner, ftt, bridge)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(target_func, preconditioner, ftt, bridge)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 5.01e-01 s
+<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 4.23e-01 s
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       1992 |        3 |       1.00e+00 |        1.00e+00 | 7.11e-01
-[ALS]     2 |       4100 |        5 |       9.82e-01 |        2.63e-01 | 4.67e-01
-[ALS]     3 |       7820 |        7 |       8.10e-01 |        4.43e-01 | 2.06e-01
-[ALS]     4 |      13648 |        9 |       2.48e-01 |        8.45e-02 | 2.06e-01
+[ALS]     1 |       1992 |        3 |       1.00e+00 |        1.00e+00 | 9.98e-01
+[ALS]     2 |       4100 |        5 |       9.82e-01 |        2.63e-01 | 9.39e-01
+[ALS]     3 |       7820 |        7 |       8.10e-01 |        4.43e-01 | 8.39e-02
+[ALS]     4 |      13648 |        9 |       2.48e-01 |        8.45e-02 | 1.51e-01
 [ALS]  ALS complete.
 [DIRT] DIRT construction complete.
 [DIRT]  • Layers: 1.
 [DIRT]  • Total function evaluations: 13,648.
-[DIRT]  • Total time: 3.78 secs.
+[DIRT]  • Total time: 3.84 secs.
 [DIRT]  • DHell: 0.1153.</code></pre>
 </div>
 </div>
@@ -689,8 +713,8 @@ Note
 <h3 class="anchored" data-anchor-id="mcmc-sampling">MCMC Sampling</h3>
 <p>First, we will illustrate how to use the DIRT density as part of an MCMC sampler. The simplest sampler, which we demonstrate here, is an independence sampler using the DIRT density as a proposal density.</p>
 <div id="cell-16" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a set of samples from the DIRT approximation to the posterior</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> reference.random(d<span class="op">=</span>dirt.dim, n<span class="op">=</span><span class="dv">50_000</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a set of samples from the DIRT approximation to the posterior</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> reference.random(n<span class="op">=</span><span class="dv">50_000</span>, d<span class="op">=</span>dirt.dim)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>samples_dirt, potentials_dirt <span class="op">=</span> dirt.eval_irt(rs)</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Run an independence MCMC sampler</span></span>
@@ -699,7 +723,7 @@ Note
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Acceptance rate: </span><span class="sc">{</span>res<span class="sc">.</span>acceptance_rate<span class="sc">:.2f}</span><span class="ss">"</span>)</span>
 <span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Mean IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span>mean()<span class="sc">:.2f}</span><span class="ss">"</span>)</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Max IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Max IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Acceptance rate: 0.83
 Mean IACT: 1.58
@@ -710,7 +734,7 @@ Max IACT: 2.03</code></pre>
 <div id="cell-fig-traces" class="cell" data-execution_count="10">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>parameters <span class="op">=</span> torch.hstack((res.potentials[:, <span class="va">None</span>], res.xs[:, [<span class="dv">0</span>, <span class="dv">3</span>]]))</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>parameters <span class="op">=</span> torch.hstack((res.potentials[:, <span class="va">None</span>], res.xs[:, [<span class="dv">0</span>, <span class="dv">3</span>]]))</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>ylabels <span class="op">=</span> [<span class="vs">r"</span><span class="dv">$</span><span class="vs">-</span><span class="er">\</span><span class="vs">log</span><span class="kw">(</span><span class="vs">f</span><span class="kw">(</span><span class="vs">x</span><span class="kw">))</span><span class="dv">$</span><span class="vs">"</span>, <span class="vs">r"</span><span class="dv">$\b</span><span class="vs">eta_</span><span class="op">{2}</span><span class="dv">$</span><span class="vs">"</span>, <span class="vs">r"</span><span class="dv">$</span><span class="ch">\t</span><span class="vs">heta_</span><span class="op">{2}</span><span class="dv">$</span><span class="vs">"</span>]</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="fl">7.5</span>, <span class="dv">3</span>))</span>
@@ -722,7 +746,7 @@ Max IACT: 2.03</code></pre>
 <span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    add_arrows(ax)</span>
 <span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_xlabel(<span class="st">"Iteration"</span>)</span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="fig-traces" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -741,7 +765,7 @@ Figure&nbsp;1: Trace plots for the negative log-posterior density (left), and co
 <div id="cell-fig-pairs" class="cell" data-execution_count="11">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a set of posterior samples by thinning the chain</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a set of posterior samples by thinning the chain</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>samples_post <span class="op">=</span> res.xs[::<span class="dv">5</span>, :]</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a set of samples from the prior</span></span>
@@ -754,7 +778,7 @@ Figure&nbsp;1: Trace plots for the negative log-posterior density (left), and co
 <span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    labels<span class="op">=</span>labels,</span>
 <span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    x_label<span class="op">=</span><span class="st">"Posterior"</span>,</span>
 <span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    y_label<span class="op">=</span><span class="st">"Prior"</span></span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="fig-pairs" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -774,9 +798,9 @@ Figure&nbsp;2: A pair plot showing 5000 samples from the prior and posterior.
 <h3 class="anchored" data-anchor-id="importance-sampling">Importance Sampling</h3>
 <p>As an alternative to MCMC, we can also apply importance sampling to reweight samples from the DIRT approximation to the posterior appropriately.</p>
 <div id="cell-22" class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_importance_sampling(potentials_dirt, potentials_true)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_importance_sampling(potentials_dirt, potentials_true)</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>ess_ratio <span class="op">=</span> res.ess <span class="op">/</span> potentials_dirt.numel()</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"ESS ratio: </span><span class="sc">{</span>ess_ratio<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"ESS ratio: </span><span class="sc">{</span>ess_ratio<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>ESS ratio: 0.91</code></pre>
 </div>
@@ -790,7 +814,7 @@ Figure&nbsp;2: A pair plot showing 5000 samples from the prior and posterior.
 <div id="cell-fig-bases" class="cell" data-execution_count="13">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>basis_dict <span class="op">=</span> {</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>basis_dict <span class="op">=</span> {</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Fourier"</span>: dt.Fourier,</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Legendre"</span>: dt.Legendre,</span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Piecewise"</span>: dt.Lagrange1</span>
@@ -810,7 +834,7 @@ Figure&nbsp;2: A pair plot showing 5000 samples from the prior and posterior.
 <span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> {name: {<span class="st">"iact"</span>: [], <span class="st">"num_eval"</span>: []} <span class="cf">for</span> name <span class="kw">in</span> basis_dict}</span>
 <span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(max_als<span class="op">=</span><span class="dv">4</span>, init_rank<span class="op">=</span><span class="dv">8</span>, als_tol<span class="op">=</span><span class="fl">0.0</span>, tt_method<span class="op">=</span><span class="st">"fixed_rank"</span>, verbose<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(max_als<span class="op">=</span><span class="dv">4</span>, init_rank<span class="op">=</span><span class="dv">8</span>, tol_l2_error<span class="op">=</span><span class="fl">0.0</span>, tol_max_core_error<span class="op">=</span><span class="fl">0.0</span>, tt_method<span class="op">=</span><span class="st">"fixed_rank"</span>, verbose<span class="op">=</span><span class="dv">0</span>)</span>
 <span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>dirt_options <span class="op">=</span> dt.DIRTOptions(verbose<span class="op">=</span><span class="dv">0</span>)</span>
 <span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name <span class="kw">in</span> basis_dict:</span>
@@ -846,7 +870,7 @@ Figure&nbsp;2: A pair plot showing 5000 samples from the prior and posterior.
 <span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">"center left"</span>, bbox_to_anchor<span class="op">=</span>(<span class="dv">1</span>, <span class="fl">0.5</span>))</span>
 <span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>add_arrows(ax) </span>
 <span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>/Users/adeb0907/Documents/usyd/deep-tensor-py/deep_tensor/polynomials/cdf_1d.py:272: UserWarning: Rootfinding: Regula falsi did not converge (1 unconverged samples). Maximum residual: 1.6987e-06.
@@ -951,13 +975,14 @@ Koch, Karl-Rudolf. 2007. <em>Introduction to Bayesian Statistics</em>. Springer.
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

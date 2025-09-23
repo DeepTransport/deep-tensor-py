@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Examples – deep_tensor</title>
+<title>efttoptions – deep_tensor</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,7 +20,62 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-</style>
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="../site_libs/quarto-nav/quarto-nav.js"></script>
@@ -320,7 +375,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../examples/index.html">Examples</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/FTT.html">Functional Tensor Trains</a></li><li class="breadcrumb-item"><a href="../reference/EFTTOptions.html">EFTTOptions</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -330,7 +385,7 @@ window.Quarto = {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header sidebar-header-stacked">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
       <a href="../index.html" class="sidebar-logo-link">
       </a>
       </div>
@@ -338,14 +393,14 @@ window.Quarto = {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/index.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Examples</span></a>
+  <a href="../reference/index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">API Reference</span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
- <span class="menu-text">Bayesian Inference</span></a>
+ <span class="menu-text">Deep Inverse Rosenblatt Transport</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -353,26 +408,14 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/sir/example_inference.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">SIR Model</span></a>
+  <a href="../reference/DIRT.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DIRT</span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/shock/example_inference.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Shock Absorber</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../examples/logistic/example_inference.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Logistic Regression</span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="../examples/heat/example_inference.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Heat Equation</span></a>
+  <a href="../reference/DIRTOptions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">DIRTOptions</span></a>
   </div>
 </li>
       </ul>
@@ -380,7 +423,7 @@ window.Quarto = {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Rare Event Estimation</span></a>
+ <span class="menu-text">Target Functions</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -388,8 +431,14 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/sir/example_rare_event.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">SIR Model</span></a>
+  <a href="../reference/TargetFunc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TargetFunc</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/RareEventFunc.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">RareEventFunc</span></a>
   </div>
 </li>
       </ul>
@@ -397,7 +446,7 @@ window.Quarto = {
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
- <span class="menu-text">Amortised Inference</span></a>
+ <span class="menu-text">Preconditioners</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -405,8 +454,236 @@ window.Quarto = {
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../examples/poisson/example_amortised.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Poisson Equation</span></a>
+  <a href="../reference/Preconditioner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preconditioner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/IdentityMapping.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">IdentityMapping</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/UniformMapping.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">UniformMapping</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/GaussianMapping.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GaussianMapping</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Reference Densities</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/GaussianReference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GaussianReference</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/UniformReference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">UniformReference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true">
+ <span class="menu-text">Domain Mappings</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/BoundedDomain.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">BoundedDomain</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true">
+ <span class="menu-text">Functional Tensor Trains</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/FTT.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">FTT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/EFTT.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">EFTT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/EFTTOptions.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">EFTTOptions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/ApproxBases.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ApproxBases</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/TT.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/TTOptions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">TTOptions</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true">
+ <span class="menu-text">Basis Functions</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Lagrange1.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lagrange1</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/LagrangeP.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">LagrangeP</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Chebyshev1st.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Chebyshev1st</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Chebyshev2nd.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Chebyshev2nd</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Fourier.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fourier</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Legendre.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Legendre</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true">
+ <span class="menu-text">Bridges</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/SingleLayer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SingleLayer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/Tempering.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tempering</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/SigmoidSmoothing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SigmoidSmoothing</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="true">
+ <span class="menu-text">Debiasing</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_importance_sampling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_importance_sampling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_independence_sampler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_independence_sampler</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_irt_pcn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_irt_pcn</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/run_cirt_pcn.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">run_cirt_pcn</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/ImportanceSamplingResult.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">ImportanceSamplingResult</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/MCMCResult.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MCMCResult</span></a>
   </div>
 </li>
       </ul>
@@ -416,38 +693,81 @@ window.Quarto = {
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#deep_tensor.EFTTOptions" id="toc-deep_tensor.EFTTOptions" class="nav-link active" data-scroll-target="#deep_tensor.EFTTOptions">EFTTOptions</a>
+  <ul class="collapse">
+  <li><a href="#parameters" id="toc-parameters" class="nav-link" data-scroll-target="#parameters">Parameters</a></li>
+  </ul></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../reference/FTT.html">Functional Tensor Trains</a></li><li class="breadcrumb-item"><a href="../reference/EFTTOptions.html">EFTTOptions</a></li></ol></nav></header>
 
 
-<header id="title-block-header" class="quarto-title-block default">
-<div class="quarto-title">
-<h1 class="title">Examples</h1>
+
+
+
+<section id="deep_tensor.EFTTOptions" class="level1">
+<h1>EFTTOptions</h1>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>EFTTOptions(</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="va">self</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    num_error_samples: <span class="bu">int</span> <span class="op">=</span> <span class="dv">1000</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    fibre_method: <span class="bu">str</span> <span class="op">=</span> <span class="st">'random'</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    tol_svd: <span class="bu">float</span> <span class="op">=</span> <span class="fl">1e-12</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    num_aca: <span class="bu">int</span> <span class="op">=</span> <span class="dv">50</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    tol_aca: <span class="bu">float</span> <span class="op">=</span> <span class="fl">1e-10</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    max_fibres: <span class="bu">int</span> <span class="op">=</span> <span class="dv">30</span>,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    num_snapshots: <span class="bu">int</span> <span class="op">=</span> <span class="dv">30</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Options for configuring the construction of an EFTT object.</p>
+<section id="parameters" class="level2 doc-section doc-section-parameters">
+<h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
+<dl>
+<dt><code><span class="parameter-name"><strong>num_error_samples</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1000</span></code></dt>
+<dd>
+<p>The number of samples to use when estimating the <span class="math inline">\(L^{2}\)</span> error of the FTT approximation to the target function at each iteration.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>fibre_method</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'random'</span></code></dt>
+<dd>
+<p>The method used to compute a set of mode-<span class="math inline">\(k\)</span> fibres in each dimension <span class="math inline">\(k \in \{1, \dots, d\}\)</span>. This can be <code>"aca"</code> <span class="citation" data-cites="Strossner2024">(apply adaptive cross approximation, as in <a href="#ref-Strossner2024" role="doc-biblioref">Strössner, Sun, and Kressner 2024</a>)</span>, or <code>"random"</code> (choose a set of fibres at random).</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>tol_svd</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1e-12</span></code></dt>
+<dd>
+<p>The threshold to use when applying truncated SVD to compute an (approximate) orthogonal basis for the mode-<span class="math inline">\(k\)</span> fibres in each dimension. The minimum number of singular values such that their sum exceeds (<span class="math inline">\(1-\)</span> <code>tol_svd</code>) will be retained.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>num_aca</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">50</span></code></dt>
+<dd>
+<p>If <code>fibre_method="aca"</code>, the number of elements of the fibre matrix to sample at each iteration when selecting a new pivot element.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>tol_aca</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1e-10</span></code></dt>
+<dd>
+<p>If <code>fibre_method="aca"</code>, the stopping tolerance, <span class="math inline">\(\epsilon\)</span>, to use. More concretely, if <span class="math inline">\(\mathcal{S}\)</span> denotes a set of randomly-sampled indices of the mode-<span class="math inline">\(k\)</span> fibre matrix <span class="math inline">\(\boldsymbol{M}\)</span> (and <span class="math inline">\(\mathcal{I}\)</span> and <span class="math inline">\(\mathcal{J}\)</span> denote the current sets of row and column indices), the iteration is considered finished when <span class="math display">\[     \max_{(i, j) \in \mathcal{S}}\|R_{ij}\| &lt; \epsilon, \]</span> where the <em>residual</em> matrix <span class="math inline">\(\boldsymbol{R}\)</span> is given by <span class="math display">\[     \boldsymbol{R} =          \boldsymbol{M} - \boldsymbol{M}[:, \mathcal{J}]             \boldsymbol{M}[\mathcal{I}, \mathcal{J}]^{-1}             \boldsymbol{M}[\mathcal{I}, :]. \]</span></p>
+</dd>
+<dt><code><span class="parameter-name"><strong>max_fibres</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">30</span></code></dt>
+<dd>
+<p>If <code>fibre_method="aca"</code>, the maximum number of fibres to sample.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>num_snapshots</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">30</span></code></dt>
+<dd>
+<p>If <code>fibre_method="random"</code>, the number of snapshots to sample.</p>
+</dd>
+</dl>
+
+
+
+</section>
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-Strossner2024" class="csl-entry" role="listitem">
+Strössner, Christoph, Bonan Sun, and Daniel Kressner. 2024. <span>“Approximation in the Extended Functional Tensor Train Format.”</span> <em>Advances in Computational Mathematics</em> 50 (3): 54. <a href="https://doi.org/10.1007/s10444-024-10140-9">https://doi.org/10.1007/s10444-024-10140-9</a>.
 </div>
-
-
-
-<div class="quarto-title-meta">
-
-    
-  
-    
-  </div>
-  
-
-
-</header>
-
-
-<p>This page contains examples demonstrating the use of <span class="math inline">\(\texttt{deep\_tensor}\)</span>.</p>
-<p>See the <a href="https://github.com/DeepTransport/deep-tensor-py/tree/main/docs/examples">examples</a> directory of the repository for the Jupyter notebooks associated with each example.</p>
-
-
-
-</main> <!-- /main -->
+</div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     // Ensure there is a toggle, if there isn't float one in the top right

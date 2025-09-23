@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.34">
+<meta name="generator" content="quarto-1.8.24">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -51,18 +51,19 @@ div.csl-indent {
 <meta name="quarto:offset" content="./">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-befe23ebd2f54d8af2c8a89d1a1611f1.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-b651517ce65839d647a86e2780455cfb.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-97b859373cfbcd8441dbb2234dc23333.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="site_libs/bootstrap/bootstrap-dark-359ff8416387e9244bb0e835fe8f54f4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="site_libs/bootstrap/bootstrap-97b859373cfbcd8441dbb2234dc23333.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-066d717c45830c96d01c487e04e63832.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-5d917d4687dc3ea9ae20de9e3066d9b3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-066d717c45830c96d01c487e04e63832.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -91,6 +92,35 @@ div.csl-indent {
   }
 }</script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -263,6 +293,8 @@ div.csl-indent {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
+    <a href="./index.html" class="navbar-brand navbar-brand-logo">
+    </a>
     <a class="navbar-brand" href="./index.html">
     <span class="navbar-title">deep_tensor</span>
     </a>
@@ -313,7 +345,12 @@ div.csl-indent {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#theory" id="toc-theory" class="nav-link active" data-scroll-target="#theory">Theory</a></li>
+  <li><a href="#theory" id="toc-theory" class="nav-link active" data-scroll-target="#theory">Theory</a>
+  <ul class="collapse">
+  <li><a href="#dirt-algorithm" id="toc-dirt-algorithm" class="nav-link" data-scroll-target="#dirt-algorithm">DIRT Algorithm</a></li>
+  <li><a href="#functional-tensor-trains" id="toc-functional-tensor-trains" class="nav-link" data-scroll-target="#functional-tensor-trains">Functional Tensor Trains</a></li>
+  <li><a href="#applications-and-extensions-of-the-dirt-algorithm" id="toc-applications-and-extensions-of-the-dirt-algorithm" class="nav-link" data-scroll-target="#applications-and-extensions-of-the-dirt-algorithm">Applications and Extensions of the DIRT Algorithm</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -326,14 +363,42 @@ div.csl-indent {
 
 <section id="theory" class="level1">
 <h1>Theory</h1>
-<p>The deep inverse Rosenblatt transport (DIRT) algorithm <span class="citation" data-cites="Cui2022">(<a href="#ref-Cui2022" role="doc-biblioref">Cui and Dolgov 2022</a>)</span> uses a composition of mappings, constructed using functional tensor trains, to approximate the Rosenblatt transport between an arbitrary target density function and a simple product-form reference density. Early work on functional tensor train (FTT) approximations to probability density functions was conducted by <span class="citation" data-cites="Dolgov2020">Dolgov et al. (<a href="#ref-Dolgov2020" role="doc-biblioref">2020</a>)</span>. <span class="citation" data-cites="Cui2022">Cui and Dolgov (<a href="#ref-Cui2022" role="doc-biblioref">2022</a>)</span> introduced the idea of using a composition of FTT-based mappings to provide a more accurate characterisation of highly correlated or concentrated probability densities.</p>
-<p>The DIRT methodology has also been used for problems including amortised inference <span class="citation" data-cites="Cui2023">(<a href="#ref-Cui2023" role="doc-biblioref">Cui, Dolgov, and Zahm 2023</a>)</span>, rare event estimation <span class="citation" data-cites="Cui2024">(<a href="#ref-Cui2024" role="doc-biblioref">Cui, Dolgov, and Scheichl 2024</a>)</span>, sequential inference <span class="citation" data-cites="Zhao2024">(<a href="#ref-Zhao2024" role="doc-biblioref">Zhao and Cui 2024</a>)</span>, and optimal experimental design <span class="citation" data-cites="Koval2024">(<a href="#ref-Koval2024" role="doc-biblioref">Koval, Herzog, and Scheichl 2024</a>)</span>.</p>
+<p>Some references relevant to the algorithms in <span class="math inline">\(\mathtt{deep\_tensor}\)</span> are collected below.</p>
+<section id="dirt-algorithm" class="level2">
+<h2 class="anchored" data-anchor-id="dirt-algorithm">DIRT Algorithm</h2>
+<ul>
+<li>DIRT algorithm: <span class="citation" data-cites="Cui2022">Cui and Dolgov (<a href="#ref-Cui2022" role="doc-biblioref">2022</a>)</span></li>
+<li>TT-IRT (single-layer DIRT) algorithm: <span class="citation" data-cites="Dolgov2020">Dolgov et al. (<a href="#ref-Dolgov2020" role="doc-biblioref">2020</a>)</span></li>
+</ul>
+</section>
+<section id="functional-tensor-trains" class="level2">
+<h2 class="anchored" data-anchor-id="functional-tensor-trains">Functional Tensor Trains</h2>
+<ul>
+<li>Functional tensor trains: <span class="citation" data-cites="Bigoni2016">Bigoni, Engsig-Karup, and Marzouk (<a href="#ref-Bigoni2016" role="doc-biblioref">2016</a>)</span>, <span class="citation" data-cites="Gorodetsky2019">Gorodetsky, Karaman, and Marzouk (<a href="#ref-Gorodetsky2019" role="doc-biblioref">2019</a>)</span></li>
+<li>Extended functional tensor trains: <span class="citation" data-cites="Strossner2024">Strössner, Sun, and Kressner (<a href="#ref-Strossner2024" role="doc-biblioref">2024</a>)</span></li>
+<li>Tensor train decomposition: <span class="citation" data-cites="Oseledets2011">Oseledets (<a href="#ref-Oseledets2011" role="doc-biblioref">2011</a>)</span></li>
+<li>TT cross-approximation algorithm: <span class="citation" data-cites="Oseledets2010">Oseledets and Tyrtyshnikov (<a href="#ref-Oseledets2010" role="doc-biblioref">2010</a>)</span></li>
+<li>Maxvol algorithm: <span class="citation" data-cites="Goreinov2010">Goreinov et al. (<a href="#ref-Goreinov2010" role="doc-biblioref">2010</a>)</span></li>
+</ul>
+</section>
+<section id="applications-and-extensions-of-the-dirt-algorithm" class="level2">
+<h2 class="anchored" data-anchor-id="applications-and-extensions-of-the-dirt-algorithm">Applications and Extensions of the DIRT Algorithm</h2>
+<ul>
+<li>State and parameter estimation: <span class="citation" data-cites="Zhao2024">Zhao and Cui (<a href="#ref-Zhao2024" role="doc-biblioref">2024</a>)</span></li>
+<li>Optimal experimental design: <span class="citation" data-cites="Koval2024">Koval, Herzog, and Scheichl (<a href="#ref-Koval2024" role="doc-biblioref">2024</a>)</span></li>
+<li>Rare event estimation: <span class="citation" data-cites="Cui2024">Cui, Dolgov, and Scheichl (<a href="#ref-Cui2024" role="doc-biblioref">2024</a>)</span></li>
+<li>Conditional simulation (amortised inference): <span class="citation" data-cites="Cui2023">Cui, Dolgov, and Zahm (<a href="#ref-Cui2023" role="doc-biblioref">2023</a>)</span></li>
+</ul>
 
 
 
 </section>
+</section>
 
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-Bigoni2016" class="csl-entry" role="listitem">
+Bigoni, Daniele, Allan P Engsig-Karup, and Youssef M Marzouk. 2016. <span>“Spectral Tensor-Train Decomposition.”</span> <em>SIAM Journal on Scientific Computing</em> 38 (4): A2405–39. <a href="https://doi.org/10.1137/15M1036919">https://doi.org/10.1137/15M1036919</a>.
+</div>
 <div id="ref-Cui2022" class="csl-entry" role="listitem">
 Cui, Tiangang, and Sergey Dolgov. 2022. <span>“Deep Composition of Tensor-Trains Using Squared Inverse Rosenblatt Transports.”</span> <em>Foundations of Computational Mathematics</em> 22 (6): 1863–1922. <a href="https://doi.org/10.1007/s10208-021-09537-5">https://doi.org/10.1007/s10208-021-09537-5</a>.
 </div>
@@ -346,8 +411,23 @@ Cui, Tiangang, Sergey Dolgov, and Olivier Zahm. 2023. <span>“Scalable Conditio
 <div id="ref-Dolgov2020" class="csl-entry" role="listitem">
 Dolgov, Sergey, Karim Anaya-Izquierdo, Colin Fox, and Robert Scheichl. 2020. <span>“Approximation and Sampling of Multivariate Probability Distributions in the Tensor Train Decomposition.”</span> <em>Statistics and Computing</em> 30: 603–25. <a href="https://doi.org/10.1007/s11222-019-09910-z">https://doi.org/10.1007/s11222-019-09910-z</a>.
 </div>
+<div id="ref-Goreinov2010" class="csl-entry" role="listitem">
+Goreinov, Sergei A, Ivan V Oseledets, Dimitry V Savostyanov, Eugene E Tyrtyshnikov, and Nikolay L Zamarashkin. 2010. <span>“How to Find a Good Submatrix.”</span> In <em>Matrix Methods: Theory, Algorithms and Applications: Dedicated to the Memory of Gene Golub</em>, 247–56. World Scientific. <a href="https://doi.org/10.1142/9789812836021_0015">https://doi.org/10.1142/9789812836021_0015</a>.
+</div>
+<div id="ref-Gorodetsky2019" class="csl-entry" role="listitem">
+Gorodetsky, Alex, Sertac Karaman, and Youssef Marzouk. 2019. <span>“A Continuous Analogue of the Tensor-Train Decomposition.”</span> <em>Computer Methods in Applied Mechanics and Engineering</em> 347: 59–84. <a href="https://doi.org/10.1016/j.cma.2018.12.015">https://doi.org/10.1016/j.cma.2018.12.015</a>.
+</div>
 <div id="ref-Koval2024" class="csl-entry" role="listitem">
 Koval, Karina, Roland Herzog, and Robert Scheichl. 2024. <span>“Tractable Optimal Experimental Design Using Transport Maps.”</span> <em>Inverse Problems</em> 40 (12): 125002. <a href="https://doi.org/10.1088/1361-6420/ad8260">https://doi.org/10.1088/1361-6420/ad8260</a>.
+</div>
+<div id="ref-Oseledets2011" class="csl-entry" role="listitem">
+Oseledets, Ivan. 2011. <span>“Tensor-Train Decomposition.”</span> <em>SIAM Journal on Scientific Computing</em> 33 (5): 2295–2317. <a href="https://doi.org/10.1137/090752286">https://doi.org/10.1137/090752286</a>.
+</div>
+<div id="ref-Oseledets2010" class="csl-entry" role="listitem">
+Oseledets, Ivan, and Eugene Tyrtyshnikov. 2010. <span>“TT-Cross Approximation for Multidimensional Arrays.”</span> <em>Linear Algebra and Its Applications</em> 432 (1): 70–88. <a href="https://doi.org/10.1016/j.laa.2009.07.024">https://doi.org/10.1016/j.laa.2009.07.024</a>.
+</div>
+<div id="ref-Strossner2024" class="csl-entry" role="listitem">
+Strössner, Christoph, Bonan Sun, and Daniel Kressner. 2024. <span>“Approximation in the Extended Functional Tensor Train Format.”</span> <em>Advances in Computational Mathematics</em> 50 (3): 54. <a href="https://doi.org/10.1007/s10444-024-10140-9">https://doi.org/10.1007/s10444-024-10140-9</a>.
 </div>
 <div id="ref-Zhao2024" class="csl-entry" role="listitem">
 Zhao, Yiran, and Tiangang Cui. 2024. <span>“Tensor-Train Methods for Sequential State and Parameter Learning in State-Space Models.”</span> <em>Journal of Machine Learning Research</em> 25 (244): 1–51. <a href="http://jmlr.org/papers/v25/23-0743.html">http://jmlr.org/papers/v25/23-0743.html</a>.
@@ -417,13 +497,14 @@ Zhao, Yiran, and Tiangang Cui. 2024. <span>“Tensor-Train Methods for Sequentia
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

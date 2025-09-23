@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.34">
+<meta name="generator" content="quarto-1.8.24">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -86,18 +86,19 @@ div.csl-indent {
 <meta name="quarto:offset" content="../../">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-befe23ebd2f54d8af2c8a89d1a1611f1.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-b651517ce65839d647a86e2780455cfb.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-97b859373cfbcd8441dbb2234dc23333.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-359ff8416387e9244bb0e835fe8f54f4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-97b859373cfbcd8441dbb2234dc23333.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-066d717c45830c96d01c487e04e63832.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-5d917d4687dc3ea9ae20de9e3066d9b3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-066d717c45830c96d01c487e04e63832.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -140,7 +141,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -327,6 +328,8 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
+    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
+    </a>
     <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">deep_tensor</span>
     </a>
@@ -338,11 +341,11 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../../index.html"> 
+    <a class="nav-link active" href="../../index.html" aria-current="page"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="../../examples/index.html" aria-current="page"> 
+    <a class="nav-link" href="../../examples/index.html"> 
 <span class="menu-text">Examples</span></a>
   </li>  
   <li class="nav-item">
@@ -382,6 +385,10 @@ window.Quarto = {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header sidebar-header-stacked">
+      <a href="../../index.html" class="sidebar-logo-link">
+      </a>
+      </div>
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -442,6 +449,23 @@ window.Quarto = {
 </li>
       </ul>
   </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Amortised Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../examples/poisson/example_amortised.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Poisson Equation</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
     </ul>
     </div>
 </nav>
@@ -497,10 +521,10 @@ window.Quarto = {
 \]</span></p>
 <p>where <span class="math inline">\(\kappa(\boldsymbol{x})\)</span> denotes the (spatially varying) diffusion coefficient, and <span class="math inline">\(f(\boldsymbol{x}, t)\)</span> denotes the forcing term, which models heat sources or sinks. We set the end time to <span class="math inline">\(T = 10\)</span>, and impose the initial and boundary conditions</p>
 <p><span class="math display">\[
-\begin{align}
+\begin{align*}
     u(\boldsymbol{x}, 0) &amp;= 0, \qquad \boldsymbol{x} \in \Omega, \\
-    \frac{\partial \kappa(\boldsymbol{x}) u(\boldsymbol{x}, t)}{\partial \boldsymbol{n}} &amp;= 0, \qquad \boldsymbol{x} \in \partial\Omega.
-\end{align}
+    (\kappa(\boldsymbol{x}) \nabla u(\boldsymbol{x}, t)) \cdot \boldsymbol{n} &amp;= 0, \qquad \boldsymbol{x} \in \partial\Omega.
+\end{align*}
 \]</span></p>
 <p>In the above, <span class="math inline">\(\boldsymbol{n}\)</span> denotes the outward-facing normal vector on the boundary of the domain.</p>
 <p>We assume that the forcing term is given by</p>
@@ -525,39 +549,39 @@ window.Quarto = {
 <h1>Implementation in <span class="math inline">\(\texttt{deep\_tensor}\)</span></h1>
 <p>We will now use <span class="math inline">\(\texttt{deep\_tensor}\)</span> to construct a DIRT approximation to the posterior. To accelerate this process, we will use a reduced order model in place of the full model. Then, we will illustrate some debiasing techniques which use the DIRT approximation to the posterior, in combination with the full model, to accelerate the process of drawing exact posterior samples.</p>
 <div id="cell-1" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.heat <span class="im">import</span> setup_heat_problem, plot_dl_function</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.plotting <span class="im">import</span> add_arrows, pairplot, set_plot_style</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.plotting <span class="im">import</span> add_arrows, pairplot, set_plot_style</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="cell-2" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>torch.set_default_device(<span class="st">"cuda"</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">"cpu"</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>torch.set_default_device(<span class="st">"cuda"</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">"cpu"</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">1</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>We begin by defining the prior, (full) model and reduced order model.</p>
 <p>The full model is implemented in <a href="https://fenicsproject.org/download/archive/">FEniCS</a>, on a <span class="math inline">\(96 \times 32\)</span> grid, using piecwise linear basis functions. Timestepping is done using the backward Euler method. The reduced order model is constructed using the proper orthogonal decomposition <span class="citation" data-cites="Benner2015">(see, <em>e.g.</em>, <a href="#ref-Benner2015" role="doc-biblioref">Benner, Gugercin, and Willcox 2015</a>)</span>.</p>
 <div id="cell-4" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Construct the prior, full model and reduced order model</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>prior, model_full, model_rom <span class="op">=</span> setup_heat_problem()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Construct the prior, full model and reduced order model</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>prior, model_full, model_rom <span class="op">=</span> setup_heat_problem()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Next, we will generate the true log-diffusion coefficient using a sample from the prior. The true log-diffusion coefficient is plotted in <a href="#fig-ktrue" class="quarto-xref">Figure&nbsp;1</a>.</p>
 <div id="cell-6" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>xi_true <span class="op">=</span> torch.randn(prior.dim)</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>logk_true <span class="op">=</span> prior.transform(xi_true)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>xi_true <span class="op">=</span> torch.randn(prior.dim)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>logk_true <span class="op">=</span> prior.transform(xi_true)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="cell-fig-ktrue" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="fl">6.0</span>, <span class="fl">2.0</span>))</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="fl">6.0</span>, <span class="fl">2.0</span>))</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>cbar_label <span class="op">=</span> <span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">log</span><span class="kw">(</span><span class="er">\</span><span class="vs">kappa</span><span class="kw">(</span><span class="dv">\b</span><span class="vs">m{x}</span><span class="kw">))</span><span class="dv">$</span><span class="vs">"</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>plot_dl_function(fig, ax, model_full.vec2func(logk_true), cbar_label)</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>ax.scatter(<span class="op">*</span>prior.ss.T, s<span class="op">=</span><span class="dv">16</span>, c<span class="op">=</span><span class="st">"k"</span>, marker<span class="op">=</span><span class="st">"x"</span>)</span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">x_</span><span class="op">{0}</span><span class="dv">$</span><span class="vs">"</span>)</span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">x_</span><span class="op">{1}</span><span class="dv">$</span><span class="vs">"</span>)</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="fig-ktrue" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -574,7 +598,7 @@ Figure&nbsp;1: The true log-diffusion coefficient, <span class="math inline">\(\
 </div>
 <p>Next, we will solve the (full) model to obtain the modelled temperatures corresponding to the true diffusion coefficient, and use these to generate some synthetic data. <a href="#fig-utrue" class="quarto-xref">Figure&nbsp;2</a> shows the true temperature field at time <span class="math inline">\(T=10\)</span>, as well as the observation locations.</p>
 <div id="cell-9" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate true temperature field</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate true temperature field</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>u_true <span class="op">=</span> model_full.solve(logk_true)</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Specify magnitude of observation noise</span></span>
@@ -585,18 +609,18 @@ Figure&nbsp;1: The true log-diffusion coefficient, <span class="math inline">\(\
 <span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co"># observation noise</span></span>
 <span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>d_obs <span class="op">=</span> model_full.observe(u_true)</span>
 <span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>noise <span class="op">=</span> std_error <span class="op">*</span> torch.randn_like(d_obs)</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>d_obs <span class="op">+=</span> noise</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>d_obs <span class="op">+=</span> noise</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="cell-fig-utrue" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="fl">6.0</span>, <span class="fl">2.0</span>))</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="fl">6.0</span>, <span class="fl">2.0</span>))</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>cbar_label <span class="op">=</span> <span class="vs">r"</span><span class="dv">$</span><span class="vs">u</span><span class="kw">(</span><span class="dv">\b</span><span class="vs">m{x}, 10</span><span class="kw">)</span><span class="dv">$</span><span class="vs">"</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>plot_dl_function(fig, ax, model_full.vec2func(u_true[:, <span class="op">-</span><span class="dv">1</span>]), cbar_label, vmin<span class="op">=-</span><span class="fl">0.15</span>, vmax<span class="op">=</span><span class="fl">0.10</span>)</span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>ax.scatter(<span class="op">*</span>model_full.xs_obs.T, s<span class="op">=</span><span class="dv">16</span>, c<span class="op">=</span><span class="st">"k"</span>, marker<span class="op">=</span><span class="st">"."</span>)</span>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">x_</span><span class="op">{0}</span><span class="dv">$</span><span class="vs">"</span>)</span>
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="vs">r"</span><span class="dv">$</span><span class="vs">x_</span><span class="op">{1}</span><span class="dv">$</span><span class="vs">"</span>)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="fig-utrue" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -615,7 +639,7 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <h2 class="anchored" data-anchor-id="building-the-dirt-object">Building the DIRT Object</h2>
 <p>Now we will build a DIRT object to approximate the posterior density of the coefficients, <span class="math inline">\(\{\xi^{(i)}\}_{i=1}^{d}\)</span>, used to parametrise the log-diffusion coefficient, for the reduced-order model. We begin by defining functions which return the potential associated with the likelihood and prior.</p>
 <div id="cell-12" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> neglogpri(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> neglogpri(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Returns the negative log prior density evaluated a given set of </span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">    samples.</span></span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
@@ -643,75 +667,79 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Returns the negative log-likelihood for the reduced-order model."""</span></span>
 <span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> neglogpri(xs) <span class="op">+</span> negloglik(model_rom, xs)</span>
 <span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>target_func_rom <span class="op">=</span> dt.TargetFunc(neglogpost_rom)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>target_func_rom <span class="op">=</span> dt.TargetFunc(neglogpost_rom)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Next, we specify a preconditioner. Because the prior of the coefficients <span class="math inline">\(\{\xi^{(i)}\}_{i=1}^{d}\)</span> is the standard Gaussian, the mapping between a Gaussian reference and the prior is simply the identity mapping. This is an appropriate choice of preconditioner in the absence of any other information.</p>
 <div id="cell-14" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference()</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.IdentityMapping(prior.dim, reference)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference()</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.IdentityMapping(prior.dim, reference)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Next, we construct a functional tensor train. We will use a piecewise linear basis in each dimension.</p>
 <div id="cell-16" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>basis <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">26</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>basis <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">26</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>bases <span class="op">=</span> dt.ApproxBases(basis, dim<span class="op">=</span>prior.dim)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(max_als<span class="op">=</span><span class="dv">3</span>, init_rank<span class="op">=</span><span class="dv">1</span>)</span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>tt <span class="op">=</span> dt.TT(tt_options)</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>ftt <span class="op">=</span> dt.FTT(bases, tt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>ftt <span class="op">=</span> dt.FTT(bases, tt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Finally, we can construct the DIRT approximation to the posterior of the reduced-order model. We will allow the bridging densities to be determined adaptively.</p>
 <div id="cell-18" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(target_func_rom, preconditioner, ftt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(target_func_rom, preconditioner, ftt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 2.42e+00 s | DHell: 0.0000 | Beta: 0.0001 | ESS: 0.9966
+<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 2.03e+00 s | DHell: 0.0000 | Beta: 0.0001 | ESS: 0.9966
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |    1.00000e+00 |     1.00000e+00 |     8.57e-03
+[ALS]     1 |       9937 |        3 |       1.00e+00 |        1.00e+00 | 2.70e-02
+[ALS]     2 |      29782 |        5 |       9.20e-03 |        8.19e-04 | 1.60e-02
+[ALS]     3 |      65935 |        7 |       6.14e-04 |        1.13e-04 | 1.75e-02
 [ALS]  ALS complete.
-[DIRT] Iter:  2 | Cum. Fevals: 9.94e+03 | Cum. Time: 2.68e+01 s | DHell: 0.0122 | Beta: 0.0103 | ESS: 0.4982
+[DIRT] Iter:  2 | Cum. Fevals: 6.59e+04 | Cum. Time: 1.39e+02 s | DHell: 0.0115 | Beta: 0.0103 | ESS: 0.4981
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |    4.44927e-01 |     1.12674e-01 |     4.42e-01
-[ALS]     2 |      29782 |        5 |    3.79323e-01 |     6.13272e-02 |     1.72e-01
-[ALS]     3 |      65935 |        7 |    2.63587e-01 |     2.75966e-02 |     8.46e-02
+[ALS]     1 |       9937 |        3 |       4.40e-01 |        1.14e-01 | 8.41e-01
+[ALS]     2 |      29782 |        5 |       4.65e-01 |        6.50e-02 | 1.88e-01
+[ALS]     3 |      65935 |        7 |       2.23e-01 |        2.66e-02 | 2.79e-01
 [ALS]  ALS complete.
-[DIRT] Iter:  3 | Cum. Fevals: 7.59e+04 | Cum. Time: 1.99e+02 s | DHell: 0.0491 | Beta: 0.0385 | ESS: 0.4848
+[DIRT] Iter:  3 | Cum. Fevals: 1.32e+05 | Cum. Time: 2.78e+02 s | DHell: 0.0454 | Beta: 0.0385 | ESS: 0.4876
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |    2.65562e-01 |     8.97591e-02 |     2.33e-01
-[ALS]     2 |      29782 |        5 |    1.68091e-01 |     2.73734e-02 |     7.62e-01
-[ALS]     3 |      65935 |        7 |    5.40052e-02 |     1.18199e-02 |     1.68e-01
+[ALS]     1 |       9937 |        3 |       3.19e-01 |        9.03e-02 | 3.80e-01
+[ALS]     2 |      29782 |        5 |       2.72e-01 |        3.40e-02 | 3.42e-01
+[ALS]     3 |      65935 |        7 |       8.12e-02 |        1.34e-02 | 6.88e-01
 [ALS]  ALS complete.
-[DIRT] Iter:  4 | Cum. Fevals: 1.42e+05 | Cum. Time: 3.81e+02 s | DHell: 0.0768 | Beta: 0.1021 | ESS: 0.4786
+[DIRT] Iter:  4 | Cum. Fevals: 1.98e+05 | Cum. Time: 4.23e+02 s | DHell: 0.0665 | Beta: 0.1021 | ESS: 0.4926
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |    8.44623e-01 |     8.47375e-02 |     3.07e-01
-[ALS]     2 |      29782 |        5 |    9.74457e-02 |     2.52641e-02 |     3.24e-01
+[ALS]     1 |       9937 |        3 |       8.55e-01 |        8.95e-02 | 2.00e-01
+[ALS]     2 |      29782 |        5 |       1.12e-01 |        2.42e-02 | 1.80e-01
+[ALS]     3 |      65935 |        7 |       7.19e-02 |        1.47e-02 | 2.58e-01
 [ALS]  ALS complete.
-[DIRT] Iter:  5 | Cum. Fevals: 1.72e+05 | Cum. Time: 4.64e+02 s | DHell: 0.1124 | Beta: 0.2122 | ESS: 0.4896
+[DIRT] Iter:  5 | Cum. Fevals: 2.64e+05 | Cum. Time: 5.83e+02 s | DHell: 0.0832 | Beta: 0.2228 | ESS: 0.4822
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |    1.07057e+00 |     9.08789e-02 |     4.82e-01
-[ALS]     2 |      29782 |        5 |    1.01153e-01 |     2.63758e-02 |     2.98e-01
-[ALS]     3 |      65935 |        7 |    3.99190e-02 |     1.36755e-02 |     3.52e-01
+[ALS]     1 |       9937 |        3 |       1.59e+00 |        1.13e-01 | 8.65e-01
+[ALS]     2 |      29782 |        5 |       1.00e-01 |        3.53e-02 | 9.02e-01
+[ALS]     3 |      65935 |        7 |       6.20e-02 |        1.81e-02 | 7.44e-01
 [ALS]  ALS complete.
-[DIRT] Iter:  6 | Cum. Fevals: 2.38e+05 | Cum. Time: 6.38e+02 s | DHell: 0.1191 | Beta: 0.4201 | ESS: 0.4656
+[DIRT] Iter:  6 | Cum. Fevals: 3.30e+05 | Cum. Time: 7.54e+02 s | DHell: 0.0977 | Beta: 0.4411 | ESS: 0.4649
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |    3.77990e+00 |     1.93678e-01 |     4.12e+00
-[ALS]     2 |      29782 |        5 |    1.16897e-01 |     2.53153e-02 |     3.38e+00
-[ALS]     3 |      65935 |        7 |    5.03802e-02 |     1.34956e-02 |     3.81e+00
+[ALS]     1 |       9937 |        3 |       3.66e+00 |        1.89e-01 | 9.92e-01
+[ALS]     2 |      29782 |        5 |       9.26e-02 |        2.91e-02 | 1.70e-01
+[ALS]     3 |      65935 |        7 |       5.17e-02 |        1.47e-02 | 2.97e-01
 [ALS]  ALS complete.
-[DIRT] Iter:  7 | Cum. Fevals: 3.03e+05 | Cum. Time: 8.23e+02 s | DHell: 0.1380 | Beta: 0.7545 | ESS: 0.4831
+[DIRT] Iter:  7 | Cum. Fevals: 3.96e+05 | Cum. Time: 9.23e+02 s | DHell: 0.1111 | Beta: 0.7922 | ESS: 0.4845
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |    6.67717e+00 |     2.86447e-01 |     2.37e+00
-[ALS]     2 |      29782 |        5 |    1.12010e-01 |     2.89761e-02 |     3.55e+00
-[ALS]     3 |      65935 |        7 |    5.27863e-02 |     1.70419e-02 |     4.51e+00
+[ALS]     1 |       9937 |        3 |       7.48e+00 |        3.24e-01 | 7.56e+03
+[ALS]     2 |      29782 |        5 |       1.13e-01 |        2.76e-02 | 1.15e+04
+[ALS]     3 |      65935 |        7 |       4.07e-02 |        1.41e-02 | 1.13e+04
 [ALS]  ALS complete.
-[DIRT] Iter:  8 | Cum. Fevals: 3.69e+05 | Cum. Time: 1.03e+03 s | DHell: 0.1691 | Beta: 1.0000 | ESS: 0.6083
+[DIRT] Iter:  8 | Cum. Fevals: 4.62e+05 | Cum. Time: 1.10e+03 s | DHell: 0.1413 | Beta: 1.0000 | ESS: 0.7592
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |    8.07620e-01 |     7.42857e-02 |     9.98e+04
-[ALS]     2 |      29782 |        5 |    6.73688e-02 |     2.32708e-02 |     1.01e+05
+[ALS]     1 |       9937 |        3 |       9.22e-01 |        7.57e-02 | 4.40e-01
+[ALS]     2 |      29782 |        5 |       4.83e-02 |        2.40e-02 | 8.44e-02
+[ALS]     3 |      65935 |        7 |       5.16e-02 |        1.83e-02 | 6.30e-02
 [ALS]  ALS complete.
 [DIRT] DIRT construction complete.
 [DIRT]  • Layers: 8.
-[DIRT]  • Total function evaluations: 399,176.
-[DIRT]  • Total time: 19.21 mins.
-[DIRT]  • DHell: 0.1928.</code></pre>
+[DIRT]  • Total function evaluations: 527,480.
+[DIRT]  • Total time: 21.18 mins.
+[DIRT]  • DHell: 0.1568.</code></pre>
 </div>
 </div>
 </section>
@@ -719,8 +747,8 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <h2 class="anchored" data-anchor-id="debiasing">Debiasing</h2>
 <p>We will now use the DIRT density as the proposal density for an independence MCMC sampler. This will allow us to sample exactly from the posterior associated with the <em>full</em> model.</p>
 <div id="cell-20" class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a set of samples from the DIRT density</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> dirt.reference.random(d<span class="op">=</span>dirt.dim, n<span class="op">=</span><span class="dv">5000</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a set of samples from the DIRT density</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> dirt.reference.random(n<span class="op">=</span><span class="dv">5000</span>, d<span class="op">=</span>dirt.dim)</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>xs, potentials_dirt <span class="op">=</span> dirt.eval_irt(rs)</span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate the true potential function (for the full model) at each sample</span></span>
@@ -731,18 +759,18 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Acceptance rate: </span><span class="sc">{</span>res<span class="sc">.</span>acceptance_rate<span class="sc">:.2f}</span><span class="ss">"</span>)</span>
 <span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Mean IACT (all parameters): </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span>mean()<span class="sc">:.2f}</span><span class="ss">"</span>)</span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Maximum IACT (all parameters): </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Maximum IACT (all parameters): </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Acceptance rate: 0.71
-Mean IACT (all parameters): 2.12
-Maximum IACT (all parameters): 2.55</code></pre>
+<pre><code>Acceptance rate: 0.74
+Mean IACT (all parameters): 1.93
+Maximum IACT (all parameters): 2.70</code></pre>
 </div>
 </div>
 <p>For all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently. <a href="#fig-traces" class="quarto-xref">Figure&nbsp;3</a> shows trace plots for the log-posterior density and selected parameters, which reinforces this idea.</p>
 <div id="cell-fig-traces" class="cell" data-execution_count="13">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>parameters <span class="op">=</span> torch.hstack((res.potentials[:, <span class="va">None</span>], res.xs[:, <span class="dv">21</span>:<span class="dv">23</span>]))</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>parameters <span class="op">=</span> torch.hstack((res.potentials[:, <span class="va">None</span>], res.xs[:, <span class="dv">21</span>:<span class="dv">23</span>]))</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>ylabels <span class="op">=</span> [<span class="vs">r"</span><span class="dv">$</span><span class="vs">-</span><span class="er">\</span><span class="vs">log</span><span class="kw">(</span><span class="vs">f</span><span class="kw">(</span><span class="vs">x</span><span class="kw">))</span><span class="dv">$</span><span class="vs">"</span>, <span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">xi_</span><span class="op">{22}</span><span class="dv">$</span><span class="vs">"</span>, <span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">xi_</span><span class="op">{23}</span><span class="dv">$</span><span class="vs">"</span>]</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="fl">7.5</span>, <span class="dv">3</span>))</span>
@@ -754,7 +782,7 @@ Maximum IACT (all parameters): 2.55</code></pre>
 <span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    add_arrows(ax)</span>
 <span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_xlabel(<span class="st">"Iteration"</span>)</span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="fig-traces" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -773,7 +801,7 @@ Figure&nbsp;3: Trace plots for the negative log-posterior density (left), and co
 <div id="cell-fig-pairs" class="cell" data-execution_count="14">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>xs_pri <span class="op">=</span> dirt.reference.random(d<span class="op">=</span>dirt.dim, n<span class="op">=</span><span class="dv">1000</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>xs_pri <span class="op">=</span> dirt.reference.random(n<span class="op">=</span><span class="dv">1000</span>, d<span class="op">=</span>dirt.dim)</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>xs_post <span class="op">=</span> res.xs[::<span class="dv">10</span>]</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="vs">r"</span><span class="dv">$</span><span class="er">\</span><span class="vs">xi_{"</span><span class="op">+</span><span class="ss">f"</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">"</span><span class="op">+</span><span class="vs">r"}</span><span class="dv">$</span><span class="vs">"</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">22</span>, <span class="dv">25</span>)]</span>
@@ -787,7 +815,7 @@ Figure&nbsp;3: Trace plots for the negative log-posterior density (left), and co
 <span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    x_label<span class="op">=</span><span class="st">"Posterior"</span>,</span>
 <span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    y_label<span class="op">=</span><span class="st">"Prior"</span>, </span>
 <span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    bounds<span class="op">=</span>bounds</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="fig-pairs" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
@@ -880,13 +908,14 @@ Cui, Tiangang, and Sergey Dolgov. 2022. <span>“Deep Composition of Tensor-Trai
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

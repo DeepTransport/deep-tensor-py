@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.34">
+<meta name="generator" content="quarto-1.8.24">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -86,18 +86,19 @@ div.csl-indent {
 <meta name="quarto:offset" content="../">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-befe23ebd2f54d8af2c8a89d1a1611f1.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-b651517ce65839d647a86e2780455cfb.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-97b859373cfbcd8441dbb2234dc23333.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-359ff8416387e9244bb0e835fe8f54f4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-97b859373cfbcd8441dbb2234dc23333.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-066d717c45830c96d01c487e04e63832.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-5d917d4687dc3ea9ae20de9e3066d9b3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-066d717c45830c96d01c487e04e63832.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -140,7 +141,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -327,6 +328,8 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
+    <a href="../index.html" class="navbar-brand navbar-brand-logo">
+    </a>
     <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">deep_tensor</span>
     </a>
@@ -338,7 +341,7 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../index.html"> 
+    <a class="nav-link active" href="../index.html" aria-current="page"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
@@ -346,7 +349,7 @@ window.Quarto = {
 <span class="menu-text">Examples</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="../reference/index.html" aria-current="page"> 
+    <a class="nav-link" href="../reference/index.html"> 
 <span class="menu-text">API Reference</span></a>
   </li>  
   <li class="nav-item">
@@ -382,6 +385,10 @@ window.Quarto = {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+      <a href="../index.html" class="sidebar-logo-link">
+      </a>
+      </div>
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -524,6 +531,18 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="../reference/FTT.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">FTT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/EFTT.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">EFTT</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../reference/EFTTOptions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">EFTTOptions</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -695,29 +714,34 @@ window.Quarto = {
 
 <section id="deep_tensor.TTOptions" class="level1">
 <h1>TTOptions</h1>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>TTOptions(</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>TTOptions(</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="va">self</span>,</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    max_als: <span class="bu">int</span> <span class="op">=</span> <span class="dv">1</span>,</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    als_tol: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.1</span>,</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    init_rank: <span class="bu">int</span> <span class="op">=</span> <span class="dv">20</span>,</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    kick_rank: <span class="bu">int</span> <span class="op">=</span> <span class="dv">2</span>,</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    max_rank: <span class="bu">int</span> <span class="op">=</span> <span class="dv">30</span>,</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    svd_tol: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.0</span>,</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    tt_method: <span class="bu">str</span> <span class="op">=</span> <span class="st">'amen'</span>,</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    int_method: <span class="bu">str</span> <span class="op">=</span> <span class="st">'maxvol'</span>,</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    verbose: <span class="bu">int</span> <span class="op">=</span> <span class="dv">1</span>,</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    tt_method: <span class="bu">str</span> <span class="op">=</span> <span class="st">'amen'</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    int_method: <span class="bu">str</span> <span class="op">=</span> <span class="st">'maxvol'</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    max_als: <span class="bu">int</span> <span class="op">=</span> <span class="dv">1</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    init_rank: <span class="bu">int</span> <span class="op">=</span> <span class="dv">20</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    kick_rank: <span class="bu">int</span> <span class="op">=</span> <span class="dv">2</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    max_rank: <span class="bu">int</span> <span class="op">=</span> <span class="dv">30</span>,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    tol_svd: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.0</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    tol_max_core_error: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.0</span>,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    tol_l2_error: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.0</span>,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    verbose: <span class="bu">int</span> <span class="op">=</span> <span class="dv">1</span>,</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Options for configuring the construction of a TT object.</p>
 <section id="parameters" class="level2 doc-section doc-section-parameters">
 <h2 class="doc-section doc-section-parameters anchored" data-anchor-id="parameters">Parameters</h2>
 <dl>
+<dt><code><span class="parameter-name"><strong>tt_method</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'amen'</span></code></dt>
+<dd>
+<p>The enrichment method used when constructing the TT cores. Can be <code>'fixed_rank'</code> (no enrichment), <code>'random'</code>, or <code>'amen'</code> <span class="citation" data-cites="Dolgov2014">(<a href="#ref-Dolgov2014" role="doc-biblioref">Dolgov and Savostyanov 2014</a>)</span>.</p>
+</dd>
+<dt><code><span class="parameter-name"><strong>int_method</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'maxvol'</span></code></dt>
+<dd>
+<p>The interpolation method used when constructing the tensor cores. Can be <code>'maxvol'</code> <span class="citation" data-cites="Goreinov2010">(<a href="#ref-Goreinov2010" role="doc-biblioref">Goreinov et al. 2010</a>)</span> or <code>'deim'</code> <span class="citation" data-cites="Chaturantabut2010">(<a href="#ref-Chaturantabut2010" role="doc-biblioref">Chaturantabut and Sorensen 2010</a>)</span>.</p>
+</dd>
 <dt><code><span class="parameter-name"><strong>max_als</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1</span></code></dt>
 <dd>
 <p>The maximum number of ALS iterations to be carried out during the FTT construction.</p>
-</dd>
-<dt><code><span class="parameter-name"><strong>als_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.1</span></code></dt>
-<dd>
-<p>The tolerance to use to determine whether the ALS iterations should be terminated.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>init_rank</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">20</span></code></dt>
 <dd>
@@ -731,17 +755,17 @@ window.Quarto = {
 <dd>
 <p>The maximum allowable rank of each tensor core (prior to the enrichment set being added).</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>svd_tol</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.0</span></code></dt>
+<dt><code><span class="parameter-name"><strong>tol_svd</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.0</span></code></dt>
 <dd>
-<p>The threshold to use when applying truncated SVD to the tensor cores when building the FTT. The minimum number of singular values such that the sum of their squares exceeds (<span class="math inline">\(1-\)</span> <code>svd_tol</code>) will be retained.</p>
+<p>The threshold to use when applying truncated SVD to the tensor cores when building the TT. The minimum number of singular values such that the sum of their squares exceeds (<span class="math inline">\(1-\)</span> <code>tol_svd</code>) will be retained.</p>
 </dd>
-<dt><code><span class="parameter-name"><strong>tt_method</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'amen'</span></code></dt>
+<dt><code><span class="parameter-name"><strong>tol_max_core_error</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.0</span></code></dt>
 <dd>
-<p>The enrichment method used when constructing the TT cores. Can be <code>'fixed_rank'</code> (no enrichment), <code>'random'</code>, or <code>'amen'</code> <span class="citation" data-cites="Dolgov2014">(<a href="#ref-Dolgov2014" role="doc-biblioref">Dolgov and Savostyanov 2014</a>)</span>.</p>
+<p>A stopping tolerance, <span class="math inline">\(\epsilon\)</span>, based on the tensor cores. More concretely, if <span class="math inline">\(\boldsymbol{H}^{(\ell)}_{k}\)</span> denotes the <span class="math inline">\(k\)</span>th tensor core during sweep <span class="math inline">\(\ell\)</span>, the iterations are stopped if <span class="math display">\[     \max_{k \in \{1, \dots, d\}}         \frac{\|\boldsymbol{H}^{(\ell)}_{k}-\boldsymbol{H}^{(\ell-1)}_{k}\|_{\infty}}             {\|\boldsymbol{H}^{(\ell)}_{k}\|_{\infty}} &lt; \epsilon. \]</span></p>
 </dd>
-<dt><code><span class="parameter-name"><strong>int_method</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">str</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">'maxvol'</span></code></dt>
+<dt><code><span class="parameter-name"><strong>tol_l2_error</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">float</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">0.0</span></code></dt>
 <dd>
-<p>The interpolation method used when constructing the tensor cores. Can be <code>'maxvol'</code> <span class="citation" data-cites="Goreinov2010">(<a href="#ref-Goreinov2010" role="doc-biblioref">Goreinov et al. 2010</a>)</span> or <code>'deim'</code> <span class="citation" data-cites="Chaturantabut2010">(<a href="#ref-Chaturantabut2010" role="doc-biblioref">Chaturantabut and Sorensen 2010</a>)</span>.</p>
+<p>A stopping tolerance based on the estimated <span class="math inline">\(L^{2}\)</span> error of the target function.</p>
 </dd>
 <dt><code><span class="parameter-name"><strong>verbose</strong></span> <span class="parameter-annotation-sep">:</span> <span class="parameter-annotation">int</span> <span class="parameter-default-sep">=</span> <span class="parameter-default">1</span></code></dt>
 <dd>
@@ -829,13 +853,14 @@ Goreinov, Sergei A, Ivan V Oseledets, Dimitry V Savostyanov, Eugene E Tyrtyshnik
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy

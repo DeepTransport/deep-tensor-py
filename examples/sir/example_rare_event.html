@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.7.34">
+<meta name="generator" content="quarto-1.8.24">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -86,18 +86,19 @@ div.csl-indent {
 <meta name="quarto:offset" content="../../">
 <script src="../../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-befe23ebd2f54d8af2c8a89d1a1611f1.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-c8ad9e5dbd60b7b70b38521ab19b7da4.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-b651517ce65839d647a86e2780455cfb.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-97b859373cfbcd8441dbb2234dc23333.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../../site_libs/bootstrap/bootstrap-dark-359ff8416387e9244bb0e835fe8f54f4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../../site_libs/bootstrap/bootstrap-97b859373cfbcd8441dbb2234dc23333.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-066d717c45830c96d01c487e04e63832.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dark-5d917d4687dc3ea9ae20de9e3066d9b3.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../../site_libs/bootstrap/bootstrap-066d717c45830c96d01c487e04e63832.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -140,7 +141,7 @@ const typesetMath = (el) => {
     var macros = [];
     for (var i = 0; i < mathElements.length; i++) {
       var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
         window.katex.render(texText.data, mathElements[i], {
           displayMode: mathElements[i].classList.contains('display'),
           throwOnError: false,
@@ -327,6 +328,8 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
+    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
+    </a>
     <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">deep_tensor</span>
     </a>
@@ -338,11 +341,11 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../../index.html"> 
+    <a class="nav-link active" href="../../index.html" aria-current="page"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="../../examples/index.html" aria-current="page"> 
+    <a class="nav-link" href="../../examples/index.html"> 
 <span class="menu-text">Examples</span></a>
   </li>  
   <li class="nav-item">
@@ -382,6 +385,10 @@ window.Quarto = {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header sidebar-header-stacked">
+      <a href="../../index.html" class="sidebar-logo-link">
+      </a>
+      </div>
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -438,6 +445,23 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="../../examples/sir/example_rare_event.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">SIR Model</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Amortised Inference</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../examples/poisson/example_amortised.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Poisson Equation</span></a>
   </div>
 </li>
       </ul>
@@ -581,23 +605,23 @@ y_{k, j} = I_{k}(t_{j}) + \eta_{k,j},
 <section id="implementation-in-mathttdeep_tensor" class="level1">
 <h1>Implementation in <span class="math inline">\(\mathtt{deep\_tensor}\)</span></h1>
 <div id="cell-7" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Tuple</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Tuple</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> Tensor</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.sir <span class="im">import</span> SIRCompartmentModel, austria_adjacency</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.plotting <span class="im">import</span> set_plot_style</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.plotting <span class="im">import</span> set_plot_style</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="cell-8" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">0</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">0</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>torch.set_default_device(<span class="st">"cuda"</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">"cpu"</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>We begin by defining the model.</p>
 <div id="cell-10" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>num_compartments <span class="op">=</span> <span class="dv">9</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>num_compartments <span class="op">=</span> <span class="dv">9</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>dim <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> num_compartments</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Specify initial condition</span></span>
@@ -612,23 +636,23 @@ y_{k, j} = I_{k}(t_{j}) + \eta_{k,j},
 <span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>t_eval <span class="op">=</span> torch.linspace(<span class="dv">0</span>, <span class="dv">5</span>, <span class="dv">13</span><span class="op">*</span><span class="dv">12</span><span class="op">+</span><span class="dv">1</span>)</span>
 <span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>inds_obs <span class="op">=</span> torch.arange(<span class="dv">0</span>, <span class="dv">13</span><span class="op">*</span><span class="dv">12</span><span class="op">+</span><span class="dv">1</span>, <span class="dv">13</span>)</span>
 <span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> SIRCompartmentModel(austria_adjacency, S0, I0, R0, t_eval, inds_obs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> SIRCompartmentModel(austria_adjacency, S0, I0, R0, t_eval, inds_obs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Next, we simulate a set of synthetic observations using the true parameters <span class="math inline">\(\boldsymbol{x}_{\mathrm{true}} = [0.1, 1, \dots, 0.1, 1]^{\top}\)</span>.</p>
 <div id="cell-12" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate synthetic observations</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate synthetic observations</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>true_param <span class="op">=</span> torch.tensor([[<span class="fl">0.1</span>, <span class="fl">1.0</span>] <span class="op">*</span> num_compartments])</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>ys_true <span class="op">=</span> model.get_obs(model.solve(true_param))</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>std_noise <span class="op">=</span> <span class="fl">1.0</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>ys_obs <span class="op">=</span> ys_true <span class="co"># + std_noise * torch.randn_like(ys_true)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>ys_obs <span class="op">=</span> ys_true <span class="co"># + std_noise * torch.randn_like(ys_true)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="target-functions" class="level3">
 <h3 class="anchored" data-anchor-id="target-functions">Target Functions</h3>
 <p>Next, we define the target functions for the numerator and denominator of the ratio estimator.</p>
 <p>Note that the prior is uniform and we restrict the DIRT approximation domain to the support of the prior, so the posterior density is proportional to the likelihood function.</p>
 <div id="cell-14" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define numerator function. Note that this returns the potential </span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define numerator function. Note that this returns the potential </span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># function associated with the posterior, and the maximum value of the </span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># percentage of infected people over the time horizon, for each set of </span></span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># parameters.</span></span>
@@ -648,32 +672,32 @@ y_{k, j} = I_{k}(t_{j}) + \eta_{k,j},
 <span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>I_max <span class="op">=</span> <span class="fl">69.0</span></span>
 <span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>rare_event_func <span class="op">=</span> dt.RareEventFunc(rare_event, threshold<span class="op">=</span>I_max)</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>neglogpost_func <span class="op">=</span> dt.TargetFunc(neglogpost)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>neglogpost_func <span class="op">=</span> dt.TargetFunc(neglogpost)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="preconditioner" class="level2">
 <h2 class="anchored" data-anchor-id="preconditioner">Preconditioner</h2>
 <p>We now specify a reference density and a preconditioning mapping. Following <span class="citation" data-cites="Cui2024">Cui, Dolgov, and Scheichl (<a href="#ref-Cui2024" role="doc-biblioref">2024</a>)</span>, we will use a Gaussian reference density with support truncated to <span class="math inline">\([-3, 3]^{2K}\)</span>.</p>
 <div id="cell-16" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>domain <span class="op">=</span> dt.BoundedDomain(bounds<span class="op">=</span>torch.tensor([<span class="op">-</span><span class="fl">3.0</span>, <span class="fl">3.0</span>]))</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference(domain)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>domain <span class="op">=</span> dt.BoundedDomain(bounds<span class="op">=</span>torch.tensor([<span class="op">-</span><span class="fl">3.0</span>, <span class="fl">3.0</span>]))</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference(domain)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>We will define a preconditioner that maps between this reference density and the uniform density on <span class="math inline">\([0, 2]^{2K}\)</span> (which coincides with the prior).</p>
 <div id="cell-18" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> torch.tensor([[<span class="fl">0.0</span>, <span class="fl">2.0</span>]]).tile((dim, <span class="dv">1</span>))</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.UniformMapping(bounds<span class="op">=</span>bounds, reference<span class="op">=</span>reference)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>bounds <span class="op">=</span> torch.tensor([[<span class="fl">0.0</span>, <span class="fl">2.0</span>]]).tile((dim, <span class="dv">1</span>))</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.UniformMapping(bounds<span class="op">=</span>bounds, reference<span class="op">=</span>reference)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="functional-tensor-train" class="level2">
 <h2 class="anchored" data-anchor-id="functional-tensor-train">Functional Tensor Train</h2>
 <p>Next, we specify the properties of the functional tensor trains that will be used to approximate each incremental mapping in the final DIRT object.</p>
 <div id="cell-20" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>basis <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">16</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>basis <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">16</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>bases <span class="op">=</span> dt.ApproxBases(basis, dim)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(init_rank<span class="op">=</span><span class="dv">1</span>, max_rank<span class="op">=</span><span class="dv">5</span>, max_als<span class="op">=</span><span class="dv">3</span>, verbose<span class="op">=</span><span class="dv">0</span>)</span>
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>tt <span class="op">=</span> dt.TT(tt_options)</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>ftt <span class="op">=</span> dt.FTT(bases, tt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>ftt <span class="op">=</span> dt.FTT(bases, tt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="bridging-densities" class="level2">
@@ -685,8 +709,8 @@ y_{k, j} = I_{k}(t_{j}) + \eta_{k,j},
 \]</span></p>
 <p>where the tempering parameters start with <span class="math inline">\(\alpha_{1} = 10^{-5}\)</span>, and are incremented such that <span class="math inline">\(\alpha_{k+1} = 10^{1/3}\alpha_{k}\)</span> until <span class="math inline">\(\alpha_{N} = 1\)</span>. This means that <span class="math inline">\(N = 16\)</span>.</p>
 <div id="cell-22" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>betas <span class="op">=</span> <span class="dv">10</span> <span class="op">**</span> torch.linspace(<span class="op">-</span><span class="fl">5.0</span>, <span class="fl">0.0</span>, <span class="dv">16</span>)</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>bridge_q_tilde <span class="op">=</span> dt.Tempering(betas)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>betas <span class="op">=</span> <span class="dv">10</span> <span class="op">**</span> torch.linspace(<span class="op">-</span><span class="fl">5.0</span>, <span class="fl">0.0</span>, <span class="dv">16</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>bridge_q_tilde <span class="op">=</span> dt.Tempering(betas)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>To approximate the optimal importance sampling density associated with the numerator of the ratio function, we first note that if the set <span class="math inline">\(\mathcal{F}\)</span> is not aligned with the coordinate axes of the parameters, the FTT approximation of the optimal importance density may require very high ranks. Therefore, following <span class="citation" data-cites="Cui2024">Cui, Dolgov, and Scheichl (<a href="#ref-Cui2024" role="doc-biblioref">2024</a>)</span>, we replace the indicator function <span class="math inline">\(\mathbb{I}_{\mathcal{F}}(\cdot)\)</span> with the (smooth) sigmoid function <span class="math inline">\(g_{\gamma}(\cdot)\)</span>, which is defined as</p>
 <p><span class="math display">\[
@@ -699,26 +723,26 @@ g_{\gamma}(\boldsymbol{x}) := \left(1 + \exp\left[\gamma\left(I_{\mathrm{max}} -
 \]</span></p>
 <p>where <span class="math inline">\(\beta_{k} = \alpha_{k}\)</span> and <span class="math inline">\(\gamma_{k} = \beta_{k}\gamma_{*}\)</span>. We choose a value of <span class="math inline">\(\gamma_{*} = 10^{4}/I_{\mathrm{max}}\)</span>.</p>
 <div id="cell-24" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>betas <span class="op">=</span> <span class="dv">10</span> <span class="op">**</span> torch.linspace(<span class="op">-</span><span class="fl">5.0</span>, <span class="fl">0.0</span>, <span class="dv">16</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>betas <span class="op">=</span> <span class="dv">10</span> <span class="op">**</span> torch.linspace(<span class="op">-</span><span class="fl">5.0</span>, <span class="fl">0.0</span>, <span class="dv">16</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>gamma_prime <span class="op">=</span> <span class="fl">1e04</span> <span class="op">/</span> I_max</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>gammas <span class="op">=</span> betas <span class="op">*</span> gamma_prime</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>bridge_p_tilde <span class="op">=</span> dt.SigmoidSmoothing(gammas, betas)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>bridge_p_tilde <span class="op">=</span> dt.SigmoidSmoothing(gammas, betas)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="dirt-objects" class="level2">
 <h2 class="anchored" data-anchor-id="dirt-objects">DIRT Objects</h2>
 <p>We can now construct the DIRT approximations to the importance densities used for the numerator (<span class="math inline">\(\tilde{P}_{N}\)</span>) and denominator (<span class="math inline">\(\tilde{Q}_{N}\)</span>) of the ratio estimator, <span class="math inline">\(\tilde{R}_{N}\)</span> (<a href="#eq-ratio-estimator" class="quarto-xref">Equation&nbsp;3</a>).</p>
 <div id="cell-26" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>dirt_options <span class="op">=</span> dt.DIRTOptions(verbose<span class="op">=</span><span class="dv">0</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>dirt_options <span class="op">=</span> dt.DIRTOptions(verbose<span class="op">=</span><span class="dv">0</span>)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>p_tilde <span class="op">=</span> dt.DIRT(rare_event_func, preconditioner, ftt, bridge_p_tilde, dirt_options)</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>q_tilde <span class="op">=</span> dt.DIRT(neglogpost_func, preconditioner, ftt, bridge_q_tilde, dirt_options)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>q_tilde <span class="op">=</span> dt.DIRT(neglogpost_func, preconditioner, ftt, bridge_q_tilde, dirt_options)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="rare-event-estimation" class="level2">
 <h2 class="anchored" data-anchor-id="rare-event-estimation">Rare Event Estimation</h2>
 <p>Now that the DIRT approximations to the importance densities have been constructed, we can compute an importance sampling estimate of the rare event probability. We begin by defining a function which computes the ratio <span class="math inline">\(\tilde{R}\)</span> using a specified number of samples.</p>
 <div id="cell-28" class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> estimate_rare_event(</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> estimate_rare_event(</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    rare_event_func: dt.TargetFunc,</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    neglogpost_func: dt.TargetFunc,</span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    p_tilde: dt.DIRT, </span>
@@ -726,14 +750,14 @@ g_{\gamma}(\boldsymbol{x}) := \left(1 + \exp\left[\gamma\left(I_{\mathrm{max}} -
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    num_samples: <span class="bu">int</span></span>
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
 <span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    rs <span class="op">=</span> p_tilde.reference.random(p_tilde.dim, num_samples)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    rs <span class="op">=</span> p_tilde.reference.random(num_samples, p_tilde.dim)</span>
 <span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    xs, neglogevents_dirt <span class="op">=</span> p_tilde.eval_irt(rs)</span>
 <span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    neglogevents_true <span class="op">=</span> rare_event_func(xs)</span>
 <span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    P_is <span class="op">=</span> dt.run_importance_sampling(neglogevents_dirt, neglogevents_true)</span>
 <span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    P_hat <span class="op">=</span> P_is.log_weights.exp().mean()</span>
 <span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    rs <span class="op">=</span> q_tilde.reference.random(q_tilde.dim, num_samples)</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    rs <span class="op">=</span> q_tilde.reference.random(num_samples, q_tilde.dim)</span>
 <span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    xs, neglogposts_dirt <span class="op">=</span> q_tilde.eval_irt(rs)</span>
 <span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    neglogposts_true <span class="op">=</span> neglogpost_func(xs)</span>
 <span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a></span>
@@ -741,11 +765,11 @@ g_{\gamma}(\boldsymbol{x}) := \left(1 + \exp\left[\gamma\left(I_{\mathrm{max}} -
 <span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    Q_hat <span class="op">=</span> Q_is.log_weights.exp().mean()</span>
 <span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    R_hat <span class="op">=</span> P_hat <span class="op">/</span> Q_hat</span>
-<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">float</span>(R_hat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">float</span>(R_hat)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>We will then call this function repeatedly to obtain a set of estimates of the rare event probability.</p>
 <div id="cell-30" class="cell" data-execution_count="13">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>num_estimates <span class="op">=</span> <span class="dv">20</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>num_estimates <span class="op">=</span> <span class="dv">20</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>num_samples <span class="op">=</span> <span class="dv">10_000</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>R_hats <span class="op">=</span> torch.tensor([</span>
@@ -759,10 +783,10 @@ g_{\gamma}(\boldsymbol{x}) := \left(1 + \exp\left[\gamma\left(I_{\mathrm{max}} -
 <span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>])</span>
 <span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Estimate of event probability: </span><span class="sc">{</span>R_hats<span class="sc">.</span>mean()<span class="sc">:.4e}</span><span class="ss">."</span>)</span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Standard deviation of estimate of event probability: </span><span class="sc">{</span>R_hats<span class="sc">.</span>std()<span class="sc">:.4e}</span><span class="ss">."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Standard deviation of estimate of event probability: </span><span class="sc">{</span>R_hats<span class="sc">.</span>std()<span class="sc">:.4e}</span><span class="ss">."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Estimate of event probability: 4.3852e-10.
-Standard deviation of estimate of event probability: 3.8439e-12.</code></pre>
+<pre><code>Estimate of event probability: 4.3823e-10.
+Standard deviation of estimate of event probability: 2.9122e-12.</code></pre>
 </div>
 </div>
 
@@ -840,13 +864,14 @@ Cui, Tiangang, Sergey Dolgov, and Robert Scheichl. 2024. <span>“Deep Importanc
       e.clearSelection();
     }
     const getTextToCopy = function(trigger) {
-        const codeEl = trigger.previousElementSibling.cloneNode(true);
-        for (const childEl of codeEl.children) {
-          if (isCodeAnnotation(childEl)) {
-            childEl.remove();
-          }
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
         }
-        return codeEl.innerText;
+      }
+      return codeEl.innerText;
     }
     const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
       text: getTextToCopy
