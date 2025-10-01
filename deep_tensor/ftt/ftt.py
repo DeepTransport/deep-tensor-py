@@ -315,7 +315,7 @@ class FTT():
         Parameters
         ----------
         target_func: 
-            The target function, $f : [-1, 1]^{d} \rightarrow \mathbb{R}$. 
+            The target function, $f : [-1, 1]^{d} \rightarrow \mathbb{R}$.
         reference:
             The reference measure. If provided, this will be used to 
             generate the initial index sets for the underlying TT. 

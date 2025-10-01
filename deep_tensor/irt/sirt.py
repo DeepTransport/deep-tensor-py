@@ -1,4 +1,5 @@
 from typing import Callable, Dict, Tuple
+import warnings
 
 import torch
 from torch import Tensor
@@ -7,6 +8,7 @@ from ..domains import Domain
 from ..ftt import ApproxBases, Direction, FTT
 from ..linalg import batch_mul, n_mode_prod, unfold_left, unfold_right
 from ..polynomials import CDF1D, construct_cdf
+from ..references import Reference
 
 
 SUBSET2DIRECTION = {
@@ -16,29 +18,25 @@ SUBSET2DIRECTION = {
 
 
 class SIRT():
-    r"""Squared inverse Rosenblatt transport.
+    """Squared inverse Rosenblatt transport.
     
     Parameters
     ----------
     potential:
-        A function that receives an $n \times d$ matrix of samples and 
-        returns an $n$-dimensional vector containing the potential 
+        A function that receives an n * d matrix of samples and 
+        returns an n-dimensional vector containing the potential 
         function of the target density evaluated at each sample.
     ftt:
         TODO
-    defensive: 
+    reference:
         TODO
+    domain: 
+        The domain of the reference.
     defensive:
-        The defensive parameter, $\tau$, which ensures that the tails
-        of the approximation are sufficiently heavy.
+        The defensive parameter.
     cdf_tol:
-        TODO
-
-    References
-    ----------
-    Cui, T and Dolgov, S (2022). *[Deep composition of tensor-trains 
-    using squared inverse Rosenblatt transports](https://doi.org/10.1007/s10208-021-09537-5).* 
-    Foundations of Computational Mathematics, **22**, 1863--1922.
+        The tolerance used when solving the rootfinding problem to 
+        evaluate the inverse of each conditional CDF.
 
     """
 
@@ -46,8 +44,7 @@ class SIRT():
         self, 
         target_func: Callable[[Tensor], Tensor], 
         ftt: FTT,
-        reference,
-        domain: Domain,
+        reference: Reference,
         defensive: float,
         cdf_tol: float
     ):
@@ -56,7 +53,7 @@ class SIRT():
         self.ftt = ftt
         self.bases = self.ftt.bases
         self.dim = self.ftt.dim
-        self.domain = domain
+        self.domain = reference.domain
         self.defensive = defensive
         self.cdfs = self.construct_cdfs(self.bases, cdf_tol)
 
@@ -175,6 +172,26 @@ class SIRT():
         neglogwxs = self.eval_measure_potential(xs)[0]
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
         return gs
+    
+    @staticmethod
+    def _check_z_func(z_func) -> None:
+        
+        dtype = torch.get_default_dtype()
+        msg = (
+            "The normalising constant of the current SIRT layer is very small "
+            f"({z_func:.2e}). This may cause numerical instability. "
+        )
+        if dtype == torch.float32 and z_func < 1.0e-5:
+            msg += (
+                "Consider rescaling the potential function "
+                "or changing to double precision."
+            )
+            warnings.warn(msg)
+        elif dtype == torch.float64 and z_func < 1.0e-10:
+            msg += "Consider rescaling the potential function."
+            warnings.warn(msg)
+
+        return
 
     def _marginalise_forward(self) -> None:
         """Computes each coefficient tensor required to evaluate the 
@@ -192,6 +209,7 @@ class SIRT():
             self._Rs_f[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
         self.z_func = self._Rs_f[0].square().sum()
+        self._check_z_func(self.z_func)
         return 
     
     def _marginalise_backward(self) -> None:

@@ -152,7 +152,6 @@ class DIRT():
             self.eval_ratio_func, 
             ftt, 
             self.reference, 
-            self.domain, 
             self.defensive, 
             self.cdf_tol
         )
