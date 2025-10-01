@@ -72,7 +72,7 @@ class SIRT():
     
     @property
     def z(self) -> Tensor:
-        return (1.0 * self.defensive) * self.z_func
+        return (1.0 + self.defensive) * self.z_func
 
     @property 
     def coef_defensive(self) -> Tensor:
