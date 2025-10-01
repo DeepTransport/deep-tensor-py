@@ -4,7 +4,6 @@ import warnings
 import torch
 from torch import Tensor
 
-from ..domains import Domain
 from ..ftt import ApproxBases, Direction, FTT
 from ..linalg import batch_mul, n_mode_prod, unfold_left, unfold_right
 from ..polynomials import CDF1D, construct_cdf
@@ -27,9 +26,11 @@ class SIRT():
         returns an n-dimensional vector containing the potential 
         function of the target density evaluated at each sample.
     ftt:
-        TODO
+        The functional tensor train to use to approximate the 
+        square root of the ratio between the target density and 
+        weighting function.
     reference:
-        TODO
+        The reference density.
     domain: 
         The domain of the reference.
     defensive:
@@ -56,11 +57,11 @@ class SIRT():
         self.domain = reference.domain
         self.defensive = defensive
         self.cdfs = self.construct_cdfs(self.bases, cdf_tol)
-
         self.ftt.approximate(self._target_func, reference)
 
-        # Compute coefficient tensors and marginalisation coefficents, 
-        # from the first core to the last and the last core to the first
+        # Precompute coefficient tensors and marginalisation 
+        # coefficents, from the first core to the last and the last 
+        # core to the first.
         self._Bs_f: Dict[int, Tensor] = {}
         self._Rs_f: Dict[int, Tensor] = {}
         self._Bs_b: Dict[int, Tensor] = {}
@@ -71,7 +72,15 @@ class SIRT():
     
     @property
     def z(self) -> Tensor:
-        return self.defensive + self.z_func
+        return (1.0 * self.defensive) * self.z_func
+
+    @property 
+    def coef_defensive(self) -> Tensor:
+        # Note: this is a slight change from the defensive parameter 
+        # defined in @CuiDolgov2022. The defensive parameter now scales 
+        # according to the normalising constant of the FTT approximation 
+        # to the target density.
+        return self.defensive * self.z_func
     
     @property 
     def num_eval(self) -> int:
@@ -244,7 +253,7 @@ class SIRT():
             # Compute (unnormalised) conditional PDF for each sample
             Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("jl, ilk -> ijk", Gs_prod, Ps)
-            ps = gs.square().sum(dim=2) + self.defensive
+            ps = gs.square().sum(dim=2) + self.coef_defensive
 
             # Evaluate CDF to obtain corresponding uniform variates
             zs[:, k] = self.cdfs[k].eval_cdf(ps, ls[:, k])
@@ -270,7 +279,7 @@ class SIRT():
             # Compute (unnormalised) conditional PDF for each sample
             Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("ijl, lk -> ijk", Ps, Gs_prod)
-            ps = gs.square().sum(dim=1) + self.defensive
+            ps = gs.square().sum(dim=1) + self.coef_defensive
 
             # Evaluate CDF to obtain corresponding uniform variates
             zs[:, -i] = self.cdfs[k].eval_cdf(ps, ls[:, -i])
@@ -337,7 +346,7 @@ class SIRT():
             
             Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gls = n_mode_prod(Ps, gs, n=1)
-            ps = gls.square().sum(dim=2) + self.defensive
+            ps = gls.square().sum(dim=2) + self.coef_defensive
             ls[:, k] = self.cdfs[k].invert_cdf(ps, zs[:, k])
 
             Gs = FTT.eval_core(self.bases[k], self.ftt.cores[k], ls[:, k])
@@ -379,7 +388,7 @@ class SIRT():
 
             Ps = FTT.eval_core_rev(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gls = n_mode_prod(Ps, gs, n=1)
-            ps = gls.square().sum(dim=2) + self.defensive
+            ps = gls.square().sum(dim=2) + self.coef_defensive
             ls[:, -i] = self.cdfs[k].invert_cdf(ps, zs[:, -i])
 
             Gs = FTT.eval_core_rev(self.bases[k], cores[k], ls[:, -i])
@@ -424,7 +433,7 @@ class SIRT():
         
         indices = self._get_transform_indices(zs.shape[1], direction)
         
-        neglogpls = -(gs_sq + self.defensive).log()
+        neglogpls = -(gs_sq + self.coef_defensive).log()
         neglogwls = self.bases.eval_measure_potential(ls, indices)
         neglogfls = self.z.log() + neglogpls + neglogwls
 
@@ -453,7 +462,7 @@ class SIRT():
 
         Ps = FTT.eval_core(self.bases[k], Bs[k], ls_x[:, k])
         gs_marg = batch_mul(Gs_prod, Ps)
-        ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.defensive
+        ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.coef_defensive
 
         Gs = FTT.eval_core(self.bases[k], cores[k], ls_x[:, k])
         Gs_prod = batch_mul(Gs_prod, Gs)
@@ -463,13 +472,13 @@ class SIRT():
             
             Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("mij, ljk -> lmk", Gs_prod, Ps)
-            ps = gs.square().sum(dim=2) + self.defensive
+            ps = gs.square().sum(dim=2) + self.coef_defensive
             ls_y[:, i] = self.cdfs[k].invert_cdf(ps, zs[:, i])
 
             Gs = FTT.eval_core(self.bases[k], cores[k], ls_y[:, i])
             Gs_prod = batch_mul(Gs_prod, Gs)
 
-        ps = Gs_prod.flatten().square() + self.defensive
+        ps = Gs_prod.flatten().square() + self.coef_defensive
 
         indices = d_xs + torch.arange(d_zs)
         neglogwls_y = self.bases.eval_measure_potential(ls_y, indices)
@@ -497,7 +506,7 @@ class SIRT():
 
         Ps = FTT.eval_core(self.bases[d_zs], Bs[d_zs], ls_x[:, 0])
         gs_marg = batch_mul(Ps, Gs_prod)
-        ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.defensive
+        ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.coef_defensive
 
         Gs = FTT.eval_core(self.bases[d_zs], cores[d_zs], ls_x[:, 0])
         Gs_prod = batch_mul(Gs, Gs_prod)
@@ -507,13 +516,13 @@ class SIRT():
 
             Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
             gs = torch.einsum("lij, mjk -> lmi", Ps, Gs_prod)
-            ps = gs.square().sum(dim=2) + self.defensive
+            ps = gs.square().sum(dim=2) + self.coef_defensive
             ls_y[:, k] = self.cdfs[k].invert_cdf(ps, zs[:, k])
 
             Gs = FTT.eval_core(self.bases[k], cores[k], ls_y[:, k])
             Gs_prod = batch_mul(Gs, Gs_prod)
 
-        ps = Gs_prod.flatten().square() + self.defensive
+        ps = Gs_prod.flatten().square() + self.coef_defensive
 
         indices = torch.arange(d_zs-1, -1, -1)
         neglogwls_y = self.bases.eval_measure_potential(ls_y, indices)
@@ -582,7 +591,7 @@ class SIRT():
         zs = self._eval_rt_local_forward(ls)
         ls, gs_sq = self._eval_irt_local_forward(zs)
         n_ls = ls.shape[0]
-        ps = gs_sq + self.defensive
+        ps = gs_sq + self.coef_defensive
         neglogws = self.bases.eval_measure_potential(ls)
         ws = torch.exp(-neglogws)
         fs = ps * ws  # Don't need to normalise as derivative ends up being a ratio
@@ -662,11 +671,11 @@ class SIRT():
             # Evaluate marginal probability for the first k elements of 
             # each sample
             gs = batch_mul(Gs_prod[k-1], Ps[k])
-            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.defensive
+            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.coef_defensive
 
             # Compute (unnormalised) marginal PDF at CDF nodes for each sample
             gs_grid = torch.einsum("mij, ljk -> lmik", Gs_prod[k-1], Ps_grid[k])
-            ps_grid[k] = gs_grid.square().sum(dim=(2, 3)) + self.defensive
+            ps_grid[k] = gs_grid.square().sum(dim=(2, 3)) + self.coef_defensive
 
         # Derivatives of marginal PDF
         for k in range(self.dim-1):
@@ -757,11 +766,11 @@ class SIRT():
             # Evaluate marginal probability for the first k elements of 
             # each sample
             gs = batch_mul(Gs_prod[k+1], Ps[k])
-            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.defensive
+            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.coef_defensive
 
             # Compute (unnormalised) marginal PDF at CDF nodes for each sample
             gs_grid = torch.einsum("mij, ljk -> lmik", Gs_prod[k+1], Ps_grid[k])
-            ps_grid[k] = gs_grid.square().sum(dim=(2, 3)) + self.defensive
+            ps_grid[k] = gs_grid.square().sum(dim=(2, 3)) + self.coef_defensive
 
         # Derivatives of marginal PDF
         for k in range(1, self.dim):
@@ -878,7 +887,7 @@ class SIRT():
             gs_sq = (self._Rs_b[self.dim-dim_l-1] @ gs.T).square().sum(dim=0)
         
         neglogwls = self.bases.eval_measure_potential(ls, indices)
-        neglogfls = self.z.log() - (gs_sq + self.defensive).log() + neglogwls
+        neglogfls = self.z.log() - (gs_sq + self.coef_defensive).log() + neglogwls
         return neglogfls
     
     def _eval_potential(self, xs: Tensor, subset: str) -> Tensor:
