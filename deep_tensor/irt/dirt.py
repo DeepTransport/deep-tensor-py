@@ -51,8 +51,6 @@ class DIRT():
         # TODO: need to reset the bridge prior to starting. Ideally we 
         # should be able to use the same bridge object to build 
         # multiple DIRT objects.
-        # TODO: need to make sure samples are available if the adaptive 
-        # bridges are going to be used.
 
         if not isinstance(target_func, TargetFunc):
             target_func = TargetFunc(target_func)
@@ -75,28 +73,41 @@ class DIRT():
         self.defensive = options.defensive
         self.cdf_tol = options.cdf_tol
         self.verbose = options.verbose
-
-        # self.num_eval_diagnostics = 0
-        
         self.sirts: Dict[int, SIRT] = {}
+
+        if self.bridge.is_adaptive and self.num_error_samples == 0:
+            msg = (
+                "The bridging densities are being chosen adaptively, "
+                "which requires a non-zero number of error samples. "
+                "Either pre-specify the bridging densities or set "
+                "num_error_samples to a positive number (ideally at "
+                "least 100)."
+            )
+            raise Exception(msg)
 
         self._build()
         return
     
     @property 
     def num_layers(self) -> int:
-        return self.bridge.n_layers
+        return self.bridge.num_layers
     
     @num_layers.setter
     def num_layers(self, value: int) -> None:
-        self.bridge.n_layers = value 
+        self.bridge.num_layers = value 
         return
+
+    @property 
+    def num_eval_sirt(self) -> int:
+        return sum([self.sirts[k].num_eval for k in self.sirts])
+    
+    @property 
+    def num_eval_diagnostic(self) -> int:
+        return self.num_error_samples * self.bridge.num_layers
 
     @property
     def num_eval(self) -> int:
-        n = sum([sirt.num_eval for sirt in self.sirts.values()])
-        # TODO: need to add on the debugging samples to this.
-        return n
+        return self.num_eval_sirt + self.num_eval_diagnostic
     
     @property
     def log_z(self) -> float:
@@ -112,7 +123,6 @@ class DIRT():
         xs = self.preconditioner.Q(us)
         neglogdets = self.preconditioner.neglogdet_Q(us)
         neglogfxs = self.target_func(xs)
-        # self.num_eval += us.shape[0]
         neglogfus = neglogfxs + neglogdets
         return neglogfus
   
@@ -180,39 +190,53 @@ class DIRT():
         t0 = time.time()
         
         while True:
-
-            rs = self.reference.random(self.num_error_samples, self.dim)
-            us, neglogfus_dirt = self._eval_irt_reference(rs)
-
-            log_weights, neglogbridges = self.bridge.update(us, neglogfus_dirt)
+            
+            if self.num_error_samples > 0:
+                rs = self.reference.random(self.num_error_samples, self.dim)
+                us, neglogfus_dirt = self._eval_irt_reference(rs)
+                log_weights, neglogbridges = self.bridge.update(us, neglogfus_dirt)
+            else:
+                log_weights, neglogbridges, neglogfus_dirt = None, None, None
 
             if self.verbose > 0:
                 cum_time = time.time() - t0
-                self._print_progress(log_weights, neglogbridges, 
-                                     neglogfus_dirt, cum_time)
+                self._print_progress(
+                    log_weights, 
+                    neglogbridges, 
+                    neglogfus_dirt, 
+                    cum_time
+                )
+
+            if self.num_layers == 4:  # TEMP: for debugging...
+                pass
 
             self.sirts[self.num_layers] = self._get_new_layer()
             self.num_layers += 1
-
             if self.bridge.is_last:
                 break
 
         if self.verbose:
 
-            # Note: the Hellinger divergence is invariant to bijective 
-            # transformations
-            rs = self.reference.random(self.num_error_samples, self.dim)
-            us, neglogfus_dirt = self._eval_irt_reference(rs)
-            neglogfus = self.eval_target_pullback(us) # TODO: the bridge should probably handle this...
-            dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
+            info_msgs = [
+                "DIRT construction complete.",
+                f" • Layers: {self.num_layers}.",
+                f" • Total function evaluations: {self.num_eval:,}."
+            ]
+
+            if self.num_error_samples > 0:
+                # Note: the Hellinger divergence is invariant to bijective 
+                # transformations.
+                rs = self.reference.random(self.num_error_samples, self.dim)
+                us, neglogfus_dirt = self._eval_irt_reference(rs)
+                neglogfus = self.eval_target_pullback(us) # TODO: the bridge should probably handle this...
+                dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
+                info_msgs += [f" • DHell: {dhell2.sqrt():.4f}."]
 
             t1 = time.time()
+            info_msgs += [f" • Total time: {format_time(t1-t0)}."]
             
-            dirt_info("DIRT construction complete.")
-            dirt_info(f" • Layers: {self.num_layers}.")
-            dirt_info(f" • Total function evaluations: {self.num_eval:,}.")
-            dirt_info(f" • Total time: {format_time(t1-t0)}.")
-            dirt_info(f" • DHell: {dhell2.sqrt():.4f}.")
+            for msg in info_msgs:
+                dirt_info(msg)
         
         return
     

@@ -65,7 +65,7 @@ class SigmoidSmoothing(Bridge):
         betas: Sequence | Tensor | float = 1.0
     ):
         self.gammas, self.betas = self._parse_bridging_params(gammas, betas)
-        self.n_layers = 0
+        self.num_layers = 0
         self.initialised = False
 
         self._ratio_weight_funcs = {
@@ -77,7 +77,7 @@ class SigmoidSmoothing(Bridge):
     
     @property
     def is_last(self) -> bool:
-        return self.n_layers == (len(self.betas) - 1)
+        return self.num_layers == (len(self.betas) - 1)
     
     @staticmethod
     def _parse_bridging_params(
@@ -132,6 +132,15 @@ class SigmoidSmoothing(Bridge):
         neglogsigmoids = torch.log1p(torch.exp(gamma * dzs))
         return neglogsigmoids
     
+    def _eval_pullback(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+        """Evaluates the pullback of the target density under the 
+        preconditioning mapping.
+        """
+        xs, neglogdets = self.apply_preconditioner(us)
+        neglogfxs, responses = self.target_func.func(xs)
+        neglogfus = neglogfxs + neglogdets
+        return neglogfus, responses
+
     def _compute_neglogbridges(
         self, 
         neglogref_us: Tensor,
@@ -139,7 +148,7 @@ class SigmoidSmoothing(Bridge):
         responses: Tensor
     ) -> Tensor:
         
-        k = self.n_layers
+        k = self.num_layers
         neglogsigmoids_p = self.neglogsigmoid(self.gammas[k-1], responses)
         neglogbridges = (
             + (1.0 - self.betas[k-1]) * neglogref_us 
@@ -159,7 +168,7 @@ class SigmoidSmoothing(Bridge):
         the previous bridging density for each particle.
         """
         
-        k = self.n_layers
+        k = self.num_layers
         neglogsigmoids = self.neglogsigmoid(self.gammas[k], responses)
         neglogsigmoids_p = self.neglogsigmoid(self.gammas[k-1], responses)
         neglogsigmoids_p[neglogsigmoids_p.isinf()] = 0.0
@@ -183,7 +192,7 @@ class SigmoidSmoothing(Bridge):
         each particle.
         """
 
-        k = self.n_layers
+        k = self.num_layers
         neglogsigmoids = self.neglogsigmoid(self.gammas[k], responses)
         
         neglogweights = (
@@ -243,10 +252,7 @@ class SigmoidSmoothing(Bridge):
         
         neglogref_rs = self.reference.eval_potential(rs)[0]
         neglogref_us = self.reference.eval_potential(us)[0]
-
-        xs, neglogdets = self.apply_preconditioner(us)
-        neglogfxs, responses = self.target_func.func(xs)
-        neglogfus = neglogfxs + neglogdets
+        neglogfus, responses = self._eval_pullback(us)
 
         neglogratios = self._compute_ratio_func(
             method,
@@ -264,10 +270,7 @@ class SigmoidSmoothing(Bridge):
             raise Exception("Need to call self.initialise().")
         
         neglogref_us = self.reference.eval_potential(us)[0]
-        
-        xs, neglogdets = self.apply_preconditioner(us)
-        neglogfxs, responses = self.target_func.func(xs)
-        neglogfus = neglogfxs + neglogdets
+        neglogfus, responses = self._eval_pullback(us)
 
         neglogbridges = self._compute_neglogbridges(
             neglogref_us,
@@ -290,14 +293,16 @@ class SigmoidSmoothing(Bridge):
         neglogfus: Tensor,
         neglogfus_dirt: Tensor
     ) -> List[str]:
+        
+        msg = [
+            f"Gamma: {self.gammas[self.num_layers]:.4f}",
+            f"Beta: {self.betas[self.num_layers]:.4f}"
+        ]
+        
+        if None in (log_weights, neglogfus, neglogfus_dirt):
+            return msg
 
         div_h2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
         ess = estimate_ess_ratio(log_weights)
-
-        msg = [
-            f"DHell: {div_h2.sqrt():.4f}",
-            f"Gamma: {self.gammas[self.n_layers]:.4f}",
-            f"Beta: {self.betas[self.n_layers]:.4f}", 
-            f"ESS: {ess:.4f}"
-        ]
+        msg += [f"DHell: {div_h2.sqrt():.4f}", f"ESS: {ess:.4f}"]
         return msg

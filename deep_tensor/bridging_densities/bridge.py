@@ -16,12 +16,12 @@ class Bridge(abc.ABC):
         pass
 
     @property 
-    def n_layers(self) -> int:
-        return self._n_layers
+    def num_layers(self) -> int:
+        return self._num_layers
     
-    @n_layers.setter
-    def n_layers(self, value: int) -> None:
-        self._n_layers = value
+    @num_layers.setter
+    def num_layers(self, value: int) -> None:
+        self._num_layers = value
         return
     
     @property
@@ -85,6 +85,15 @@ class Bridge(abc.ABC):
         xs = self.preconditioner.Q(us)
         neglogdets = self.preconditioner.neglogdet_Q(us)
         return xs, neglogdets
+    
+    def _eval_pullback(self, us: Tensor) -> Tensor:
+        """Evaluates the pullback of the target density under the 
+        preconditioning mapping.
+        """
+        xs, neglogdets = self.apply_preconditioner(us)
+        neglogfxs = self.target_func(xs)
+        neglogfus = neglogfxs + neglogdets
+        return neglogfus
     
     def _reorder(
         self, 

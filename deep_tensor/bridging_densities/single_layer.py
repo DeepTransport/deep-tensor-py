@@ -14,7 +14,7 @@ class SingleLayer(Bridge):
     """
 
     def __init__(self):
-        self.n_layers = 0
+        self.num_layers = 0
         self.is_adaptive = False
         return
     
@@ -27,11 +27,7 @@ class SingleLayer(Bridge):
         us: Tensor, 
         neglogfus_dirt: Tensor
     ) -> Tuple[Tensor, Tensor]:
-        
-        xs, neglogdets = self.apply_preconditioner(us)
-        neglogfxs = self.target_func(xs)
-        neglogfus = neglogfxs + neglogdets
-
+        neglogfus = self._eval_pullback(us)
         log_weights = -neglogfus + neglogfus_dirt
         return log_weights, neglogfus
         
@@ -42,7 +38,4 @@ class SingleLayer(Bridge):
         us: Tensor,
         neglogfus_dirt: Tensor
     ) -> Tensor:
-        xs, neglogdets = self.apply_preconditioner(us)
-        neglogfxs = self.target_func(xs)
-        neglogfus = neglogfxs + neglogdets
-        return neglogfus
+        return self._eval_pullback(us)

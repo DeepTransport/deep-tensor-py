@@ -72,7 +72,7 @@ class GaussianMapping(Preconditioner):
         if subset == "first":
             us = (xs - self.mean[:d_xs]) @ self.R[:d_xs, :d_xs].T
         else:
-            xs = (xs - self.mean[-d_xs:]) @ self.R[-d_xs:, -d_xs:].T
+            us = (xs - self.mean[-d_xs:]) @ self.R[-d_xs:, -d_xs:].T
         return us
     
     def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:

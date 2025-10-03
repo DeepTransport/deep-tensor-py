@@ -87,7 +87,7 @@ class Tempering(Bridge):
         self.init_beta = min_beta
         self.max_layers = max_layers
         self.is_adaptive = len(self.betas) == 1
-        self.n_layers = 0
+        self.num_layers = 0
         self.initialised = False
 
         self._ratio_weight_funcs = {
@@ -99,8 +99,8 @@ class Tempering(Bridge):
     
     @property 
     def is_last(self) -> bool:
-        max_layers_reached = self.n_layers == self.max_layers
-        final_beta_reached = abs(self.betas[self.n_layers-1] - 1.0) < 1e-6
+        max_layers_reached = self.num_layers == self.max_layers
+        final_beta_reached = abs(self.betas[self.num_layers-1] - 1.0) < 1e-6
         return bool(max_layers_reached or final_beta_reached)
 
     def initialise(
@@ -120,7 +120,7 @@ class Tempering(Bridge):
         neglogfus: Tensor
     ) -> Tensor:
         
-        k = self.n_layers
+        k = self.num_layers
         neglogbridges = (
             + (1.0 - self.betas[k-1]) * neglogref_us 
             + self.betas[k-1] * neglogfus
@@ -136,7 +136,7 @@ class Tempering(Bridge):
         """Computes the ratio between the current bridging density and 
         the previous bridging density for each particle.
         """
-        k = self.n_layers
+        k = self.num_layers
         neglogweights = (
             + (self.betas[k-1] - self.betas[k]) * neglogref_us 
             + (self.betas[k] - self.betas[k-1]) * neglogfus
@@ -153,7 +153,7 @@ class Tempering(Bridge):
         the DIRT approximation to the previous bridging density for 
         each particle.
         """
-        k = self.n_layers
+        k = self.num_layers
         neglogweights = (
             + (1.0 - self.betas[k]) * neglogref_us 
             + self.betas[k] * neglogfus
@@ -183,7 +183,7 @@ class Tempering(Bridge):
         neglogfus: Tensor,
         neglogfus_dirt: Tensor
     ) -> Tensor:
-        beta = self.betas[self.n_layers]
+        beta = self.betas[self.num_layers]
         log_weights = -beta*neglogfus - (1-beta)*neglogrefs + neglogfus_dirt
         return log_weights
     
@@ -200,10 +200,7 @@ class Tempering(Bridge):
         
         neglogref_rs = self.reference.eval_potential(rs)[0]
         neglogref_us = self.reference.eval_potential(us)[0]
-
-        xs, neglogdets = self.apply_preconditioner(us)
-        neglogfxs = self.target_func(xs)
-        neglogfus = neglogfxs + neglogdets
+        neglogfus = self._eval_pullback(us)
 
         neglogratios = self._compute_ratio_func(
             method,
@@ -221,11 +218,11 @@ class Tempering(Bridge):
         neglogfus_dirt: Tensor
     ):
         
-        if self.n_layers == 0:
+        if self.num_layers == 0:
             self.betas[0] = self.init_beta
             return
         
-        k = self.n_layers
+        k = self.num_layers
         self.betas[k] = self.betas[k-1] * self.beta_factor
 
         while True:
@@ -250,10 +247,7 @@ class Tempering(Bridge):
     ) -> Tuple[Tensor, Tensor]:
         
         neglogref_us = self.reference.eval_potential(us)[0]
-        
-        xs, neglogdets = self.apply_preconditioner(us)
-        neglogfxs = self.target_func(xs)
-        neglogfus = neglogfxs + neglogdets
+        neglogfus = self._eval_pullback(us)
 
         if self.is_adaptive:
             self._adapt_beta(neglogref_us, neglogfus, neglogfus_dirt)
@@ -277,13 +271,13 @@ class Tempering(Bridge):
         neglogfus: Tensor,
         neglogfus_dirt: Tensor
     ) -> List[str]:
+        
+        msg = [f"Beta: {self.betas[self.num_layers]:.4f}"]
+
+        if None in (log_weights, neglogfus, neglogfus_dirt):
+            return msg
 
         div_h2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
         ess = estimate_ess_ratio(log_weights)
-
-        msg = [
-            f"DHell: {div_h2.sqrt():.4f}",
-            f"Beta: {self.betas[self.n_layers]:.4f}", 
-            f"ESS: {ess:.4f}"
-        ]
+        msg += [f"DHell: {div_h2.sqrt():.4f}", f"ESS: {ess:.4f}"]
         return msg
