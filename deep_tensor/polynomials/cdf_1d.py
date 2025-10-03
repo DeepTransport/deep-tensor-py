@@ -255,7 +255,8 @@ class CDF1D(abc.ABC):
         """
         error_fs = fs.abs()
         error_dls = dls.abs()
-        return float(torch.min(error_fs, error_dls).max()) < self.error_tol
+        converged = torch.min(error_fs, error_dls).max() < self.error_tol
+        return converged.item()
     
     def print_unconverged(self, fs: Tensor, dls: Tensor, method: str) -> None:
         

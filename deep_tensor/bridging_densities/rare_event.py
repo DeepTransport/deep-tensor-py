@@ -111,6 +111,10 @@ class SigmoidSmoothing(Bridge):
         
         return gammas, betas
     
+    def reset(self) -> None:
+        self.num_layers = 0
+        return
+
     def initialise(
         self, 
         preconditioner: Preconditioner, 

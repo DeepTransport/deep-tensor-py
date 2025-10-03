@@ -21,6 +21,10 @@ class SingleLayer(Bridge):
     @property 
     def is_last(self) -> bool:
         return True
+    
+    def reset(self) -> None:
+        self.num_layers = 0
+        return
 
     def update(
         self, 

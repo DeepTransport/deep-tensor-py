@@ -66,6 +66,7 @@ class DIRT():
         self.domain = self.reference.domain
         self.ftt = ftt
         self.bridge = bridge
+        self.bridge.reset()
         self.bridge.initialise(preconditioner, target_func)
 
         self.ratio_type = options.ratio_type 

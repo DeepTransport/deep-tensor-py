@@ -102,6 +102,13 @@ class Tempering(Bridge):
         max_layers_reached = self.num_layers == self.max_layers
         final_beta_reached = abs(self.betas[self.num_layers-1] - 1.0) < 1e-6
         return bool(max_layers_reached or final_beta_reached)
+    
+    def reset(self) -> None:
+        self.num_layers = 0
+        self.initialised = False
+        if self.is_adaptive:
+            self.betas = {-1: 0.0}
+        return
 
     def initialise(
         self, 
