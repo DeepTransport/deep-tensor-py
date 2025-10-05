@@ -71,11 +71,19 @@ class Bridge(abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def reset(self) -> None:
+        """Resets the parameters of the bridging density to those at 
+        initialisation.
+        """
+        pass
+
     def initialise(
         self, 
         preconditioner: Preconditioner, 
         target_func: TargetFunc
     ) -> None:
+        self.reset()
         self.preconditioner = preconditioner
         self.reference = self.preconditioner.reference
         self.target_func = target_func

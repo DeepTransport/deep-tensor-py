@@ -67,6 +67,7 @@ class SigmoidSmoothing(Bridge):
         self.gammas, self.betas = self._parse_bridging_params(gammas, betas)
         self.num_layers = 0
         self.initialised = False
+        self.is_adaptive = False
 
         self._ratio_weight_funcs = {
             "aratio": self._compute_weights_aratio,
@@ -84,7 +85,7 @@ class SigmoidSmoothing(Bridge):
         gammas, 
         betas
     ) -> Tuple[Dict[int, float], Dict[int, float]]:
-        """TODO: this needs tidying up, I think..."""
+        # TODO: this could be tidied up.
 
         if isinstance(gammas, Tensor):
             gammas = gammas.tolist()
@@ -125,9 +126,7 @@ class SigmoidSmoothing(Bridge):
             msg = "Target function must be of type 'RareEventFunc'."
             raise Exception(msg)
 
-        self.preconditioner = preconditioner
-        self.reference = preconditioner.reference
-        self.target_func = target_func
+        Bridge.initialise(self, preconditioner, target_func)
         self.initialised = True
         return
     

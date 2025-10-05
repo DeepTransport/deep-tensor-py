@@ -115,9 +115,7 @@ class Tempering(Bridge):
         preconditioner: Preconditioner, 
         target_func: TargetFunc
     ) -> None:
-        self.preconditioner = preconditioner
-        self.reference = self.preconditioner.reference
-        self.target_func = target_func
+        Bridge.initialise(self, preconditioner, target_func)
         self.initialised = True
         return
   

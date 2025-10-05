@@ -48,9 +48,6 @@ class DIRT():
         bridge: Bridge | None = None,
         options: DIRTOptions | None = None
     ):
-        # TODO: need to reset the bridge prior to starting. Ideally we 
-        # should be able to use the same bridge object to build 
-        # multiple DIRT objects.
 
         if not isinstance(target_func, TargetFunc):
             target_func = TargetFunc(target_func)
@@ -66,7 +63,6 @@ class DIRT():
         self.domain = self.reference.domain
         self.ftt = ftt
         self.bridge = bridge
-        self.bridge.reset()
         self.bridge.initialise(preconditioner, target_func)
 
         self.ratio_type = options.ratio_type 
