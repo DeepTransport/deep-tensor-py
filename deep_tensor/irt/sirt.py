@@ -182,26 +182,6 @@ class SIRT():
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
         return gs
     
-    @staticmethod
-    def _check_z_func(z_func) -> None:
-        
-        dtype = torch.get_default_dtype()
-        msg = (
-            "The normalising constant of the current SIRT layer is very small "
-            f"({z_func:.2e}). This may cause numerical instability. "
-        )
-        if dtype == torch.float32 and z_func < 1.0e-5:
-            msg += (
-                "Consider rescaling the potential function "
-                "or changing to double precision."
-            )
-            warnings.warn(msg)
-        elif dtype == torch.float64 and z_func < 1.0e-10:
-            msg += "Consider rescaling the potential function."
-            warnings.warn(msg)
-
-        return
-
     def _marginalise_forward(self) -> None:
         """Computes each coefficient tensor required to evaluate the 
         marginal functions in each dimension, by iterating over the 
@@ -218,7 +198,6 @@ class SIRT():
             self._Rs_f[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
         self.z_func = self._Rs_f[0].square().sum()
-        self._check_z_func(self.z_func)
         return 
     
     def _marginalise_backward(self) -> None:
