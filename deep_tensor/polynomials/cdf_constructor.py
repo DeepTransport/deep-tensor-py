@@ -14,10 +14,6 @@ from .spectral.chebyshev_2nd import Chebyshev2nd
 from .spectral.chebyshev_2nd_trigo_cdf import Chebyshev2ndTrigoCDF
 from .spectral.fourier import Fourier
 from .spectral.fourier_cdf import FourierCDF
-from .spectral.hermite import Hermite
-from .spectral.hermite_cdf import HermiteCDF
-from .spectral.laguerre import Laguerre
-from .spectral.laguerre_cdf import LaguerreCDF
 from .spectral.legendre import Legendre
 
 
@@ -25,10 +21,8 @@ POLY_CDFS = {
     Chebyshev1st: Chebyshev1stTrigoCDF,
     Chebyshev2nd: Chebyshev2ndTrigoCDF,
     Fourier: FourierCDF,
-    Hermite: HermiteCDF,
     Lagrange1: Lagrange1CDF,
     LagrangeP: LagrangePCDF,
-    Laguerre: LaguerreCDF,
     Legendre: Chebyshev2ndCDF
 }
 

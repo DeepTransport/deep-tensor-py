@@ -15,12 +15,7 @@ from .debiasing.mcmc import (
     run_independence_sampler
 )
 from .debiasing.mcmc_new import pCNKernel, MCMC
-from .domains import (
-    AlgebraicMapping, 
-    BoundedDomain, 
-    LinearDomain, 
-    LogarithmicMapping
-)
+from .domains import BoundedDomain, LinearDomain
 from .ftt import ApproxBases, Direction, FTT, EFTT, EFTTOptions, TT, TTOptions
 from .irt import DIRT, DIRTMapping, DIRTOptions, SIRT
 from .polynomials import (
@@ -30,11 +25,9 @@ from .polynomials import (
     Chebyshev2nd,
     Chebyshev2ndTrigoCDF,
     Fourier,
-    Hermite,
     Lagrange1, 
     Lagrange1CDF,
     LagrangeP,
-    Laguerre, 
     Legendre,
     Piecewise,
     PiecewiseCDF,
