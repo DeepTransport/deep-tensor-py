@@ -27,10 +27,10 @@ POLY_CDFS = {
 }
 
 
-def construct_cdf(poly: Basis1D, **kwargs: dict) -> CDF1D:
+def construct_cdf(poly: Basis1D, error_tol: float) -> CDF1D:
     """Selects the one-dimensional CDF for a given basis."""
     try: 
-        return POLY_CDFS[type(poly)](poly, **kwargs)
+        return POLY_CDFS[type(poly)](poly, error_tol)
     except KeyError:
         msg = f"CDF not implemented for polynomial of type {type(poly)}."
         raise Exception(msg)

@@ -10,13 +10,14 @@ from .spectral_cdf import SpectralCDF
 
 class Chebyshev1stCDF(Chebyshev1st, SpectralCDF):
 
-    def __init__(self, poly: Chebyshev1st, **kwargs):
-        Chebyshev1st.__init__(self, order=2*poly.order)
-        SpectralCDF.__init__(self, **kwargs)
+    def __init__(self, poly: Chebyshev1st, error_tol: float):
+        order = 2*poly.order
+        Chebyshev1st.__init__(self, order=order, device=poly.device)
+        SpectralCDF.__init__(self, error_tol=error_tol, device=poly.device)
         return
     
     def grid_measure(self, n: int) -> Tensor:
-        ls = torch.linspace(self.domain[0], self.domain[1], n)
+        ls = torch.linspace(*self.domain, n)
         return ls
 
     def eval_int_basis(self, ls: Tensor) -> Tensor:

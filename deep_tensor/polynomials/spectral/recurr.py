@@ -15,7 +15,8 @@ class Recurr(Spectral, abc.ABC):
         a: Tensor,
         b: Tensor,
         c: Tensor,
-        norm: Tensor
+        norm: Tensor,
+        device: torch.device
     ):
         """Class for spectral polynomials for which the three-term 
         recurrence relation is known. This relation takes the form
@@ -49,7 +50,8 @@ class Recurr(Spectral, abc.ABC):
         self.c = c
         self.norm = norm
         self._nodes, self._weights = self._compute_nodes_weights(a, b, c)
-        self.__post_init__()
+        self.device = device
+        self.__post_init__(device)
         return
 
     @staticmethod
@@ -97,7 +99,7 @@ class Recurr(Spectral, abc.ABC):
 
         self._check_in_domain(ls)
         
-        ps = torch.zeros((ls.numel(), self.order+1))
+        ps = torch.zeros((ls.numel(), self.order+1), device=self.device)
         ps[:, 0] = 1.0
         if self.order == 0:
             return ps
@@ -114,7 +116,7 @@ class Recurr(Spectral, abc.ABC):
 
         self._check_in_domain(ls)
         
-        dpdls = torch.zeros((ls.numel(), self.order+1))
+        dpdls = torch.zeros((ls.numel(), self.order+1), device=self.device)
         if self.order == 0:
             return dpdls
         

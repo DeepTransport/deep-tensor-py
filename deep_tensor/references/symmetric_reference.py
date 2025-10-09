@@ -13,11 +13,8 @@ from ..tools import check_finite
 class SymmetricReference(Reference, abc.ABC):
     
     def __init__(self, domain: Domain | None = None):
-        
         if domain is None:
-            bounds = torch.tensor([-4.0, 4.0])
-            domain = BoundedDomain(bounds=bounds)
-
+            domain = BoundedDomain([-4.0, 4.0])
         self.domain = domain
         self.is_truncated = isinstance(domain, BoundedDomain)
         self.set_cdf_bounds()
@@ -126,8 +123,10 @@ class SymmetricReference(Reference, abc.ABC):
         """
         
         if self.is_truncated:
-            self.cdf_left = float(self.eval_unit_cdf(self.domain.left)[0])
-            self.cdf_right = float(self.eval_unit_cdf(self.domain.right)[0])
+            left = torch.tensor(self.domain.left)
+            right = torch.tensor(self.domain.right)
+            self.cdf_left = self.eval_unit_cdf(left)[0].item()
+            self.cdf_right = self.eval_unit_cdf(right)[0].item()
         else:
             self.cdf_left = 0.0
             self.cdf_right = 1.0

@@ -12,7 +12,7 @@ class UniformReference(Reference):
     """
 
     def __init__(self):
-        self.domain = BoundedDomain(bounds=torch.tensor([0.0, 1.0]))
+        self.domain = BoundedDomain([0.0, 1.0])
         self.pdf = 1.0
         return
     

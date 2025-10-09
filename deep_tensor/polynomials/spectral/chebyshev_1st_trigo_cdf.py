@@ -10,14 +10,15 @@ from .trigo_cdf import TrigoCDF
 
 class Chebyshev1stTrigoCDF(TrigoCDF, Chebyshev1st):
 
-    def __init__(self, poly: Chebyshev1st, **kwargs):
-        Chebyshev1st.__init__(self, 2 * poly.order)
-        TrigoCDF.__init__(self, **kwargs)
+    def __init__(self, poly: Chebyshev1st, error_tol: float):
+        order = 2 * poly.order
+        Chebyshev1st.__init__(self, order=order, device=poly.device)
+        TrigoCDF.__init__(self, error_tol=error_tol, device=poly.device)
         return
 
     @property
     def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0])
+        return torch.tensor([-1.0, 1.0], device=self.device)
 
     @property
     def node2basis(self) -> Tensor:

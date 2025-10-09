@@ -26,20 +26,20 @@ class LinearDomain(Domain, abc.ABC):
 
     def local2approx(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         xs = ls * self.dxdl + self.mean
-        dxdls = torch.full(ls.shape, self.dxdl)
+        dxdls = torch.full_like(ls, self.dxdl)
         return xs, dxdls
     
     def approx2local(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         ls = (xs - self.mean) / self.dxdl
-        dldxs = torch.full(xs.shape, 1.0 / self.dxdl)
+        dldxs = torch.full_like(xs, 1.0 / self.dxdl)
         return ls, dldxs
     
     def local2approx_log_density(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
-        logdxdls = torch.full(ls.shape, math.log(self.dxdl))
+        logdxdls = torch.full_like(ls, math.log(self.dxdl))
         logdxdl2s = torch.zeros_like(ls)
         return logdxdls, logdxdl2s
     
     def approx2local_log_density(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
-        logdldxs = torch.full(xs.shape, -math.log(self.dxdl))
+        logdldxs = torch.full_like(xs, -math.log(self.dxdl))
         logdldx2s = torch.zeros_like(xs)
         return logdldxs, logdldx2s

@@ -1,5 +1,5 @@
 import abc
-from typing import Tuple
+from typing import List, Tuple
 
 from torch import Tensor
 
@@ -9,17 +9,17 @@ class Domain(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def bounds(self) -> Tensor:
+    def bounds(self) -> List:
         """The boundary of the approximation domain."""
         pass
     
     @property
-    def left(self) -> Tensor:
+    def left(self) -> float:
         """The left-hand boundary of the approximation domain."""
         return self.bounds[0]
     
     @property 
-    def right(self) -> Tensor:
+    def right(self) -> float:
         """The right-hand boundary of the approximation domain."""
         return self.bounds[1]
 
@@ -124,7 +124,7 @@ class Domain(abc.ABC):
         pass
     
     @staticmethod
-    def check_bounds(bounds: Tensor) -> None:
+    def check_bounds(bounds: List) -> None:
         if bounds[0] >= bounds[1]:
             msg = "Left-hand bound must be less than right-hand bound."
             raise Exception(msg)

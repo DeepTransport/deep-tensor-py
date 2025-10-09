@@ -9,14 +9,15 @@ from .trigo_cdf import TrigoCDF
 
 class Chebyshev2ndTrigoCDF(TrigoCDF, Chebyshev2nd):
 
-    def __init__(self, poly: Chebyshev2nd, **kwargs):
-        Chebyshev2nd.__init__(self, 2*poly.order)
-        TrigoCDF.__init__(self, **kwargs)
+    def __init__(self, poly: Chebyshev2nd, error_tol: float):
+        order = 2 * poly.order
+        Chebyshev2nd.__init__(self, order=order, device=poly.device)
+        TrigoCDF.__init__(self, error_tol=error_tol, device=poly.device)
         return 
     
     @property
     def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0])
+        return torch.tensor([-1.0, 1.0], device=self.device)
     
     @property
     def node2basis(self) -> Tensor:
@@ -53,7 +54,7 @@ class Chebyshev2ndTrigoCDF(TrigoCDF, Chebyshev2nd):
         
         thetas = thetas[:, None]
 
-        cdf_ind = torch.arange(1, self.order+3)
+        cdf_ind = torch.arange(1, self.order+3, device=self.device)
         temp = torch.sin(thetas * cdf_ind) / cdf_ind 
         ps = torch.hstack((
             thetas - temp[:, 1][:, None],
@@ -66,7 +67,7 @@ class Chebyshev2ndTrigoCDF(TrigoCDF, Chebyshev2nd):
         
         thetas = thetas[:, None]
 
-        cdf_ind = torch.arange(1, self.order+3)
+        cdf_ind = torch.arange(1, self.order+3, device=self.device)
         temp = torch.sin(cdf_ind * thetas) / cdf_ind 
         
         ps = torch.hstack((

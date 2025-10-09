@@ -15,7 +15,7 @@ class CDF1D(abc.ABC):
 
     def __init__(
         self, 
-        error_tol: float = 1e-6, 
+        error_tol: float, 
         n_newton: int = 100,
         n_regula_falsi: int = 100
     ):

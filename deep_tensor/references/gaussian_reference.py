@@ -11,8 +11,7 @@ from ..constants import EPS
 class GaussianReference(SymmetricReference):
     r"""The standard $d$-dimensional Gaussian density, $\mathcal{N}(\boldsymbol{0}_{d}, \boldsymbol{I}_{d})$.
 
-    The density can be truncated to a subinterval of the real numbers 
-    in each dimension.
+    The density must be truncated to a bounded interval.
     
     Parameters
     ----------

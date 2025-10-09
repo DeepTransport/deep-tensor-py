@@ -13,9 +13,9 @@ from ..spectral.chebyshev_2nd import Chebyshev2nd
 
 class PiecewiseChebyshevCDF(PiecewiseCDF, abc.ABC):
 
-    def __init__(self, poly: Piecewise, **kwargs):
+    def __init__(self, poly: Piecewise, error_tol: float):
         
-        PiecewiseCDF.__init__(self, **kwargs)
+        PiecewiseCDF.__init__(self, error_tol, poly.device)
 
         self.mass = None 
         self.mass_R = None 
@@ -28,7 +28,7 @@ class PiecewiseChebyshevCDF(PiecewiseCDF, abc.ABC):
         n_cheby = self.cheby.cardinality
         self.elem_nodes = torch.tensor([
             range(n*n_cheby-n, (n+1)*n_cheby-n) 
-            for n in range(self.num_elems)])
+            for n in range(self.num_elems)], device=self.device)
         
         return
 
@@ -44,12 +44,12 @@ class PiecewiseChebyshevCDF(PiecewiseCDF, abc.ABC):
         
         """
 
-        self.cheby = Chebyshev2ndCDF(poly)
+        self.cheby = Chebyshev2ndCDF(poly, error_tol=self.error_tol)
         assert self.cheby.cardinality > 3, "Must use more than three nodes."
 
         cheby_nodes = Chebyshev2nd(self.cheby.cardinality-3).nodes
         ref_nodes = [self.cheby.domain[0], *cheby_nodes, self.cheby.domain[1]]
-        ref_nodes = torch.tensor(ref_nodes)
+        ref_nodes = torch.tensor(ref_nodes, device=self.device)
 
         self.cheby.basis2node = self.cheby.eval_basis(ref_nodes)
         self.cheby.node2basis = torch.linalg.inv(self.cheby.basis2node)
@@ -64,9 +64,9 @@ class PiecewiseChebyshevCDF(PiecewiseCDF, abc.ABC):
         """Computes the collocation points in each element."""
         n_cheby = self.cheby.cardinality
         n_nodes = self.num_elems * (n_cheby - 1) + 1
-        nodes = torch.zeros(n_nodes)
+        nodes = torch.zeros(n_nodes, device=self.device)
         for i in range(self.num_elems):
-            inds = torch.arange(n_cheby) + i * (n_cheby - 1)
+            inds = torch.arange(n_cheby, device=self.device) + i * (n_cheby - 1)
             nodes[inds] = self.grid[i] + self.cheby.nodes * self.elem_size
         self.nodes = nodes
         return
@@ -84,9 +84,9 @@ class PiecewiseChebyshevCDF(PiecewiseCDF, abc.ABC):
         # element for each PDF
         poly_coef = torch.einsum("jl, ilk -> ijk", self.cheby.node2basis, ps_local)
 
-        cdf_poly_grid = torch.zeros(self.num_elems+1, n_cdfs)
-        cdf_poly_nodes = torch.zeros(self.cardinality, n_cdfs)
-        poly_base = torch.zeros(self.num_elems, n_cdfs)
+        cdf_poly_grid = torch.zeros(self.num_elems+1, n_cdfs, device=self.device)
+        cdf_poly_nodes = torch.zeros(self.cardinality, n_cdfs, device=self.device)
+        poly_base = torch.zeros(self.num_elems, n_cdfs, device=self.device)
 
         for i in range(self.num_elems):
 
@@ -126,7 +126,7 @@ class PiecewiseChebyshevCDF(PiecewiseCDF, abc.ABC):
         mid = 0.5 * (self.grid[inds_left] + self.grid[inds_left+1])
         ls = (ls - mid) / (0.5 * self.jac)
 
-        j_inds = torch.arange(cdf_data.n_cdfs)
+        j_inds = torch.arange(cdf_data.n_cdfs, device=self.device)
         ps = self.cheby.eval_int_basis(ls) * 0.5 * self.jac
 
         coefs = cdf_data.poly_coef[inds_left, :, j_inds]
@@ -148,7 +148,7 @@ class PiecewiseChebyshevCDF(PiecewiseCDF, abc.ABC):
         ls = (ls - mid) / (0.5 * self.jac)
         ls = torch.clamp(ls, -1.0, 1.0)
 
-        j_inds = torch.arange(cdf_data.n_cdfs)
+        j_inds = torch.arange(cdf_data.n_cdfs, device=self.device)
         ps, dpdls = self.cheby.eval_int_basis_newton(ls)
         ps *= (0.5 * self.jac)
 

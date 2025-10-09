@@ -10,8 +10,9 @@ from ..cdf_data import CDFData
 
 class PiecewiseCDF(CDF1D, abc.ABC):
     
-    def __init__(self, **kwargs):
-        CDF1D.__init__(self, **kwargs)
+    def __init__(self, error_tol: float, device: torch.device):
+        self.device = device
+        CDF1D.__init__(self, error_tol)
         return
     
     @property

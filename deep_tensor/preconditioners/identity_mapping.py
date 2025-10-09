@@ -42,8 +42,8 @@ class IdentityMapping(Preconditioner):
     
     @staticmethod
     def neglogdet_Q(us: Tensor, subset: str = "first") -> Tensor:
-        return torch.zeros(us.shape[0])
+        return torch.zeros_like(us[:, 0])
     
     @staticmethod
     def neglogdet_Q_inv(xs: Tensor, subset: str = "first") -> Tensor: 
-        return torch.zeros(xs.shape[0])
+        return torch.zeros_like(xs[:, 0])

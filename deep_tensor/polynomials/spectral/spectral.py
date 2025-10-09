@@ -9,14 +9,15 @@ from ...tools import check_finite
 
 class Spectral(Basis1D, abc.ABC):
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, device: torch.device) -> None:
         """Forms the basis2node and node2basis operators, the 
         quadrature weights and the mass matrix for a given basis.
         """
+        self.device = device
         self.basis2node = self.eval_basis(self.nodes)
         self.node2basis = self.basis2node.T * self.weights
         self.omegas = self.eval_measure(self.nodes)
-        self.mass_R = torch.eye(self.cardinality)
+        self.mass_R = torch.eye(self.cardinality, device=self.device)
         return
 
     @property

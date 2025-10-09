@@ -9,17 +9,23 @@ from ..basis_1d import Basis1D
 
 class Piecewise(Basis1D, abc.ABC):
 
-    def __init__(self, order: int, num_elems: int):
+    def __init__(
+        self, 
+        order: int, 
+        num_elems: int,
+        device: torch.device
+    ):
         self.order = order 
         self.num_elems = num_elems
-        self.grid = torch.linspace(self.domain[0], self.domain[1], num_elems+1)
+        self.device = device
+        self.grid = torch.linspace(self.domain[0], self.domain[1], num_elems+1, device=self.device)
         self.elem_size = self.grid[1] - self.grid[0]
         self.domain_size = float(self.domain[1] - self.domain[0])
         return
     
     @property
     def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0])
+        return torch.tensor([-1.0, 1.0], device=self.device)
     
     @property 
     def grid(self) -> Tensor:
@@ -72,13 +78,13 @@ class Piecewise(Basis1D, abc.ABC):
         return (ls - self.grid[left_inds]) / self.elem_size
 
     def sample_measure(self, n: int) -> Tensor:
-        return self.domain[0] + self.domain_size * torch.rand(n)
+        return self.domain[0] + self.domain_size * torch.rand(n, device=self.device)
 
     def eval_measure(self, ls: Tensor) -> Tensor:
-        return torch.full(ls.shape, 1.0 / self.domain_size)
+        return torch.full_like(ls, 1.0 / self.domain_size)
 
     def eval_log_measure(self, ls: Tensor) -> Tensor:
-        return torch.full(ls.shape, -math.log(self.domain_size))
+        return torch.full_like(ls, -math.log(self.domain_size))
 
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)

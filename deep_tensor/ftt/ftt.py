@@ -52,12 +52,14 @@ class FTT():
         self, 
         bases: ApproxBases, 
         tt: TT | None = None,
-        num_error_samples: int = 1000
+        num_error_samples: int = 1000,
+        device: torch.device = torch.device("cpu")
     ):
-        self.tt = TT() if tt is None else tt
+        self.tt = TT(device) if tt is None else tt
         self.bases = bases 
         self.dim = bases.dim
         self.num_error_samples = num_error_samples
+        self.device = device
         self.l2_error = None
         self.cores = {}
         return
@@ -255,7 +257,7 @@ class FTT():
         # measure associated with the basis in each dimension.
         # self.ls_error = self.bases.sample_measure(self.num_error_samples)[0]
         sample_size = (self.num_error_samples, self.dim)
-        self.ls_error = 2.0 * torch.rand(sample_size) - 1.0
+        self.ls_error = 2.0 * torch.rand(sample_size, device=self.device) - 1.0
         self.fls_error = self.target_func(self.ls_error)
         return 
 
@@ -338,12 +340,12 @@ class FTT():
     
     def clone(self):
 
-        tt = TT(self.tt.options)
+        tt = TT(self.tt.options, device=self.device)
         tt.cores = {k: self.tt.cores[k].clone() for k in self.tt.cores}
         tt.index_sets = {k: self.tt.index_sets[k].clone() for k in self.tt.index_sets}
         tt.direction = self.tt.direction
 
-        ftt = FTT(self.bases, tt)
+        ftt = FTT(self.bases, tt, self.num_error_samples, self.device)
         return ftt
 
 
@@ -372,11 +374,12 @@ class EFTT(FTT):
         self, 
         bases: ApproxBases,
         tt: TT,
-        options: EFTTOptions | None = None
+        options: EFTTOptions | None = None,
+        device: torch.device = torch.device("cpu")
     ):
         if options is None:
             options = EFTTOptions()
-        FTT.__init__(self, bases, tt, options.num_error_samples)
+        FTT.__init__(self, bases, tt, options.num_error_samples, device=device)
         self.options = options
         self.num_eval_fibres = 0
         self.deim_inds: Dict[int, Tensor] = {}
@@ -392,9 +395,8 @@ class EFTT(FTT):
         """Returns a tensor containing the dimension of the reduced 
         basis for each coordinate.
         """
-        basis_dims = torch.tensor([self.factors[k].shape[1] 
-                                   for k in range(self.dim)])
-        return basis_dims
+        basis_dims = [self.factors[k].shape[1] for k in range(self.dim)]
+        return torch.tensor(basis_dims, device=self.device)
     
     def compute_fibre_submatrix_random(
         self, 
@@ -407,7 +409,7 @@ class EFTT(FTT):
 
         if reference is None:
             sample_size = (self.options.num_snapshots, self.dim)
-            point_samples = 2.0 * torch.rand(sample_size) - 1.0
+            point_samples = 2.0 * torch.rand(sample_size, device=self.device) - 1.0
         else:
             point_samples = reference.random(self.options.num_snapshots, self.dim)
             point_samples = reference.domain.approx2local(point_samples)[0]
@@ -491,7 +493,7 @@ class EFTT(FTT):
         num_inds = inds.shape[0]
 
         fibre_inds = inds.repeat(n_k, 1)
-        fibre_inds[:, k] = torch.arange(n_k).repeat_interleave(num_inds, dim=0)
+        fibre_inds[:, k] = torch.arange(n_k, device=self.device).repeat_interleave(num_inds, dim=0)
 
         fibre_points = grid.indices2points(fibre_inds)
         fibre_matrix = self.target_func(fibre_points).reshape(n_k, num_inds)
@@ -575,10 +577,9 @@ class EFTT(FTT):
         return
     
     def clone(self):
-        # Note: can't copy the cores over because the number of 
-        # collocation points is not fixed. Could try the index sets 
-        # (and direction) though (although would need to adjust their 
-        # size at some point)...
-        tt = TT(self.tt.options)
-        ftt = EFTT(self.bases, tt, self.options)
+        # Note: can't copy the cores and index sets over, because the 
+        # indices corresponding to the DEIM projection onto the reduced
+        # bases in each dimension can change.
+        tt = TT(self.tt.options, device=self.device)
+        ftt = EFTT(self.bases, tt, self.options, device=self.device)
         return ftt

@@ -11,13 +11,13 @@ from ...tools import check_finite
 
 class Chebyshev2ndCDF(Chebyshev2nd, SpectralCDF):
 
-    def __init__(self, poly: Legendre, **kwargs):        
-        Chebyshev2nd.__init__(self, order=2*poly.order)
-        SpectralCDF.__init__(self, **kwargs)
+    def __init__(self, poly: Legendre, error_tol: float):        
+        Chebyshev2nd.__init__(self, order=2*poly.order, device=poly.device)
+        SpectralCDF.__init__(self, error_tol, poly.device)
         return
 
     def grid_measure(self, n: int) -> Tensor:
-        return torch.linspace(self.domain[0], self.domain[1], n)
+        return torch.linspace(self.domain[0], self.domain[1], n, device=self.device)
     
     def eval_int_basis(self, ls: Tensor) -> Tensor:
         """Evaluates the integral of each basis function at each 

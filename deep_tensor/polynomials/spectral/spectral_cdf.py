@@ -1,6 +1,7 @@
 import abc
 from typing import Tuple
 
+import torch
 from torch import Tensor
 
 from ..cdf_1d import CDF1D
@@ -9,8 +10,9 @@ from ...tools import check_finite
 
 class SpectralCDF(CDF1D, abc.ABC):
 
-    def __init__(self, **kwargs):
-        CDF1D.__init__(self, **kwargs)
+    def __init__(self, error_tol: float, device: torch.device):
+        CDF1D.__init__(self, error_tol)
+        self.device = device
         n_sampling_nodes = 2 * self.cardinality
         self.sampling_nodes = self.grid_measure(n_sampling_nodes)
         self.cdf_basis2node = self.eval_int_basis(self.sampling_nodes)

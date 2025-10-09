@@ -15,7 +15,6 @@ from ..target_functions import TargetFunc
 from ..tools.printing import dirt_info, format_time
 from ..tools import compute_f_divergence
 
-
 from torch import Tensor 
 
 
@@ -46,7 +45,8 @@ class DIRT():
         preconditioner: Preconditioner,
         ftt: FTT, 
         bridge: Bridge | None = None,
-        options: DIRTOptions | None = None
+        options: DIRTOptions | None = None,
+        device: torch.device = torch.device("cpu")
     ):
 
         if not isinstance(target_func, TargetFunc):
@@ -64,13 +64,13 @@ class DIRT():
         self.ftt = ftt
         self.bridge = bridge
         self.bridge.initialise(preconditioner, target_func)
-
         self.ratio_type = options.ratio_type 
         self.num_error_samples = options.num_error_samples
         self.defensive = options.defensive
         self.cdf_tol = options.cdf_tol
         self.verbose = options.verbose
         self.sirts: Dict[int, SIRT] = {}
+        self.device = device
 
         if self.bridge.is_adaptive and self.num_error_samples == 0:
             msg = (
@@ -160,7 +160,8 @@ class DIRT():
             ftt, 
             self.reference, 
             self.defensive, 
-            self.cdf_tol
+            self.cdf_tol,
+            device=self.device
         )
         return sirt
 
@@ -189,7 +190,7 @@ class DIRT():
         while True:
             
             if self.num_error_samples > 0:
-                rs = self.reference.random(self.num_error_samples, self.dim)
+                rs = self.reference.random(self.num_error_samples, self.dim, device=self.device)
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
                 log_weights, neglogbridges = self.bridge.update(us, neglogfus_dirt)
             else:
@@ -204,9 +205,6 @@ class DIRT():
                     cum_time
                 )
 
-            if self.num_layers == 4:  # TEMP: for debugging...
-                pass
-
             self.sirts[self.num_layers] = self._get_new_layer()
             self.num_layers += 1
             if self.bridge.is_last:
@@ -216,24 +214,24 @@ class DIRT():
 
             info_msgs = [
                 "DIRT construction complete.",
-                f" • Layers: {self.num_layers}.",
-                f" • Total function evaluations: {self.num_eval:,}."
+                f"Layers: {self.num_layers}.",
+                f"Total function evaluations: {self.num_eval:,}."
             ]
 
             if self.num_error_samples > 0:
                 # Note: the Hellinger divergence is invariant to bijective 
                 # transformations.
-                rs = self.reference.random(self.num_error_samples, self.dim)
+                rs = self.reference.random(self.num_error_samples, self.dim, device=self.device)
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
                 neglogfus = self.eval_target_pullback(us) # TODO: the bridge should probably handle this...
                 dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
-                info_msgs += [f" • DHell: {dhell2.sqrt():.4f}."]
+                info_msgs += [f"DHell: {dhell2.sqrt():.4f}."]
 
             t1 = time.time()
-            info_msgs += [f" • Total time: {format_time(t1-t0)}."]
+            info_msgs += [f"Total time: {format_time(t1-t0)}."]
             
             for msg in info_msgs:
-                dirt_info(msg)
+                dirt_info(f" • {msg}")
         
         return
     
@@ -346,9 +344,12 @@ class DIRT():
             composition of mappings evaluated at each sample in `xs`.
 
         """
+        
+        xs = xs.to(self.device)
         if num_layers is None:
             num_layers = self.num_layers
         subset = self._parse_subset(subset)
+
         neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs, subset)
         us = self.preconditioner.Q_inv(xs, subset)
         rs, neglogfus = self._eval_rt_reference(us, subset, num_layers)
@@ -390,9 +391,12 @@ class DIRT():
             composition of mappings, evaluated at each sample in `xs`.
 
         """
+        
+        rs = rs.to(self.device)
         if num_layers is None:
             num_layers = self.num_layers
         subset = self._parse_subset(subset)
+        
         us, neglogfus = self._eval_irt_reference(rs, subset, num_layers)
         xs = self.preconditioner.Q(us, subset)
         neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs, subset)
@@ -443,6 +447,9 @@ class DIRT():
             $X \textbar Y$ evaluated at each sample in `xs`.
     
         """
+
+        ys = ys.to(self.device)
+        rs = rs.to(self.device)
         
         ys = torch.atleast_2d(ys)
         rs = torch.atleast_2d(rs)
@@ -479,7 +486,7 @@ class DIRT():
         rs_y, neglogfys = self.eval_rt(ys, subset, num_layers)
 
         # Evaluate joint RT
-        rs_yx = torch.empty((n_rs, self.dim))
+        rs_yx = torch.empty((n_rs, self.dim), device=self.device)
         rs_yx[:, inds_y] = rs_y 
         rs_yx[:, inds_x] = rs
         yxs, neglogfyxs = self.eval_irt(rs_yx, subset, num_layers)
@@ -533,6 +540,7 @@ class DIRT():
             forward under the IRT; that is, $-\log(f(\mathcal{T}(r)))$.
         
         """
+        rs = rs.to(self.device)
         neglogrefs = self.reference.eval_potential(rs)[0]
         xs, neglogfxs_irt = self.eval_irt(rs, subset, num_layers)
         neglogfxs = potential(xs)
@@ -591,6 +599,8 @@ class DIRT():
             forward under the IRT; that is, $-\log(f(\mathcal{T}(r)\|y))$.
         
         """
+        ys = ys.to(self.device)
+        rs = rs.to(self.device)
         neglogrefs = self.reference.eval_potential(rs)[0]
         xs, neglogfxs_cirt = self.eval_cirt(ys, rs, subset, num_layers)
         neglogfxs = potential(xs)
@@ -712,6 +722,9 @@ class DIRT():
             $X \textbar Y$ evaluated at each sample in `xs`.
     
         """
+
+        ys = ys.to(self.device)
+        xs = xs.to(self.device)
         
         ys = torch.atleast_2d(ys)
         xs = torch.atleast_2d(xs)
@@ -737,8 +750,7 @@ class DIRT():
         
         subset = self._parse_subset(subset)
 
-        direction = SUBSET2DIRECTION[subset]
-        if direction == Direction.FORWARD:
+        if SUBSET2DIRECTION[subset] == Direction.FORWARD:
             yxs = torch.hstack((ys, xs))
         else:
             yxs = torch.hstack((xs, ys))
@@ -866,7 +878,7 @@ class DIRT():
             An $n \times d$ matrix containing the generated samples.
         
         """
-        rs = self.reference.random(n, self.dim)
+        rs = self.reference.random(n, self.dim, device=self.device)
         xs = self.eval_irt(rs)[0]
         return xs
     
@@ -887,7 +899,7 @@ class DIRT():
             An $n \times d$ matrix containing the generated samples.
 
         """
-        rs = self.reference.sobol(n, self.dim)
+        rs = self.reference.sobol(n, self.dim, device=self.device)
         xs = self.eval_irt(rs)[0]
         return xs
     
