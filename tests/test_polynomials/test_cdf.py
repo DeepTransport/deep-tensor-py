@@ -35,7 +35,7 @@ class TestCDF(unittest.TestCase):
         for poly in polys:
             with self.subTest(poly=poly):
             
-                cdf = dt.construct_cdf(polys[poly])
+                cdf = dt.construct_cdf(polys[poly], error_tol=1e-10)
 
                 ls = torch.linspace(-1.0, 1.0, n_ls)
                 ps = dummy_pdf(cdf.nodes) + 1e-2

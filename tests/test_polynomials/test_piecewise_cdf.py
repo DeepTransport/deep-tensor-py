@@ -12,7 +12,7 @@ class TestPiecewiseCDF(unittest.TestCase):
 
     def setup_cdf(self):
         poly = dt.Lagrange1(num_elems=2)
-        cdf = dt.Lagrange1CDF(poly=poly)
+        cdf = dt.Lagrange1CDF(poly=poly, error_tol=1e-10)
         return cdf
 
     def test_lagrange_1d_cdf(self):

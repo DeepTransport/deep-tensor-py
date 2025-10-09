@@ -11,8 +11,8 @@ torch.manual_seed(0)
 class TestLinearDomain(unittest.TestCase):
 
     def setup_domain(self):
-        bounds = torch.tensor([-2.0, 4.0])
-        domain = dt.BoundedDomain(bounds=bounds)
+        bounds = [-2.0, 4.0]
+        domain = dt.BoundedDomain(bounds)
         return domain
 
     def test_linear_domain(self):
@@ -22,8 +22,9 @@ class TestLinearDomain(unittest.TestCase):
         domain = self.setup_domain()
 
         bounds_true = torch.tensor([-2.0, 4.0])
+        bounds = torch.tensor(domain.bounds)
 
-        self.assertTrue((domain.bounds - bounds_true).abs().max() < 1e-8)
+        self.assertTrue((bounds - bounds_true).abs().max() < 1e-8)
         self.assertAlmostEqual(domain.dxdl, 3.)
         self.assertAlmostEqual(domain.mean, 1.)
         self.assertAlmostEqual(domain.left, -2.)

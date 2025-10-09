@@ -207,9 +207,9 @@ class SIRT():
 
     def _eval_rt_local_forward(self, ls: Tensor) -> Tensor:
 
-        dim_ls = ls.shape[1]
+        num_ls, dim_ls = ls.shape
         zs = torch.zeros_like(ls)
-        Gs_prod = torch.ones_like(ls[:, 0])
+        Gs_prod = torch.ones((num_ls, 1), device=ls.device)
 
         cores = self.ftt.cores
         Bs = self._Bs_f 
