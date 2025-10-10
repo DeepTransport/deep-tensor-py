@@ -78,7 +78,7 @@ class TestDIRTStandardGaussian(unittest.TestCase):
         xs_dirt = dirt.eval_irt(rs)[0]
         rs_dirt = dirt.eval_rt(xs_dirt)[0]
 
-        self.assertTrue((rs-rs_dirt).abs().max() < 1e-2)
+        self.assertTrue((rs-rs_dirt).abs().max() < 1e-10)
         return
 
     def test_dimensions(self):
