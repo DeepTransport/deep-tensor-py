@@ -87,9 +87,7 @@ def newton(
 
 
 def converged(fs: Tensor, dls: Tensor) -> bool:
-    error_fs = fs.abs()
-    error_dls = dls.abs()
-    return error_fs.max() < 1e-8
+    return fs.abs().max().item() < 1e-8
 
 
 def gaussian_potential(xs: Tensor, mus: Tensor, sds: Tensor) -> Tensor:
@@ -116,10 +114,10 @@ class GammaDist():
     
     """
 
-    def __init__(self, alpha: float, lamb: float, bounds: Tensor):
+    def __init__(self, alpha: Tensor, lamb: Tensor, bounds: Tensor):
         
-        self.alpha = torch.tensor(alpha) 
-        self.lamb = torch.tensor(lamb)
+        self.alpha = alpha
+        self.lamb = lamb
         self.bounds = bounds
         self.Gamma = Gamma(self.alpha, 1.0 / self.lamb)
 
@@ -142,8 +140,8 @@ class GammaDist():
             zs -= zs_cdf
             return zs, dzdxs
         
-        l0s = torch.full_like(zs_cdf, self.bounds[0])
-        l1s = torch.full_like(zs_cdf, self.bounds[1])
+        l0s = torch.full_like(zs_cdf, self.bounds[0].item())
+        l1s = torch.full_like(zs_cdf, self.bounds[1].item())
         return newton(func, l0s, l1s)
     
 

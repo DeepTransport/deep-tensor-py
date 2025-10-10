@@ -42,10 +42,14 @@ def pairplot(
     if labels is None:
         labels = [f"$x_{i+1}$" for i in range(dim)]
 
+    xs = xs.to("cpu")
     if ys is not None:
+        ys = ys.to("cpu")
         xys = torch.vstack((xs, ys))
     else:
         xys = xs.clone()
+    if truth is not None:
+        truth.to("cpu")
 
     if bounds is None:
         samples_min = xys.min(dim=0).values
