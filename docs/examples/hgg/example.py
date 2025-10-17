@@ -1,19 +1,15 @@
-import os
+# type: ignore
+
 from datetime import timedelta
-import math
 import pathlib
 import time
 
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
-import torch
-import torch.multiprocessing as mp
 from pydantic import FilePath
 from rich import print
+import torch
+from torch import Tensor
 
-from tumortwin.models import ReactionDiffusion3D
-from tumortwin.optimizers import LMoptimizer, LMoptions
+from tumortwin.models.reaction_diffusion_3d_nn import ReactionDiffusion3D
 from tumortwin.postprocessing import (
     compute_total_cell_count,
     plot_calibration,
@@ -36,19 +32,23 @@ from tumortwin.types import (
 from tumortwin.types.hgg_data import HGGPatientData
 from tumortwin.utils import daterange, days_since_first
 
-from examples.hgg.model import negloglik
-
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}.")
 
+DATA_FOLDER = pathlib.Path("docs/examples/hgg/input_files")
+PATIENT_INFO_PATH = FilePath(f"{DATA_FOLDER}/HGG_demo_001/HGG_demo_001.json")
+IMAGE_PATH = FilePath(f"{DATA_FOLDER}/HGG_demo_001")
 
-DATA_FOLDER = pathlib.Path(__file__).resolve().parent.joinpath("input_files")
-PATIENT_INFO_PATH = FilePath(f"{DATA_FOLDER}/HGG_demo_001/HGG_demo_001.json")  # type: ignore
-IMAGE_PATH = FilePath(f"{DATA_FOLDER}/HGG_demo_001")  # type: ignore
+crop_settings = CropSettings(
+    crop_to=CropTarget.ROI_ENHANCE, 
+    padding=10, 
+    visit_index=-1
+)
 
-crop_settings = CropSettings(crop_to=CropTarget.ROI_ENHANCE, padding=10, visit_index=-1)
 patient_data = HGGPatientData.from_file(
-    PATIENT_INFO_PATH, image_dir=IMAGE_PATH, crop_settings=crop_settings
+    PATIENT_INFO_PATH, 
+    image_dir=IMAGE_PATH, 
+    crop_settings=crop_settings
 )
 
 # plot_patient_timeline(patient_data)
@@ -80,6 +80,25 @@ ct = ChemotherapySpecification(
     doses=[c.dose for c in patient_data.chemotherapy],
 )
 
+# How many imaging dates do we want to try and match
+n_visits_calibration = 5  # *Including* the initial visit
+
+target_timepoints = [visit.time for visit in patient_data.visits[:n_visits_calibration]]
+target_solution = torch.stack(
+    tuple(
+        [
+            torch.from_numpy(m.array)
+            for m in measured_cellularity_maps[: n_visits_calibration]
+        ]
+    )
+)
+
+timepoints = daterange(
+    patient_data.visits[0].time, patient_data.visits[-1].time, timedelta(days=0.5)
+)
+# Initial condition for solver
+u0 = torch.from_numpy(measured_cellularity_maps[0].array)
+
 model = ReactionDiffusion3D(
     k=k,
     d=d,
@@ -99,136 +118,49 @@ solver_options = TorchDiffEqSolverOptions(
 
 solver = TorchDiffEqSolver(model, solver_options)
 
-timepoints = daterange(
-    patient_data.visits[0].time, patient_data.visits[-1].time, timedelta(days=0.5)
-)
-u0 = torch.from_numpy(measured_cellularity_maps[0].array)
-
-# import time 
-# t0 = time.time()
-# times, predicted_cellularity_maps = solver.solve(timepoints=timepoints, u_initial=u0)
-# print(time.time()-t0)
-
-# How many imaging dates do we want to try and match
-n_visits_calibration = 5  # *Including* the initial visit
-
-target_timepoints = [visit.time for visit in patient_data.visits[:n_visits_calibration]]
-target_solution = torch.stack(
-    tuple(
-        [
-            torch.from_numpy(m.array)
-            for m in measured_cellularity_maps[: n_visits_calibration]
-        ]
-    )
-)
-
-
-def update_model_and_predict(model_parameters, timepoints = target_timepoints):
+def update_model_and_predict(model_parameters, timepoints=target_timepoints):
     
     d, k, alpha, ct_sens = torch.nn.Parameter(model_parameters)
     solver.model.d = torch.nn.Parameter(d)
     solver.model.k = torch.nn.Parameter(k)
-    solver.model.radiotherapy_specification.alpha = torch.nn.Parameter(alpha)  # type: ignore
-    solver.model.chemotherapy_specifications[0].sensitivity = torch.nn.Parameter(ct_sens)  # type: ignore
+    solver.model.radiotherapy_specification.alpha = torch.nn.Parameter(alpha) 
+    solver.model.chemotherapy_specifications[0].sensitivity = torch.nn.Parameter(ct_sens)
 
     _, predicted_cellularity_maps = solver.solve(timepoints=timepoints, u_initial=u0)
     return predicted_cellularity_maps
 
+sd_noise = 0.2
 
-if __name__ == "__main__":
+def negloglik(params: Tensor) -> Tensor:
+    """Evaluates the negative log-likelihood function at each """
 
-    print("running the main part of the script...")
-    
-    def neglogpost_alt(xs: torch.Tensor) -> torch.Tensor:
-        """For now, let's just assume that the parameters are uniform 
-        within the bounds.
-        """
+    neglogliks = torch.zeros((params.shape[0],))
 
-        neglogliks = torch.zeros_like(xs[:, 0]).share_memory_()
-
-        num_threads = max(math.floor(mp.cpu_count() / xs.shape[0]), 1)
-        torch.set_num_threads(num_threads)
-        print(mp.cpu_count())
+    for i, params_i in enumerate(params):
 
         t0 = time.time()
 
-        processes = []
-        for i in range(xs.shape[0]):
-            args = (
-                xs[i], 
-                i,
-                neglogliks, 
-                target_solution, 
-                solver, 
-                u0, 
-                target_timepoints
-            )
-            p = mp.Process(
-                target=negloglik, 
-                args=args
-            )
-            p.start()
-            processes.append(p)
-        
-        for p in processes:
-            p.join()
+        d, k, alpha, ct_sens = params_i
 
-        # mp.Queue()
+        solver.model.d = torch.nn.Parameter(d)
+        solver.model.k = torch.nn.Parameter(k)
+        solver.model.radiotherapy_specification.alpha = torch.nn.Parameter(alpha)
+        solver.model.chemotherapy_specifications[0].sensitivity = torch.nn.Parameter(ct_sens)
 
-        print(neglogliks)
-        total_time = time.time()-t0
-        time_per_sim = total_time / xs.shape[0]
+        predicted_cellularity_maps = solver.solve(target_timepoints, u0)[1]
+        nll = (1.0 / (2.0 * sd_noise ** 2)) * (predicted_cellularity_maps - target_solution).square().sum()
+        neglogliks[i] = nll
 
-        print(f"{total_time = }")
-        print(f"{time_per_sim = }")
-
-        return neglogliks
+        t1 = time.time()
+        print(f"Finished in {t1-t0:.4f} s.")
     
-    def neglogpost(xs: torch.Tensor) -> torch.Tensor:
+    return neglogliks
 
-        num_xs = xs.shape[0]
+bounds = torch.tensor([[0.0, 2.0], [0.0, 0.5], [0.001, 0.1], [0.0, 1.0]])
+dxs = bounds[:, 1] - bounds[:, 0]
 
-        neglogliks = torch.zeros_like(xs[:, 0]).share_memory_()
+num_samples = 16
+dim = 4
+xs = torch.rand((num_samples, dim)) * dxs + bounds[:, 0]
 
-        num_processes = min(mp.cpu_count(), num_xs)
-        num_threads = max(math.floor(mp.cpu_count() / xs.shape[0]), 1)
-
-        torch.set_num_threads(num_threads)
-        print(mp.cpu_count())
-
-        t0 = time.time()
-
-        args = [
-            [xs[i], i,neglogliks, target_solution, solver, u0, target_timepoints]
-            for i in range(num_xs)
-        ]
-
-        with mp.Pool(processes=num_processes) as pool:
-            results = pool.map(negloglik, args)
-
-        # mp.Queue()
-
-        print(results)
-        total_time = time.time()-t0
-        time_per_sim = total_time / xs.shape[0]
-
-        print(f"{total_time = }")
-        print(f"{time_per_sim = }")
-
-        return neglogliks
-
-    # could make prior a uniform distribution with these bounds..
-    bounds = torch.tensor([[0.0, 2.0], [0.0, 0.5], [0.001, 0.1], [0.0, 1.0]])
-    dxs = bounds[:, 1] - bounds[:, 0]
-
-    num_samples = 16
-    dim = 4
-    xs = torch.rand((num_samples, dim)) * dxs + bounds[:, 0]
-
-    neglogpost(xs)
-
-    print("hey...")
-
-    #params = param_bounds.mean(dim=1)
-
-    # update_model_and_predict(params)
+negloglik(xs)
