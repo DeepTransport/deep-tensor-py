@@ -275,6 +275,19 @@ class TT():
             msg = f"Poor condition number in interpolation: {cond}."
             warnings.warn(msg)
         return inds, B, U_sub
+    
+    @staticmethod
+    def _check_block(block: Tensor) -> None:
+        if block.max() == 0.0:
+            msg = (
+                "The entries of the current TT core are uniformly zero "
+                "(possibly the result of underflow). Consider rescaling "
+                "the target function. If you are confident the target "
+                "function is scaled appropriately, consider using a "
+                "refined grid or increased number of bridging densities."
+            )
+            warnings.warn(msg)
+        return 
 
     def compute_block(
         self, 
@@ -297,6 +310,7 @@ class TT():
         block = self.target_func(ls).reshape(r_p, n_k, r_k)
         self.num_eval += block.numel()
 
+        self._check_block(block)
         return block
     
     def build_core_amen(self, k: int) -> None:
