@@ -7,7 +7,6 @@ import torch.multiprocessing as mp
 from torch import Tensor
 
 from tumortwin.models import ReactionDiffusion3D
-from tumortwin.preprocessing import ADC_to_cellularity
 from tumortwin.solvers import TorchDiffEqSolver, TorchDiffEqSolverOptions
 from tumortwin.types import (
     ChemotherapySpecification, 
@@ -138,7 +137,7 @@ if __name__ == "__main__":
         # mp.Queue()
 
         print(neglogliks)
-        total_time = time.time()-t0
+        total_time = time.time() - t0
         time_per_sim = total_time / xs.shape[0]
 
         print(f"{total_time = }")
@@ -149,6 +148,8 @@ if __name__ == "__main__":
     def neglogpost(xs: Tensor) -> Tensor:
 
         num_xs = xs.shape[0]
+        # TEMP
+        xs[0] = torch.tensor([0.1000, 0.0500, 0.0500, 0.2000])
 
         neglogliks = torch.zeros_like(xs[:, 0]).share_memory_()
 
@@ -181,11 +182,12 @@ if __name__ == "__main__":
 
     # Could make prior a uniform distribution with these bounds...
     # TODO: evaluate the neglogpost at the true parameters and use this to rescale appropriately.
+    # DONE: turns out it's basically zero
     # true parameters: [0.1000, 0.0500, 0.0500, 0.2000]
-    bounds = torch.tensor([[0.0, 2.0], [0.0, 0.5], [0.001, 0.1], [0.0, 1.0]])
+    bounds = torch.tensor([[0.05, 0.20], [0.025, 0.200], [0.01, 0.10], [0.10, 0.50]])
     dxs = bounds[:, 1] - bounds[:, 0]
 
-    num_samples = 16
+    num_samples = 4
     dim = 4
     xs = torch.rand((num_samples, dim)) * dxs + bounds[:, 0]
 
