@@ -343,7 +343,7 @@ class FTT():
         tt.index_sets = {k: self.tt.index_sets[k].clone() for k in self.tt.index_sets}
         tt.direction = self.tt.direction
 
-        ftt = FTT(self.bases, tt)
+        ftt = FTT(self.bases, tt, self.num_error_samples)
         return ftt
 
 
