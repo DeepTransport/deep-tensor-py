@@ -55,7 +55,7 @@ class FTT():
         num_error_samples: int = 1000,
         device: torch.device = torch.device("cpu")
     ):
-        self.tt = TT(device) if tt is None else tt
+        self.tt = TT(device=device) if tt is None else tt
         self.bases = bases 
         self.dim = bases.dim
         self.num_error_samples = num_error_samples
