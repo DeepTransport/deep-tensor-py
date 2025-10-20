@@ -10,7 +10,7 @@ from .eftt_options import EFTTOptions
 from .tt import Grid, TT
 from ..constants import EPS
 from ..domains import Domain
-from ..interpolation import deim
+from ..interpolation import deim, maxvol
 from ..linalg import batch_mul, n_mode_prod, tsvd
 from ..polynomials import Basis1D, Spectral
 from ..references import Reference
@@ -382,7 +382,7 @@ class EFTT(FTT):
         FTT.__init__(self, bases, tt, options.num_error_samples, device=device)
         self.options = options
         self.num_eval_fibres = 0
-        self.deim_inds: Dict[int, Tensor] = {}
+        self.tucker_inds: Dict[int, Tensor] = {}
         self.factors: Dict[int, Tensor] = {}
         return
     
@@ -505,7 +505,7 @@ class EFTT(FTT):
         self, 
         reference: Reference | None = None
     ) -> None:
-        """Computes the POD bases in each dimension."""
+        """Computes the reduced index set in each dimension."""
 
         points = {k: self.bases[k].nodes for k in range(self.dim)}
         grid = Grid(points)
@@ -521,11 +521,17 @@ class EFTT(FTT):
 
             if self.options.fibre_method == "random":
                 fibre_matrix = self.compute_fibre_submatrix_random(grid, reference, k)
+                basis_k = tsvd(fibre_matrix, tol=self.options.tol_svd)[0]
+                inds_k, factor_k = deim(basis_k)
+
             elif self.options.fibre_method == "aca":
                 fibre_matrix = self.compute_fibre_submatrix_aca(grid, k)
+                U_k = linalg.qr(fibre_matrix).Q
+                inds_k = maxvol(U_k)[0]
+                factor_k = linalg.solve(U_k[inds_k], U_k, left=False)
             
-            basis_k = tsvd(fibre_matrix, tol=self.options.tol_svd)[0]
-            self.deim_inds[k], self.factors[k] = deim(basis_k)
+            self.tucker_inds[k] = inds_k
+            self.factors[k] = factor_k
         
         if self.tt.options.verbose > 1:
             basis_dims = [dim for dim in self.basis_dims]
@@ -569,7 +575,7 @@ class EFTT(FTT):
         self.compute_reduced_indices(reference)
 
         deim_nodes = {
-            k: self.bases[k].nodes[self.deim_inds[k]] 
+            k: self.bases[k].nodes[self.tucker_inds[k]] 
             for k in range(self.dim)
         }
         deim_grid = Grid(deim_nodes)
