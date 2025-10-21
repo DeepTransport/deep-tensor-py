@@ -283,7 +283,8 @@ class TT():
                 "(possibly the result of underflow). Consider rescaling "
                 "the target function. If you are confident the target "
                 "function is scaled appropriately, consider using a "
-                "refined grid or increased number of bridging densities."
+                "refined grid, larger core ranks, or an increased "
+                "number of bridging densities."
             )
             warnings.warn(msg)
         return 

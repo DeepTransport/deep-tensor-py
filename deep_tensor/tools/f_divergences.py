@@ -2,6 +2,9 @@ import torch
 from torch import Tensor
 
 
+DIVERGENCES = ("h2", "kl", "tv")
+
+
 def compute_log_norm(log_ratios: Tensor) -> Tensor:
     """Estimates the normalising constant of a given target density.
     
@@ -48,19 +51,30 @@ def compute_f_divergence(logqs: Tensor, logps: Tensor, div: str = "h2") -> Tenso
     f_div: 
         The estimate of the requested f-divergence using the provided 
         evaluations of the densities.
+    
+    References
+    ----------
+    https://en.wikipedia.org/wiki/F-divergence#Common_examples_of_f-divergences
         
     """
+
+    div = div.lower()
+    if div not in DIVERGENCES:
+        msg = (
+            f"Divergence '{div}' not recognised. Recognised values are "
+            ", ".join(DIVERGENCES) + "."
+        )
+        raise Exception(msg)
 
     log_ratios = logps - logqs
     log_norm = compute_log_norm(log_ratios)
 
     if div == "h2":
-        h2 = 1.0 - (compute_log_norm(0.5*log_ratios) - 0.5*log_norm).exp()
-        h2 = h2.clamp(min=0.0)
-        return h2
+        f_div = 1.0 - (compute_log_norm(0.5*log_ratios) - 0.5*log_norm).exp()
     elif div == "kl":
-        return -log_ratios.mean() + log_norm
-    elif div == "tv":
-        return 0.5 * (torch.exp(log_ratios - log_norm) - 1.0).abs().mean()
-
-    raise Exception(f"Divergence '{div}' not recognised.")
+        f_div = -log_ratios.mean() + log_norm
+    elif div == "tv": 
+        f_div = 0.5 * (torch.exp(log_ratios - log_norm) - 1.0).abs().mean()
+    
+    f_div = torch.clamp(f_div, min=0.0)
+    return f_div

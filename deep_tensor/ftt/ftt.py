@@ -253,9 +253,6 @@ class FTT():
         return Gs_prod
     
     def initialise_l2_error_samples(self):
-        # TODO: figure out whether these should be drawn from the 
-        # measure associated with the basis in each dimension.
-        # self.ls_error = self.bases.sample_measure(self.num_error_samples)[0]
         sample_size = (self.num_error_samples, self.dim)
         self.ls_error = 2.0 * torch.rand(sample_size, device=self.device) - 1.0
         self.fls_error = self.target_func(self.ls_error)
