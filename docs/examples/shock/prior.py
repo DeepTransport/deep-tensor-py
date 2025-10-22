@@ -1,9 +1,13 @@
 import math
 from typing import Tuple, Callable
+import warnings
 
 import torch
 from torch import Tensor
 from torch.distributions import Gamma
+
+
+EPS = 1e-14
 
 
 def regula_falsi_step(
@@ -24,27 +28,24 @@ def regula_falsi(
     func: Callable[[Tensor], Tuple[Tensor, Tensor]],
     l0s: Tensor, 
     l1s: Tensor,
-    max_iter: int = 1000
+    max_iter: int = 100
 ) -> Tensor:
-        
     z0s = func(l0s)[0]
     z1s = func(l1s)[0]
-    # self.check_initial_intervals(z0s, z1s)
-
     for _ in range(max_iter):
-
         ls, dls = regula_falsi_step(z0s, z1s, l0s, l1s)
         zs = func(ls)[0]
         if converged(zs, dls):
             return ls 
-
-        # Update intervals (note: the CDF is monotone increasing)
         l0s[zs < 0] = ls[zs < 0]
         l1s[zs > 0] = ls[zs > 0]
         z0s[zs < 0] = zs[zs < 0]
         z1s[zs > 0] = zs[zs > 0]
-        
-    # print("unconverged")
+    msg = (
+        f"Regula Falsi failed to converge. "
+        f"Maximum residual: {zs.abs().max():.2f}."
+    )
+    warnings.warn(msg)
     return ls
 
 
@@ -69,25 +70,19 @@ def newton(
     l1s: Tensor,
     max_iter: int = 100
 ) -> Tensor:
-    
     z0s = func(l0s)[0]
     z1s = func(l1s)[0]
-    # self.check_initial_intervals(z0s, z1s)
-
     ls, dls = regula_falsi_step(z0s, z1s, l0s, l1s)
-
     for _ in range(max_iter):  
         zs, dzs = func(ls)
         ls, dls = newton_step(ls, zs, dzs, l0s, l1s)
         if converged(zs, dls):
             return ls
-    
-    # self.print_unconverged(zs, dls, "Newton's method")
     return regula_falsi(func, l0s, l1s)
 
 
 def converged(fs: Tensor, dls: Tensor) -> bool:
-    return fs.abs().max().item() < 1e-8
+    return fs.abs().max().item() < EPS
 
 
 def gaussian_potential(xs: Tensor, mus: Tensor, sds: Tensor) -> Tensor:
@@ -110,7 +105,7 @@ class GammaDist():
     lamb: 
         Rate parameter.
     bounds:
-        Bounds.
+        Left- and right-hand bounds.
     
     """
 
@@ -123,6 +118,10 @@ class GammaDist():
 
         self.cdf_bounds: Tensor = self.Gamma.cdf(bounds)
         self.dx = self.cdf_bounds[1] - self.cdf_bounds[0]
+
+        self.grid = torch.linspace(*self.bounds, steps=500)
+        self.cdf_grid = (self.Gamma.cdf(self.grid) - self.cdf_bounds[0]) / self.dx
+
         return 
     
     def eval_potential(self, xs: Tensor) -> Tensor:
@@ -140,8 +139,9 @@ class GammaDist():
             zs -= zs_cdf
             return zs, dzdxs
         
-        l0s = torch.full_like(zs_cdf, self.bounds[0].item())
-        l1s = torch.full_like(zs_cdf, self.bounds[1].item())
+        left_inds = ((self.cdf_grid - zs_cdf[:, None]) < 0).sum(dim=1) - 1
+        l0s = self.grid[left_inds]
+        l1s = self.grid[left_inds+1]
         return newton(func, l0s, l1s)
     
 
@@ -155,7 +155,7 @@ class GaussianDist():
     lamb: 
         Scale parameter.
     bounds:
-        Bounds.
+        Left- and right-hand bounds.
     
     """
 
@@ -182,4 +182,4 @@ class GaussianDist():
     def invert_cdf(self, zs: Tensor) -> Tensor:
         zs = (self.dx * zs) + self.lb_cdf
         zs = zs.clamp(1e-10, 1-1e-10)
-        return self.mus + self.sds * torch.tensor(2.0).sqrt() * torch.erfinv(2.0*zs-1.0)
+        return self.mus + self.sds * math.sqrt(2.0) * torch.erfinv(2.0*zs-1.0)
