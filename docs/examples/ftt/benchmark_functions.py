@@ -18,7 +18,7 @@ WING_WEIGHT_LBS = torch.tensor([150, 220,  6, -10, 16, 0.5, 0.08, 2.5, 1700, 0.0
 WING_WEIGHT_UBS = torch.tensor([200, 300, 10,  10, 45, 1.0, 0.18, 6.0, 2500, 0.080])
 
 
-def rescale(ls: Tensor, lbs: float | Tensor, ubs: int | Tensor) -> Tensor:
+def rescale(ls: Tensor, lbs: float | Tensor, ubs: float | Tensor) -> Tensor:
     ls = 0.5 * (ls + 1.0)
     ls = lbs + ls * (ubs-lbs)
     return ls
@@ -221,7 +221,7 @@ def dnp_exp(ls: Tensor) -> Tensor:
     return fls
 
 
-def normalise_cs(cs: Tensor, dim: int, b: int, h: int) -> Tensor:
+def normalise_cs(cs: Tensor, dim: int, b: float, h: float) -> Tensor:
     c_norm = (dim**h / b) * cs.abs().sum()
     return cs / c_norm
 
