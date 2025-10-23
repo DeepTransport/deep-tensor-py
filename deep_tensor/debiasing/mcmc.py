@@ -20,44 +20,44 @@ class MarkovChain(object):
     
     """
 
-    def __init__(self, n: int, dim: int):
-        self.xs = torch.zeros((n, dim))
-        self.potentials = torch.zeros(n)
+    def __init__(self, n: int, dim: int, device: torch.device):
+        self.xs = torch.zeros((n, dim), device=device)
+        self.potentials = torch.zeros(n, device=device)
         self.n = n
-        self.n_steps = 0
-        self.n_accept = 0
+        self.num_steps = 0
+        self.num_accept = 0
         return
     
     @property
     def acceptance_rate(self) -> float:
-        return self.n_accept / self.n_steps
+        return self.num_accept / self.num_steps
     
     @property 
     def current_state(self) -> Tensor:
-        return self.xs[self.n_steps-1]
+        return self.xs[self.num_steps-1]
     
     @property 
     def current_potential(self) -> Tensor:
-        return self.potentials[self.n_steps-1]
+        return self.potentials[self.num_steps-1]
     
     def add_new_state(self, x_i: Tensor, potential_i: Tensor) -> None:
         """Adds a new state to the end of the Markov chain."""
-        self.xs[self.n_steps] = x_i.flatten()
-        self.potentials[self.n_steps] = potential_i
-        self.n_steps += 1
-        self.n_accept += 1
+        self.xs[self.num_steps] = x_i.flatten()
+        self.potentials[self.num_steps] = potential_i
+        self.num_steps += 1
+        self.num_accept += 1
         return
     
     def add_current_state(self) -> None:
         """Adds the current state to the end of the Markov chain."""
-        self.xs[self.n_steps] = self.current_state
-        self.potentials[self.n_steps] = self.current_potential
-        self.n_steps += 1
+        self.xs[self.num_steps] = self.current_state
+        self.potentials[self.num_steps] = self.current_potential
+        self.num_steps += 1
         return
     
     def print_progress(self) -> None:
         diagnostics = [
-            f"Iteration: {self.n_steps:>5f}", 
+            f"Iteration: {self.num_steps:>5f}", 
             f"Acceptance rate: {self.acceptance_rate:.2f}"
         ]
         print(" | ".join(diagnostics), end="\r")
@@ -168,7 +168,7 @@ def estimate_iact(xs: Tensor) -> Tensor:
 
     """
 
-    taus = torch.zeros(xs.shape[1])
+    taus = torch.zeros(xs.shape[1], device=xs.device)
 
     for i, x_i in enumerate(xs.T):
         
@@ -480,7 +480,7 @@ def run_independence_sampler(
 
     n, d = xs.shape
     
-    chain = MarkovChain(n, d)
+    chain = MarkovChain(n, d, device=xs.device)
     chain.add_new_state(xs[0], neglogfxs_exact[0])
     i_cur = 0
 
@@ -489,7 +489,7 @@ def run_independence_sampler(
         alpha = (neglogfxs_exact[i_cur] + neglogfxs_irt[i+1]
                  - neglogfxs_exact[i+1] - neglogfxs_irt[i_cur])
         
-        if alpha.exp() > torch.rand(1):
+        if alpha.exp() > torch.rand(1, device=xs.device):
             chain.add_new_state(xs[i+1], neglogfxs_exact[i+1])
             i_cur = i+1
         else:

@@ -14,10 +14,6 @@ from .spectral.chebyshev_2nd import Chebyshev2nd
 from .spectral.chebyshev_2nd_trigo_cdf import Chebyshev2ndTrigoCDF
 from .spectral.fourier import Fourier
 from .spectral.fourier_cdf import FourierCDF
-from .spectral.hermite import Hermite
-from .spectral.hermite_cdf import HermiteCDF
-from .spectral.laguerre import Laguerre
-from .spectral.laguerre_cdf import LaguerreCDF
 from .spectral.legendre import Legendre
 
 
@@ -25,18 +21,16 @@ POLY_CDFS = {
     Chebyshev1st: Chebyshev1stTrigoCDF,
     Chebyshev2nd: Chebyshev2ndTrigoCDF,
     Fourier: FourierCDF,
-    Hermite: HermiteCDF,
     Lagrange1: Lagrange1CDF,
     LagrangeP: LagrangePCDF,
-    Laguerre: LaguerreCDF,
     Legendre: Chebyshev2ndCDF
 }
 
 
-def construct_cdf(poly: Basis1D, **kwargs: dict) -> CDF1D:
+def construct_cdf(poly: Basis1D, error_tol: float) -> CDF1D:
     """Selects the one-dimensional CDF for a given basis."""
     try: 
-        return POLY_CDFS[type(poly)](poly, **kwargs)
+        return POLY_CDFS[type(poly)](poly, error_tol)
     except KeyError:
         msg = f"CDF not implemented for polynomial of type {type(poly)}."
         raise Exception(msg)

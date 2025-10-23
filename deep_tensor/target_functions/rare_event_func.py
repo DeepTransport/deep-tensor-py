@@ -71,9 +71,10 @@ class RareEventFunc(TargetFunc):
     def _func_vectorised(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         if self.vectorised:
             return self._func(xs)
-        neglogfxs = torch.zeros((xs.shape[0],))
-        responses = torch.zeros((xs.shape[0],))
-        for i, x in enumerate(xs.T):
+        num_xs = xs.shape[0]
+        neglogfxs = torch.zeros((num_xs,), device=xs.device)
+        responses = torch.zeros((num_xs,), device=xs.device)
+        for i, x in enumerate(xs):
             neglogfxs[i], responses[i] = self._func(x)
         return neglogfxs, responses
     

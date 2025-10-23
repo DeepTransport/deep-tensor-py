@@ -111,8 +111,27 @@ class Reference(abc.ABC):
 
         """
         pass
+
+    def _out_domain(self, rs: Tensor) -> Tensor:
+        outside = (rs < self.domain.left) | (self.domain.right < rs)
+        return outside
     
-    def random(self, n: int, d: int) -> Tensor:
+    def _check_samples_in_domain(self, rs: Tensor) -> None:
+        """Raises an error if any of a set of samples are outside the
+        domain of the reference.
+        """
+        outside = self._out_domain(rs)
+        if (num_outside := outside.sum()) > 0:
+            msg = f"{num_outside} points lie outside domain of reference."
+            warnings.warn(msg)
+        return
+    
+    def random(
+        self, 
+        n: int, 
+        d: int, 
+        device: torch.device = torch.device("cpu")
+    ) -> Tensor:
         r"""Generates a set of random samples.
         
         Parameters
@@ -128,11 +147,16 @@ class Reference(abc.ABC):
             An $n \times d$ matrix containing the generated samples.
 
         """
-        zs = torch.rand(n, d)
+        zs = torch.rand(n, d, device=device)
         rs = self.invert_cdf(zs)
         return rs
         
-    def sobol(self, n: int, d: int) -> Tensor:
+    def sobol(
+        self, 
+        n: int, 
+        d: int,
+        device: torch.device = torch.device("cpu")
+    ) -> Tensor:
         r"""Generates a set of QMC samples.
         
         Parameters
@@ -149,20 +173,6 @@ class Reference(abc.ABC):
         
         """
         S = SobolEngine(dimension=d)
-        zs = S.draw(n)
+        zs = S.draw(n).to(device)
         rs = self.invert_cdf(zs)
         return rs
-    
-    def _out_domain(self, rs: Tensor) -> Tensor:
-        outside = (rs < self.domain.left) | (self.domain.right < rs)
-        return outside
-    
-    def _check_samples_in_domain(self, rs: Tensor) -> None:
-        """Raises an error if any of a set of samples are outside the
-        domain of the reference.
-        """
-        outside = self._out_domain(rs)
-        if (num_outside := outside.sum()) > 0:
-            msg = f"{num_outside} points lie outside domain of reference."
-            warnings.warn(msg)
-        return

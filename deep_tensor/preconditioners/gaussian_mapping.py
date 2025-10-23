@@ -82,7 +82,8 @@ class GaussianMapping(Preconditioner):
             Ls = self.L.diag()[:d_us]
         else:
             Ls = self.L.diag()[-d_us:]
-        neglogdets = torch.full((us.shape[0],), -Ls.log().sum().item())
+        neglogdet = -Ls.log().sum().item()
+        neglogdets = torch.full((us.shape[0],), neglogdet, device=us.device)
         return neglogdets 
     
     def neglogdet_Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor: 
@@ -92,5 +93,6 @@ class GaussianMapping(Preconditioner):
             Rs = self.R.diag()[:d_xs]
         else:
             Rs = self.R.diag()[-d_xs:]
-        neglogdets = torch.full((xs.shape[0],), -Rs.log().sum().item())
+        neglogdet = -Rs.log().sum().item()
+        neglogdets = torch.full((xs.shape[0],), neglogdet, device=xs.device)
         return neglogdets 

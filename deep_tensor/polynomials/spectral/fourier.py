@@ -34,24 +34,29 @@ class Fourier(Spectral):
         
     """
 
-    def __init__(self, order: int):
-        
-        n_nodes = 2 * order + 2
-        n = torch.arange(n_nodes)
+    def __init__(
+        self, 
+        order: int, 
+        device: torch.device = torch.device("cpu")
+    ):
 
-        self.order = order
+        self.order = order 
+        self.device = device
+
+        num_nodes = 2 * order + 2
+        n = torch.arange(num_nodes, device=self.device)
         self._m = order + 1
-        self._c = torch.pi * (torch.arange(order) + 1.0)
-        self.nodes = 2.0 * (n+1.0) / n_nodes - 1.0
-        self.weights = torch.ones_like(self.nodes) / n_nodes
+        self._c = torch.pi * (torch.arange(order, device=self.device) + 1.0)
+        self.nodes = 2.0 * (n + 1.0) / num_nodes - 1.0
+        self.weights = torch.ones_like(self.nodes) / num_nodes
 
-        self.__post_init__()
+        self.__post_init__(self.device)
         self.node2basis[-1] *= 0.5
         return
 
     @property
     def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0])
+        return torch.tensor([-1.0, 1.0], device=self.device)
     
     @property
     def constant_weight(self) -> bool:
@@ -67,13 +72,13 @@ class Fourier(Spectral):
         return
 
     def sample_measure(self, n: int) -> Tensor:
-        return 2.0 * torch.rand(n) - 1.0
+        return 2.0 * torch.rand(n, device=self.device) - 1.0
     
     def eval_measure(self, ls: Tensor):
-        return torch.full(ls.shape, 0.5)
+        return torch.full_like(ls, 0.5)
     
     def eval_log_measure(self, ls: Tensor) -> Tensor:
-        return torch.full(ls.shape, math.log(0.5))
+        return torch.full_like(ls, math.log(0.5))
     
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)

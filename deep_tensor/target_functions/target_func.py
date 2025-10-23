@@ -39,7 +39,7 @@ class TargetFunc(object):
     def _func_vectorised(self, xs: Tensor) -> Tensor:
         if self.vectorised:
             return self._func(xs)
-        return torch.tensor([self._func(x) for x in xs.T])
+        return torch.tensor([self._func(x) for x in xs], device=xs.device)
     
     def func(self, xs: Tensor) -> Tensor:
         neglogfxs = self._func_vectorised(xs)

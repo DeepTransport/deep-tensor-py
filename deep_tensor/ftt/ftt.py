@@ -1,4 +1,5 @@
-from typing import Callable, Dict
+from typing import Callable, Dict, Tuple
+import warnings
 
 import torch
 from torch import linalg
@@ -10,7 +11,7 @@ from .eftt_options import EFTTOptions
 from .tt import Grid, TT
 from ..constants import EPS
 from ..domains import Domain
-from ..interpolation import deim
+from ..interpolation import deim, maxvol
 from ..linalg import batch_mul, n_mode_prod, tsvd
 from ..polynomials import Basis1D, Spectral
 from ..references import Reference
@@ -52,12 +53,14 @@ class FTT():
         self, 
         bases: ApproxBases, 
         tt: TT | None = None,
-        num_error_samples: int = 1000
+        num_error_samples: int = 1000,
+        device: torch.device = torch.device("cpu")
     ):
-        self.tt = TT() if tt is None else tt
+        self.tt = TT(device=device) if tt is None else tt
         self.bases = bases 
         self.dim = bases.dim
         self.num_error_samples = num_error_samples
+        self.device = device
         self.l2_error = None
         self.cores = {}
         return
@@ -251,11 +254,8 @@ class FTT():
         return Gs_prod
     
     def initialise_l2_error_samples(self):
-        # TODO: figure out whether these should be drawn from the 
-        # measure associated with the basis in each dimension.
-        # self.ls_error = self.bases.sample_measure(self.num_error_samples)[0]
         sample_size = (self.num_error_samples, self.dim)
-        self.ls_error = 2.0 * torch.rand(sample_size) - 1.0
+        self.ls_error = 2.0 * torch.rand(sample_size, device=self.device) - 1.0
         self.fls_error = self.target_func(self.ls_error)
         return 
 
@@ -338,12 +338,12 @@ class FTT():
     
     def clone(self):
 
-        tt = TT(self.tt.options)
+        tt = TT(self.tt.options, device=self.device)
         tt.cores = {k: self.tt.cores[k].clone() for k in self.tt.cores}
         tt.index_sets = {k: self.tt.index_sets[k].clone() for k in self.tt.index_sets}
         tt.direction = self.tt.direction
 
-        ftt = FTT(self.bases, tt, self.num_error_samples)
+        ftt = FTT(self.bases, tt, self.num_error_samples, self.device)
         return ftt
 
 
@@ -372,14 +372,15 @@ class EFTT(FTT):
         self, 
         bases: ApproxBases,
         tt: TT,
-        options: EFTTOptions | None = None
+        options: EFTTOptions | None = None,
+        device: torch.device = torch.device("cpu")
     ):
         if options is None:
             options = EFTTOptions()
-        FTT.__init__(self, bases, tt, options.num_error_samples)
+        FTT.__init__(self, bases, tt, options.num_error_samples, device=device)
         self.options = options
         self.num_eval_fibres = 0
-        self.deim_inds: Dict[int, Tensor] = {}
+        self.tucker_inds: Dict[int, Tensor] = {}
         self.factors: Dict[int, Tensor] = {}
         return
     
@@ -392,9 +393,8 @@ class EFTT(FTT):
         """Returns a tensor containing the dimension of the reduced 
         basis for each coordinate.
         """
-        basis_dims = torch.tensor([self.factors[k].shape[1] 
-                                   for k in range(self.dim)])
-        return basis_dims
+        basis_dims = [self.factors[k].shape[1] for k in range(self.dim)]
+        return torch.tensor(basis_dims, device=self.device)
     
     def compute_fibre_submatrix_random(
         self, 
@@ -407,7 +407,7 @@ class EFTT(FTT):
 
         if reference is None:
             sample_size = (self.options.num_snapshots, self.dim)
-            point_samples = 2.0 * torch.rand(sample_size) - 1.0
+            point_samples = 2.0 * torch.rand(sample_size, device=self.device) - 1.0
         else:
             point_samples = reference.random(self.options.num_snapshots, self.dim)
             point_samples = reference.domain.approx2local(point_samples)[0]
@@ -422,80 +422,148 @@ class EFTT(FTT):
 
         return fibre_matrix
     
+    @staticmethod
+    def _find_evaluated_points(
+        new_inds: Tensor, 
+        inds_eval: Tensor,
+        vals_eval: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        """Returns a mask elements of a set of indices that have been 
+        computed previously, as well as the computed values.
+        """
+        diffs = (new_inds[:, None, :] - inds_eval[None, ...]).abs().sum(dim=2)
+        inds_prev = diffs.argmin(dim=1)
+        mask = diffs.min(dim=1).values < EPS
+        mask_vals = vals_eval[inds_prev[mask]]
+        return mask, mask_vals
+    
+    def _generate_points_aca(self, n: int, grid: Grid) -> Tuple[Tensor, Tensor]:
+        """Returns a set of random indices and the corresponding 
+        function values.
+        """
+        inds_rand = grid.sample_indices(n)
+        random_points = grid.indices2points(inds_rand)
+        func_vals = self.target_func(random_points)
+        self.num_eval_fibres += func_vals.numel()
+        return inds_rand, func_vals
+    
+    def _initialise_index_set_aca(self, grid: Grid) -> Tuple[Tensor, Tensor]:
+        """Initialises the index set defining the current cross by 
+        sampling from the coefficient tensor at random. This is 
+        repeated multiple times in case the sampled elements are 
+        uniformly zero (see also implementation by Strossner et al.).
+        """
+
+        num_initialisation_batches = 5
+        num_aca = self.options.num_aca
+
+        for _ in range(num_initialisation_batches):
+            inds_rand, func_vals = self._generate_points_aca(num_aca, grid)
+            if func_vals.abs().max() > 0.0:
+                break
+        
+        if func_vals.abs().max() == 0.0:
+            msg = (
+                "ACA: None of the sampled fibre elements are nonzero. "
+                "Consider rescaling the target function. If you are "
+                "confident the target function is scaled appropriately, "
+                "consider using a refined grid, larger core ranks, an "
+                "increased number of bridging densities, or a larger "
+                "value for num_aca."
+            )
+            warnings.warn(msg)
+        
+        max_residual_index = func_vals.abs().argmax()
+        inds = torch.atleast_2d(inds_rand[max_residual_index])
+        vals = torch.atleast_1d(func_vals[max_residual_index])
+        return inds, vals
+    
     def compute_fibre_submatrix_aca(self, grid: Grid, k: int) -> Tensor:
 
-        for iter in range(self.options.max_fibres):
-                
-            random_inds = grid.sample_indices(self.options.num_aca)
-            random_points = grid.indices2points(random_inds)
+        num_aca = self.options.num_aca
+        inds, vals = self._initialise_index_set_aca(grid)
 
-            M_vals = self.target_func(random_points)
+        # Keep track of elements of the cross that have been evaluated
+        inds_eval = inds.clone()
+        vals_eval = vals.clone()
+
+        for _ in range(1, self.options.max_fibres):
+
+            num_inds = inds.shape[0]
+            inds_rand, func_vals = self._generate_points_aca(num_aca, grid)
+
+            inds_int = inds.repeat(num_inds, 1)
+            inds_int[:, k] = inds[:, k].repeat_interleave(num_inds, dim=0)
+            inds_row = inds_rand.repeat(num_inds, 1)
+            inds_row[:, k] = inds[:, k].repeat_interleave(num_aca, dim=0)
+            inds_col = inds.repeat(self.options.num_aca, 1)
+            inds_col[:, k] = inds_rand[:, k].repeat_interleave(num_inds, dim=0)
+
+            points_int = grid.indices2points(inds_int)
+            points_row = grid.indices2points(inds_row)
+            points_col = grid.indices2points(inds_col)
+
+            mask, mask_vals = self._find_evaluated_points(
+                inds_int, inds_eval, vals_eval
+            )
+
+            # Form intersection submatrix (avoiding the evaluation 
+            # of function values that were previously computed)
+            B_int = torch.zeros(inds_int.shape[0])
+            B_int[mask] = mask_vals
+            if (~mask).any():
+                B_int[~mask] = self.target_func(points_int[~mask])
             
-            if iter == 0:
-
-                max_residual = M_vals.max()
-                max_residual_index = M_vals.abs().argmax()
-                max_index = random_inds[max_residual_index, :]
-
-                inds = torch.atleast_2d(max_index)
-
-            else:
-
-                num_inds = inds.shape[0]
-
-                # Compute intersection matrix (NOTE: some of this 
-                # will have actually been computed at previous 
-                # iterations...)
-                inds_int = inds.repeat(num_inds, 1)
-                inds_int[:, k] = inds[:, k].repeat_interleave(num_inds, dim=0)
-
-                inds_row = random_inds.repeat(num_inds, 1)
-                inds_row[:, k] = inds[:, k].repeat_interleave(self.options.num_aca, dim=0)
-
-                inds_col = inds.repeat(self.options.num_aca, 1)
-                inds_col[:, k] = random_inds[:, k].repeat_interleave(num_inds, dim=0)
-
-                points_int = grid.indices2points(inds_int)
-                points_row = grid.indices2points(inds_row)
-                points_col = grid.indices2points(inds_col)
-
-                B_int = self.target_func(points_int)
-                B_int = B_int.reshape(num_inds, num_inds)
-                B_rows = self.target_func(points_row)
-                B_rows = B_rows.reshape(num_inds, self.options.num_aca)
-                B_cols = self.target_func(points_col)
-                B_cols = B_cols.reshape(self.options.num_aca, num_inds)
-
-                self.num_eval_fibres += (
-                    2 * num_inds * self.options.num_aca 
-                    + num_inds ** 2
-                )
-
-                # Check for (near-)singularity of intersection matrix
-                # (also done in implementation by Strossner et al.).
-                if linalg.cond(B_int) > 1.0 / EPS:
-                    break
-
-                # Update index set with index of maximum residual
-                B_vals = B_cols @ linalg.solve(B_int, B_rows)
-                residuals = torch.diag(M_vals - B_vals).abs()
-                max_residual = residuals.max()
-                max_residual_index = residuals.abs().argmax()
-                max_index = random_inds[max_residual_index, :]
-                inds = torch.vstack((inds, max_index))
+            B_rows = self.target_func(points_row)
+            B_cols = self.target_func(points_col)
             
-            if max_residual < self.options.tol_aca and iter > 1:
+            B_int = B_int.reshape(num_inds, num_inds)
+            B_rows = B_rows.reshape(num_inds, num_aca)
+            B_cols = B_cols.reshape(num_aca, num_inds)
+            
+            inds_eval = inds_int.clone()
+            vals_eval = B_int.flatten()
+            
+            num_eval_int = int((~mask).sum())
+            self.num_eval_fibres += (
+                num_eval_int + B_rows.numel() + B_cols.numel()
+            )
+
+            # Check for (near-)singularity of intersection matrix
+            # (also done in implementation by Strossner et al.).
+            # This occurs for functions where the fibre matrices 
+            # are exactly low rank.
+            if linalg.cond(B_int) > 1.0 / EPS:
                 break
+            
+            cross_vals = B_cols @ linalg.solve(B_int, B_rows)
+            residuals = torch.diag(func_vals - cross_vals).abs()
+            if residuals.max() < self.options.tol_aca:
+                break
+
+            # Update index set
+            max_index = inds_rand[residuals.argmax(), :]
+            inds = torch.vstack((inds, max_index))
         
         n_k = self.bases[k].cardinality
         num_inds = inds.shape[0]
 
         fibre_inds = inds.repeat(n_k, 1)
-        fibre_inds[:, k] = torch.arange(n_k).repeat_interleave(num_inds, dim=0)
-
+        ii = torch.arange(n_k, device=self.device)
+        fibre_inds[:, k] = ii.repeat_interleave(num_inds, dim=0)
         fibre_points = grid.indices2points(fibre_inds)
-        fibre_matrix = self.target_func(fibre_points).reshape(n_k, num_inds)
-        self.num_eval_fibres += n_k * num_inds
+
+        mask, mask_vals = self._find_evaluated_points(
+            fibre_inds, inds_eval, vals_eval
+        )
+
+        fibre_matrix = torch.zeros((n_k*num_inds,))
+        fibre_matrix[mask] = mask_vals
+        fibre_matrix[~mask] = self.target_func(fibre_points[~mask])
+        fibre_matrix = fibre_matrix.reshape(n_k, num_inds)
+
+        num_eval_new = int((~mask).sum())
+        self.num_eval_fibres += num_eval_new
 
         return fibre_matrix
 
@@ -503,7 +571,7 @@ class EFTT(FTT):
         self, 
         reference: Reference | None = None
     ) -> None:
-        """Computes the POD bases in each dimension."""
+        """Computes the reduced index set in each dimension."""
 
         points = {k: self.bases[k].nodes for k in range(self.dim)}
         grid = Grid(points)
@@ -519,11 +587,17 @@ class EFTT(FTT):
 
             if self.options.fibre_method == "random":
                 fibre_matrix = self.compute_fibre_submatrix_random(grid, reference, k)
+                basis_k = tsvd(fibre_matrix, tol=self.options.tol_svd)[0]
+                inds_k, factor_k = deim(basis_k)
+
             elif self.options.fibre_method == "aca":
                 fibre_matrix = self.compute_fibre_submatrix_aca(grid, k)
+                U_k = linalg.qr(fibre_matrix).Q
+                inds_k = maxvol(U_k)[0]
+                factor_k = linalg.solve(U_k[inds_k], U_k, left=False)
             
-            basis_k = tsvd(fibre_matrix, tol=self.options.tol_svd)[0]
-            self.deim_inds[k], self.factors[k] = deim(basis_k)
+            self.tucker_inds[k] = inds_k
+            self.factors[k] = factor_k
         
         if self.tt.options.verbose > 1:
             basis_dims = [dim for dim in self.basis_dims]
@@ -567,7 +641,7 @@ class EFTT(FTT):
         self.compute_reduced_indices(reference)
 
         deim_nodes = {
-            k: self.bases[k].nodes[self.deim_inds[k]] 
+            k: self.bases[k].nodes[self.tucker_inds[k]] 
             for k in range(self.dim)
         }
         deim_grid = Grid(deim_nodes)
@@ -575,10 +649,10 @@ class EFTT(FTT):
         return
     
     def clone(self):
-        # Note: can't copy the cores over because the number of 
-        # collocation points is not fixed. Could try the index sets 
-        # (and direction) though (although would need to adjust their 
-        # size at some point)...
-        tt = TT(self.tt.options)
-        ftt = EFTT(self.bases, tt, self.options)
+        # Note: we cannot copy the cores and index sets over, because 
+        # the indices corresponding to the DEIM projection onto the 
+        # reduced bases in each dimension can change. Instead we start 
+        # from scratch.
+        tt = TT(self.tt.options, device=self.device)
+        ftt = EFTT(self.bases, tt, self.options, device=self.device)
         return ftt

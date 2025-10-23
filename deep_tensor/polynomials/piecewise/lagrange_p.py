@@ -9,7 +9,7 @@ from ...integration import integrate
 
 class _LagrangeRef():
     
-    def __init__(self, n: int):
+    def __init__(self, n: int, device: torch.device):
         """Defines the reference Lagrange basis, in the reference
         domain [0, 1].
 
@@ -29,11 +29,12 @@ class _LagrangeRef():
         
         jacobi = Jacobi11(order=n-3)
         
-        self.domain = torch.tensor([0.0, 1.0])
+        self.device = device
+        self.domain = torch.tensor([0.0, 1.0], device=self.device)
         self.domain_size = self.domain[1] - self.domain[0]
         self.cardinality = n
-        self.es = torch.eye(n)
-        self.nodes = torch.zeros(self.cardinality)
+        self.es = torch.eye(n, device=self.device)
+        self.nodes = torch.zeros(self.cardinality, device=self.device)
         self.nodes[1:-1] = 0.5 * (jacobi.nodes + 1.0)
         self.nodes[-1] = 1.0
         self._compute_omegas()
@@ -45,9 +46,9 @@ class _LagrangeRef():
         """Computes the local Barycentric weights (see Berrut and 
         Trefethen, Eq. (3.2)).
         """
-        self.omega = torch.zeros(self.cardinality)
+        self.omega = torch.zeros(self.cardinality, device=self.device)
         for i in range(self.cardinality):
-            mask = torch.full((self.cardinality,), True)
+            mask = torch.full((self.cardinality,), True, device=self.device)
             mask[i] = False
             self.omega[i] = torch.prod(self.nodes[i]-self.nodes[mask]) ** -1
         return
@@ -56,10 +57,10 @@ class _LagrangeRef():
         """Uses numerical integration to approximate the integral of 
         each basis function over the domain.
         """
-        self.weights = torch.zeros(self.cardinality)
+        self.weights = torch.zeros(self.cardinality, device=self.device)
         for i in range(self.cardinality):
             f_i = lambda x: self._eval(self.es[i], x)
-            self.weights[i] = integrate(f_i, self.domain[0], self.domain[1])
+            self.weights[i] = integrate(f_i, self.domain[0], self.domain[1], device=self.device)
         return
     
     def _compute_mass(self) -> None:
@@ -67,12 +68,12 @@ class _LagrangeRef():
         (the integrals of the product of each pair of basis functions 
         over the domain).
         """
-        self.mass = torch.zeros((self.cardinality, self.cardinality))
+        self.mass = torch.zeros((self.cardinality, self.cardinality), device=self.device)
         for i in range(self.cardinality):
             for j in range(i, self.cardinality):
                 e_i, e_j = self.es[i], self.es[j]
                 f_ij = lambda ls: self._eval(e_i, ls) * self._eval(e_j, ls)
-                integral = integrate(f_ij, self.domain[0], self.domain[1])
+                integral = integrate(f_ij, self.domain[0], self.domain[1], device=self.device)
                 self.mass[i, j] = self.mass[j, i] = integral
         return
 
@@ -144,15 +145,20 @@ class LagrangeP(Piecewise):
     
     """
 
-    def __init__(self, order: int, num_elems: int):
+    def __init__(
+        self, 
+        order: int, 
+        num_elems: int, 
+        device: torch.device = torch.device("cpu")
+    ):
 
         if order == 1:
             msg = ("When 'order=1', Lagrange1 should be used " 
                    + "instead of LagrangeP.")
             raise Exception(msg)
 
-        Piecewise.__init__(self, order, num_elems)
-        self.local = _LagrangeRef(self.order+1)
+        Piecewise.__init__(self, order, num_elems, device)
+        self.local = _LagrangeRef(self.order+1, device)
 
         # Define Jacobian of mapping from the domain of the LagrangeRef 
         # polynomial to an element
@@ -165,7 +171,7 @@ class LagrangeP(Piecewise):
         # elem_nodes[i] returns the nodes corresponding to element i
         self.elem_nodes = torch.tensor([
             range(n*self.order, (n+1)*self.order+1) 
-            for n in range(self.num_elems)])
+            for n in range(self.num_elems)], device=self.device)
 
         return
     
@@ -184,7 +190,7 @@ class LagrangeP(Piecewise):
     
     @property
     def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0])
+        return torch.tensor([-1.0, 1.0], device=self.device)
     
     @property 
     def mass_R(self) -> Tensor:
@@ -210,9 +216,9 @@ class LagrangeP(Piecewise):
         """
         n_loc = self.local.cardinality
         n_nodes = self.num_elems * (n_loc-1) + 1
-        nodes = torch.zeros(n_nodes)
+        nodes = torch.zeros(n_nodes, device=self.device)
         for i in range(self.num_elems):
-            inds_elem = torch.arange(n_loc) + i * (n_loc-1)
+            inds_elem = torch.arange(n_loc, device=self.device) + i * (n_loc-1)
             nodes[inds_elem] = self.grid[i] + self.elem_size * self.local.nodes    
         self.nodes = nodes
         return
@@ -221,9 +227,9 @@ class LagrangeP(Piecewise):
         """Computes the mass matrix and its Cholesky factor."""
         n_loc = self.local.cardinality
         mass_elem = self.local.mass * (0.5 * self.jac)
-        self.mass = torch.zeros((self.cardinality, self.cardinality))
+        self.mass = torch.zeros((self.cardinality, self.cardinality), device=self.device)
         for i in range(self.num_elems):
-            inds_elem = torch.arange(n_loc) + i * (n_loc-1)
+            inds_elem = torch.arange(n_loc, device=self.device) + i * (n_loc-1)
             self.mass[inds_elem[:, None], inds_elem[None, :]] += mass_elem
         self.mass_R = torch.linalg.cholesky(self.mass).T
         return
@@ -232,9 +238,9 @@ class LagrangeP(Piecewise):
         """Computes the integration operator."""
         n_loc = self.local.cardinality
         weights_elem = self.local.weights * (0.5 * self.jac)
-        self.int_W = torch.zeros(self.cardinality)
+        self.int_W = torch.zeros(self.cardinality, device=self.device)
         for i in range(self.num_elems):
-            inds_elem = torch.arange(n_loc) + i * (n_loc-1)
+            inds_elem = torch.arange(n_loc, device=self.device) + i * (n_loc-1)
             self.int_W[inds_elem] += weights_elem
         return
 
@@ -243,7 +249,7 @@ class LagrangeP(Piecewise):
         self._check_in_domain(ls)
         
         n_ls = ls.numel()
-        ps = torch.zeros((n_ls, self.cardinality))
+        ps = torch.zeros((n_ls, self.cardinality), device=self.device)
         
         left_inds = self.get_left_hand_inds(ls)
         ls_local = self.map_to_element(ls, left_inds)
@@ -253,7 +259,7 @@ class LagrangeP(Piecewise):
         sum_terms = self.local.omega / dls
         ps_loc = sum_terms / sum_terms.sum(1, keepdim=True)
 
-        ii = torch.arange(n_ls).repeat_interleave(self.local.cardinality)
+        ii = torch.arange(n_ls, device=self.device).repeat_interleave(self.local.cardinality)
         jj = self.elem_nodes[left_inds].flatten()
         ps[ii, jj] = ps_loc.flatten()
         return ps
@@ -263,7 +269,7 @@ class LagrangeP(Piecewise):
         self._check_in_domain(ls)
 
         n_ls = ls.numel()
-        dpdls = torch.zeros((n_ls, self.cardinality))
+        dpdls = torch.zeros((n_ls, self.cardinality), device=self.device)
         
         left_inds = self.get_left_hand_inds(ls)
         ls_local = self.map_to_element(ls, left_inds)
@@ -278,7 +284,7 @@ class LagrangeP(Piecewise):
         coefs_a = torch.sum(sum_terms_sq, dim=1, keepdim=True) * coefs_b.square()
 
         dpdls_loc = (coefs_a * sum_terms - coefs_b * sum_terms_sq) / self.jac
-        ii = torch.arange(n_ls).repeat_interleave(self.local.cardinality)
+        ii = torch.arange(n_ls, device=self.device).repeat_interleave(self.local.cardinality)
         jj = self.elem_nodes[left_inds].flatten()
         dpdls[ii, jj] = dpdls_loc.flatten()
         return dpdls

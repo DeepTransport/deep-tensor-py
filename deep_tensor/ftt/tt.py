@@ -52,7 +52,7 @@ class Grid():
         """
 
         sample = torch.vstack([
-            self.point_densities[k].sample((n,))
+            self.point_densities[k].sample((n,)).to(device=self.points[0].device)
             for k in range(self.dim)
         ]).T
 
@@ -85,30 +85,29 @@ class TT():
 
     """
 
-    def __init__(self, options: TTOptions | None = None):
-
+    def __init__(
+        self, 
+        options: TTOptions | None = None,
+        device: torch.device = torch.device("cpu")
+    ):
         if options is None:
             options = TTOptions()
-
         self.options = options
         self.num_eval = 0
-
         self.direction = Direction.FORWARD
         self.index_sets: Dict[int, Tensor] = {}
         self.cores: Dict[int, Tensor] = {}
-
         # AMEn
         self.res_l = {}
         self.res_w = {}
-        
+        self.device = device
         return
     
     @property
     def ranks(self) -> Tensor:
         """The ranks of the tensor cores (excluding rank 0 and rank d)."""
-        ranks = torch.tensor([self.cores[k].shape[2] 
-                              for k in range(self.dim-1)])
-        return ranks
+        ranks = [self.cores[k].shape[2] for k in range(self.dim-1)]
+        return torch.tensor(ranks, device=self.device)
     
     @staticmethod
     def compute_local_error(H_new: Tensor, H_old: Tensor) -> float:
@@ -140,7 +139,7 @@ class TT():
         self.dim = grid.dim
         self.indices = grid.indices 
         self.points = grid.points
-        self.errors = torch.zeros(self.dim)
+        self.errors = torch.zeros(self.dim, device=self.device)
         if self.cores != {}:
             self.round(max_rank=self.options.init_rank)
         return
@@ -156,12 +155,12 @@ class TT():
                 self.indices[k].numel(),
                 1 if k == self.dim-1 else self.options.init_rank
             )
-            self.cores[k] = torch.zeros(core_shape)
+            self.cores[k] = torch.zeros(core_shape, device=self.device)
             inds_sample = self.grid.sample_indices(self.options.init_rank)
             self.index_sets[k] = inds_sample[:, k:]
 
-        self.index_sets[-1] = torch.tensor([])
-        self.index_sets[self.dim] = torch.tensor([])
+        self.index_sets[-1] = torch.tensor([], device=self.device)
+        self.index_sets[self.dim] = torch.tensor([], device=self.device)
         return
     
     def initialise_res_l(self) -> None:
@@ -174,8 +173,8 @@ class TT():
             else:
                 self.res_l[k] = samples[:, :(k+1)]
 
-        self.res_l[-1] = torch.tensor([])
-        self.res_l[self.dim] = torch.tensor([])
+        self.res_l[-1] = torch.tensor([], device=self.device)
+        self.res_l[self.dim] = torch.tensor([], device=self.device)
         return
     
     def initialise_res_w(self) -> None:
@@ -186,23 +185,23 @@ class TT():
         if self.direction == Direction.FORWARD:
             
             shape_0 = (kick_rank, self.cores[0].shape[-1])
-            self.res_w[0] = torch.ones(shape_0)
+            self.res_w[0] = torch.ones(shape_0, device=self.device)
             
             for k in range(1, self.dim):
                 shape_k = (self.cores[k].shape[0], kick_rank)
-                self.res_w[k] = torch.ones(shape_k)
+                self.res_w[k] = torch.ones(shape_k, device=self.device)
 
         else:
 
             for k in range(self.dim-1):
                 shape_k = (kick_rank, self.cores[k].shape[-1])
-                self.res_w[k] = torch.ones(shape_k)
+                self.res_w[k] = torch.ones(shape_k, device=self.device)
 
             shape_d = (self.cores[self.dim-1].shape[0], kick_rank)
-            self.res_w[self.dim-1] = torch.ones(shape_d)
+            self.res_w[self.dim-1] = torch.ones(shape_d, device=self.device)
 
-        self.res_w[-1] = torch.tensor([[1.0]])
-        self.res_w[self.dim] = torch.tensor([[1.0]])
+        self.res_w[-1] = torch.tensor([[1.0]], device=self.device)
+        self.res_w[self.dim] = torch.tensor([[1.0]], device=self.device)
         return
 
     def initialise_amen(self) -> None:
@@ -284,7 +283,8 @@ class TT():
                 "(possibly the result of underflow). Consider rescaling "
                 "the target function. If you are confident the target "
                 "function is scaled appropriately, consider using a "
-                "refined grid or increased number of bridging densities."
+                "refined grid, larger core ranks, or an increased "
+                "number of bridging densities."
             )
             warnings.warn(msg)
         return 

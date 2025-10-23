@@ -9,18 +9,19 @@ from .fourier import Fourier
 
 class FourierCDF(SpectralCDF):
 
-    def __init__(self, poly: Fourier, **kwargs):
-        self._basis = Fourier(2*poly.order)
+    def __init__(self, poly: Fourier, error_tol: float):
+        order = 2 * poly.order
+        self._basis = Fourier(order, device=poly.device)
         self.nodes = self._basis.nodes
         self.node2basis = self._basis.node2basis
         self._m = self._basis._m 
         self._c = self._basis._c
-        SpectralCDF.__init__(self, **kwargs)
+        SpectralCDF.__init__(self, error_tol=error_tol, device=poly.device)
         return
     
     @property
     def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0])
+        return torch.tensor([-1.0, 1.0], device=self.device)
     
     @property
     def node2basis(self) -> Tensor:
@@ -54,7 +55,7 @@ class FourierCDF(SpectralCDF):
         return self.nodes.numel()
 
     def grid_measure(self, n: int) -> Tensor:
-        ls = torch.linspace(self.domain[0], self.domain[1], n)
+        ls = torch.linspace(*self.domain, n, device=self.device)
         return ls
 
     def eval_int_basis(self, ls: Tensor) -> Tensor:

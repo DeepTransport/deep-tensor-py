@@ -33,23 +33,28 @@ class Chebyshev2nd(Spectral):
         
     """
 
-    def __init__(self, order: int):
+    def __init__(
+        self, 
+        order: int, 
+        device: torch.device = torch.device("cpu")
+    ):
 
         n = order + 1
 
         self.order = order 
-        self.nodes = torch.cos(torch.pi * torch.arange(1, n+1) / (n+1)).sort().values
-        self.weights = torch.sin(torch.pi * torch.arange(1, n+1) / (n+1)).square() * 2 / (n+1)
+        self.device = device
+        self.nodes = torch.cos(torch.pi * torch.arange(1, n+1, device=self.device) / (n+1)).sort().values
+        self.weights = torch.sin(torch.pi * torch.arange(1, n+1, device=self.device) / (n+1)).square() * 2 / (n+1)
         
-        self.n = torch.arange(self.order+1)
+        self.n = torch.arange(self.order+1, device=self.device)
         self.norm = 1.0
 
-        self.__post_init__()
+        self.__post_init__(self.device)
         return
     
     @property 
     def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0])
+        return torch.tensor([-1.0, 1.0], device=self.device)
     
     @property 
     def weights(self) -> Tensor:
@@ -65,7 +70,7 @@ class Chebyshev2nd(Spectral):
         return False
     
     def sample_measure(self, n: int) -> Tensor:
-        ls = Beta(1.5, 1.5).sample((n,))
+        ls = Beta(1.5, 1.5).sample((n,)).to(self.device)
         return ls
     
     def eval_measure(self, ls: Tensor) -> Tensor:
@@ -109,7 +114,7 @@ class Chebyshev2nd(Spectral):
         # Deal with endpoints
         mask_lhs = (ls + 1.0).abs() < EPS
         mask_rhs = (ls - 1.0).abs() < EPS
-        ps[mask_lhs] = self.norm * (self.n+1) * torch.tensor(-1.0).pow(self.n)
+        ps[mask_lhs] = self.norm * (self.n+1) * torch.tensor(-1.0, device=self.device).pow(self.n)
         ps[mask_rhs] = self.norm * (self.n+1)
         check_finite(ps)
         return ps

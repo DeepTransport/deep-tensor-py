@@ -35,24 +35,30 @@ class Chebyshev1st(Spectral):
 
     """
 
-    def __init__(self, order: int):
+    def __init__(
+        self, 
+        order: int, 
+        device: torch.device = torch.device("cpu")
+    ):
 
         self.order = order
-        self.n = torch.arange(self.order+1)
-        self.nodes = torch.cos(torch.pi * (self.n+0.5) / (self.order+1)).sort()[0]
+        self.device = device
+        self.n = torch.arange(self.order+1, device=self.device)
+        nodes = torch.cos(torch.pi * (self.n+0.5) / (self.order+1))
+        self.nodes = nodes.sort().values
         self.weights = torch.ones_like(self.nodes) / (self.order+1)
 
         self.norm = torch.hstack((
-            torch.tensor([1.0]), 
-            torch.full((self.order,), 2.0**0.5)
+            torch.tensor([1.0], device=self.device), 
+            torch.full((self.order,), math.sqrt(2.0), device=self.device)
         ))
 
-        self.__post_init__()
+        self.__post_init__(self.device)
         return
     
     @property 
     def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0])
+        return torch.tensor([-1.0, 1.0], device=self.device)
     
     @property 
     def weights(self) -> Tensor:
@@ -77,7 +83,7 @@ class Chebyshev1st(Spectral):
         self._check_in_domain(ls)
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
-        return (ls / torch.pi) * ts.pow(-3.0/2.0)
+        return (ls / torch.pi) * ts ** -1.5
 
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
@@ -92,7 +98,7 @@ class Chebyshev1st(Spectral):
         return ls / ts
 
     def sample_measure(self, n: int) -> Tensor:
-        zs = torch.rand(n)
+        zs = torch.rand(n, device=self.device)
         samples = torch.sin(torch.pi * (zs - 0.5))
         return samples
     

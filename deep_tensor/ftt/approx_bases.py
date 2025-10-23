@@ -41,19 +41,17 @@ class ApproxBases():
         return self.bases[k]
     
     @staticmethod
-    def _check_indices_shape(inds: Tensor, xs: Tensor) -> None:
+    def _check_indices_shape(inds: range, xs: Tensor) -> None:
         """Confirms whether the length of a vector of indices is equal 
         to the dimension of a set of samples.
         """
-        if inds.numel() != xs.shape[1]:
+        if len(inds) != xs.shape[1]:
             msg = "Samples do not have the correct dimensions."
             raise Exception(msg)
         return
 
     def sample_measure(self, n: int) -> Tuple[Tensor, Tensor]:
-        """Generates a set of random variates from the local weighting 
-        function.
-        """ 
+        """Generates random samples from the weighting measure.""" 
         ls = torch.zeros((n, self.dim))
         neglogwls = torch.zeros(n)
         for k in range(self.dim):
@@ -64,7 +62,7 @@ class ApproxBases():
     def eval_measure_potential(
         self, 
         ls: Tensor, 
-        inds: Tensor | None = None
+        inds: range | None = None
     ) -> Tensor:
         """Computes the negative logarithm of the weighting function 
         associated with (a subset of) the basis functions (defined in 
@@ -72,7 +70,7 @@ class ApproxBases():
         """
         
         if inds is None:
-            inds = torch.arange(self.dim)
+            inds = range(self.dim)
         ApproxBases._check_indices_shape(inds, ls)
         
         neglogwls = torch.empty_like(ls)
@@ -85,7 +83,7 @@ class ApproxBases():
     def eval_measure_potential_grad(
         self, 
         ls: Tensor,
-        inds: Tensor | None = None
+        inds: range | None = None
     ) -> Tensor:
         """Computes the gradient of the negative logarithm of the 
         weighting functions of (a subset of) the basis functions for a 
@@ -93,7 +91,7 @@ class ApproxBases():
         """
 
         if inds is None:
-            inds = torch.arange(self.dim)
+            inds = range(self.dim)
         ApproxBases._check_indices_shape(inds, ls)
         
         negloggradwls = torch.empty_like(ls)

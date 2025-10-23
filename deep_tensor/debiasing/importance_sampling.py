@@ -97,7 +97,7 @@ def run_importance_sampling(
     n = log_weights.numel()
     
     if self_normalised:
-        log_norm = torch.tensor(0.0)
+        log_norm = torch.tensor(0.0, device=neglogfxs_irt.device)
     else:
         log_norm = log_weights.logsumexp(dim=0) - math.log(n)
         # log_weights = log_weights - log_norm

@@ -3,7 +3,7 @@ __version__ = "1.2.0"
 import torch
 torch.set_default_dtype(torch.float64)
 
-from .bridging_densities import SingleLayer, Tempering, SigmoidSmoothing
+from .bridging_densities import SigmoidSmoothing, SingleLayer, Tempering
 from .debiasing.importance_sampling import (
     ImportanceSamplingResult, 
     run_importance_sampling
@@ -14,13 +14,8 @@ from .debiasing.mcmc import (
     run_cirt_pcn,
     run_independence_sampler
 )
-from .debiasing.mcmc_new import pCNKernel, MCMC
-from .domains import (
-    AlgebraicMapping, 
-    BoundedDomain, 
-    LinearDomain, 
-    LogarithmicMapping
-)
+# from .debiasing.mcmc_new import pCNKernel, MCMC
+from .domains import BoundedDomain, LinearDomain
 from .ftt import ApproxBases, Direction, FTT, EFTT, EFTTOptions, TT, TTOptions
 from .irt import DIRT, DIRTMapping, DIRTOptions, SIRT
 from .polynomials import (
@@ -30,11 +25,9 @@ from .polynomials import (
     Chebyshev2nd,
     Chebyshev2ndTrigoCDF,
     Fourier,
-    Hermite,
     Lagrange1, 
     Lagrange1CDF,
     LagrangeP,
-    Laguerre, 
     Legendre,
     Piecewise,
     PiecewiseCDF,

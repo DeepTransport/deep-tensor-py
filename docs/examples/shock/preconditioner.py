@@ -3,7 +3,7 @@ from torch import Tensor
 
 import deep_tensor as dt
 
-from examples.shock.prior import GammaDist, GaussianDist
+from .prior import GammaDist, GaussianDist
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
@@ -14,8 +14,8 @@ class GammaNormalMapping(dt.Preconditioner):
         self, 
         reference: dt.Reference,
         bounds: Tensor, 
-        alpha: float, 
-        gamma: float, 
+        alpha: Tensor, 
+        gamma: Tensor, 
         ms: Tensor, 
         sds: Tensor, 
         dim: int

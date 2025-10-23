@@ -17,7 +17,5 @@ from .spectral.chebyshev_2nd_cdf import Chebyshev2ndCDF
 from .spectral.chebyshev_2nd_trigo_cdf import Chebyshev2ndTrigoCDF
 from .spectral.fourier import Fourier
 from .spectral.fourier_cdf import FourierCDF
-from .spectral.hermite import Hermite
-from .spectral.laguerre import Laguerre
 from .spectral.recurr import Recurr
 from .spectral.legendre import Legendre

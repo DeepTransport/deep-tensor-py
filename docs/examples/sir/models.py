@@ -13,17 +13,19 @@ class SIRModel():
         S0: float = 99.0,
         I0: float = 1.0,
         R0: float = 0.0,
-        t_eval: Tensor | None = None
+        t_eval: Tensor | None = None,
+        device: torch.device = torch.device("cpu")
     ):
 
         if t_eval is None:
-            t_eval = torch.tensor([0.0, 1.25, 2.5, 3.75, 5.0]) 
+            t_eval = torch.tensor([0.0, 1.25, 2.5, 3.75, 5.0], device=device)
         
         self.S0 = S0 
         self.I0 = I0 
         self.R0 = R0
-        self.y0 = torch.tensor([S0, I0, R0])
+        self.y0 = torch.tensor([S0, I0, R0], device=device)
         self.t_eval = t_eval
+        self.device = device
         return
     
     def _solve(self, params: Tensor) -> Tensor:

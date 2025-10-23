@@ -23,8 +23,6 @@ class SampleBasedMapping(GaussianMapping):
         If this is set to True, the diagonal of the sample covariance 
         matrix will be multiplied by a number slightly greater than 1. 
         This will ensure it is positive definite.
-    inflation:
-        TODO: write this.
 
     """
 
@@ -32,24 +30,14 @@ class SampleBasedMapping(GaussianMapping):
         self, 
         samples: Tensor, 
         reference: GaussianReference | None = None,
-        perturb_eigvals: bool = False,
-        inflation: Tensor | None = None
+        perturb_eigvals: bool = False
     ):
         
-        mean = torch.mean(samples, dim=0)
-        cov = torch.cov(samples.T)
+        mean = samples.mean(dim=0)
+        cov = samples.T.cov()
 
         if perturb_eigvals:
             cov += 1e-8 * cov.diag().diag()
-
-        if inflation is not None:
-            if not isinstance(inflation, Tensor):
-                inflation = torch.tensor(inflation)
-            if inflation.numel() == 1:
-                cov = inflation.square() * cov
-            else:
-                inflation = torch.diag(inflation)
-                cov = inflation @ cov @ inflation
 
         GaussianMapping.__init__(self, mean, cov, reference)
         return

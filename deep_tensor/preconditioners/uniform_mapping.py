@@ -68,18 +68,18 @@ class UniformMapping(Preconditioner):
     def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:
         n_us, d_us = us.shape
         if subset == "first":
-            neglogfxs = self.dxs[:d_us].log().sum().item()
+            neglogfx = self.dxs[:d_us].log().sum().item()
         elif subset == "last":
-            neglogfxs = self.dxs[-d_us:].log().sum().item()
-        neglogfxs = torch.full((n_us,), neglogfxs)
+            neglogfx = self.dxs[-d_us:].log().sum().item()
+        neglogfxs = torch.full((n_us,), neglogfx, device=us.device)
         return self.reference.eval_potential(us)[0] - neglogfxs
     
     def neglogdet_Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
         n_xs, d_xs = xs.shape
         if subset == "first":
-            neglogfxs = self.dxs[:d_xs].log().sum().item()
+            neglogfx = self.dxs[:d_xs].log().sum().item()
         elif subset == "last":
-            neglogfxs = self.dxs[-d_xs:].log().sum().item()
-        neglogfxs = torch.full((n_xs,), neglogfxs)
+            neglogfx = self.dxs[-d_xs:].log().sum().item()
+        neglogfxs = torch.full((n_xs,), neglogfx, device=xs.device)
         us = self.Q_inv(xs, subset)
         return neglogfxs - self.reference.eval_potential(us)[0]
