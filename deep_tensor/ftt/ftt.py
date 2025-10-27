@@ -96,7 +96,7 @@ class FTT():
         return self.eval(ls, direction)
 
     @staticmethod
-    def check_sample_dim(xs: Tensor, dim: int, strict: bool = False) -> None:
+    def _check_sample_dim(xs: Tensor, dim: int, strict: bool = False) -> None:
         """Checks that a set of samples is two-dimensional and that the 
         dimension does not exceed the expected dimension.
         """
@@ -119,6 +119,15 @@ class FTT():
             )
             raise Exception(msg)
 
+        return
+    
+    def _check_direction(self, xs: Tensor, direction: Direction | None) -> None:
+        if xs.shape[1] != self.dim and direction is None:
+            msg = (
+                "A marginal function is being evaluated, but no "
+                "direction has been provided."
+            )
+            raise Exception(msg)
         return
     
     @staticmethod
@@ -148,25 +157,15 @@ class FTT():
         return FTT.eval_core_deriv(basis, A, ls).swapdims(1, 2)
 
     def print_info_header(self) -> None:
-
-        info_headers = [
-            "Iter", 
-            "Func Evals",
-            "Max Rank", 
-            "Max Core Error", 
-            "Mean Core Error"
-        ]
+        info_headers = ["Iter", "Func Evals", "Max Rank", 
+                        "Max Core Error", "Mean Core Error"]
         if self.l2_error_samples:
             info_headers += ["L2 Error"]
-
         als_info(" | ".join(info_headers))
         return
 
     def print_info(self, cross_iter: int) -> None:
-        """Prints some diagnostic information about the current cross 
-        iteration.
-        """
-
+        """Prints diagnostics for the current cross iteration."""
         diagnostics = [
             f"{cross_iter+1:=4}", 
             f"{self.num_eval:=10}",
@@ -176,7 +175,6 @@ class FTT():
         ]
         if self.l2_error_samples:
             diagnostics += [f"{self.l2_error:=8.2e}"]
-
         als_info(" | ".join(diagnostics))
         return
 
@@ -238,20 +236,11 @@ class FTT():
             tensor cores evaluated at the corresponding sample in `ls`.
             
         """
-        
-        self.check_sample_dim(ls, self.dim)
-        
-        # TODO: tidy this up.
-        if ls.shape[1] != self.dim and direction is None:
-            msg = "Need to give direction if marginal is being evaluated."
-            raise Exception(msg)
-
+        self._check_sample_dim(ls, self.dim)
+        self._check_direction(ls, direction)
         if direction in (Direction.FORWARD, None):
-            Gs_prod = self.eval_forward(ls)
-        else: 
-            Gs_prod = self.eval_backward(ls)
-        
-        return Gs_prod
+            return self.eval_forward(ls) 
+        return self.eval_backward(ls)
     
     def initialise_l2_error_samples(self):
         sample_size = (self.num_error_samples, self.dim)
@@ -535,10 +524,15 @@ class EFTT(FTT):
             # are exactly low rank.
             if linalg.cond(B_int) > 1.0 / EPS:
                 break
-            
+
+            # Note: Strossner et al. just take the maximum residual, 
+            # but I think the below error is easier to work with 
+            # because it is invariant to rescalings of the target 
+            # function
             cross_vals = B_cols @ linalg.solve(B_int, B_rows)
             residuals = torch.diag(func_vals - cross_vals).abs()
-            if residuals.max() < self.options.tol_aca:
+            error = residuals.max() / func_vals.diag().abs().max()
+            if error < self.options.tol_aca:
                 break
 
             # Update index set
