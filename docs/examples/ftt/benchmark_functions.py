@@ -54,12 +54,13 @@ def exponential(ls: Tensor) -> Tensor:
 
 
 def griewank(ls: Tensor) -> Tensor:
-    # Mistake in Strosser et al.: missing sqrt().
+    # Mistakes in Strosser et al.: missing sqrt(), and division by i 
+    # moved outside cosinse function
     ls = rescale(ls, -600.0, 600.0)
     is_ = torch.arange(1, 8)
     fls = (
-        torch.sum((ls ** 2) / 4000.0, dim=1) 
-        - torch.prod(torch.cos(ls / is_), dim=1)
+        torch.sum((ls ** 2), dim=1) / 4000.0
+        - torch.prod(torch.cos(ls) / is_, dim=1)
         + 1
     )
     return fls
