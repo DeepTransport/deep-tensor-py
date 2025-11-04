@@ -9,6 +9,8 @@ from benchmark_functions import *
 # default max rank is 20 in constructor.m for FTT class in Strossner et al.
 # number of collocation points in each dimension is 100 (see paper)
 
+torch.manual_seed(0)
+
 
 def geo_mean(x):
     if not isinstance(x, Tensor):
@@ -30,9 +32,9 @@ divider = r"\hline"  # "-+-".join(["-"*len(header) for header in headers])
 print(" & ".join(headers) + r" \\")
 print(divider)
 
-tt_options = dt.TTOptions(max_als=10, tol_max_core_error=0.1, init_rank=1, max_rank=20, verbose=0)
+tt_options = dt.TTOptions(max_als=4, init_rank=10, max_rank=50, kick_rank=10, verbose=0)#, tol_svd=1e-12)
 
-ftt_names = ["EFTT (ACA)", "EFTT (rand)", "FTT"]
+ftt_names = ["EFTT (ACA)", "EFTT (POD)", "FTT"]
 
 statistics = {
     func_name: {
@@ -68,7 +70,7 @@ for func_name in FUNCTIONS:
             if ftt_name == "EFTT (ACA)":
                 options = dt.EFTTOptions(fibre_method="aca")
                 ftt = dt.EFTT(bases, tt, options)
-            elif ftt_name == "EFTT (rand)":
+            elif ftt_name == "EFTT (POD)":
                 options = dt.EFTTOptions(fibre_method="random")
                 ftt = dt.EFTT(bases, tt, options)
             elif ftt_name == "FTT":
