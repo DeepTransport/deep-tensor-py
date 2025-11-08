@@ -4,6 +4,7 @@ import numpy as np
 import pyvista as pv
 from scipy import sparse
 from scipy.special import gamma
+from sksparse.cholmod import cholesky
 import tqdm
 
 
@@ -38,9 +39,27 @@ def timer(func):
 
 class MaternField3D():
 
-    def __init__(self, mesh: pv.StructuredGrid, folder: str=""):
+    def __init__(
+        self, 
+        mesh: pv.StructuredGrid, 
+        ls: float | np.ndarray,
+        bc_type: BC = BC.ROBIN, 
+        lam: float | None = None, 
+        folder: str=""
+    ):
+        
         self.dim = 3
         self.nu = 2 - self.dim / 2
+        if isinstance(ls, float) or isinstance(ls, int):
+            ls = np.array([ls, ls, ls])
+        self.ls = ls
+        self.ls_prod = self.ls[0] * self.ls[1] * self.ls[2]
+        self.bc_type = bc_type
+        if lam is None:
+            # TODO: see what FENiCS does.
+            lam = 1.0e+3 * self.ls_prod ** (1.0/3.0)
+        self.lam = lam
+
         self.mesh = mesh.triangulate()
         self.folder = folder
         self.get_mesh_data()
@@ -155,6 +174,16 @@ class MaternField3D():
         self.Ky = sparse.coo_matrix((K_v[1], (K_i, K_j)), shape=shape)
         self.Kz = sparse.coo_matrix((K_v[2], (K_i, K_j)), shape=shape)
         self.N = sparse.coo_matrix((N_v, (N_i, N_j)), shape=shape)
+
+        K = (self.ls[0] ** 2 * self.Kx 
+             + self.ls[1] ** 2 * self.Ky 
+             + self.ls[2] ** 2 * self.Kz)
+        
+        self.A = self.M + K
+        if self.bc_type == BC.ROBIN:
+            self.A += (self.ls_prod / self.lam) * self.N 
+
+        self.chol = cholesky(self.A)
         
         mass_lumps = np.sqrt(self.M.sum(axis=1)).flatten()
         self.L = sparse.spdiags(mass_lumps, diags=0, m=self.num_points, n=self.num_points)
@@ -163,24 +192,21 @@ class MaternField3D():
         return
 
     @timer
-    def generate_field(self, W, sigma, lx, ly, lz, bcs=BC.ROBIN, lam=None):
+    def generate_field(self, W, sigma):
         """Generates a Matern field."""
 
         alpha = sigma**2 * (2**self.dim * np.pi**(self.dim/2) * \
                             gamma(self.nu + self.dim/2)) / gamma(self.nu)
 
-        K = lx**2 * self.Kx + ly**2 * self.Ky + lz**2 * self.Kz
-        
-        if bcs == BC.ROBIN:
-            if lam is None:
-                lam = 1e+3 * (lx * ly * lz) ** (1.0/3.0)
-            A = self.M + K + (lx * ly * lz / lam) * self.N 
+        b = (alpha * self.ls_prod) ** 0.5 * self.L @ W
 
-        elif bcs == BC.NEUMANN:
-            A = self.M + K
+        # x1 = sparse.linalg.spsolve(self.A, b)
 
-        b = (alpha * lx * ly * lz) ** 0.5 * self.L @ W
-        return sparse.linalg.spsolve(A, b) 
+        x = self.chol.solve_A(b)
+
+        # y = sparse.linalg.spsolve_triangular(self.chol, b, lower=True)
+        # x = sparse.linalg.spsolve_triangular(self.chol.T, y, lower=False)
+        return x
     
     def plot(self, values, **kwargs):
         p = pv.Plotter()
