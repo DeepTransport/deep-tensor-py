@@ -34,6 +34,8 @@ def parse_l2_points(fname: Path | str) -> Dict[int, Tensor]:
     return ls_l2
 
 
+num_runs = 10
+
 ls_l2 = parse_l2_points(POINTS_PATH)
 
 headers = [
@@ -51,7 +53,7 @@ divider = r"\hline"  # "-+-".join(["-"*len(header) for header in headers])
 print(" & ".join(headers) + r" \\")
 print(divider)
 
-tt_options = dt.TTOptions(max_als=4, init_rank=10, max_rank=50, kick_rank=10, verbose=0)#, tol_svd=1e-12)
+tt_options = dt.TTOptions(max_als=10, init_rank=2, max_rank=50, kick_rank=5, verbose=0, tol_svd=1e-10)
 
 ftt_names = ["EFTT (ACA)", "EFTT (POD)", "FTT"]
 
@@ -67,8 +69,6 @@ statistics = {
     } for func_name in FUNCTIONS
 }
 
-num_runs = 10
-
 for func_name in FUNCTIONS:
 
     func, dim = FUNCTIONS[func_name]
@@ -76,8 +76,6 @@ for func_name in FUNCTIONS:
     basis = dt.Chebyshev1st(order=99)
     bases = dt.ApproxBases(basis, dim)
 
-    # Uniform samples...
-    #ls_l2 = 2.0 * torch.rand((10_000, dim)) - 1.0
     ys_l2 = func(ls_l2[dim])
 
     for ftt_name in ftt_names:
