@@ -131,10 +131,11 @@ def schwefel(ls: Tensor) -> Tensor:
 def borehole(ls: Tensor) -> Tensor:
     ls = rescale(ls, BOREHOLE_LBS, BOREHOLE_UBS)
     rw, r, Tu, Hu, Tl, Hl, L, Kw = ls.T
-    d1 = torch.log(r / rw)
-    d2 = (2.0 * L * Tu) / (torch.log(r / rw) * rw**2 * Kw)
-    d3 = Tu / Tl
-    fls = 2*torch.pi*Tu*(Hu-Hl) / (d1 * (1.0 + d2 + d3))
+    frac1 = 2 * torch.pi * Tu * (Hu-Hl)
+    frac2a = 2*L*Tu / (torch.log(r/rw)*rw**2*Kw)
+    frac2b = Tu / Tl
+    frac2 = torch.log(r/rw) * (1 + frac2a + frac2b)
+    fls = frac1 / frac2
     return fls
 
 
