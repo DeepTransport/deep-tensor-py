@@ -50,9 +50,6 @@ class PoissonSolver(object):
         self.u = dl.TrialFunction(self.V)
         self.v = dl.TestFunction(self.V)
 
-        # TODO: need to define u0 (i.e., the values on the Dirichlet 
-        # boundaries) to align with @CuiEtAl2025.
-        # TODO: check degree argument.
         u0_left = dl.Expression("1.0 + 0.5*x[1]", degree=1)
         u0_right = dl.Expression("-sin(2.0*pi*x[1]) - 1.0", degree=1)
         self.bc_left = dl.DirichletBC(V, u0_left, boundary_left)
@@ -88,3 +85,74 @@ class PoissonSolver(object):
     
     def observe(self, us: Tensor) -> Tensor:
         return self.B @ us
+    
+    def eval_jacobian(self, log_ks: Tensor):
+
+        num_nodes = log_ks.numel()
+
+        log_ks = self.vec2func(log_ks)
+        varf = dl.exp(log_ks) * dl.inner(dl.grad(self.u), dl.grad(self.v)) * dl.dx  # type: ignore
+
+        # Compute mask containing nodes on Dirichlet boundary
+        coords = self.V.tabulate_dof_coordinates()
+        dirichlet_nodes = np.bitwise_or(abs(coords[:, 0]) < 1e-8, abs(coords[:, 0] - 1.0) < 1e-8)
+
+        # Form A matrix and forcing term
+        A = dl.assemble(varf)
+        f = dl.assemble(self.rhs)
+        self.bc_left.apply(A, f)
+        self.bc_right.apply(A, f)
+
+        # Define LU solver for A matrix (to be re-used later)
+        LU_solver = dl.LUSolver(A)
+
+        # Solve incremental forward problem
+        u_inc = dl.Vector()
+        A.init_vector(u_inc, 0)
+        LU_solver.solve(u_inc, f)
+
+        # Define basis functions for derivative of k
+        z = dl.interpolate(dl.Constant(0.0), self.V)
+        
+        col = dl.Vector()
+        A.init_vector(col, 0)
+
+        dAdku_inc = torch.zeros((num_nodes, num_nodes))
+        
+        for i in range(num_nodes):
+            
+            # Create a function that is equal to 1 at the current node,
+            # and 0 elsewhere
+            z_c = z.copy(deepcopy=True)  # type: ignore
+            z_c.vector()[i] = 1.0
+
+            # Assemble variational form for current node
+            varf_grad = dl.assemble(
+                z_c * dl.exp(log_ks) * dl.inner(dl.grad(self.u), dl.grad(self.v)) * dl.dx  # type: ignore
+            )
+
+            # Take product of assembled matrix and incremental solution 
+            # to obtain column i of the derivative
+            varf_grad.mult(u_inc, col)
+            dAdku_inc[:, i] = torch.tensor(col[:])
+
+        # Deal with Dirichlet nodes
+        dAdku_inc[dirichlet_nodes, :] = 0.0
+
+        prod = torch.zeros((num_nodes, num_nodes))
+
+        LU_solver = dl.LUSolver(A)
+
+        u = dl.Vector()
+        A.init_vector(u, 0)
+
+        rhs = dl.Vector()
+        A.init_vector(rhs, 0)
+        
+        for i in range(num_nodes):
+            rhs.set_local(dAdku_inc[:, i].numpy())
+            LU_solver.solve(u, rhs)
+            prod[:, i] = torch.tensor(u[:])
+
+        jac = -self.B @ prod
+        return jac

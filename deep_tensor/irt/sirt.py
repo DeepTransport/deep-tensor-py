@@ -117,7 +117,7 @@ class SIRT():
     def eval_measure_potential(
         self, 
         xs: Tensor, 
-        inds: Tensor | None = None
+        inds: range | None = None
     ) -> Tuple[Tensor, Tensor]:
         """Computes the target potential function and its gradient for 
         a set of samples from the approximation domain.
@@ -448,7 +448,7 @@ class SIRT():
 
         ps = Gs_prod.flatten().square() + self.coef_defensive
 
-        indices = d_xs + range(d_zs)
+        indices = range(d_xs, d_xs+d_zs)
         neglogwls_y = self.bases.eval_measure_potential(ls_y, indices)
         neglogfls_y = ps_marg.log() - ps.log() + neglogwls_y
 
