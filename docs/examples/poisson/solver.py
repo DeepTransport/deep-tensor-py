@@ -46,8 +46,8 @@ def build_channel(xs: Tensor) -> Tensor:
     """
     x, y = xs.T
     in_channel = torch.bitwise_and(
-        y >= 0.07 * torch.sin(8.0*x) - 0.2*x + 0.48,
-        y <= 0.07 * torch.sin(8.0*x) - 0.2*x + 0.65
+        y >= 0.07 * torch.sin(8.0*x) - 0.2*x + 0.45,
+        y <= 0.07 * torch.sin(8.0*x) - 0.2*x + 0.60
     )
     k = 0.01 + 100.0 * in_channel
     return k.log()
@@ -435,45 +435,37 @@ if __name__ == "__main__":
 
         from solver_contaminant import ContaminantSolver
 
-        log_k = prior.transform(prior.sample(n=1).flatten())
-        # log_k = build_channel(coords)
+        log_ks = prior.transform(prior.sample(n=10000))
+        log_ks[0] = build_channel(coords)
 
-        u_ = model.solve(log_k)
+        t0 = time.time()
+        us_ = torch.vstack([model.solve(log_k) for log_k in log_ks])
+        t1 = time.time()
+        print(t1-t0)
 
         P = compute_reordering_matrix(coords)
-
         xs = (P @ coords)[:, 0][:nx+1]
         ys = (P @ coords)[:, 1][::ny+1]
 
         contaminant_solver = ContaminantSolver(xs, ys)
 
-        t0 = time.time()
-        k = P @ log_k.exp()
-        u = P @ u_
-        k = k.reshape(ny+1, nx+1)
-        u = u.reshape(ny+1, nx+1)
+        ks = log_ks.exp() @ P.T
+        us = us_ @ P.T
+        #k = k.reshape(ny+1, nx+1)
+        #u = u.reshape(ny+1, nx+1)
 
-        t1 = time.time()
-        print(t1-t0)
-
-        t_break = contaminant_solver.solve(k, u) # TODO: probably missing a transpose for both k and u (can check by verifying what the boundary conditions look like on u).
+        t_breaks = contaminant_solver.solve(ks, us)
+        print(t_breaks[1:].min())
         t2 = time.time()
         print(t2-t1)
-        print(f"Breakthrough time: {t_break:.4f} s.")
-
-        ts = torch.linspace(0.0, 6.3, 100) # TEMP
-        xs_ = contaminant_solver.solve_ts(k, u, ts)
+        print(f"Breakthrough time: {t_breaks[0]:.4f} s.")
 
         # plt.quiver(xs, ys, -kdudx[:, :, 0], -kdudx[:, :, 1])
 
-        flux = -dl.project(dl.exp(vec2func(log_k, model.Vh)) * dl.grad(vec2func(u_, model.Vh)))  # type: ignore
-
-        dl.plot(flux)
-        plt.scatter([0], [0.5])
-        plt.plot(*xs_.T)
-        plt.show()
-
-        # fig, ax = plt.subplots(figsize=(6, 6)) 
-        # plot_dl_function(fig, ax, u)
-        # ax.plot(*xs.T)
-        # plt.show()
+        for i in range(us_.shape[0]):
+            path = contaminant_solver.solve_path(ks[i], us[i])
+            flux = -dl.project(dl.exp(vec2func(log_ks[i], model.Vh)) * dl.grad(vec2func(us_[i], model.Vh)))  # type: ignore
+            dl.plot(flux)
+            plt.scatter([0], [0.5])
+            plt.plot(*path.T)
+            plt.show()
