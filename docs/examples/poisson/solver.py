@@ -436,77 +436,39 @@ if __name__ == "__main__":
         from solver_contaminant import ContaminantSolver
 
         log_k = prior.transform(prior.sample(n=1).flatten())
-        log_k = prior.transform(prior.sample(n=1).flatten())
-        log_k = prior.transform(prior.sample(n=1).flatten())
         # log_k = build_channel(coords)
 
-        t0 = time.time()
-
-        u = model.solve(log_k)
-        u = vec2func(u, model.Vh)
-
-        # log_k = vec2func(log_k, model.Vh)
-        # print(torch.exp(torch.from_numpy(log_k.vector()[:])).min())
-        # k = dl.project(dl.exp(log_k))
-        # print(torch.from_numpy(k.vector()[:]).min())
-        # k = log_k.exp()
-        kdudx = dl.project(dl.exp(vec2func(log_k, model.Vh)) * dl.grad(u)) # type: ignore
-
-        print("done..")
-        # fig, ax = plt.subplots(figsize=(6, 6)) 
-        # plot_dl_function(fig, ax, vec2func(log_k, model.Vh))
-        # plt.show()
-
-        # fig, ax = plt.subplots(figsize=(6, 6)) 
-        # plot_dl_function(fig, ax, u)
-        # plt.show()
-
-        # dl.plot(kdudx)
-        # plt.show()
-
-        # print(grad_u(dl.Point(0.0, 0.0)))
+        u_ = model.solve(log_k)
 
         P = compute_reordering_matrix(coords)
 
         xs = (P @ coords)[:, 0][:nx+1]
         ys = (P @ coords)[:, 1][::ny+1]
 
-        # print(min(k.vector()[:]))
-
-        # k = P @ log_k.exp()
-        kdudx = P @ torch.from_numpy(kdudx.vector()[:]).reshape(-1, 2)
-
-        # kdudx[:, 0] = -1.0
-        # kdudx[:, 1] = -0.2
-
-        kdudx = kdudx.reshape(nx+1, ny+1, -1)
-
-        # plt.pcolormesh(grad_u[:, 1].reshape(nx+1, ny+1))
-        # plt.show()
-        # kdudx[:, 0] = -1.0
-        # kdudx[:, 1] = -0.2
-
-        plt.quiver(xs, ys, -kdudx[:, :, 0], -kdudx[:, :, 1])
-        plt.scatter([0], [0.5])
-        plt.show()
-
-
-        # print(k.min())
-
         contaminant_solver = ContaminantSolver(xs, ys)
+
+        t0 = time.time()
+        k = P @ log_k.exp()
+        u = P @ u_
+        k = k.reshape(ny+1, nx+1)
+        u = u.reshape(ny+1, nx+1)
 
         t1 = time.time()
         print(t1-t0)
 
-        t_break = contaminant_solver.solve(kdudx.swapdims(0, 1))
+        t_break = contaminant_solver.solve(k, u) # TODO: probably missing a transpose for both k and u (can check by verifying what the boundary conditions look like on u).
         t2 = time.time()
         print(t2-t1)
         print(f"Breakthrough time: {t_break:.4f} s.")
 
-        ts = torch.linspace(0.0, t_break, 100)
-        xs_ = contaminant_solver.solve_ts(kdudx.swapdims(0, 1), ts)
+        ts = torch.linspace(0.0, 6.3, 100) # TEMP
+        xs_ = contaminant_solver.solve_ts(k, u, ts)
 
-        plt.quiver(xs, ys, -kdudx[:, :, 0], -kdudx[:, :, 1])
+        # plt.quiver(xs, ys, -kdudx[:, :, 0], -kdudx[:, :, 1])
+
+        flux = -dl.project(dl.exp(vec2func(log_k, model.Vh)) * dl.grad(vec2func(u_, model.Vh)))  # type: ignore
+
+        dl.plot(flux)
         plt.scatter([0], [0.5])
         plt.plot(*xs_.T)
         plt.show()
