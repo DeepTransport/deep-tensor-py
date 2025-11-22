@@ -64,7 +64,7 @@ def rare_event_func(xs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 # Define rare event threshold
 I_max = 88.0
 
-domain = dt.BoundedDomain(bounds=torch.tensor([-3.0, 3.0]))
+domain = dt.BoundedDomain(bounds=[-3.0, 3.0])
 reference = dt.GaussianReference(domain)
 bounds = torch.tensor([[0.0, 2.0]]).tile((dim, 1))
 preconditioner = dt.UniformMapping(bounds=bounds, reference=reference)
@@ -103,16 +103,16 @@ denominator = dt.DIRT(
     bridge
 )
 
-n_samples = 10_000
+num_samples = 10_000
 
-rs = numerator.reference.random(dim, n_samples)
+rs = numerator.reference.random(num_samples, dim)
 xs, neglogfxs_dirt = numerator.eval_irt(rs)
 neglogfxs_exact = rare_event(xs)
 
 Q_is = dt.run_importance_sampling(neglogfxs_dirt, neglogfxs_exact)
 Q_hat = Q_is.log_weights.exp().mean()
 
-rs = denominator.reference.random(dim, n_samples)
+rs = denominator.reference.random(num_samples, dim)
 xs, neglogfxs_dirt = denominator.eval_irt(rs)
 neglogfxs_exact = posterior(xs)
 
