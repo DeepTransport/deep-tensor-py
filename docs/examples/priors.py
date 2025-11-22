@@ -10,7 +10,10 @@ def compute_distance_matrix(X: Tensor, Y: Tensor) -> Tensor:
 
 
 class Kernel(abc.ABC):
-    pass 
+    
+    @abc.abstractmethod
+    def __call__(self, X: Tensor, Y: Tensor) -> Tensor:
+        pass
 
 
 class SquaredExponential(Kernel):
@@ -24,7 +27,7 @@ class SquaredExponential(Kernel):
         return
 
     def __call__(self, X: Tensor, Y: Tensor) -> Tensor:
-        """Evaluates the covariance kernel at a given set of points."""
+        """Evaluates the covariance kernel at a set of points."""
         ds = compute_distance_matrix(X, Y)
         cov = self.std ** 2 * torch.exp(-ds/(2.0*self.lengthscale**2))
         return cov + 1e-8 * torch.eye(cov.shape[0])
@@ -32,11 +35,38 @@ class SquaredExponential(Kernel):
 
 class Prior(abc.ABC):
 
+    @property 
+    def mu(self) -> float | Tensor:
+        return self._mu
+    
+    @mu.setter 
+    def mu(self, val: float | Tensor) -> None:
+        self._mu = val 
+        return
+    
+    @property 
+    def coef2node(self) -> Tensor:
+        return self._coef2node
+    
+    @coef2node.setter 
+    def coef2node(self, val: Tensor) -> None:
+        self._coef2node = val 
+        return
+    
+    @property 
+    def dim(self) -> int:
+        return self._dim
+    
+    @dim.setter 
+    def dim(self, val: int) -> None:
+        self._dim = val 
+        return
+
     def transform(self, coefs: Tensor) -> Tensor:
         """Transforms a set of coefficient values to generate a 
         vector from the prior.
         """
-        return self.mu + self.coef2node @ coefs
+        return self.mu + coefs @ self.coef2node.T
     
     def sample(self, n: int):
         """Returns a set of white noise samples."""
@@ -44,6 +74,19 @@ class Prior(abc.ABC):
 
 
 class GaussianRandomField(Prior):
+    """A Gaussian random field with an arbitrary covariance kernel, in 
+    arbitrary dimensions.
+        
+    Parameters
+    ----------
+    xs:
+        A set of points at which the prior should be evaluated.
+    mu: 
+        Mean of field.
+    kernel:
+        The covariance kernel.
+    
+    """
 
     def __init__(
         self,
@@ -52,45 +95,42 @@ class GaussianRandomField(Prior):
         kernel: Kernel,
         num_kl: int | None = None
     ):
-        """A two-dimensional process convolution prior.
-        
-        Parameters
-        ----------
-        xs:
-            A set of points at which the prior should be evaluated.
-        mu: 
-            Mean of field.
-        kernel:
-            The covariance kernel.
-        
-        """
-        if num_kl is None:
-            num_kl = xs.shape[0]
+        self.kl = num_kl is not None
         self.mu = mu
         self.xs = xs
-        self.dim = num_kl
+        self.dim = num_kl if self.kl else xs.shape[0]  # type: ignore
         self.kernel = kernel
         self.coef2node = self._build_coef2node()
         return
     
-    def _build_coef2node(self):
+    def _build_coef2node(self) -> Tensor:
         """Builds a matrix which, given the coefficients of the white 
         noise, returns the values of the field at each value of xs.
         """
         cov = self.kernel(self.xs, self.xs)
+        if not self.kl:
+            return torch.linalg.cholesky(cov)
         eigvals, eigvecs = torch.linalg.eigh(cov)
         inds = torch.argsort(eigvals, descending=True)[:self.dim]
         coef2node = eigvecs[:, inds] * torch.sqrt(eigvals[inds])
         return coef2node
-    
-    def transform(self, coefs: Tensor) -> Tensor:
-        """Transforms a set of coefficient values to generate a 
-        vector from the prior.
-        """
-        return self.mu + self.coef2node @ coefs
 
 
 class ProcessConvolutionPrior(Prior):
+    """A two-dimensional process convolution prior.
+        
+    Parameters
+    ----------
+    xs:
+        A set of points at which the prior should be evaluated.
+    ss:
+        The centres of the kernel functions.
+    mu: 
+        The mean.
+    r:
+        The radius of each kernel function.
+    
+    """
 
     def __init__(
         self,
@@ -99,20 +139,6 @@ class ProcessConvolutionPrior(Prior):
         mu: float = 0.0,
         r: float = 0.1
     ):
-        """A two-dimensional process convolution prior.
-        
-        Parameters
-        ----------
-        xs:
-            A set of points at which the prior should be evaluated.
-        ss:
-            The centres of the kernel functions.
-        mu: 
-            The mean.
-        r:
-            The radius of each kernel function.
-        
-        """
         self.xs = xs
         self.ss = ss
         self.mu = mu
@@ -127,12 +153,6 @@ class ProcessConvolutionPrior(Prior):
         """
         xxs = self.xs[:, None, :]
         sss = self.ss[None, :, :]
-        d_sq = torch.sum((xxs-sss).square(), axis=2)
+        d_sq = torch.sum((xxs-sss)**2, dim=2)
         coef2node = torch.exp(-(1.0 / (2.0 * self.r)) * d_sq)
         return coef2node
-    
-    def transform(self, coefs: Tensor) -> Tensor:
-        """Transforms a set of coefficient values to generate a 
-        vector from the prior.
-        """
-        return self.mu + self.coef2node @ coefs
