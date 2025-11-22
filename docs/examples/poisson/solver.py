@@ -147,7 +147,7 @@ class PoissonSolver(object):
     def observe(self, us: Tensor) -> Tensor:
         return self.B @ us
     
-    def eval_jacobian(self, log_k: Tensor):
+    def eval_jacobian(self, log_k: Tensor) -> Tensor:
         """Evaluates the Jacobian of the parameter-to-observable 
         mapping for a given value of the unknown coefficient.
         """
@@ -223,6 +223,8 @@ class PoissonSolverROM():
         
         self.Vh = self.model_full.Vh
         self.dirichlet_mask = self.model_full.dirichlet_mask
+        self.num_obs = self.model_full.num_obs
+        self.B = self.model_full.B
 
         self._build_rom_matrices()
         return
@@ -266,13 +268,13 @@ class PoissonSolverROM():
     def reduced_to_full(self, u_r: Tensor) -> Tensor:
         return self.V @ u_r
 
-    def solve(self, log_k: Tensor) -> Tensor:
+    def solve_full(self, log_k: Tensor) -> Tensor:
         """Computes the pressure field associated with a given 
         log-diffusivity field using the full model.
         """
         return self.model_full.solve(log_k)
 
-    def solve_rom(self, log_k: Tensor) -> Tensor:
+    def solve(self, log_k: Tensor) -> Tensor:
         """Computes the pressure field associated with a given 
         log-diffusivity field using the reduced-order model.
         """
@@ -280,6 +282,25 @@ class PoissonSolverROM():
         u_r = torch.linalg.solve(A_r, self.f_r)
         u = self.reduced_to_full(u_r)
         return u
+    
+    def observe(self, us: Tensor) -> Tensor:
+        return self.model_full.observe(us)
+    
+    def eval_jacobian(self, log_k: Tensor) -> Tensor:
+
+        # Compute (reduced) A matrix
+        A_r = torch.einsum("ijk, k", self.A_rs, log_k.exp()) + self.A_r_bcs
+
+        # Solve (reduced) incremental forward problem
+        u_inc = torch.linalg.solve(A_r, self.f_r)
+
+        # Compute product of dAdk and solution of incremental adjoint problem
+        dAdk_u = torch.einsum("ilj, l", self.A_rs * log_k.exp()[None, None, :], u_inc)
+
+        # Solve incremental adjoint problems
+        adj = torch.linalg.solve(A_r.T, self.V.T @ self.B.T).T
+        jac = -adj @ dAdk_u
+        return jac
 
 
 if __name__ == "__main__":
@@ -309,7 +330,7 @@ if __name__ == "__main__":
         return on_boundary and (x[0] > 1.0 - 1e-8)
     
 
-    nx, ny = 64, 64
+    nx, ny = 32, 32
 
     mesh = dl.RectangleMesh(dl.Point(0.0, 0.0), dl.Point(1.0, 1.0), nx, ny)
     Vh = dl.FunctionSpace(mesh, "Lagrange", 1)
@@ -343,8 +364,9 @@ if __name__ == "__main__":
 
     RUN_FORWARD = False 
     CHECK_JACOBIAN = False 
-    BUILD_ROM = False
-    RUN_CONTAMINANT = True
+    BUILD_ROM = True
+    CHECK_ROM_JACOBIAN = True
+    RUN_CONTAMINANT = False
 
     if RUN_FORWARD:
 
@@ -388,7 +410,7 @@ if __name__ == "__main__":
     if BUILD_ROM:
 
         num_snapshots = 1000
-        eps = 1.0e-4
+        eps = 1.0e-3
         num_validation_solves = 1000
 
         xs = prior.sample(n=num_snapshots)
@@ -409,7 +431,7 @@ if __name__ == "__main__":
         t0 = time.time()
         us = torch.vstack([model.solve(log_k) for log_k in log_ks])
         t1 = time.time()
-        us_rom = torch.vstack([model_rom.solve_rom(log_k) for log_k in log_ks])
+        us_rom = torch.vstack([model_rom.solve(log_k) for log_k in log_ks])
         t2 = time.time()
 
         print(f"Full model mean solve time: {(t1-t0)/num_validation_solves:.2e} s.")
@@ -430,6 +452,29 @@ if __name__ == "__main__":
         fig, ax = plt.subplots(figsize=(8, 6))
         plot_dl_function(fig, ax, vec2func(stds_error, Vh))
         plt.show()
+
+        if CHECK_ROM_JACOBIAN:
+            
+            jac = model_rom.eval_jacobian(log_ks[0])
+
+            col_ind = 3
+            dx = 1.0e-7
+            log_ks_0 = log_ks[0].clone()
+            log_ks_1 = log_ks[0].clone()
+            log_ks_0[col_ind] -= dx
+            log_ks_1[col_ind] += dx
+            u_0 = model_rom.observe(model_rom.solve(log_ks_0))
+            u_1 = model_rom.observe(model_rom.solve(log_ks_1))
+            jac_fd = (u_1-u_0)/(2*dx)
+
+            print(jac[:, col_ind])
+            print(jac_fd)
+
+            errors = jac[:, col_ind] / jac_fd
+            print(jac[:, col_ind])
+            print(jac_fd)
+            print(errors)
+            print(f"Max error (%): {100*(errors-1.0).abs().max()}")
 
     if RUN_CONTAMINANT:
 
