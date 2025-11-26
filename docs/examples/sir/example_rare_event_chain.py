@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import torch 
+from torch import Tensor
 
 import deep_tensor as dt
 
@@ -19,7 +20,7 @@ def build_adjacency_matrix(K: int) -> torch.Tensor:
     return A
 
 
-num_compartments = 3
+num_compartments = 16
 dim = 2 * num_compartments
 
 adjacency_matrix = build_adjacency_matrix(num_compartments)
@@ -44,13 +45,13 @@ ys_true = model.get_obs(model.solve(true_param))
 ys_obs = ys_true # + std_noise * torch.randn_like(ys_true)
 
 
-def neglogpost(xs: torch.Tensor) -> torch.Tensor:
+def neglogpost(xs: Tensor) -> Tensor:
     # Note: prior is uniform
     ys = model.get_obs(model.solve(xs))
     neglogliks = (ys-ys_obs).square().sum(dim=1) / (2*std_noise**2)
     return neglogliks
 
-def rare_event_func(xs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+def rare_event_func(xs: Tensor) -> Tuple[Tensor, Tensor]:
 
     ys_full = model.solve(xs)
     ys = model.get_obs(ys_full)
@@ -64,12 +65,14 @@ def rare_event_func(xs: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
 # Define rare event threshold
 I_max = 88.0
 
-domain = dt.BoundedDomain(bounds=[-3.0, 3.0])
+domain = dt.BoundedDomain([-3.0, 3.0])
 reference = dt.GaussianReference(domain)
 bounds = torch.tensor([[0.0, 2.0]]).tile((dim, 1))
 preconditioner = dt.UniformMapping(bounds=bounds, reference=reference)
 
 basis = dt.Lagrange1(num_elems=17)
+# basis = dt.Fourier(order=8)
+# basis = dt.Legendre(order=17)
 bases = dt.ApproxBases(basis, dim)
 
 tt_options = dt.TTOptions(max_als=1, init_rank=7, tt_method="fixed_rank", verbose=2)
@@ -81,7 +84,7 @@ ftt = dt.FTT(bases, tt)
 
 rare_event = dt.RareEventFunc(rare_event_func, threshold=I_max)
 
-betas = 10 ** torch.linspace(-4.0, 0.0, 13)
+betas = 10 ** torch.linspace(-3.0, 0.0, 10)
 gamma_prime = 3e3 / I_max
 gammas = betas * gamma_prime
 bridge = dt.SigmoidSmoothing(gammas, betas)
@@ -90,18 +93,13 @@ numerator = dt.DIRT(rare_event, preconditioner, ftt, bridge)
 
 # Denominator
 
-betas = 10 ** torch.linspace(-4.0, 0.0, 13)
+betas = 10 ** torch.linspace(-3.0, 0.0, 10)
 betas = betas.tolist()
 bridge = dt.Tempering(betas)
 
 posterior = dt.TargetFunc(neglogpost)
 
-denominator = dt.DIRT(
-    posterior, 
-    preconditioner, 
-    ftt, 
-    bridge
-)
+denominator = dt.DIRT(posterior, preconditioner, ftt, bridge)
 
 num_samples = 10_000
 
@@ -122,3 +120,5 @@ Z_hat = Z_is.log_weights.exp().mean()
 R_hat = Q_hat / Z_hat
 
 print(f"Estimated event probability: {R_hat:.4e}.")
+print(f"Total density evaluations (numerator): {numerator.num_eval_construction}.")
+print(f"Total density evaluations (denominator): {denominator.num_eval_construction}.")
