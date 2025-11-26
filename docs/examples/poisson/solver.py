@@ -53,27 +53,6 @@ def build_channel(xs: Tensor) -> Tensor:
     return k.log()
 
 
-def compute_reordering_matrix(xs: Tensor) -> Tensor:
-    """Returns a sparse matrix that re-orders a set of coordinates such 
-    they are ordered from smallest to largest in the first coordinate, 
-    and (in cases where the first coordinate is the same) smallest to 
-    largest in the second coordinate.
-    """
-
-    num_xs = xs.shape[0]
-
-    cs = xs.clone()
-    cs[:, 1] *= 1.0e+4  # TODO: change this based on coordinate spacing
-    inds = torch.vstack([
-        torch.arange(num_xs),
-        torch.sort(cs.sum(dim=1)).indices
-    ])
-    vals = torch.ones((num_xs,))
-    P = torch.sparse_coo_tensor(inds, vals, size=(num_xs, num_xs))
-    
-    return P
-
-
 class PoissonSolver(object):
     """Solves the Poisson equation.
     
@@ -124,7 +103,7 @@ class PoissonSolver(object):
 
         return
 
-    def apply_bcs(self, A):#, f) -> None:
+    def apply_bcs(self, A) -> None:
         for bc in self.bcs:
             bc.apply(A)
         return
@@ -364,9 +343,9 @@ if __name__ == "__main__":
 
     RUN_FORWARD = False 
     CHECK_JACOBIAN = False 
-    BUILD_ROM = True
-    CHECK_ROM_JACOBIAN = True
-    RUN_CONTAMINANT = False
+    BUILD_ROM = False
+    CHECK_ROM_JACOBIAN = False
+    RUN_CONTAMINANT = True
 
     if RUN_FORWARD:
 
@@ -480,26 +459,20 @@ if __name__ == "__main__":
 
         from solver_contaminant import ContaminantSolver
 
-        log_ks = prior.transform(prior.sample(n=10000))
+        log_ks = prior.transform(prior.sample(n=100))
         log_ks[0] = build_channel(coords)
 
         t0 = time.time()
-        us_ = torch.vstack([model.solve(log_k) for log_k in log_ks])
+        us = torch.vstack([model.solve(log_k) for log_k in log_ks])
         t1 = time.time()
         print(t1-t0)
 
-        P = compute_reordering_matrix(coords)
-        xs = (P @ coords)[:, 0][:nx+1]
-        ys = (P @ coords)[:, 1][::ny+1]
+        xs = torch.linspace(0.0, 1.0, nx+1)
+        ys = torch.linspace(0.0, 1.0, ny+1)
 
-        contaminant_solver = ContaminantSolver(xs, ys)
+        contaminant_solver = ContaminantSolver(xs, ys, coords)
 
-        ks = log_ks.exp() @ P.T
-        us = us_ @ P.T
-        #k = k.reshape(ny+1, nx+1)
-        #u = u.reshape(ny+1, nx+1)
-
-        t_breaks = contaminant_solver.solve(ks, us)
+        t_breaks = contaminant_solver.solve(log_ks, us)
         print(t_breaks[1:].min())
         t2 = time.time()
         print(t2-t1)
@@ -507,9 +480,9 @@ if __name__ == "__main__":
 
         # plt.quiver(xs, ys, -kdudx[:, :, 0], -kdudx[:, :, 1])
 
-        for i in range(us_.shape[0]):
-            path = contaminant_solver.solve_path(ks[i], us[i])
-            flux = -dl.project(dl.exp(vec2func(log_ks[i], model.Vh)) * dl.grad(vec2func(us_[i], model.Vh)))  # type: ignore
+        for i in range(us.shape[0]):
+            path = contaminant_solver.solve_path(log_ks[i], us[i])
+            flux = -dl.project(dl.exp(vec2func(log_ks[i], model.Vh)) * dl.grad(vec2func(us[i], model.Vh)))  # type: ignore
             dl.plot(flux)
             plt.scatter([0], [0.5])
             plt.plot(*path.T)

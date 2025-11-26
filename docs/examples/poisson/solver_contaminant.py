@@ -1,15 +1,41 @@
-import math 
-
 import torch 
 from torch import Tensor
+
+
+def compute_reordering_matrix(xs: Tensor) -> Tensor:
+    """Returns a sparse matrix that re-orders a set of coordinates such 
+    they are ordered from smallest to largest in the first coordinate, 
+    and (in cases where the first coordinate is the same) smallest to 
+    largest in the second coordinate.
+    """
+
+    num_xs = xs.shape[0]
+
+    cs = xs.clone()
+    cs[:, 1] *= 1.0e+4  # TODO: change this based on coordinate spacing
+    inds = torch.vstack([
+        torch.arange(num_xs),
+        torch.sort(cs.sum(dim=1)).indices
+    ])
+    vals = torch.ones((num_xs,))
+    P = torch.sparse_coo_tensor(inds, vals, size=(num_xs, num_xs))
+    
+    return P
 
 
 class ContaminantSolver():
     """Assumes that the spacing in the x and y directions is constant."""
 
-    def __init__(self, xs: Tensor, ys: Tensor, x0: Tensor | None = None):
+    def __init__(
+        self, 
+        xs: Tensor, 
+        ys: Tensor, 
+        coords: Tensor,
+        x0: Tensor | None = None,
+    ):
         self.xs = xs
         self.ys = ys
+        self.P = compute_reordering_matrix(coords)
         self.nx = self.xs.numel()
         self.ny = self.ys.numel()
         self.dx = self.xs[1] - self.xs[0]
@@ -63,14 +89,14 @@ class ContaminantSolver():
             return torch.tensor([0.0, 0.0])
         return self.interpolate_flux(x)
 
-    def solve(self, ks: Tensor, us: Tensor) -> Tensor:
-        num_xs = ks.shape[0]
-        self.ks, self.us = ks, us
+    def solve(self, log_ks: Tensor, us: Tensor) -> Tensor:
+        num_xs = log_ks.shape[0]
+        self.ks = log_ks.exp() @ self.P.T
+        self.us = us @ self.P.T
         xs = self.x0.repeat(num_xs, 1)
         ts = torch.zeros((num_xs, 1))
         incomplete = torch.full((num_xs,), True)
         while True:
-            # TODO: need to do the mask thing..
             fluxes = self.interpolate_flux(xs[incomplete])
             dts = 1.0 / (2 * (self.nx-1) * fluxes.square().sum(dim=1, keepdim=True).sqrt())
             xs[incomplete] += dts * fluxes
@@ -79,10 +105,11 @@ class ContaminantSolver():
             if not incomplete.any():
                 return ts.flatten()
 
-    def solve_path(self, ks: Tensor, us: Tensor) -> Tensor:
-        ks = torch.atleast_2d(ks)
+    def solve_path(self, log_ks: Tensor, us: Tensor) -> Tensor:
+        log_ks = torch.atleast_2d(log_ks)
         us = torch.atleast_2d(us)
-        self.ks, self.us = ks, us
+        self.ks = log_ks.exp() @ self.P.T
+        self.us = us @ self.P.T
         xs = [self.x0]
         t = 0.0
         while True:

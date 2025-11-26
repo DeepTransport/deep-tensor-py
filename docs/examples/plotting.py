@@ -129,7 +129,7 @@ def pairplot(
         for j in range(i+1, dim):
             axes[i][j].set_axis_off()
 
-    plt.show()
+    # plt.show()
     return
 
 

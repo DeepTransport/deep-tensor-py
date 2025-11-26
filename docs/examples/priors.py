@@ -113,7 +113,7 @@ class GaussianRandomField(Prior):
         eigvals, eigvecs = torch.linalg.eigh(cov)
         inds = torch.argsort(eigvals, descending=True)[:self.dim]
         coef2node = eigvecs[:, inds] * torch.sqrt(eigvals[inds])
-        return coef2node
+        return coef2node#.flip(dims=(1,)) # TEMP!!
 
 
 class ProcessConvolutionPrior(Prior):
