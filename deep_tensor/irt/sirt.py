@@ -86,6 +86,10 @@ class SIRT():
     @property 
     def num_eval(self) -> int:
         return self.ftt.num_eval
+    
+    @property 
+    def num_eval_construction(self) -> int:
+        return self.ftt.num_eval_tt
 
     @staticmethod
     def construct_cdfs(bases: ApproxBases, tol: float) -> Dict[int, CDF1D]:

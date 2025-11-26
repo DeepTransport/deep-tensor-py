@@ -72,6 +72,10 @@ class FTT():
     @property 
     def ranks(self) -> Tensor:
         return self.tt.ranks
+    
+    @property 
+    def num_eval_tt(self) -> int:
+        return self.tt.num_eval
 
     @property
     def num_eval(self) -> int:

@@ -106,6 +106,10 @@ class DIRT():
     def num_eval(self) -> int:
         return self.num_eval_sirt + self.num_eval_diagnostic
     
+    @property 
+    def num_eval_construction(self) -> int:
+        return sum([self.sirts[k].num_eval_construction for k in self.sirts])
+    
     @property
     def log_z(self) -> float:
         if not self.sirts.keys():
