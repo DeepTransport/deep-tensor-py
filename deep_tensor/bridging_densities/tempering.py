@@ -126,6 +126,8 @@ class Tempering(Bridge):
     ) -> Tensor:
         
         k = self.num_layers
+        if k == 0: 
+            return neglogref_us
         neglogbridges = (
             + (1.0 - self.betas[k-1]) * neglogref_us 
             + self.betas[k-1] * neglogfus

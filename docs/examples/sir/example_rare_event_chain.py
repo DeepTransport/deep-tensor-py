@@ -20,7 +20,7 @@ def build_adjacency_matrix(K: int) -> torch.Tensor:
     return A
 
 
-num_compartments = 16
+num_compartments = 8
 dim = 2 * num_compartments
 
 adjacency_matrix = build_adjacency_matrix(num_compartments)
@@ -87,7 +87,7 @@ rare_event = dt.RareEventFunc(rare_event_func, threshold=I_max)
 betas = 10 ** torch.linspace(-3.0, 0.0, 10)
 gamma_prime = 3e3 / I_max
 gammas = betas * gamma_prime
-bridge = dt.SigmoidSmoothing(gammas, betas)
+bridge = dt.GaussianSmoothing(gammas, betas)
 
 numerator = dt.DIRT(rare_event, preconditioner, ftt, bridge)
 
