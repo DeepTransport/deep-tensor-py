@@ -20,7 +20,7 @@ def build_adjacency_matrix(K: int) -> torch.Tensor:
     return A
 
 
-num_compartments = 16
+num_compartments = 8
 dim = 2 * num_compartments
 
 adjacency_matrix = build_adjacency_matrix(num_compartments)
@@ -87,7 +87,7 @@ rare_event = dt.RareEventFunc(rare_event_func, threshold=I_max)
 betas = 10 ** torch.linspace(-3.0, 0.0, 10)
 gamma_prime = 3e3 / I_max
 gammas = betas * gamma_prime
-bridge = dt.SigmoidSmoothing(gammas, betas)
+bridge = dt.GaussianSmoothing(gammas, betas)
 
 numerator = dt.DIRT(rare_event, preconditioner, ftt, bridge)
 
@@ -101,16 +101,16 @@ posterior = dt.TargetFunc(neglogpost)
 
 denominator = dt.DIRT(posterior, preconditioner, ftt, bridge)
 
-n_samples = 10_000
+num_samples = 10_000
 
-rs = numerator.reference.random(dim, n_samples)
+rs = numerator.reference.random(num_samples, dim)
 xs, neglogfxs_dirt = numerator.eval_irt(rs)
 neglogfxs_exact = rare_event(xs)
 
 Q_is = dt.run_importance_sampling(neglogfxs_dirt, neglogfxs_exact)
 Q_hat = Q_is.log_weights.exp().mean()
 
-rs = denominator.reference.random(dim, n_samples)
+rs = denominator.reference.random(num_samples, dim)
 xs, neglogfxs_dirt = denominator.eval_irt(rs)
 neglogfxs_exact = posterior(xs)
 
