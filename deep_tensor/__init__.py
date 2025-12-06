@@ -3,7 +3,7 @@ __version__ = "1.2.0"
 import torch
 torch.set_default_dtype(torch.float64)
 
-from .bridging_densities import SigmoidSmoothing, SingleLayer, Tempering
+from .bridging_densities import SigmoidSmoothing, GaussianSmoothing, SingleLayer, Tempering
 from .debiasing.importance_sampling import (
     ImportanceSamplingResult, 
     run_importance_sampling

@@ -1,3 +1,5 @@
+import abc
+import math
 from typing import Dict, List, Sequence, Tuple
 
 import torch 
@@ -10,55 +12,8 @@ from ..target_functions import RareEventFunc
 from ..tools import compute_f_divergence
 
 
-class SigmoidSmoothing(Bridge):
-    r"""Uses a sigmoid function in place of an indicator function.
-
-    This bridge must be used with a `RareEventFunc` as the target 
-    function.
-
-    Parameters
-    ----------
-    gammas:
-        A sequence of values, $\{\gamma_{k}\}_{k=1}^{N}$, which define 
-        the sigmoid functions.
-    betas:
-        A sequence of values, $\{\beta_{k}\}_{k=1}^{N}$, to use to 
-        temper the density of the parameter. If these are not provided, 
-        a value of $\beta_{k}=1$ will be used when defining all 
-        intermediate densities.
-
-    Notes
-    -----
-    This bridge is used in rare event estimation problems to 
-    approximate the optimal biasing density, which takes the form
-    $$
-        \pi^{*}(\theta) \propto \pi(\theta)\mathbb{I}_{\mathcal{F}}(\theta), 
-        \qquad \textrm{where } \mathcal{F} := \{\theta : F(\theta) \geq z\}.
-    $$
-    In the above, $\theta$ denotes a set of parameters with density 
-    $\pi(\cdot)$, $F(\cdot)$ denotes the system response function, and 
-    $z$ denotes a (scalar--valued) rare event threshold.
+class SmoothedIndicator(Bridge, abc.ABC):
     
-    The intermediate densities generated using this approach take the 
-    form [@Cui2023]
-    $$
-        \pi_{k}(\theta) \propto (Q_{\sharp}\rho(\theta))^{1-\beta_{k}}
-            \pi(\theta)^{\beta_{k}}g_{\gamma_{k}}(z).
-    $$
-    In the above, $Q_{\sharp}\rho(\cdot)$ denotes the pushforward of 
-    the reference density, $\rho(\cdot)$, under the preconditioner, 
-    $Q(\cdot)$, and $g_{\gamma_{k}}(\cdot)$ denotes the sigmoid 
-    function, which is defined as
-    $$
-        g_{\gamma_{k}}(z) := (1 + \exp(\gamma_{k}(F(\theta) - z)))^{-1}.
-    $$
-    The sequences $\{\beta_{k}\}_{k=1}^{N}$ and 
-    $\{\gamma_{k}\}_{k=1}^{N}$ must satisfy 
-    $0 \leq \gamma_{1} \leq \cdots \leq \gamma_{N}$ and
-    $0 \leq \beta_{1} \leq \cdots \leq \beta_{N} = 1$.
-
-    """
-
     def __init__(
         self, 
         gammas: Sequence | Tensor | float, 
@@ -79,7 +34,7 @@ class SigmoidSmoothing(Bridge):
     @property
     def is_last(self) -> bool:
         return self.num_layers == (len(self.betas) - 1)
-    
+
     @staticmethod
     def _parse_bridging_params(
         gammas, 
@@ -112,6 +67,30 @@ class SigmoidSmoothing(Bridge):
         
         return gammas, betas
     
+    @abc.abstractmethod
+    def neglogsmoothind(self, gamma: float, responses: Tensor) -> Tensor:
+        """Evaluates the negative logarithm of the smooth surrogate to 
+        the indicator function for a given value of the gamma parameter 
+        and a set of response values.
+        
+        Parameters
+        ----------
+        gamma:
+            The value of the shape parameter, gamma.
+        responses:
+            An n-dimensional vector containing the value of the 
+            response function at each of the set of samples.
+        
+        Returns
+        -------
+        negloginds:
+            An n-dimensional vector containing the negative logarithm 
+            of the smooth surrogate to the indicator function evaluated 
+            at each element in the response vector.
+
+        """
+        pass
+
     def reset(self) -> None:
         self.num_layers = 0
         return
@@ -130,11 +109,6 @@ class SigmoidSmoothing(Bridge):
         self.initialised = True
         return
     
-    def neglogsigmoid(self, gamma: float, responses: Tensor) -> Tensor:
-        dzs = self.target_func.threshold - responses
-        neglogsigmoids = torch.log1p(torch.exp(gamma * dzs))
-        return neglogsigmoids
-    
     def _eval_pullback(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         """Evaluates the pullback of the target density under the 
         preconditioning mapping.
@@ -152,7 +126,7 @@ class SigmoidSmoothing(Bridge):
     ) -> Tensor:
         
         k = self.num_layers
-        neglogsigmoids_p = self.neglogsigmoid(self.gammas[k-1], responses)
+        neglogsigmoids_p = self.neglogsmoothind(self.gammas[k-1], responses)
         neglogbridges = (
             + (1.0 - self.betas[k-1]) * neglogref_us 
             + self.betas[k-1] * neglogfus 
@@ -172,14 +146,14 @@ class SigmoidSmoothing(Bridge):
         """
         
         k = self.num_layers
-        neglogsigmoids = self.neglogsigmoid(self.gammas[k], responses)
-        neglogsigmoids_p = self.neglogsigmoid(self.gammas[k-1], responses)
-        neglogsigmoids_p[neglogsigmoids_p.isinf()] = 0.0
+        negloginds = self.neglogsmoothind(self.gammas[k], responses)
+        negloginds_p = self.neglogsmoothind(self.gammas[k-1], responses)
+        negloginds_p[negloginds_p.isinf()] = 0.0
         
         neglogweights = (
             + (self.betas[k-1] - self.betas[k]) * neglogref_us 
             + (self.betas[k] - self.betas[k-1]) * neglogfus 
-            + (neglogsigmoids - neglogsigmoids_p)
+            + (negloginds - negloginds_p)
         )
         return neglogweights
 
@@ -196,12 +170,12 @@ class SigmoidSmoothing(Bridge):
         """
 
         k = self.num_layers
-        neglogsigmoids = self.neglogsigmoid(self.gammas[k], responses)
+        negloginds = self.neglogsmoothind(self.gammas[k], responses)
         
         neglogweights = (
             + (1.0 - self.betas[k]) * neglogref_us 
             + self.betas[k] * neglogfus
-            + neglogsigmoids
+            + negloginds
             - neglogfus_dirt
         )
         return neglogweights
@@ -309,3 +283,70 @@ class SigmoidSmoothing(Bridge):
         ess = estimate_ess_ratio(log_weights)
         msg += [f"DHell: {div_h2.sqrt():.4f}", f"ESS: {ess:.4f}"]
         return msg
+
+
+class SigmoidSmoothing(SmoothedIndicator):
+    r"""Uses a sigmoid function in place of an indicator function.
+
+    This bridge must be used with a `RareEventFunc` as the target 
+    function.
+
+    Parameters
+    ----------
+    gammas:
+        A sequence of values, $\{\gamma_{k}\}_{k=1}^{N}$, which define 
+        the sigmoid functions.
+    betas:
+        A sequence of values, $\{\beta_{k}\}_{k=1}^{N}$, to use to 
+        temper the density of the parameter. If these are not provided, 
+        a value of $\beta_{k}=1$ will be used when defining all 
+        intermediate densities.
+
+    Notes
+    -----
+    This bridge is used in rare event estimation problems to 
+    approximate the optimal biasing density, which takes the form
+    $$
+        \pi^{*}(\theta) \propto \pi(\theta)\mathbb{I}_{\mathcal{F}}(\theta), 
+        \qquad \textrm{where } \mathcal{F} := \{\theta : F(\theta) \geq z\}.
+    $$
+    In the above, $\theta$ denotes a set of parameters with density 
+    $\pi(\cdot)$, $F(\cdot)$ denotes the system response function, and 
+    $z$ denotes a (scalar--valued) rare event threshold.
+    
+    The intermediate densities generated using this approach take the 
+    form [@Cui2023]
+    $$
+        \pi_{k}(\theta) \propto (Q_{\sharp}\rho(\theta))^{1-\beta_{k}}
+            \pi(\theta)^{\beta_{k}}g_{\gamma_{k}}(z).
+    $$
+    In the above, $Q_{\sharp}\rho(\cdot)$ denotes the pushforward of 
+    the reference density, $\rho(\cdot)$, under the preconditioner, 
+    $Q(\cdot)$, and $g_{\gamma_{k}}(\cdot)$ denotes the sigmoid 
+    function, which is defined as
+    $$
+        g_{\gamma_{k}}(z) := (1 + \exp(\gamma_{k}(F(\theta) - z)))^{-1}.
+    $$
+    The sequences $\{\beta_{k}\}_{k=1}^{N}$ and 
+    $\{\gamma_{k}\}_{k=1}^{N}$ must satisfy 
+    $0 \leq \gamma_{1} \leq \cdots \leq \gamma_{N}$ and
+    $0 \leq \beta_{1} \leq \cdots \leq \beta_{N} = 1$.
+
+    """
+    
+    def neglogsmoothind(self, gamma: float, responses: Tensor) -> Tensor:
+        lsfs = self.target_func.threshold - responses  # type: ignore
+        neglogsigmoids = torch.log1p(torch.exp(gamma * lsfs))
+        return neglogsigmoids
+    
+
+class GaussianSmoothing(SmoothedIndicator):
+    """Uses a function which takes the form of a Gaussian CDF in place of an indicator function.
+
+    TODO: finish this docstring.
+    """
+
+    def neglogsmoothind(self, gamma: float, responses: Tensor) -> Tensor:
+        lsfs = self.target_func.threshold - responses  # type: ignore
+        neglogtanhs = math.log(2.0) - torch.log1p(torch.erf(-gamma*lsfs))
+        return neglogtanhs
