@@ -133,7 +133,7 @@ for i, D in enumerate(Ds):
             dhell = dt.compute_f_divergence(-potentials_dirt, -potentials_true).sqrt().item()
 
             dhells[i][j][k] = dhell 
-            evals[i][j][k] = dirt.num_eval 
+            evals[i][j][k] = dirt.num_eval_construction
             if isinstance(dirt.sirts[0].ftt, dt.EFTT):
                 max_tuckers[i][j][k] = dirt.sirts[0].ftt.basis_dims.max()
 

@@ -127,7 +127,7 @@ for i, rank in enumerate(ranks):
             dhell = dt.compute_f_divergence(-potentials_dirt, -potentials_true).sqrt().item()
 
             dhells[i][j][k] = dhell 
-            evals[i][j][k] = dirt.num_eval 
+            evals[i][j][k] = dirt.num_eval_construction
 
 
 fig, axes = plt.subplots(1, 2, figsize=(6, 3.2))
