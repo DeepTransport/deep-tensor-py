@@ -47,8 +47,8 @@ def setup_poisson_problem(
         abs(coords[:, 0] - 1.0) < 1e-8
     )
 
-    x0_obs = torch.linspace(0.1, 0.9, 4)
-    x1_obs = torch.linspace(0.1, 0.9, 4)
+    x0_obs = torch.linspace(0.2, 0.8, 4)
+    x1_obs = torch.linspace(0.2, 0.8, 4)
     xs_obs = torch.tensor([[x0, x1] for x0 in x0_obs for x1 in x1_obs])
 
     model = PoissonSolver(mesh, Vh, f, bcs, dirichlet_mask, xs_obs)

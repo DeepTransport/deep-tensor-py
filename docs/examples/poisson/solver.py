@@ -204,6 +204,7 @@ class PoissonSolverROM():
         self.dirichlet_mask = self.model_full.dirichlet_mask
         self.num_obs = self.model_full.num_obs
         self.B = self.model_full.B
+        self.xs_obs = self.model_full.xs_obs
 
         self._build_rom_matrices()
         return
