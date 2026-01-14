@@ -1,5 +1,6 @@
 import abc
 import math
+from types import NoneType
 from typing import Dict, List, Sequence, Tuple
 
 import torch 
@@ -266,9 +267,9 @@ class SmoothedIndicator(Bridge, abc.ABC):
 
     def _get_diagnostics(
         self, 
-        log_weights: Tensor,
-        neglogfus: Tensor,
-        neglogfus_dirt: Tensor
+        log_weights: Tensor | None,
+        neglogfus: Tensor | None,
+        neglogfus_dirt: Tensor | None
     ) -> List[str]:
         
         msg = [
@@ -276,7 +277,9 @@ class SmoothedIndicator(Bridge, abc.ABC):
             f"Beta: {self.betas[self.num_layers]:.4f}"
         ]
         
-        if None in (log_weights, neglogfus, neglogfus_dirt):
+        if (isinstance(log_weights, NoneType) 
+            or isinstance(neglogfus, NoneType)
+            or isinstance(neglogfus_dirt, NoneType)): 
             return msg
 
         div_h2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
@@ -341,7 +344,7 @@ class SigmoidSmoothing(SmoothedIndicator):
     
 
 class GaussianSmoothing(SmoothedIndicator):
-    """Uses a function which takes the form of a Gaussian CDF in place of an indicator function.
+    """Uses a Gaussian CDF in place of an indicator function.
 
     TODO: finish this docstring.
     """

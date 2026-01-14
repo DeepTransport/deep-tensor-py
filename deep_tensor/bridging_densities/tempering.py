@@ -1,3 +1,4 @@
+from types import NoneType
 from typing import List, Tuple
 
 from torch import Tensor
@@ -274,14 +275,16 @@ class Tempering(Bridge):
 
     def _get_diagnostics(
         self, 
-        log_weights: Tensor,
-        neglogfus: Tensor,
-        neglogfus_dirt: Tensor
+        log_weights: Tensor | None,
+        neglogfus: Tensor | None,
+        neglogfus_dirt: Tensor | None
     ) -> List[str]:
         
         msg = [f"Beta: {self.betas[self.num_layers]:.4f}"]
 
-        if None in (log_weights, neglogfus, neglogfus_dirt):
+        if (isinstance(log_weights, NoneType) 
+            or isinstance(neglogfus, NoneType)
+            or isinstance(neglogfus_dirt, NoneType)): 
             return msg
 
         div_h2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)

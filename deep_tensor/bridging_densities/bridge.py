@@ -146,9 +146,9 @@ class Bridge(abc.ABC):
 
     def _get_diagnostics(
         self, 
-        log_weights: Tensor,
-        neglogfus: Tensor,
-        neglogfus_dirt: Tensor
+        log_weights: Tensor | None,
+        neglogfus: Tensor | None,
+        neglogfus_dirt: Tensor | None
     ) -> List[str]:
         """Returns some information about the current bridging density.
 
