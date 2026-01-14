@@ -115,17 +115,6 @@ class DIRT():
         if not self.sirts.keys():
             return 0.0
         return sum([math.log(self.sirts[k].z) for k in self.sirts])
-    
-    def eval_target_pullback(self, us: Tensor) -> Tensor:
-        """Evaluates the pullback of the target density function under 
-        the preconditioning mapping, at a set of samples in the 
-        reference domain.
-        """
-        xs = self.preconditioner.Q(us)
-        neglogdets = self.preconditioner.neglogdet_Q(us)
-        neglogfxs = self.target_func(xs)
-        neglogfus = neglogfxs + neglogdets
-        return neglogfus
   
     def eval_ratio_func(self, rs: Tensor) -> Tensor:
         """Evaluates the current ratio function at each element in rs, 
@@ -171,9 +160,9 @@ class DIRT():
 
     def _print_progress(
         self,
-        log_weights: Tensor, 
-        neglogfus: Tensor, 
-        neglogfus_dirt: Tensor,
+        log_weights: Tensor | None, 
+        neglogfus: Tensor | None, 
+        neglogfus_dirt: Tensor | None,
         cum_time: float
     ) -> None:
 
@@ -202,12 +191,7 @@ class DIRT():
 
             if self.verbose > 0:
                 cum_time = time.time() - t0
-                self._print_progress(
-                    log_weights, 
-                    neglogbridges, 
-                    neglogfus_dirt, 
-                    cum_time
-                )
+                self._print_progress(log_weights, neglogbridges, neglogfus_dirt, cum_time)
 
             self.sirts[self.num_layers] = self._get_new_layer()
             self.num_layers += 1
@@ -227,7 +211,7 @@ class DIRT():
                 # transformations.
                 rs = self.reference.random(self.num_error_samples, self.dim, device=self.device)
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
-                neglogfus = self.eval_target_pullback(us) # TODO: the bridge should probably handle this...
+                neglogfus = self.bridge._eval_pullback(us)
                 dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
                 info_msgs += [f"DHell: {dhell2.sqrt():.4f}."]
 
@@ -397,6 +381,8 @@ class DIRT():
         """
         
         rs = rs.to(self.device)
+        rs = self.reference._project_to_domain(rs)
+
         if num_layers is None:
             num_layers = self.num_layers
         subset = self._parse_subset(subset)
@@ -457,6 +443,7 @@ class DIRT():
         
         ys = torch.atleast_2d(ys)
         rs = torch.atleast_2d(rs)
+        rs = self.reference._project_to_domain(rs)
 
         n_rs, d_rs = rs.shape
         n_ys, d_ys = ys.shape
@@ -505,7 +492,7 @@ class DIRT():
         rs: Tensor, 
         subset: str | None = None,
         num_layers: int | None = None
-    ) -> Tuple[Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         r"""Evaluates the pullback of a density function.
 
         This function evaluates $\mathcal{T}^{\sharp}f(r)$, where 
@@ -534,6 +521,9 @@ class DIRT():
 
         Returns
         -------
+        xs:
+            An $n \times d$ matrix containing the inverse Rosenblatt 
+            transport evaluated at each element in `rs`.
         neglogTfrs:
             An $n$-dimensional vector containing the potential of the 
             pullback function evaluated at each element in `rs`; that 
@@ -545,11 +535,12 @@ class DIRT():
         
         """
         rs = rs.to(self.device)
+        rs = self.reference._project_to_domain(rs)
         neglogrefs = self.reference.eval_potential(rs)[0]
         xs, neglogfxs_irt = self.eval_irt(rs, subset, num_layers)
         neglogfxs = potential(xs)
         neglogTfrs = neglogfxs + neglogrefs - neglogfxs_irt
-        return neglogTfrs, neglogfxs
+        return xs, neglogTfrs, neglogfxs
     
     def eval_cirt_pullback(
         self, 
@@ -558,7 +549,7 @@ class DIRT():
         rs: Tensor,
         subset: str = "first",
         num_layers: int | None = None
-    ) -> Tuple[Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         r"""Evaluates the pullback of a conditional density function.
 
         This function evaluates $\mathcal{T}^{\sharp}f(r\|y)$, where 
@@ -593,6 +584,9 @@ class DIRT():
 
         Returns
         -------
+        xs:
+            An $n \times d$ matrix containing the inverse Rosenblatt 
+            transport evaluated at each element in `rs`.
         neglogTfrs:
             An $n$-dimensional vector containing the potential of the 
             pullback function evaluated at each element in `rs`; that 
@@ -605,11 +599,12 @@ class DIRT():
         """
         ys = ys.to(self.device)
         rs = rs.to(self.device)
+        rs = self.reference._project_to_domain(rs)
         neglogrefs = self.reference.eval_potential(rs)[0]
         xs, neglogfxs_cirt = self.eval_cirt(ys, rs, subset, num_layers)
         neglogfxs = potential(xs)
         neglogTfrs = neglogfxs + neglogrefs - neglogfxs_cirt
-        return neglogTfrs, neglogfxs
+        return xs, neglogTfrs, neglogfxs
 
     def eval_potential(
         self, 
