@@ -89,26 +89,26 @@ class Reference(abc.ABC):
     
     @abc.abstractmethod
     def eval_potential(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
-        """Returns the joint log-PDF and gradient of the log-PDF of 
-        each of a set of points distributed according to the joint 
-        reference density. 
+        """Evaluates the potential function (i.e., negative logarithm) 
+        and the gradient of the potential function of the reference at 
+        a set of points.
 
         Parameters
         ----------
         rs:
-            An n * d matrix containing samples for which to evaluate 
-            the log-PDF and gradient of the log-PDF of the joint 
-            reference density.
+            An n * d matrix containing points at which to evaluate the 
+            potential function and its gradient.
 
         Returns
         -------
-        log_pdfs:
-            A d-dimensional vector containing the log of the joint 
-            reference density evaluated at each sample in rs.
-        log_grad_pdfs:
-            An n * d matrix containing the log of the gradient of the 
-            joint reference density evaluated at each sample in rs.
-
+        neglogrefs:
+            An n-dimensional vector containing the potential function 
+            evaluated at each sample in rs.
+        grad_neglogrefs:
+            An n * d matrix where each row contains the gradient of the 
+            potential function evaluated at the corresponding sample in 
+            rs.
+        
         """
         pass
 
@@ -117,14 +117,33 @@ class Reference(abc.ABC):
         return outside
     
     def _check_samples_in_domain(self, rs: Tensor) -> None:
-        """Raises an error if any of a set of samples are outside the
+        """Raises a warning if any of a set of samples are outside the
         domain of the reference.
         """
         outside = self._out_domain(rs)
         if (num_outside := outside.sum()) > 0:
-            msg = f"{num_outside} points lie outside domain of reference."
+            msg = (
+                f"{num_outside} points lie outside the domain of the "
+                "reference distribution."
+            )
             warnings.warn(msg)
         return
+    
+    def _project_to_domain(self, rs: Tensor) -> Tensor:
+        """Projects a set of samples to the nearest point in the 
+        domain.
+        """
+        outside = self._out_domain(rs)
+        if (num_outside := outside.sum()) > 0:
+            msg = (
+                f"{num_outside} points lie outside the domain of the "
+                "reference distribution. Projecting each to the "
+                "closest point in the domain of the reference "
+                "distribution."
+            )
+            warnings.warn(msg)
+            rs = torch.clamp(rs, min=self.domain.left, max=self.domain.right)
+        return rs
     
     def random(
         self, 
