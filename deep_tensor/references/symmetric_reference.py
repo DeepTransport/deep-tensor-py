@@ -136,14 +136,14 @@ class SymmetricReference(Reference, abc.ABC):
         return
 
     def eval_cdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
-        self._check_samples_in_domain(rs)
+        self._project_to_domain(rs)
         zs, dzdrs = self.eval_unit_cdf(rs)
         zs = (zs - self.cdf_left) / self.norm
         dzdrs = dzdrs / self.norm
         return zs, dzdrs
     
     def eval_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
-        self._check_samples_in_domain(rs)
+        self._project_to_domain(rs)
         ps, dpdrs = self.eval_unit_pdf(rs)
         ps = ps / self.norm
         dpdrs = dpdrs / self.norm
@@ -156,7 +156,7 @@ class SymmetricReference(Reference, abc.ABC):
         return us
         
     def eval_potential(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
-        self._check_samples_in_domain(rs)
+        self._project_to_domain(rs)
         d_rs = rs.shape[1]
         log_ps, log_dpdrs = self.eval_unit_potential(rs)
         log_ps = log_ps + d_rs * math.log(self.norm)
