@@ -54,7 +54,7 @@ class FTT():
         bases: ApproxBases, 
         tt: TT | None = None,
         num_error_samples: int = 1000,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ):
         self.tt = TT(device=device) if tt is None else tt
         self.bases = bases 

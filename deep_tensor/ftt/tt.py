@@ -88,7 +88,7 @@ class TT():
     def __init__(
         self, 
         options: TTOptions | None = None,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ):
         if options is None:
             options = TTOptions()
