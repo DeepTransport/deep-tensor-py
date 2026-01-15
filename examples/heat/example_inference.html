@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.8.25">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -91,9 +91,9 @@ div.csl-indent {
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-707d8167ce6003fca903bfe2be84ab7f.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../../site_libs/bootstrap/bootstrap-9cfa498d6537bd027cfcd162657848b2.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
@@ -328,8 +328,6 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
-    </a>
     <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">deep_tensor</span>
     </a>
@@ -341,11 +339,11 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="../../index.html" aria-current="page"> 
+    <a class="nav-link" href="../../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="../../examples/index.html"> 
+    <a class="nav-link active" href="../../examples/index.html" aria-current="page"> 
 <span class="menu-text">Examples</span></a>
   </li>  
   <li class="nav-item">
@@ -385,10 +383,6 @@ window.Quarto = {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header sidebar-header-stacked">
-      <a href="../../index.html" class="sidebar-logo-link">
-      </a>
-      </div>
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -557,9 +551,8 @@ window.Quarto = {
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.plotting <span class="im">import</span> add_arrows, pairplot, set_plot_style</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="cell-2" class="cell" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>torch.set_default_device(<span class="st">"cuda"</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">"cpu"</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">1</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">1</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>We begin by defining the prior, (full) model and reduced order model.</p>
 <p>The full model is implemented in <a href="https://fenicsproject.org/download/archive/">FEniCS</a>, on a <span class="math inline">\(96 \times 32\)</span> grid, using piecwise linear basis functions. Timestepping is done using the backward Euler method. The reduced order model is constructed using the proper orthogonal decomposition <span class="citation" data-cites="Benner2015">(see, <em>e.g.</em>, <a href="#ref-Benner2015" role="doc-biblioref">Benner, Gugercin, and Willcox 2015</a>)</span>.</p>
@@ -587,7 +580,7 @@ window.Quarto = {
 <div id="fig-ktrue" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-ktrue-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="example_inference_files/figure-html/fig-ktrue-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="535" height="192">
+<img src="example_inference_files/figure-html/fig-ktrue-output-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ktrue-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1: The true log-diffusion coefficient, <span class="math inline">\(\log(\kappa(\boldsymbol{x}))\)</span>, and the centres of the kernel functions of the process convolution prior (black crosses).
@@ -626,7 +619,7 @@ Figure&nbsp;1: The true log-diffusion coefficient, <span class="math inline">\(\
 <div id="fig-utrue" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-utrue-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="example_inference_files/figure-html/fig-utrue-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="544" height="192">
+<img src="example_inference_files/figure-html/fig-utrue-output-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-utrue-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;2: The true final temperature distribution, <span class="math inline">\(u(\boldsymbol{x}, 10)\)</span>, and the observation locations (black dots).
@@ -687,59 +680,59 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <div id="cell-18" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(target_func_rom, preconditioner, ftt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 2.03e+00 s | DHell: 0.0000 | Beta: 0.0001 | ESS: 0.9966
+<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 2.30e+00 s | Beta: 0.0001 | DHell: 0.0000 | ESS: 0.9967
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |       1.00e+00 |        1.00e+00 | 2.70e-02
-[ALS]     2 |      29782 |        5 |       9.20e-03 |        8.19e-04 | 1.60e-02
-[ALS]     3 |      65935 |        7 |       6.14e-04 |        1.13e-04 | 1.75e-02
+[ALS]     1 |       9937 |        3 |       1.00e+00 |        1.00e+00 | 2.86e-02
+[ALS]     2 |      29782 |        5 |       7.05e-03 |        7.31e-04 | 1.77e-02
+[ALS]     3 |      65935 |        7 |       7.54e-04 |        1.09e-04 | 1.86e-02
 [ALS]  ALS complete.
-[DIRT] Iter:  2 | Cum. Fevals: 6.59e+04 | Cum. Time: 1.39e+02 s | DHell: 0.0115 | Beta: 0.0103 | ESS: 0.4981
+[DIRT] Iter:  2 | Cum. Fevals: 6.69e+04 | Cum. Time: 1.61e+02 s | Beta: 0.0103 | DHell: 0.0115 | ESS: 0.4870
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |       4.40e-01 |        1.14e-01 | 8.41e-01
-[ALS]     2 |      29782 |        5 |       4.65e-01 |        6.50e-02 | 1.88e-01
-[ALS]     3 |      65935 |        7 |       2.23e-01 |        2.66e-02 | 2.79e-01
+[ALS]     1 |       9937 |        3 |       4.40e-01 |        1.08e-01 | 8.48e-01
+[ALS]     2 |      29782 |        5 |       3.58e-01 |        5.31e-02 | 3.81e-01
+[ALS]     3 |      65935 |        7 |       4.58e-01 |        3.50e-02 | 2.34e-01
 [ALS]  ALS complete.
-[DIRT] Iter:  3 | Cum. Fevals: 1.32e+05 | Cum. Time: 2.78e+02 s | DHell: 0.0454 | Beta: 0.0385 | ESS: 0.4876
+[DIRT] Iter:  3 | Cum. Fevals: 1.34e+05 | Cum. Time: 3.41e+02 s | Beta: 0.0385 | DHell: 0.0710 | ESS: 0.4909
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |       3.19e-01 |        9.03e-02 | 3.80e-01
-[ALS]     2 |      29782 |        5 |       2.72e-01 |        3.40e-02 | 3.42e-01
-[ALS]     3 |      65935 |        7 |       8.12e-02 |        1.34e-02 | 6.88e-01
+[ALS]     1 |       9937 |        3 |       2.74e-01 |        7.62e-02 | 5.74e-01
+[ALS]     2 |      29782 |        5 |       1.62e-01 |        2.98e-02 | 1.49e+00
+[ALS]     3 |      65935 |        7 |       1.39e-01 |        1.70e-02 | 1.96e+00
 [ALS]  ALS complete.
-[DIRT] Iter:  4 | Cum. Fevals: 1.98e+05 | Cum. Time: 4.23e+02 s | DHell: 0.0665 | Beta: 0.1021 | ESS: 0.4926
+[DIRT] Iter:  4 | Cum. Fevals: 2.01e+05 | Cum. Time: 5.61e+02 s | Beta: 0.1072 | DHell: 0.0776 | ESS: 0.4801
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |       8.55e-01 |        8.95e-02 | 2.00e-01
-[ALS]     2 |      29782 |        5 |       1.12e-01 |        2.42e-02 | 1.80e-01
-[ALS]     3 |      65935 |        7 |       7.19e-02 |        1.47e-02 | 2.58e-01
+[ALS]     1 |       9937 |        3 |       1.04e+00 |        9.39e-02 | 1.03e+00
+[ALS]     2 |      29782 |        5 |       2.35e-01 |        2.79e-02 | 9.74e-02
+[ALS]     3 |      65935 |        7 |       6.80e-02 |        1.36e-02 | 1.05e-01
 [ALS]  ALS complete.
-[DIRT] Iter:  5 | Cum. Fevals: 2.64e+05 | Cum. Time: 5.83e+02 s | DHell: 0.0832 | Beta: 0.2228 | ESS: 0.4822
+[DIRT] Iter:  5 | Cum. Fevals: 2.68e+05 | Cum. Time: 7.78e+02 s | Beta: 0.2339 | DHell: 0.0960 | ESS: 0.4818
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |       1.59e+00 |        1.13e-01 | 8.65e-01
-[ALS]     2 |      29782 |        5 |       1.00e-01 |        3.53e-02 | 9.02e-01
-[ALS]     3 |      65935 |        7 |       6.20e-02 |        1.81e-02 | 7.44e-01
+[ALS]     1 |       9937 |        3 |       1.52e+00 |        1.04e-01 | 9.13e-01
+[ALS]     2 |      29782 |        5 |       9.48e-02 |        2.85e-02 | 2.92e-01
+[ALS]     3 |      65935 |        7 |       4.69e-02 |        1.27e-02 | 5.40e-02
 [ALS]  ALS complete.
-[DIRT] Iter:  6 | Cum. Fevals: 3.30e+05 | Cum. Time: 7.54e+02 s | DHell: 0.0977 | Beta: 0.4411 | ESS: 0.4649
+[DIRT] Iter:  6 | Cum. Fevals: 3.35e+05 | Cum. Time: 1.02e+03 s | Beta: 0.4411 | DHell: 0.1046 | ESS: 0.4618
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |       3.66e+00 |        1.89e-01 | 9.92e-01
-[ALS]     2 |      29782 |        5 |       9.26e-02 |        2.91e-02 | 1.70e-01
-[ALS]     3 |      65935 |        7 |       5.17e-02 |        1.47e-02 | 2.97e-01
+[ALS]     1 |       9937 |        3 |       2.49e+00 |        1.44e-01 | 2.41e+00
+[ALS]     2 |      29782 |        5 |       8.78e-02 |        2.88e-02 | 2.84e-01
+[ALS]     3 |      65935 |        7 |       6.45e-02 |        1.41e-02 | 4.85e-01
 [ALS]  ALS complete.
-[DIRT] Iter:  7 | Cum. Fevals: 3.96e+05 | Cum. Time: 9.23e+02 s | DHell: 0.1111 | Beta: 0.7922 | ESS: 0.4845
+[DIRT] Iter:  7 | Cum. Fevals: 4.02e+05 | Cum. Time: 1.26e+03 s | Beta: 0.7922 | DHell: 0.1211 | ESS: 0.4640
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |       7.48e+00 |        3.24e-01 | 7.56e+03
-[ALS]     2 |      29782 |        5 |       1.13e-01 |        2.76e-02 | 1.15e+04
-[ALS]     3 |      65935 |        7 |       4.07e-02 |        1.41e-02 | 1.13e+04
+[ALS]     1 |       9937 |        3 |       9.35e+00 |        3.94e-01 | 6.40e-01
+[ALS]     2 |      29782 |        5 |       1.43e-01 |        2.97e-02 | 3.33e-01
+[ALS]     3 |      65935 |        7 |       6.37e-02 |        1.89e-02 | 3.85e-01
 [ALS]  ALS complete.
-[DIRT] Iter:  8 | Cum. Fevals: 4.62e+05 | Cum. Time: 1.10e+03 s | DHell: 0.1413 | Beta: 1.0000 | ESS: 0.7592
+[DIRT] Iter:  8 | Cum. Fevals: 4.69e+05 | Cum. Time: 1.56e+03 s | Beta: 1.0000 | DHell: 0.1573 | ESS: 0.6938
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       9937 |        3 |       9.22e-01 |        7.57e-02 | 4.40e-01
-[ALS]     2 |      29782 |        5 |       4.83e-02 |        2.40e-02 | 8.44e-02
-[ALS]     3 |      65935 |        7 |       5.16e-02 |        1.83e-02 | 6.30e-02
+[ALS]     1 |       9937 |        3 |       9.21e-01 |        7.48e-02 | 2.50e-01
+[ALS]     2 |      29782 |        5 |       3.64e-02 |        1.06e-02 | 3.78e-02
+[ALS]     3 |      65935 |        7 |       5.08e-02 |        9.58e-03 | 6.27e-02
 [ALS]  ALS complete.
-[DIRT] DIRT construction complete.
+[DIRT]  • DIRT construction complete.
 [DIRT]  • Layers: 8.
-[DIRT]  • Total function evaluations: 527,480.
-[DIRT]  • Total time: 21.18 mins.
-[DIRT]  • DHell: 0.1568.</code></pre>
+[DIRT]  • Total function evaluations: 535,480.
+[DIRT]  • DHell: 0.1635.
+[DIRT]  • Total time: 31.04 mins.</code></pre>
 </div>
 </div>
 </section>
@@ -761,9 +754,9 @@ Figure&nbsp;2: The true final temperature distribution, <span class="math inline
 <span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Mean IACT (all parameters): </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span>mean()<span class="sc">:.2f}</span><span class="ss">"</span>)</span>
 <span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Maximum IACT (all parameters): </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Acceptance rate: 0.74
-Mean IACT (all parameters): 1.93
-Maximum IACT (all parameters): 2.70</code></pre>
+<pre><code>Acceptance rate: 0.72
+Mean IACT (all parameters): 2.07
+Maximum IACT (all parameters): 2.47</code></pre>
 </div>
 </div>
 <p>For all parameters, the integrated autocorrelation time (IACT) is small, which suggests that the sampler is moving around the posterior efficiently. <a href="#fig-traces" class="quarto-xref">Figure&nbsp;3</a> shows trace plots for the log-posterior density and selected parameters, which reinforces this idea.</p>
@@ -788,7 +781,7 @@ Maximum IACT (all parameters): 2.70</code></pre>
 <div id="fig-traces" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-traces-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="example_inference_files/figure-html/fig-traces-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="720" height="235">
+<img src="example_inference_files/figure-html/fig-traces-output-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-traces-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;3: Trace plots for the negative log-posterior density (left), and coefficients <span class="math inline">\(\xi_{22}\)</span> (centre) and <span class="math inline">\(\xi_{23}\)</span> (right).
@@ -821,7 +814,7 @@ Figure&nbsp;3: Trace plots for the negative log-posterior density (left), and co
 <div id="fig-pairs" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-pairs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="example_inference_files/figure-html/fig-pairs-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="578" height="578">
+<img src="example_inference_files/figure-html/fig-pairs-output-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pairs-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;4: A pair plot showing 1000 samples from the prior and posterior of three selected coefficients, as well as the true values.

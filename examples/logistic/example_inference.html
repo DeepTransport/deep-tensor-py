@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.8.25">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -91,9 +91,9 @@ div.csl-indent {
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-707d8167ce6003fca903bfe2be84ab7f.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../../site_libs/bootstrap/bootstrap-9cfa498d6537bd027cfcd162657848b2.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
@@ -328,8 +328,6 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
-    </a>
     <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">deep_tensor</span>
     </a>
@@ -341,11 +339,11 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="../../index.html" aria-current="page"> 
+    <a class="nav-link" href="../../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="../../examples/index.html"> 
+    <a class="nav-link active" href="../../examples/index.html" aria-current="page"> 
 <span class="menu-text">Examples</span></a>
   </li>  
   <li class="nav-item">
@@ -385,10 +383,6 @@ window.Quarto = {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header sidebar-header-stacked">
-      <a href="../../index.html" class="sidebar-logo-link">
-      </a>
-      </div>
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -551,48 +545,52 @@ f(y_{i}; \boldsymbol{\beta}) = \begin{cases}
 <div id="da69c730" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Tuple</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> optimize</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> Tensor</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.autograd.functional <span class="im">import</span> jacobian, hessian</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.logistic <span class="im">import</span> credit_data</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.plotting <span class="im">import</span> pairplot, set_plot_style</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> optimize</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> Tensor</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.autograd.functional <span class="im">import</span> jacobian, hessian</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.logistic <span class="im">import</span> load_credit_data</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.plotting <span class="im">import</span> pairplot, set_plot_style</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="f634b571" class="cell" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">0</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>torch.set_default_device(<span class="st">"cuda"</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">"cpu"</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>device <span class="op">=</span> torch.device(<span class="st">"cuda"</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">"cpu"</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">0</span>)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<div id="d1d63355" class="cell" data-execution_count="3">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>credit_data <span class="op">=</span> load_credit_data(device)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
 <p>Next, we define a function that returns the negative log-posterior density evaluated at a set of samples.</p>
-<div id="47e67d97" class="cell" data-execution_count="3">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>num_beta <span class="op">=</span> <span class="dv">1</span> <span class="op">+</span> credit_data.X.shape[<span class="dv">1</span>]</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>sd_pri <span class="op">=</span> <span class="fl">10.0</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> neglogpost(bs: Tensor) <span class="op">-&gt;</span> Tensor:</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    bs <span class="op">=</span> torch.atleast_2d(bs)</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    neglogodds <span class="op">=</span> (</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        bs[:, :<span class="dv">1</span>] </span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> torch.<span class="bu">sum</span>(bs[:, <span class="dv">1</span>:, <span class="va">None</span>] <span class="op">*</span> credit_data.X.T[<span class="va">None</span>, ...], dim<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    odds <span class="op">=</span> torch.exp(<span class="op">-</span>neglogodds)</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    neglogliks <span class="op">=</span> (</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">-</span> torch.log(odds <span class="op">/</span> (<span class="fl">1.0</span> <span class="op">+</span> odds))[:, credit_data.y <span class="op">&lt;</span> <span class="fl">0.5</span>].<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>) </span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">-</span> torch.log(<span class="fl">1.0</span> <span class="op">/</span> (<span class="fl">1.0</span> <span class="op">+</span> odds))[:, credit_data.y <span class="op">&gt;</span> <span class="fl">0.5</span>].<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    neglogpris <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> (bs <span class="op">/</span> sd_pri).square().<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> neglogliks <span class="op">+</span> neglogpris <span class="op">-</span> <span class="fl">500.0</span>  <span class="co"># to avoid underflow</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="47e67d97" class="cell" data-execution_count="4">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>num_beta <span class="op">=</span> <span class="dv">1</span> <span class="op">+</span> credit_data.X.shape[<span class="dv">1</span>]</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>sd_pri <span class="op">=</span> <span class="fl">10.0</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> neglogpost(bs: Tensor) <span class="op">-&gt;</span> Tensor:</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    bs <span class="op">=</span> torch.atleast_2d(bs)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    neglogodds <span class="op">=</span> (</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        bs[:, :<span class="dv">1</span>] </span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        <span class="op">+</span> torch.<span class="bu">sum</span>(bs[:, <span class="dv">1</span>:, <span class="va">None</span>] <span class="op">*</span> credit_data.X.T[<span class="va">None</span>, ...], dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    odds <span class="op">=</span> torch.exp(<span class="op">-</span>neglogodds)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    neglogliks <span class="op">=</span> (</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">-</span> torch.log(odds <span class="op">/</span> (<span class="fl">1.0</span> <span class="op">+</span> odds))[:, credit_data.y <span class="op">&lt;</span> <span class="fl">0.5</span>].<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>) </span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">-</span> torch.log(<span class="fl">1.0</span> <span class="op">/</span> (<span class="fl">1.0</span> <span class="op">+</span> odds))[:, credit_data.y <span class="op">&gt;</span> <span class="fl">0.5</span>].<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    neglogpris <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> (bs <span class="op">/</span> sd_pri).square().<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> neglogliks <span class="op">+</span> neglogpris <span class="op">-</span> <span class="fl">500.0</span>  <span class="co"># to avoid underflow</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <section id="constructing-a-laplace-approximation-to-the-posterior" class="level2">
 <h2 class="anchored" data-anchor-id="constructing-a-laplace-approximation-to-the-posterior">Constructing a Laplace Approximation to the Posterior</h2>
 <p>In this example, the posterior is very concentrated relative to the prior, so a DIRT approximation built using a preconditioner that couples the reference density and prior will require a significant amount of computation to construct.</p>
-<p>To reduce the comptuational expense of constructing a DIRT approximation, we will instead compute a Laplace approximation to the posterior and use a coupling between the reference density and this approximation as a preconditioner.</p>
+<p>To reduce the computational expense of constructing a DIRT approximation, we will instead compute a Laplace approximation to the posterior and use a coupling between the reference density and this approximation as a preconditioner.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -607,76 +605,73 @@ Note
 </div>
 </div>
 <p>The code below computes a Laplace approximation to the posterior for the credit problem. The MAP estimate is computed using the optimisation module in <code>scipy</code>, and the Jacobian and Hessian of the negative log-posterior are computed using the automatic differentiation tools in <code>PyTorch</code>. Note that, for this particular problem, experimentation with various starting points for the optimisation suggests that the posterior is unimodal.</p>
-<div id="d1639544" class="cell" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_laplace_approx(x0: Tensor) <span class="op">-&gt;</span> Tuple[Tensor, Tensor]:</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> jac(bs) <span class="op">-&gt;</span> Tensor:</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        bs <span class="op">=</span> torch.from_numpy(bs)  <span class="co"># type: ignore</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> jacobian(<span class="kw">lambda</span> x: neglogpost(x[<span class="va">None</span>, :]), bs).flatten()</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    map_func <span class="op">=</span> <span class="kw">lambda</span> bs: neglogpost(torch.from_numpy(bs))</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> optimize.minimize(map_func, x0, jac<span class="op">=</span>jac)</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> res.success:</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">"MAP optimisation failed to converge."</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">Exception</span>(msg)</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    bs_map <span class="op">=</span> torch.from_numpy(res.x)</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    H <span class="op">=</span> hessian(<span class="kw">lambda</span> x: neglogpost(x[<span class="va">None</span>, :]), bs_map)</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    H_inv <span class="op">=</span> torch.linalg.inv(H)</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> bs_map, H_inv</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>x0 <span class="op">=</span> torch.zeros(num_beta)</span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>bs_map, cov_map <span class="op">=</span> compute_laplace_approx(x0)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="d1639544" class="cell" data-execution_count="5">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_laplace_approx(bs_0: Tensor) <span class="op">-&gt;</span> Tuple[Tensor, Tensor]:</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> map_func(bs: np.ndarray) <span class="op">-&gt;</span> np.ndarray:</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> neglogpost(torch.from_numpy(bs)).numpy()</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> jac(bs: np.ndarray) <span class="op">-&gt;</span> np.ndarray:</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        bs <span class="op">=</span> torch.from_numpy(bs)  <span class="co"># type: ignore</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        J <span class="op">=</span> jacobian(<span class="kw">lambda</span> x: neglogpost(x[<span class="va">None</span>, :]), bs)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> J.flatten().numpy()</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    res <span class="op">=</span> optimize.minimize(map_func, bs_0, jac<span class="op">=</span>jac)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> res.success:</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        msg <span class="op">=</span> <span class="st">"MAP optimisation failed to converge."</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">Exception</span>(msg)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    bs_map <span class="op">=</span> torch.from_numpy(res.x)</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    H <span class="op">=</span> hessian(<span class="kw">lambda</span> x: neglogpost(x[<span class="va">None</span>, :]), bs_map)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    H_inv <span class="op">=</span> torch.linalg.inv(H)</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> bs_map, H_inv</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>bs_0 <span class="op">=</span> torch.zeros((num_beta,), device<span class="op">=</span>device)</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>bs_map, cov_map <span class="op">=</span> compute_laplace_approx(bs_0)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="constructing-a-dirt-approximation-to-the-posterior" class="level2">
 <h2 class="anchored" data-anchor-id="constructing-a-dirt-approximation-to-the-posterior">Constructing a DIRT Approximation to the Posterior</h2>
 <p>We now construct a DIRT approximation to the posterior, using the Laplace approximation as part of the preconditioning mapping.</p>
 <p>We begin by defining the target function.</p>
-<div id="a44d8b40" class="cell" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>target_func <span class="op">=</span> dt.TargetFunc(neglogpost)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="a44d8b40" class="cell" data-execution_count="6">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>target_func <span class="op">=</span> dt.TargetFunc(neglogpost)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Next, we define the preconditioning mapping. We use a coupling between the standard Gaussian density and a Gaussian with mean and covariance corresponding to the Laplace approximation computed previously.</p>
 <p>Note that we have used a relatively large domain when truncating the support of the reference density (and, therefore, the transformation of the reference density under the preconditioning mapping). It is possible that the posterior is more dispersed than the Laplace approximation would suggest; using a large domain reduces the likelihood of excluding any region of high posterior density when computing the DIRT approximation to the posterior.</p>
-<div id="f81968fd" class="cell" data-execution_count="6">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>domain <span class="op">=</span> dt.BoundedDomain(torch.tensor([<span class="op">-</span><span class="fl">5.0</span>, <span class="fl">5.0</span>]))</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference(domain<span class="op">=</span>domain)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.GaussianMapping(bs_map, cov_map, reference)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="f81968fd" class="cell" data-execution_count="7">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>domain <span class="op">=</span> dt.BoundedDomain([<span class="op">-</span><span class="fl">5.0</span>, <span class="fl">5.0</span>])</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference(domain<span class="op">=</span>domain)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.GaussianMapping(bs_map, cov_map, reference)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Next, we specify the functional tensor train that will be used to approximate each layer of the DIRT. We use a piecewise linear basis in each dimension.</p>
-<div id="528c033c" class="cell" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>basis <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">30</span>)</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>bases <span class="op">=</span> dt.ApproxBases(basis, preconditioner.dim)</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    max_als<span class="op">=</span><span class="dv">3</span>, </span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    init_rank<span class="op">=</span><span class="dv">1</span>, </span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    tol_l2_error<span class="op">=</span><span class="fl">0.0</span>, </span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    tol_max_core_error<span class="op">=</span><span class="fl">0.0</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>tt <span class="op">=</span> dt.TT(tt_options)</span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>ftt <span class="op">=</span> dt.FTT(bases, tt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="528c033c" class="cell" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>basis <span class="op">=</span> dt.Lagrange1(num_elems<span class="op">=</span><span class="dv">20</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>bases <span class="op">=</span> dt.ApproxBases(basis, preconditioner.dim)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>tt_options <span class="op">=</span> dt.TTOptions(tt_method<span class="op">=</span><span class="st">"fixed_rank"</span>, max_als<span class="op">=</span><span class="dv">2</span>, init_rank<span class="op">=</span><span class="dv">7</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>tt <span class="op">=</span> dt.TT(tt_options)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>ftt <span class="op">=</span> dt.FTT(bases, tt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Next, we specify the bridging densities to be used when constructing the DIRT. For this example, we will construct the DIRT approximation to the posterior in a single step.</p>
-<div id="4ab1930f" class="cell" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>bridge <span class="op">=</span> dt.SingleLayer()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="4ab1930f" class="cell" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>bridge <span class="op">=</span> dt.SingleLayer()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>Finally, we construct the DIRT approximation to the posterior.</p>
-<div id="0f43cbcf" class="cell" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(target_func, preconditioner, ftt, bridge)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="0f43cbcf" class="cell" data-execution_count="10">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(target_func, preconditioner, ftt, bridge)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 5.90e-02 s
+<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 1.39e-01 s
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |      10455 |        3 |       1.00e+00 |        1.00e+00 | 6.51e-02
-[ALS]     2 |      31442 |        5 |       9.73e-02 |        2.33e-02 | 5.00e-01
-[ALS]     3 |      69665 |        7 |       1.35e-02 |        4.46e-03 | 3.63e-01
+[ALS]     1 |      24961 |        7 |       1.00e+00 |        1.00e+00 | 3.77e-01
+[ALS]     2 |      48922 |        7 |       4.57e-02 |        1.16e-02 | 4.97e-01
 [ALS]  ALS complete.
-[DIRT] DIRT construction complete.
+[DIRT]  • DIRT construction complete.
 [DIRT]  • Layers: 1.
-[DIRT]  • Total function evaluations: 69,665.
-[DIRT]  • Total time: 5.64 secs.
-[DIRT]  • DHell: 0.0645.</code></pre>
+[DIRT]  • Total function evaluations: 49,922.
+[DIRT]  • DHell: 0.0604.
+[DIRT]  • Total time: 4.97 secs.</code></pre>
 </div>
 </div>
 </section>
@@ -684,70 +679,72 @@ Note
 <h2 class="anchored" data-anchor-id="debiasing">Debiasing</h2>
 <p>Now, we evaluate the accuracy of the Laplace approximation to the posterior, and the DIRT approximation, by using each to generate proposals for an independence MCMC sampler.</p>
 <p>First, we consider the Laplace approximation.</p>
-<div id="ab7eeeb1" class="cell" data-execution_count="10">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>num_steps <span class="op">=</span> <span class="dv">10_000</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>laplace_approx <span class="op">=</span> torch.distributions.MultivariateNormal(bs_map.flatten(), cov_map)</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>samples_laplace <span class="op">=</span> laplace_approx.sample((num_steps,))</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>potentials_laplace <span class="op">=</span> <span class="op">-</span>laplace_approx.log_prob(samples_laplace)</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>potentials_true <span class="op">=</span> neglogpost(samples_laplace)</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_independence_sampler(</span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    samples_laplace, </span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    potentials_laplace, </span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    potentials_true</span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Acceptance rate: </span><span class="sc">{</span>res<span class="sc">.</span>acceptance_rate<span class="sc">:.2f}</span><span class="ss">."</span>)</span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Mean IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span>mean()<span class="sc">:.2f}</span><span class="ss">."</span>)</span>
-<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Max IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2f}</span><span class="ss">."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="ab7eeeb1" class="cell" data-execution_count="11">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.distributions <span class="im">import</span> MultivariateNormal</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>num_steps <span class="op">=</span> <span class="dv">10_000</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>laplace_approx <span class="op">=</span> MultivariateNormal(bs_map.flatten(), cov_map)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>samples_laplace <span class="op">=</span> laplace_approx.sample((num_steps,)).to(device)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>potentials_laplace <span class="op">=</span> <span class="op">-</span>laplace_approx.log_prob(samples_laplace)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>potentials_true <span class="op">=</span> neglogpost(samples_laplace)</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_independence_sampler(</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    samples_laplace, </span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    potentials_laplace, </span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    potentials_true</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Acceptance rate: </span><span class="sc">{</span>res<span class="sc">.</span>acceptance_rate<span class="sc">:.2f}</span><span class="ss">."</span>)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Mean IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span>mean()<span class="sc">:.2f}</span><span class="ss">."</span>)</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Max IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2f}</span><span class="ss">."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Acceptance rate: 0.69.
-Mean IACT: 2.81.
-Max IACT: 4.01.</code></pre>
+<pre><code>Acceptance rate: 0.68.
+Mean IACT: 2.74.
+Max IACT: 3.91.</code></pre>
 </div>
 </div>
 <p>These results suggest that the Laplace approximation is a reasonably good approximation to the posterior on its own.</p>
 <p>We now repeat the same analysis using the DIRT approximation to the posterior as the proposal density.</p>
-<div id="df6709f9" class="cell" data-execution_count="11">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>num_steps <span class="op">=</span> <span class="dv">10_000</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> dirt.reference.random(n<span class="op">=</span>num_steps, d<span class="op">=</span>dirt.dim)</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>samples_dirt, potentials_dirt <span class="op">=</span> dirt.eval_irt(rs)</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>potentials_true <span class="op">=</span> neglogpost(samples_dirt)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_independence_sampler(</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    samples_dirt, </span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    potentials_dirt, </span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    potentials_true</span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Acceptance rate: </span><span class="sc">{</span>res<span class="sc">.</span>acceptance_rate<span class="sc">:.2f}</span><span class="ss">."</span>)</span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Mean IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span>mean()<span class="sc">:.2f}</span><span class="ss">."</span>)</span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Max IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2f}</span><span class="ss">."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="df6709f9" class="cell" data-execution_count="12">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>num_steps <span class="op">=</span> <span class="dv">10_000</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>rs <span class="op">=</span> dirt.reference.random(n<span class="op">=</span>num_steps, d<span class="op">=</span>dirt.dim, device<span class="op">=</span>device)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>samples_dirt, potentials_dirt <span class="op">=</span> dirt.eval_irt(rs)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>potentials_true <span class="op">=</span> neglogpost(samples_dirt)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> dt.run_independence_sampler(</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    samples_dirt, </span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    potentials_dirt, </span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    potentials_true</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Acceptance rate: </span><span class="sc">{</span>res<span class="sc">.</span>acceptance_rate<span class="sc">:.2f}</span><span class="ss">."</span>)</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Mean IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span>mean()<span class="sc">:.2f}</span><span class="ss">."</span>)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Max IACT: </span><span class="sc">{</span>res<span class="sc">.</span>iacts<span class="sc">.</span><span class="bu">max</span>()<span class="sc">:.2f}</span><span class="ss">."</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Acceptance rate: 0.90.
-Mean IACT: 1.29.
-Max IACT: 1.51.</code></pre>
+<pre><code>Acceptance rate: 0.91.
+Mean IACT: 1.26.
+Max IACT: 1.38.</code></pre>
 </div>
 </div>
 <p>These results suggest that the efficiency of the independence sampler improves significantly when the DIRT approximation to the posterior is used as the proposal density (of course, the DIRT density has a significantly greater construction cost than the Laplace approximation, which should also be considered).</p>
 <p><a href="#fig-samples" class="quarto-xref">Figure&nbsp;1</a> shows a set of samples from the posterior for the first four model parameters (in particular, note that the posterior is highly concentrated relative to the prior).</p>
-<div id="cell-fig-samples" class="cell" data-execution_count="12">
+<div id="cell-fig-samples" class="cell" data-execution_count="13">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>num_beta_plot <span class="op">=</span> <span class="dv">4</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>num_thin <span class="op">=</span> <span class="dv">10</span>  <span class="co"># take every nth sample</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>samples_thinned <span class="op">=</span> samples_dirt[::num_thin, :num_beta_plot]</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="vs">r"</span><span class="dv">$\b</span><span class="vs">eta_{"</span><span class="op">+</span><span class="ss">f"</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">"</span><span class="op">+</span><span class="vs">r"}</span><span class="dv">$</span><span class="vs">"</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(num_beta_plot)]</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>pairplot(samples_thinned, labels<span class="op">=</span>labels)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>num_beta_plot <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>num_thin <span class="op">=</span> <span class="dv">10</span>  <span class="co"># take every nth sample</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>samples_thinned <span class="op">=</span> samples_dirt[::num_thin, :num_beta_plot]</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="vs">r"</span><span class="dv">$\b</span><span class="vs">eta_{"</span><span class="op">+</span><span class="ss">f"</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">"</span><span class="op">+</span><span class="vs">r"}</span><span class="dv">$</span><span class="vs">"</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(num_beta_plot)]</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>pairplot(samples_thinned, labels<span class="op">=</span>labels)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-display">
 <div id="fig-samples" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-samples-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="example_inference_files/figure-html/fig-samples-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="674" height="671">
+<img src="example_inference_files/figure-html/fig-samples-output-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-samples-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1: A pair plot showing samples from the posterior.

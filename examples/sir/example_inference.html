@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.8.25">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -91,9 +91,9 @@ div.csl-indent {
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-707d8167ce6003fca903bfe2be84ab7f.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../../site_libs/bootstrap/bootstrap-9cfa498d6537bd027cfcd162657848b2.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
@@ -328,8 +328,6 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
-    </a>
     <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">deep_tensor</span>
     </a>
@@ -341,11 +339,11 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="../../index.html" aria-current="page"> 
+    <a class="nav-link" href="../../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="../../examples/index.html"> 
+    <a class="nav-link active" href="../../examples/index.html" aria-current="page"> 
 <span class="menu-text">Examples</span></a>
   </li>  
   <li class="nav-item">
@@ -385,10 +383,6 @@ window.Quarto = {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header sidebar-header-stacked">
-      <a href="../../index.html" class="sidebar-logo-link">
-      </a>
-      </div>
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -538,14 +532,15 @@ window.Quarto = {
 <div id="cell-1" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.sir <span class="im">import</span> SIRModel</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.plotting <span class="im">import</span> add_arrows, set_plot_style</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch <span class="im">import</span> Tensor</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> deep_tensor <span class="im">as</span> dt</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.sir <span class="im">import</span> SIRModel</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> examples.plotting <span class="im">import</span> add_arrows, set_plot_style</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="cell-2" class="cell" data-execution_count="2">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">1</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>torch.set_default_device(<span class="st">"cuda"</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">"cpu"</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>device <span class="op">=</span> torch.device(<span class="st">"cuda"</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">"cpu"</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">1</span>)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div id="cell-3" class="cell" data-execution_count="3">
@@ -553,7 +548,7 @@ window.Quarto = {
 </div>
 <p>Next, we generate some synthetic observations. We will assume that the true values of the parameters are <span class="math inline">\((\beta, \gamma) = (0.1, 1.0)\)</span>.</p>
 <div id="cell-5" class="cell" data-execution_count="4">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>xs_true <span class="op">=</span> torch.tensor([[<span class="fl">0.1</span>, <span class="fl">1.0</span>]])</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>xs_true <span class="op">=</span> torch.tensor([[<span class="fl">0.1</span>, <span class="fl">1.0</span>]], device<span class="op">=</span>device)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>ys_true <span class="op">=</span> model.solve(xs_true)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>noise <span class="op">=</span> torch.randn_like(ys_true)</span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>ys_obs <span class="op">=</span> ys_true <span class="op">+</span> noise</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -579,7 +574,7 @@ Note
 </div>
 <p>In this example, we will restrict the DIRT approximation to the posterior to the support of the prior, which is uniform. Therefore, the function we define only needs to return the negative log-likelihood of each sample.</p>
 <div id="cell-7" class="cell" data-execution_count="5">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> neglogpost(xs: torch.Tensor) <span class="op">-&gt;</span> torch.Tensor:</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> neglogpost(xs: Tensor) <span class="op">-&gt;</span> Tensor:</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    ys <span class="op">=</span> model.solve(xs)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    neglogliks <span class="op">=</span> <span class="fl">0.5</span> <span class="op">*</span> (ys <span class="op">-</span> ys_obs).square().<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> neglogliks</span>
@@ -603,52 +598,52 @@ Note
 <p>Next, we construct a functional tensor train (FTT) object, which will be used to approximate each of the layers of the DIRT.</p>
 <p>The FTT requires a set of the basis functions. We can specify a list of bases in each dimension, or a single basis (which will be used in all dimensions). Here, we use a basis comprised of Legendre polynomials with a maximum degree of 30 in each dimension.</p>
 <div id="cell-11" class="cell" data-execution_count="7">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>basis <span class="op">=</span> dt.Legendre(order<span class="op">=</span><span class="dv">30</span>)</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>basis <span class="op">=</span> dt.Legendre(order<span class="op">=</span><span class="dv">30</span>, device<span class="op">=</span>device)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>bases <span class="op">=</span> dt.ApproxBases(basis, dim<span class="op">=</span><span class="dv">2</span>)</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>tt <span class="op">=</span> dt.TT()</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>ftt <span class="op">=</span> dt.FTT(bases, tt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>tt <span class="op">=</span> dt.TT(device<span class="op">=</span>device)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>ftt <span class="op">=</span> dt.FTT(bases, tt, device<span class="op">=</span>device)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="dirt-approximation" class="level3">
 <h3 class="anchored" data-anchor-id="dirt-approximation">DIRT Approximation</h3>
 <p>Now we can construct the DIRT approximation to the posterior.</p>
 <div id="cell-13" class="cell" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(target_func, preconditioner, ftt)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(target_func, preconditioner, ftt, device<span class="op">=</span>device)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 3.00e-01 s | DHell: 0.0000 | Beta: 0.0001 | ESS: 0.9762
+<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 4.03e-01 s | Beta: 0.0001 | DHell: 0.0000 | ESS: 0.9762
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
 [ALS]     1 |       2364 |       22 |       1.00e+00 |        1.00e+00 | 2.05e-03
 [ALS]  ALS complete.
-[DIRT] Iter:  2 | Cum. Fevals: 2.36e+03 | Cum. Time: 1.99e+00 s | DHell: 0.0013 | Beta: 0.0039 | ESS: 0.4918
+[DIRT] Iter:  2 | Cum. Fevals: 3.36e+03 | Cum. Time: 3.52e+00 s | Beta: 0.0039 | DHell: 0.0013 | ESS: 0.4918
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
 [ALS]     1 |       2364 |       22 |       6.56e-01 |        3.31e-01 | 5.46e-02
 [ALS]  ALS complete.
-[DIRT] Iter:  3 | Cum. Fevals: 4.73e+03 | Cum. Time: 3.57e+00 s | DHell: 0.0345 | Beta: 0.0236 | ESS: 0.4884
+[DIRT] Iter:  3 | Cum. Fevals: 6.73e+03 | Cum. Time: 5.21e+00 s | Beta: 0.0236 | DHell: 0.0345 | ESS: 0.4884
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
 [ALS]     1 |       2364 |       22 |       2.73e-01 |        1.36e-01 | 2.21e-02
 [ALS]  ALS complete.
-[DIRT] Iter:  4 | Cum. Fevals: 7.09e+03 | Cum. Time: 5.00e+00 s | DHell: 0.0230 | Beta: 0.0725 | ESS: 0.4881
+[DIRT] Iter:  4 | Cum. Fevals: 1.01e+04 | Cum. Time: 9.88e+00 s | Beta: 0.0725 | DHell: 0.0230 | ESS: 0.4881
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
 [ALS]     1 |       2364 |       22 |       4.59e-01 |        2.37e-01 | 1.70e-02
 [ALS]  ALS complete.
-[DIRT] Iter:  5 | Cum. Fevals: 9.46e+03 | Cum. Time: 5.85e+00 s | DHell: 0.0168 | Beta: 0.1583 | ESS: 0.4873
+[DIRT] Iter:  5 | Cum. Fevals: 1.35e+04 | Cum. Time: 1.10e+01 s | Beta: 0.1583 | DHell: 0.0168 | ESS: 0.4873
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
 [ALS]     1 |       2364 |       22 |       3.50e-01 |        1.75e-01 | 8.62e-03
 [ALS]  ALS complete.
-[DIRT] Iter:  6 | Cum. Fevals: 1.18e+04 | Cum. Time: 6.91e+00 s | DHell: 0.0165 | Beta: 0.4863 | ESS: 0.4989
+[DIRT] Iter:  6 | Cum. Fevals: 1.68e+04 | Cum. Time: 1.28e+01 s | Beta: 0.4863 | DHell: 0.0165 | ESS: 0.4989
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
-[ALS]     1 |       2364 |       22 |       5.87e-01 |        4.90e-01 | 2.07e-03
+[ALS]     1 |       2364 |       22 |       5.87e-01 |        5.14e-01 | 2.07e-03
 [ALS]  ALS complete.
-[DIRT] Iter:  7 | Cum. Fevals: 1.42e+04 | Cum. Time: 7.95e+00 s | DHell: 0.0094 | Beta: 1.0000 | ESS: 0.7456
+[DIRT] Iter:  7 | Cum. Fevals: 2.02e+04 | Cum. Time: 1.44e+01 s | Beta: 1.0000 | DHell: 0.0094 | ESS: 0.7456
 [ALS]  Iter | Func Evals | Max Rank | Max Core Error | Mean Core Error | L2 Error
 [ALS]     1 |       2364 |       22 |       5.34e-01 |        2.67e-01 | 8.31e-03
 [ALS]  ALS complete.
-[DIRT] DIRT construction complete.
+[DIRT]  • DIRT construction complete.
 [DIRT]  • Layers: 7.
-[DIRT]  • Total function evaluations: 16,548.
-[DIRT]  • Total time: 9.78 secs.
-[DIRT]  • DHell: 0.0086.</code></pre>
+[DIRT]  • Total function evaluations: 23,548.
+[DIRT]  • DHell: 0.0086.
+[DIRT]  • Total time: 15.27 secs.</code></pre>
 </div>
 </div>
 <p>Observe that a set of diagnostic information is printed at each stage of DIRT construction.</p>
@@ -664,9 +659,9 @@ Note
 <div id="cell-15" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define grid to evaluate potential function on</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>n_grid <span class="op">=</span> <span class="dv">200</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>beta_grid <span class="op">=</span> torch.linspace(<span class="fl">0.05</span>, <span class="fl">0.14</span>, n_grid)</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>gamma_grid <span class="op">=</span> torch.linspace(<span class="fl">0.80</span>, <span class="fl">1.40</span>, n_grid)</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>grid <span class="op">=</span> torch.tensor([[b, g] <span class="cf">for</span> g <span class="kw">in</span> gamma_grid <span class="cf">for</span> b <span class="kw">in</span> beta_grid])</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>beta_grid <span class="op">=</span> torch.linspace(<span class="fl">0.05</span>, <span class="fl">0.14</span>, n_grid, device<span class="op">=</span>device)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>gamma_grid <span class="op">=</span> torch.linspace(<span class="fl">0.80</span>, <span class="fl">1.40</span>, n_grid, device<span class="op">=</span>device)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>grid <span class="op">=</span> torch.tensor([[b, g] <span class="cf">for</span> g <span class="kw">in</span> gamma_grid <span class="cf">for</span> b <span class="kw">in</span> beta_grid], device<span class="op">=</span>device)</span>
 <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate potential function</span></span>
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>potentials_grid <span class="op">=</span> dirt.eval_potential(grid)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -703,7 +698,7 @@ Note
 <div id="fig-post" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-post-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="example_inference_files/figure-html/fig-post-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="668" height="342">
+<img src="example_inference_files/figure-html/fig-post-output-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-post-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1: A comparison between the true posterior density (left) and the DIRT approximation (right).
@@ -735,7 +730,7 @@ Figure&nbsp;1: A comparison between the true posterior density (left) and the DI
 <div id="fig-samples" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-samples-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="example_inference_files/figure-html/fig-samples-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="348" height="336">
+<img src="example_inference_files/figure-html/fig-samples-output-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-samples-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;2: Samples from the DIRT approximation to the posterior.
@@ -751,7 +746,7 @@ Figure&nbsp;2: Samples from the DIRT approximation to the posterior.
 <p>The below code generates a set of samples from the marginal density of parameter <span class="math inline">\(\beta\)</span>, and evaluates the marginal density on a grid of <span class="math inline">\(\beta\)</span> values.</p>
 <div id="cell-23" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate marginal samples of parameter beta</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>rs_beta <span class="op">=</span> dirt.reference.random(n<span class="op">=</span><span class="dv">1000</span>, d<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>rs_beta <span class="op">=</span> dirt.reference.random(n<span class="op">=</span><span class="dv">1000</span>, d<span class="op">=</span><span class="dv">1</span>, device<span class="op">=</span>device)</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>samples_beta, potentials_beta <span class="op">=</span> dirt.eval_irt(rs_beta, subset<span class="op">=</span><span class="st">"first"</span>)</span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate marginal potential on the grid of beta values defined previously</span></span>
@@ -781,7 +776,7 @@ Figure&nbsp;2: Samples from the DIRT approximation to the posterior.
 <div id="fig-marginal" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-marginal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="example_inference_files/figure-html/fig-marginal-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="494" height="336">
+<img src="example_inference_files/figure-html/fig-marginal-output-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-marginal-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;3: A comparison between the true marginal density of <span class="math inline">\(\beta\)</span> and the DIRT approximation.
@@ -797,14 +792,14 @@ Figure&nbsp;3: A comparison between the true marginal density of <span class="ma
 <p>The below code generates a set of samples from the density of <span class="math inline">\(\gamma\)</span> conditioned on a value of <span class="math inline">\(\beta=0.1\)</span>, and evaluates the conditional density on a grid of <span class="math inline">\(\gamma\)</span> values.</p>
 <div id="cell-27" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define beta value to condition on</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>beta_cond <span class="op">=</span> torch.tensor([[<span class="fl">0.10</span>]])</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>beta_cond <span class="op">=</span> torch.tensor([[<span class="fl">0.10</span>]], device<span class="op">=</span>device)</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate conditional samples of gamma</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>rs_cond <span class="op">=</span> dirt.reference.random(n<span class="op">=</span><span class="dv">1000</span>, d<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>rs_cond <span class="op">=</span> dirt.reference.random(n<span class="op">=</span><span class="dv">1000</span>, d<span class="op">=</span><span class="dv">1</span>, device<span class="op">=</span>device)</span>
 <span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>samples_gamma, potentials_gamma <span class="op">=</span> dirt.eval_cirt(beta_cond, rs_cond, subset<span class="op">=</span><span class="st">"first"</span>)</span>
 <span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluate conditional potential on a grid of gamma values</span></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>gamma_grid <span class="op">=</span> torch.linspace(<span class="fl">0.9</span>, <span class="fl">1.1</span>, <span class="dv">200</span>)[:, <span class="va">None</span>]</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>gamma_grid <span class="op">=</span> torch.linspace(<span class="fl">0.9</span>, <span class="fl">1.1</span>, <span class="dv">200</span>, device<span class="op">=</span>device)[:, <span class="va">None</span>]</span>
 <span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>potentials_grid <span class="op">=</span> dirt.eval_potential_cond(beta_cond, gamma_grid, subset<span class="op">=</span><span class="st">"first"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p><a href="#fig-conditional" class="quarto-xref">Figure&nbsp;4</a> plots the conditional samples of <span class="math inline">\(\gamma\)</span>, and provides a comparison between the DIRT approximation to the conditional density and the true density.</p>
@@ -839,7 +834,7 @@ Figure&nbsp;3: A comparison between the true marginal density of <span class="ma
 <div id="fig-conditional" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-conditional-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="example_inference_files/figure-html/fig-conditional-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="504" height="336">
+<img src="example_inference_files/figure-html/fig-conditional-output-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-conditional-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;4: A comparison between the true conditional density of <span class="math inline">\(\gamma | \beta = 0.1\)</span> and the DIRT approximation.

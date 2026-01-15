@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.8.25">
+<meta name="generator" content="quarto-1.8.26">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -91,9 +91,9 @@ div.csl-indent {
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-707d8167ce6003fca903bfe2be84ab7f.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-dark-b758ccaa5987ceb1b75504551e579abf.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="../../site_libs/bootstrap/bootstrap-9cfa498d6537bd027cfcd162657848b2.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
@@ -328,8 +328,6 @@ window.Quarto = {
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
-    <a href="../../index.html" class="navbar-brand navbar-brand-logo">
-    </a>
     <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">deep_tensor</span>
     </a>
@@ -341,11 +339,11 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link active" href="../../index.html" aria-current="page"> 
+    <a class="nav-link" href="../../index.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="../../examples/index.html"> 
+    <a class="nav-link active" href="../../examples/index.html" aria-current="page"> 
 <span class="menu-text">Examples</span></a>
   </li>  
   <li class="nav-item">
@@ -385,10 +383,6 @@ window.Quarto = {
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
-    <div class="pt-lg-2 mt-2 text-left sidebar-header sidebar-header-stacked">
-      <a href="../../index.html" class="sidebar-logo-link">
-      </a>
-      </div>
     <div class="sidebar-menu-container"> 
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
@@ -560,8 +554,7 @@ window.Quarto = {
 </div>
 <div id="cell-2" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">0</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>torch.set_default_device(<span class="st">"cuda"</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">"cpu"</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>set_plot_style()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p>We begin by defining the prior density and forward model. Note that in this example, the forward model is written in <a href="https://fenicsproject.org/download/archive/">FEniCS</a> and discretised on a <span class="math inline">\(32 \times 32\)</span> mesh.</p>
 <div id="cell-4" class="cell" data-execution_count="3">
@@ -602,7 +595,7 @@ window.Quarto = {
 <div id="fig-prior-samples" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-prior-samples-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="example_amortised_files/figure-html/fig-prior-samples-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="638" height="569">
+<img src="example_amortised_files/figure-html/fig-prior-samples-output-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-prior-samples-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1: Samples of <span class="math inline">\(\log(\kappa(\boldsymbol{x}))\)</span> drawn from the prior. The crosses in each plot show the centres of the kernel functions used when defining the prior.
@@ -663,7 +656,7 @@ Figure&nbsp;1: Samples of <span class="math inline">\(\log(\kappa(\boldsymbol{x}
 <div id="fig-joint-samples" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-joint-samples-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="example_amortised_files/figure-html/fig-joint-samples-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="674" height="673">
+<img src="example_amortised_files/figure-html/fig-joint-samples-output-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-joint-samples-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;2: Samples of the observations, <span class="math inline">\(\{y_{i}\}_{i=1}^{4}\)</span>, and the first two parameters, <span class="math inline">\(\{\xi_{i}\}_{i=1}^{2}\)</span>, drawn from the joint density.
@@ -678,7 +671,7 @@ Figure&nbsp;2: Samples of the observations, <span class="math inline">\(\{y_{i}\
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>cov_joint <span class="op">=</span> joint_samples.T.cov()</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>dim_joint <span class="op">=</span> mean_joint.numel()</span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>domain <span class="op">=</span> dt.BoundedDomain(bounds<span class="op">=</span>torch.tensor([<span class="op">-</span><span class="fl">5.0</span>, <span class="fl">5.0</span>]))</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>domain <span class="op">=</span> dt.BoundedDomain([<span class="op">-</span><span class="fl">5.0</span>, <span class="fl">5.0</span>])</span>
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>reference <span class="op">=</span> dt.GaussianReference(domain)</span>
 <span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>preconditioner <span class="op">=</span> dt.GaussianMapping(mean_joint, cov_joint, reference)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -705,21 +698,21 @@ Figure&nbsp;2: Samples of the observations, <span class="math inline">\(\{y_{i}\
 <div id="cell-19" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>dirt <span class="op">=</span> dt.DIRT(target_func, preconditioner, ftt, bridge)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 2.20e+00 s | DHell: 0.0000 | Beta: 0.0010 | ESS: 1.0000
-[DIRT] Iter:  2 | Cum. Fevals: 1.87e+04 | Cum. Time: 4.79e+01 s | DHell: 0.0006 | Beta: 0.0022 | ESS: 1.0000
-[DIRT] Iter:  3 | Cum. Fevals: 3.74e+04 | Cum. Time: 9.47e+01 s | DHell: 0.0008 | Beta: 0.0046 | ESS: 1.0000
-[DIRT] Iter:  4 | Cum. Fevals: 5.61e+04 | Cum. Time: 1.42e+02 s | DHell: 0.0013 | Beta: 0.0100 | ESS: 0.9999
-[DIRT] Iter:  5 | Cum. Fevals: 7.48e+04 | Cum. Time: 1.91e+02 s | DHell: 0.0027 | Beta: 0.0215 | ESS: 0.9996
-[DIRT] Iter:  6 | Cum. Fevals: 9.35e+04 | Cum. Time: 2.40e+02 s | DHell: 0.0059 | Beta: 0.0464 | ESS: 0.9980
-[DIRT] Iter:  7 | Cum. Fevals: 1.12e+05 | Cum. Time: 2.91e+02 s | DHell: 0.0097 | Beta: 0.1000 | ESS: 0.9931
-[DIRT] Iter:  8 | Cum. Fevals: 1.31e+05 | Cum. Time: 3.43e+02 s | DHell: 0.0195 | Beta: 0.2154 | ESS: 0.9763
-[DIRT] Iter:  9 | Cum. Fevals: 1.50e+05 | Cum. Time: 3.97e+02 s | DHell: 0.0400 | Beta: 0.4642 | ESS: 0.9181
-[DIRT] Iter: 10 | Cum. Fevals: 1.68e+05 | Cum. Time: 4.52e+02 s | DHell: 0.0749 | Beta: 1.0000 | ESS: 0.7333
-[DIRT] DIRT construction complete.
+<pre><code>[DIRT] Iter:  1 | Cum. Fevals: 0.00e+00 | Cum. Time: 3.52e+00 s | Beta: 0.0010 | DHell: 0.0000 | ESS: 1.0000
+[DIRT] Iter:  2 | Cum. Fevals: 1.97e+04 | Cum. Time: 7.75e+01 s | Beta: 0.0022 | DHell: 0.0006 | ESS: 1.0000
+[DIRT] Iter:  3 | Cum. Fevals: 3.94e+04 | Cum. Time: 1.51e+02 s | Beta: 0.0046 | DHell: 0.0008 | ESS: 1.0000
+[DIRT] Iter:  4 | Cum. Fevals: 5.91e+04 | Cum. Time: 2.26e+02 s | Beta: 0.0100 | DHell: 0.0013 | ESS: 0.9999
+[DIRT] Iter:  5 | Cum. Fevals: 7.88e+04 | Cum. Time: 3.08e+02 s | Beta: 0.0215 | DHell: 0.0027 | ESS: 0.9996
+[DIRT] Iter:  6 | Cum. Fevals: 9.85e+04 | Cum. Time: 3.87e+02 s | Beta: 0.0464 | DHell: 0.0059 | ESS: 0.9980
+[DIRT] Iter:  7 | Cum. Fevals: 1.18e+05 | Cum. Time: 4.82e+02 s | Beta: 0.1000 | DHell: 0.0097 | ESS: 0.9931
+[DIRT] Iter:  8 | Cum. Fevals: 1.38e+05 | Cum. Time: 5.71e+02 s | Beta: 0.2154 | DHell: 0.0195 | ESS: 0.9763
+[DIRT] Iter:  9 | Cum. Fevals: 1.58e+05 | Cum. Time: 6.68e+02 s | Beta: 0.4642 | DHell: 0.0400 | ESS: 0.9181
+[DIRT] Iter: 10 | Cum. Fevals: 1.77e+05 | Cum. Time: 7.88e+02 s | Beta: 1.0000 | DHell: 0.0749 | ESS: 0.7333
+[DIRT]  • DIRT construction complete.
 [DIRT]  • Layers: 10.
-[DIRT]  • Total function evaluations: 186,960.
-[DIRT]  • Total time: 8.46 mins.
-[DIRT]  • DHell: 0.1643.</code></pre>
+[DIRT]  • Total function evaluations: 196,960.
+[DIRT]  • DHell: 0.1643.
+[DIRT]  • Total time: 15.12 mins.</code></pre>
 </div>
 </div>
 </section>
@@ -830,7 +823,7 @@ Max IACT: 2.30.</code></pre>
 <div id="fig-diagnostics" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-align="center">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-diagnostics-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="example_amortised_files/figure-html/fig-diagnostics-output-1.png" class="quarto-figure quarto-figure-center figure-img" width="672" height="239">
+<img src="example_amortised_files/figure-html/fig-diagnostics-output-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-diagnostics-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;3: The acceptance rate, mean IACT and maximum IACT (across all parameters) for independence MCMC samplers using the conditional DIRT density as the proposal, for 30 random realisations of data.
