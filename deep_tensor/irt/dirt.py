@@ -46,7 +46,7 @@ class DIRT():
         ftt: FTT, 
         bridge: Bridge | None = None,
         options: DIRTOptions | None = None,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ):
 
         if not isinstance(target_func, TargetFunc):
@@ -121,7 +121,8 @@ class DIRT():
         where rs is a set of samples from the reference domain.
         """
         us, neglogfus_dirt = self._eval_irt_reference(rs)
-        neglogratios = self.bridge.ratio_func(self.ratio_type, rs, us, neglogfus_dirt)
+        neglogratios = self.bridge.ratio_func(self.ratio_type, 
+                                              rs, us, neglogfus_dirt)
         return neglogratios
 
     def _get_new_layer(self) -> SIRT:
@@ -234,7 +235,7 @@ class DIRT():
         """
         
         rs = us.clone()
-        neglogfus = torch.zeros(rs.shape[0])
+        neglogfus = torch.zeros(rs.shape[0], device=self.device)
 
         for i in range(num_layers):
             zs = self.sirts[i]._eval_rt(rs, subset)
@@ -443,10 +444,9 @@ class DIRT():
         
         ys = torch.atleast_2d(ys)
         rs = torch.atleast_2d(rs)
-        rs = self.reference._project_to_domain(rs)
-
         n_rs, d_rs = rs.shape
         n_ys, d_ys = ys.shape
+        rs = self.reference._project_to_domain(rs)
 
         if d_rs == 0 or d_ys == 0:
             msg = "The dimensions of both 'ys' and 'rs' must be at least 1."
@@ -467,11 +467,11 @@ class DIRT():
         subset = self._parse_subset(subset)
         direction = SUBSET2DIRECTION[subset]
         if direction == Direction.FORWARD:
-            inds_y = torch.arange(d_ys)
-            inds_x = torch.arange(d_ys, self.dim)
+            inds_y = torch.arange(d_ys, device=self.device)
+            inds_x = torch.arange(d_ys, self.dim, device=self.device)
         else:
-            inds_y = torch.arange(d_rs, self.dim)
-            inds_x = torch.arange(d_rs)
+            inds_y = torch.arange(d_rs, self.dim, device=self.device)
+            inds_x = torch.arange(d_rs, device=self.device)
         
         # Evaluate marginal RT
         rs_y, neglogfys = self.eval_rt(ys, subset, num_layers)
@@ -669,7 +669,8 @@ class DIRT():
             (`subset='last'`).
         num_layers:
             The number of layers of the current DIRT construction to 
-            use. If not specified, all 
+            use. If not specified, all layers will be used when 
+            evaluating the density function.
 
         Returns
         -------
@@ -801,6 +802,7 @@ class DIRT():
 
         """
 
+        xs = xs.to(self.device)
         n_xs, d_xs = xs.shape
 
         def _eval_rt(xs: Tensor) -> Tensor:
@@ -851,6 +853,7 @@ class DIRT():
 
         """
 
+        rs = rs.to(self.device)
         n_rs, d_rs = rs.shape
 
         def _eval_irt(rs: Tensor) -> Tensor:
@@ -912,10 +915,11 @@ class DIRTMapping(Preconditioner):
     dirt: 
         A previously constructed DIRT object.
     
-    TODO: it could make sense to have a function which returns Q and 
-    neglogdet_Q together, etc. Otherwise the RT/IRT functions will be 
-    called 2x more than necessary.
     """
+
+    # TODO: it could make sense to have a function which returns Q and 
+    # neglogdet_Q together, etc. Otherwise the RT/IRT functions will be 
+    # called 2x more than necessary.
 
     def __init__(self, dirt: DIRT):
         self.dirt = dirt

@@ -1,7 +1,7 @@
 # TT { #deep_tensor.TT }
 
 ```python
-TT(self, options: TTOptions | None = None)
+TT(options: TTOptions | None = None, device: torch.device = torch.device('cpu'))
 ```
 
 A tensor train factorisation.

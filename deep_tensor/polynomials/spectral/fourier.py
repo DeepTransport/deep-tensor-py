@@ -37,7 +37,7 @@ class Fourier(Spectral):
     def __init__(
         self, 
         order: int, 
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ):
 
         self.order = order 

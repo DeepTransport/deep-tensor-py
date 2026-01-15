@@ -18,7 +18,7 @@ class Piecewise(Basis1D, abc.ABC):
         self.order = order 
         self.num_elems = num_elems
         self.device = device
-        self.grid = torch.linspace(self.domain[0], self.domain[1], num_elems+1, device=self.device)
+        self.grid = torch.linspace(-1.0, 1.0, num_elems+1, device=self.device)
         self.elem_size = self.grid[1] - self.grid[0]
         self.domain_size = float(self.domain[1] - self.domain[0])
         return

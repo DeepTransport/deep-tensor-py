@@ -9,7 +9,11 @@ from .recurr import Recurr
 
 class Jacobi11(Recurr):
 
-    def __init__(self, order: int, device: torch.device = torch.device("cpu")):
+    def __init__(
+        self, 
+        order: int, 
+        device: torch.device = torch.get_default_device()
+    ):
         k = torch.arange(order+1, device=device)
         a = (2*k+3) * (k+2) / (k+1) / (k+3)
         b = torch.zeros_like(k)
@@ -32,8 +36,7 @@ class Jacobi11(Recurr):
         return False
     
     def sample_measure(self, n: int) -> Tensor:
-        beta = Beta(2.0, 2.0)
-        ls = beta.sample((n,)).to(self.device)
+        ls = Beta(2.0, 2.0).sample((n,)).to(self.device)
         ls = (2.0 * ls) - 1.0
         return ls
     

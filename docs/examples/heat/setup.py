@@ -42,7 +42,7 @@ def build_obs_operator(Vh: dl.FunctionSpace, xs: Tensor) -> Tensor:
 
 def setup_heat_problem():
 
-    mesh = dl.RectangleMesh(dl.Point(0.0, 0.0), dl.Point(3.0, 1.0), 96, 32)
+    mesh = dl.RectangleMesh(dl.Point(0.0, 0.0), dl.Point(3.0, 1.0), 48, 16)
     Vh = dl.FunctionSpace(mesh, "Lagrange", 1)
 
     # Define prior

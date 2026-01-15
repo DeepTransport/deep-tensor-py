@@ -149,7 +149,7 @@ class LagrangeP(Piecewise):
         self, 
         order: int, 
         num_elems: int, 
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ):
 
         if order == 1:

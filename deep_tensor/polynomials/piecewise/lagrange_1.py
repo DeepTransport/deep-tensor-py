@@ -36,7 +36,7 @@ class Lagrange1(Piecewise):
     def __init__(
         self, 
         num_elems: int, 
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ):
         
         order = 1

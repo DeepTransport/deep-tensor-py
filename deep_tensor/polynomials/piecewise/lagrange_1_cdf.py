@@ -39,7 +39,7 @@ class Lagrange1CDF(PiecewiseCDF):
 
         dl = 0.5 * self.elem_size
         num_nodes = 2 * self.num_elems + 1
-        self.nodes = torch.linspace(*self.domain, num_nodes, device=self.device)
+        self.nodes = torch.linspace(-1.0, 1.0, num_nodes, device=self.device)
 
         self.node2elem = self._build_node2elem(num_nodes, self.num_elems)
         self.V_inv = self._build_V_inv(dl)

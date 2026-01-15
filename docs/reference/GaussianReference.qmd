@@ -1,13 +1,12 @@
 # GaussianReference { #deep_tensor.GaussianReference }
 
 ```python
-GaussianReference(self, domain: Domain | None = None)
+GaussianReference(domain: Domain | None = None)
 ```
 
 The standard $d$-dimensional Gaussian density, $\mathcal{N}(\boldsymbol{0}_{d}, \boldsymbol{I}_{d})$.
 
-The density can be truncated to a subinterval of the real numbers 
-in each dimension.
+The density must be truncated to a bounded interval.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
@@ -25,7 +24,11 @@ in each dimension.
 ### random { #deep_tensor.GaussianReference.random }
 
 ```python
-GaussianReference.random(n: int, d: int)
+GaussianReference.random(
+    n: int,
+    d: int,
+    device: torch.device = torch.device('cpu'),
+)
 ```
 
 Generates a set of random samples.
@@ -49,7 +52,11 @@ Generates a set of random samples.
 ### sobol { #deep_tensor.GaussianReference.sobol }
 
 ```python
-GaussianReference.sobol(n: int, d: int)
+GaussianReference.sobol(
+    n: int,
+    d: int,
+    device: torch.device = torch.device('cpu'),
+)
 ```
 
 Generates a set of QMC samples.

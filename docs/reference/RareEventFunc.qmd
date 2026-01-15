@@ -2,7 +2,6 @@
 
 ```python
 RareEventFunc(
-    self,
     func: Callable[[Tensor], Tuple[Tensor, Tensor]],
     threshold: float,
     vectorised: bool = True,

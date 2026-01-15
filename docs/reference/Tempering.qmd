@@ -2,7 +2,6 @@
 
 ```python
 Tempering(
-    self,
     betas: List | Tensor | None = None,
     ess_tol: float = 0.5,
     ess_tol_init: float = 0.5,

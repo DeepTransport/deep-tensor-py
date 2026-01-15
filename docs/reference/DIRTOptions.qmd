@@ -2,7 +2,6 @@
 
 ```python
 DIRTOptions(
-    self,
     ratio_type: str = 'aratio',
     num_error_samples: int = 1000,
     defensive: float = 1e-08,

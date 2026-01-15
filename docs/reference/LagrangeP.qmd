@@ -1,7 +1,11 @@
 # LagrangeP { #deep_tensor.LagrangeP }
 
 ```python
-LagrangeP(self, order: int, num_elems: int)
+LagrangeP(
+    order: int,
+    num_elems: int,
+    device: torch.device = torch.device('cpu'),
+)
 ```
 
 Higher-order piecewise Lagrange polynomials.
