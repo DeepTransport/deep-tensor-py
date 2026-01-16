@@ -2,12 +2,12 @@
 
 ```python
 DIRT(
-    self,
     target_func: TargetFunc,
     preconditioner: Preconditioner,
     ftt: FTT,
     bridge: Bridge | None = None,
     options: DIRTOptions | None = None,
+    device: torch.device = torch.device('cpu'),
 )
 ```
 
@@ -279,6 +279,10 @@ and $f(\cdot)$ denotes an arbitrary density function.
 
 #### Returns {.doc-section .doc-section-returns}
 
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times d$ matrix containing the inverse Rosenblatt  transport evaluated at each element in `rs`.
+
 <code>[**neglogTfrs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
 :   An $n$-dimensional vector containing the potential of the  pullback function evaluated at each element in `rs`; that  is, $-\log(\mathcal{T}^{\sharp}f(r))$.
@@ -329,6 +333,10 @@ function.
 :   The number of layers of the deep inverse Rosenblatt  transport to pull the samples back under. If not specified, the samples will be pulled back through all the layers.
 
 #### Returns {.doc-section .doc-section-returns}
+
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times d$ matrix containing the inverse Rosenblatt  transport evaluated at each element in `rs`.
 
 <code>[**neglogTfrs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 

@@ -175,7 +175,5 @@ quartodoc:
       contents:
         - name: run_importance_sampling 
         - name: run_independence_sampler
-        - name: run_irt_pcn
-        - name: run_cirt_pcn
         - name: ImportanceSamplingResult
         - name: MCMCResult

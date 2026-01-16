@@ -1,7 +1,7 @@
 # TargetFunc { #deep_tensor.TargetFunc }
 
 ```python
-TargetFunc(self, neglogfx: Callable[[Tensor], Tensor], vectorised: bool = True)
+TargetFunc(neglogfx: Callable[[Tensor], Tensor], vectorised: bool = True)
 ```
 
 The negative logarithm of a density function to be approximated.

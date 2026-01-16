@@ -18,19 +18,36 @@ from ..references import Reference
 from ..tools.printing import als_info
 
 
-def compute_weights(
+def _compute_weights(
     grid_points: Dict, 
     domain: Domain, 
     reference: Reference
 ) -> Dict[int, Tensor]:
-    # TODO: this won't have quite the indended effect when the 
-    # collocation points are not spaced equally--need to fix.
+    """Computes the weights used when selecting the initial index sets 
+    in each dimension, by evaluating the reference density at each grid 
+    point in each dimension.
     
+    Parameters
+    ----------
+    grid_points:
+        A dictionary containing the interpolation points in each 
+        dimension (mapped to the local domain of the basis being used).
+    domain:
+        The domain of the reference density.
+    reference:
+        The reference density.
+    
+    Returns
+    -------
+    weights:
+        A dictionary containing the evaluation of the reference density 
+        at each element of the weights.
+        
+    """
     reference_weights = {}
     for k in grid_points:
         nodes_approx_k = domain.local2approx(grid_points[k])[0]
         reference_weights[k] = reference.eval_pdf(nodes_approx_k)[0]
-    
     return reference_weights
 
 
@@ -54,7 +71,7 @@ class FTT():
         bases: ApproxBases, 
         tt: TT | None = None,
         num_error_samples: int = 1000,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ):
         self.tt = TT(device=device) if tt is None else tt
         self.bases = bases 
@@ -134,6 +151,66 @@ class FTT():
             raise Exception(msg)
         return
     
+    def _print_info_header(self) -> None:
+        info_headers = ["Iter", "Func Evals", "Max Rank", 
+                        "Max Core Error", "Mean Core Error"]
+        if self.l2_error_samples:
+            info_headers += ["L2 Error"]
+        als_info(" | ".join(info_headers))
+        return
+
+    def _print_info(self, cross_iter: int) -> None:
+        """Prints diagnostics for the current cross iteration."""
+        diagnostics = [
+            f"{cross_iter+1:=4}", 
+            f"{self.num_eval:=10}",
+            f"{self.ranks.max():=8}",
+            f"{self.tt.errors.max():=14.2e}",
+            f"{self.tt.errors.mean():=15.2e}"
+        ]
+        if self.l2_error_samples:
+            diagnostics += [f"{self.l2_error:=8.2e}"]
+        als_info(" | ".join(diagnostics))
+        return
+
+    def _initialise_l2_error_samples(self) -> None:
+        sample_size = (self.num_error_samples, self.dim)
+        rs_unif = torch.rand(sample_size, device=self.device)
+        self.ls_error = 2.0 * rs_unif - 1.0
+        self.fls_error = self.target_func(self.ls_error)
+        return    
+
+    def _estimate_l2_error(self) -> None:
+        """Computes the relative error between the value of the FTT 
+        approximation to the target function and the true value for the 
+        set of debugging samples.
+        """
+        fls_ftt = self(self.ls_error).flatten()
+        numer = linalg.norm(self.fls_error - fls_ftt)
+        denom = linalg.norm(self.fls_error)
+        self.l2_error = numer / denom
+        return
+
+    def _eval_forward(self, ls: Tensor) -> Tensor:
+        """Evaluates the FTT approximation to the target function for 
+        the first k variables.
+        """
+        d_ls = ls.shape[1]
+        Gs = [FTT.eval_core(self.bases[k], self.cores[k], ls[:, k])
+              for k in range(d_ls)]
+        Gs_prod = batch_mul(*Gs).squeeze(dim=1)
+        return Gs_prod
+    
+    def _eval_backward(self, ls: Tensor) -> Tensor:
+        """Evaluates the FTT approximation to the target function for 
+        the last k variables.
+        """
+        d_ls = ls.shape[1]
+        Gs = [FTT.eval_core(self.bases[k], self.cores[k], ls[:, i])
+              for i, k in enumerate(range(self.dim-d_ls, self.dim))]
+        Gs_prod = batch_mul(*Gs).squeeze(dim=2)
+        return Gs_prod
+    
     @staticmethod
     def eval_core(basis: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         """Evaluates a tensor core."""
@@ -159,63 +236,6 @@ class FTT():
     @staticmethod
     def eval_core_deriv_rev(basis: Basis1D, A: Tensor, ls: Tensor) -> Tensor:
         return FTT.eval_core_deriv(basis, A, ls).swapdims(1, 2)
-
-    def print_info_header(self) -> None:
-        info_headers = ["Iter", "Func Evals", "Max Rank", 
-                        "Max Core Error", "Mean Core Error"]
-        if self.l2_error_samples:
-            info_headers += ["L2 Error"]
-        als_info(" | ".join(info_headers))
-        return
-
-    def print_info(self, cross_iter: int) -> None:
-        """Prints diagnostics for the current cross iteration."""
-        diagnostics = [
-            f"{cross_iter+1:=4}", 
-            f"{self.num_eval:=10}",
-            f"{self.ranks.max():=8}",
-            f"{self.tt.errors.max():=14.2e}",
-            f"{self.tt.errors.mean():=15.2e}"
-        ]
-        if self.l2_error_samples:
-            diagnostics += [f"{self.l2_error:=8.2e}"]
-        als_info(" | ".join(diagnostics))
-        return
-
-    def estimate_l2_error(self) -> None:
-        """Computes the relative error between the value of the FTT 
-        approximation to the target function and the true value for the 
-        set of debugging samples.
-        """
-        fls_ftt = self(self.ls_error).flatten()
-        numer = linalg.norm(self.fls_error - fls_ftt)
-        denom = linalg.norm(self.fls_error)
-        self.l2_error = numer / denom
-        return
-
-    def eval_forward(self, ls: Tensor) -> Tensor:
-        """Evaluates the FTT approximation to the target function for 
-        the first k variables.
-        """
-        d_ls = ls.shape[1]
-        Gs = [
-            FTT.eval_core(self.bases[k], self.cores[k], ls[:, k])
-            for k in range(d_ls)
-        ]
-        Gs_prod = batch_mul(*Gs).squeeze(dim=1)
-        return Gs_prod
-    
-    def eval_backward(self, ls: Tensor) -> Tensor:
-        """Evaluates the FTT approximation to the target function for 
-        the last k variables.
-        """
-        d_ls = ls.shape[1]
-        Gs = [
-            FTT.eval_core(self.bases[k], self.cores[k], ls[:, i])
-            for i, k in enumerate(range(self.dim-d_ls, self.dim))
-        ]
-        Gs_prod = batch_mul(*Gs).squeeze(dim=2)
-        return Gs_prod
 
     def eval(self, ls: Tensor, direction: Direction | None = None) -> Tensor:
         r"""Evaluates the FTT.
@@ -243,14 +263,8 @@ class FTT():
         self._check_sample_dim(ls, self.dim)
         self._check_direction(ls, direction)
         if direction in (Direction.FORWARD, None):
-            return self.eval_forward(ls) 
-        return self.eval_backward(ls)
-    
-    def initialise_l2_error_samples(self):
-        sample_size = (self.num_error_samples, self.dim)
-        self.ls_error = 2.0 * torch.rand(sample_size, device=self.device) - 1.0
-        self.fls_error = self.target_func(self.ls_error)
-        return 
+            return self._eval_forward(ls) 
+        return self._eval_backward(ls)
 
     def round(
         self, 
@@ -277,17 +291,17 @@ class FTT():
         
         self.tt.initialise(self.target_func, grid)
         if self.l2_error_samples:
-            self.initialise_l2_error_samples()
+            self._initialise_l2_error_samples()
         if self.tt.options.verbose > 0:
-            self.print_info_header()
+            self._print_info_header()
 
         for num_iter in range(self.tt.options.max_als): 
             self.tt.sweep()
             self.compute_cores()
             if self.l2_error_samples:
-                self.estimate_l2_error()
+                self._estimate_l2_error()
             if self.tt.options.verbose > 0:
-                self.print_info(num_iter)
+                self._print_info(num_iter)
             if self.is_finished:
                 break        
 
@@ -316,16 +330,14 @@ class FTT():
             uniformly from the underlying tensor grid.
         
         """
-
         self.target_func = target_func
 
         points = {k: self.bases[k].nodes for k in range(self.dim)}
-        if reference is None:
-            grid = Grid(points)
-        else:
-            weights = compute_weights(points, reference.domain, reference)
-            grid = Grid(points, weights)
-
+        weights = (_compute_weights(points, reference.domain, reference)
+                   if isinstance(reference, Reference)
+                   else None)
+        grid = Grid(points, weights)
+        
         self.construct_tt(grid)
         return
     
@@ -366,7 +378,7 @@ class EFTT(FTT):
         bases: ApproxBases,
         tt: TT,
         options: EFTTOptions | None = None,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ):
         if options is None:
             options = EFTTOptions()

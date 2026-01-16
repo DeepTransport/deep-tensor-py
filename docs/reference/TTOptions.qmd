@@ -2,7 +2,6 @@
 
 ```python
 TTOptions(
-    self,
     tt_method: str = 'amen',
     int_method: str = 'maxvol',
     max_als: int = 1,

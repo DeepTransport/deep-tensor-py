@@ -1,7 +1,7 @@
 # ApproxBases { #deep_tensor.ApproxBases }
 
 ```python
-ApproxBases(self, bases: Basis1D | List[Basis1D], dim: int)
+ApproxBases(bases: Basis1D | List[Basis1D], dim: int)
 ```
 
 An object that contains a polynomial basis in each dimension, 

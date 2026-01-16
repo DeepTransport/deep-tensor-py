@@ -1,7 +1,7 @@
 # SingleLayer { #deep_tensor.SingleLayer }
 
 ```python
-SingleLayer(self)
+SingleLayer()
 ```
 
 Constructs the DIRT using a single layer.

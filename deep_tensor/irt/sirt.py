@@ -47,7 +47,7 @@ class SIRT():
         reference: Reference,
         defensive: float,
         cdf_tol: float,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ):
 
         self.potential = target_func

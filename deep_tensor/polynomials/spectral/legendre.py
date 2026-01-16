@@ -44,7 +44,7 @@ class Legendre(Recurr):
     def __init__(
         self, 
         order: int, 
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ):
         self.device = device
         n = torch.arange(order+1, device=self.device)

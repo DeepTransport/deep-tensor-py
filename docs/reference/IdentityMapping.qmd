@@ -1,7 +1,7 @@
 # IdentityMapping { #deep_tensor.IdentityMapping }
 
 ```python
-IdentityMapping(self, dim: int, reference: Reference | None = None)
+IdentityMapping(dim: int, reference: Reference | None = None)
 ```
 
 An identity mapping.

@@ -1,7 +1,12 @@
 # EFTT { #deep_tensor.EFTT }
 
 ```python
-EFTT(self, bases: ApproxBases, tt: TT, options: EFTTOptions | None = None)
+EFTT(
+    bases: ApproxBases,
+    tt: TT,
+    options: EFTTOptions | None = None,
+    device: torch.device = torch.device('cpu'),
+)
 ```
 
 An extended functional tensor train, defined on $[-1, 1]^{d}$.

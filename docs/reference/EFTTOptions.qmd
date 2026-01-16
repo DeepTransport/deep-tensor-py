@@ -2,7 +2,6 @@
 
 ```python
 EFTTOptions(
-    self,
     num_error_samples: int = 1000,
     fibre_method: str = 'random',
     tol_svd: float = 1e-12,

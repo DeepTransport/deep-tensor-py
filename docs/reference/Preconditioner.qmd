@@ -1,7 +1,7 @@
 # Preconditioner { #deep_tensor.Preconditioner }
 
 ```python
-Preconditioner(self, reference: Reference, dim: int)
+Preconditioner(reference: Reference, dim: int)
 ```
 
 The base class for preconditioning mappings.

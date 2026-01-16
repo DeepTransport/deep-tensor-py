@@ -44,12 +44,23 @@ class Grid():
         return 
     
     def sample_indices(self, n: int) -> Tensor:
-        """Returns a sample of indices. indices are chosen 
-        proportionally to their weights..
+        """Returns a sample of indices, where indices are chosen 
+        proportionally to their weights. 
+
+        Parameters
+        ----------
+        n: 
+            The number of samples to generate.
+
+        Returns
+        -------
+        sample:
+            An n * d matrix where each row contains a set of sampled 
+            indices.
         
-        TODO: ideally it wouldn't be possible to have the same sample 
-        multiple times.
         """
+        # TODO: ideally it wouldn't be possible to have the same sample 
+        # multiple times.
 
         sample = torch.vstack([
             self.point_densities[k].sample((n,)).to(device=self.points[0].device)
@@ -59,13 +70,13 @@ class Grid():
         return sample
     
     def indices2points(self, inds: Tensor) -> Tensor:
-        """Converts a tensor of indices to the corresponding points."""
-        
+        """Converts a tensor of indices to the corresponding 
+        interpolation points.
+        """
         points = torch.vstack([
             self.points[k][inds_k]
             for k, inds_k in enumerate(inds.T)
         ]).T
-
         return points
 
 
@@ -88,7 +99,7 @@ class TT():
     def __init__(
         self, 
         options: TTOptions | None = None,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ):
         if options is None:
             options = TTOptions()
@@ -164,7 +175,7 @@ class TT():
         return
     
     def initialise_res_l(self) -> None:
-        """Initialises the residual coordinates for AMEN."""
+        """Initialises the residual coordinates for AMEn."""
 
         for k in range(self.dim):
             samples = self.grid.sample_indices(self.options.kick_rank)
@@ -178,7 +189,7 @@ class TT():
         return
     
     def initialise_res_w(self) -> None:
-        """Initialises the residual blocks for AMEN."""
+        """Initialises the residual blocks for AMEn."""
 
         kick_rank = self.options.kick_rank
 
@@ -206,7 +217,7 @@ class TT():
 
     def initialise_amen(self) -> None:
         """Initialises the residual coordinates and residual blocks 
-        for AMEN.
+        for AMEn.
         """
         if self.res_l == {}:
             self.initialise_res_l()

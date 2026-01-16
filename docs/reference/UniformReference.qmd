@@ -1,7 +1,7 @@
 # UniformReference { #deep_tensor.UniformReference }
 
 ```python
-UniformReference(self)
+UniformReference()
 ```
 
 The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$.
@@ -16,7 +16,11 @@ The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$.
 ### random { #deep_tensor.UniformReference.random }
 
 ```python
-UniformReference.random(n: int, d: int)
+UniformReference.random(
+    n: int,
+    d: int,
+    device: torch.device = torch.device('cpu'),
+)
 ```
 
 Generates a set of random samples.
@@ -40,7 +44,11 @@ Generates a set of random samples.
 ### sobol { #deep_tensor.UniformReference.sobol }
 
 ```python
-UniformReference.sobol(n: int, d: int)
+UniformReference.sobol(
+    n: int,
+    d: int,
+    device: torch.device = torch.device('cpu'),
+)
 ```
 
 Generates a set of QMC samples.

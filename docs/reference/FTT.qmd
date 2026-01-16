@@ -2,10 +2,10 @@
 
 ```python
 FTT(
-    self,
     bases: ApproxBases,
     tt: TT | None = None,
     num_error_samples: int = 1000,
+    device: torch.device = torch.device('cpu'),
 )
 ```
 
