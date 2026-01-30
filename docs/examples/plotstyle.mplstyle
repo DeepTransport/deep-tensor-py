@@ -5,7 +5,7 @@ font.family: serif
 font.size: 14
 
 text.usetex: True
-text.latex.preamble: \usepackage{bm}
+text.latex.preamble: \usepackage{amsmath, bm}
 
 axes.titlesize: 14
 axes.labelsize: 14
@@ -27,8 +27,5 @@ legend.frameon: False
 legend.fontsize: 12
 
 figure.figsize: 10.0, 6.8
-figure.constrained_layout.use: True
-figure.constrained_layout.w_pad: 0.10
-figure.constrained_layout.h_pad: 0.10
 
 savefig.format: pdf
