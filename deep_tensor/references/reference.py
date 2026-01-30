@@ -149,7 +149,7 @@ class Reference(abc.ABC):
         self, 
         n: int, 
         d: int, 
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ) -> Tensor:
         r"""Generates a set of random samples.
         
@@ -174,7 +174,7 @@ class Reference(abc.ABC):
         self, 
         n: int, 
         d: int,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ) -> Tensor:
         r"""Generates a set of QMC samples.
         
