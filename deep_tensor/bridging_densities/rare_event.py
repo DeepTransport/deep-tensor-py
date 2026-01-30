@@ -110,7 +110,7 @@ class SmoothedIndicator(Bridge, abc.ABC):
         self.initialised = True
         return
     
-    def _eval_pullback(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_pullback_split(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         """Evaluates the pullback of the target density under the 
         preconditioning mapping.
         """
@@ -230,7 +230,7 @@ class SmoothedIndicator(Bridge, abc.ABC):
         
         neglogref_rs = self.reference.eval_potential(rs)[0]
         neglogref_us = self.reference.eval_potential(us)[0]
-        neglogfus, responses = self._eval_pullback(us)
+        neglogfus, responses = self._eval_pullback_split(us)
 
         neglogratios = self._compute_ratio_func(
             method,
@@ -248,7 +248,7 @@ class SmoothedIndicator(Bridge, abc.ABC):
             raise Exception("Need to call self.initialise().")
         
         neglogref_us = self.reference.eval_potential(us)[0]
-        neglogfus, responses = self._eval_pullback(us)
+        neglogfus, responses = self._eval_pullback_split(us)
 
         neglogbridges = self._compute_neglogbridges(
             neglogref_us,
