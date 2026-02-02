@@ -6,6 +6,7 @@ import torch
 from torch import Tensor
 
 from .tools.printing import lis_info
+from .debiasing.importance_sampling import estimate_ess_ratio
 
 
 class Subspace(abc.ABC):
@@ -248,9 +249,14 @@ class LikelihoodInformedSubspace(Subspace):
         grad_neglogref_us = us.clone()
 
         # TODO: shift before applying exp
-        weights = torch.exp(neglogfus - neglogbridges)
-        weights /= weights.sum()
+        log_weights = neglogfus - neglogbridges
+        log_weights -= log_weights.max()
+        weights = log_weights.exp() / log_weights.exp().sum()
+        ess = estimate_ess_ratio(log_weights) * weights.numel()
         # TODO: check weights (ESS etc..)
+
+        if weights.isnan().any():
+            print("nan weights found..")
 
         grad_neglogliks = grad_neglogbridges - grad_neglogref_us
 
@@ -272,7 +278,14 @@ class LikelihoodInformedSubspace(Subspace):
         self.P_red = self.basis_red @ self.basis_red.T
         self.P_comp = self.basis_comp @ self.basis_comp.T
 
-        lis_info(f"Dimension of updated LIS: {self.dim_red}.".ljust(40))
+        diagnostics = [
+            f"Dim: {self.dim_red}",
+            f"ESS: {round(float(ess))}"
+        ]
+
+        lis_info(" | ".join(diagnostics).ljust(40))
+
+        # lis_info(f"Dimension of updated LIS: {self.dim_red}.".ljust(40))
         
         # Recompute fixed samples in the complement subspace
         if self.fixed_comp and self.num_comp > 0:

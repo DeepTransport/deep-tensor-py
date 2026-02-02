@@ -252,8 +252,9 @@ class SmoothedIndicator(Bridge, abc.ABC):
         if not self.initialised:
             raise Exception("Need to call self.initialise().")
         
-        neglogref_rs = self.reference.eval_potential(rs)[0]
-        neglogref_us = self.reference.eval_potential(us)[0]
+        # TODO: this properly.
+        neglogref_rs = 0.5 * rs.square().sum(dim=1) # self.reference.eval_potential(rs)[0]
+        neglogref_us = 0.5 * us.square().sum(dim=1) # self.reference.eval_potential(us)[0]
         neglogfus, responses = self._eval_pullback_split(us)
 
         neglogratios = self._compute_ratio_func(
@@ -271,7 +272,8 @@ class SmoothedIndicator(Bridge, abc.ABC):
         if not self.initialised:
             raise Exception("Need to call self.initialise().")
         
-        neglogref_us = self.reference.eval_potential(us)[0]
+        # TODO: fix this.
+        neglogref_us = 0.5 * us.square().sum(dim=1) # self.reference.eval_potential(us)[0]
         neglogfus, responses = self._eval_pullback_split(us)
 
         neglogbridges = self._compute_neglogbridges(
@@ -289,12 +291,13 @@ class SmoothedIndicator(Bridge, abc.ABC):
 
         return log_weights, neglogbridges
     
-    def eval_gradneglog(self, us) -> Tuple[Tensor, Tensor]:
+    def eval_gradneglog(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         """Evaluates the current bridging density and its gradient at a 
         set of samples.
         """
 
         neglogref_us, grad_neglogref_us = self.reference.eval_potential(us)
+        neglogref_us = 0.5 * us.square().sum(dim=1) # TODO: fix
         neglogfus, grad_neglogfus, responses, grad_responses = self._eval_pullback_grad_split(us)
 
         k = self.num_layers
