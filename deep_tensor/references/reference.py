@@ -141,7 +141,7 @@ class Reference(abc.ABC):
                 "closest point in the domain of the reference "
                 "distribution."
             )
-            warnings.warn(msg)
+            # warnings.warn(msg)
             rs = torch.clamp(rs, min=self.domain.left, max=self.domain.right)
         return rs
     

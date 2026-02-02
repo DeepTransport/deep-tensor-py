@@ -92,6 +92,11 @@ class SmoothedIndicator(Bridge, abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def grad_neglogsmoothind(self, gamma: float, responses: Tensor) -> Tensor:
+        """TODO: write docstring for me..."""
+        pass
+
     def reset(self) -> None:
         self.num_layers = 0
         return
@@ -118,6 +123,25 @@ class SmoothedIndicator(Bridge, abc.ABC):
         neglogfxs, responses = self.target_func.func(xs)
         neglogfus = neglogfxs + neglogdets
         return neglogfus, responses
+    
+    def _eval_pullback_grad_split(
+        self, 
+        us: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+        
+        if not self.target_func.has_grad:
+            msg = "Gradients of the target function have not been supplied."
+            raise Exception(msg)
+
+        self.target_func: RareEventFunc
+
+        xs, neglogdets = self.apply_preconditioner(us)
+        neglogfxs, grad_neglogfxs, responses, grad_responses = self.target_func.grad_func(xs)
+        neglogfus = neglogfxs + neglogdets
+
+        grad_neglogfus = grad_neglogfxs.clone()  # TODO: do this properly..
+
+        return neglogfus, grad_neglogfus, responses, grad_responses
 
     def _compute_neglogbridges(
         self, 
@@ -264,6 +288,35 @@ class SmoothedIndicator(Bridge, abc.ABC):
         )
 
         return log_weights, neglogbridges
+    
+    def eval_gradneglog(self, us) -> Tuple[Tensor, Tensor]:
+        """Evaluates the current bridging density and its gradient at a 
+        set of samples.
+        """
+
+        neglogref_us, grad_neglogref_us = self.reference.eval_potential(us)
+        neglogfus, grad_neglogfus, responses, grad_responses = self._eval_pullback_grad_split(us)
+
+        k = self.num_layers
+        neglogsigmoids, grad_neglogsigmoids = self.grad_neglogsmoothind(self.gammas[k], responses)
+
+        grad_neglogsigmoids = grad_neglogsigmoids[:, None] * grad_responses # TODO: this gradient is in terms of x, rather than u
+        grad_neglogsigmoids[grad_neglogsigmoids.isnan()] = 0.0 # TODO: figure out what the correct value is here.
+
+        neglogbridges = (
+            (1.0 - self.betas[k]) * neglogref_us 
+            + self.betas[k] * neglogfus 
+            + neglogsigmoids
+        )
+
+        # TODO: finite difference check on these.
+        grad_neglogbridges = (
+            (1.0 - self.betas[k]) * grad_neglogref_us
+            + self.betas[k] * grad_neglogfus
+            + grad_neglogsigmoids
+        )
+
+        return neglogbridges, grad_neglogbridges
 
     def _get_diagnostics(
         self, 
@@ -337,10 +390,20 @@ class SigmoidSmoothing(SmoothedIndicator):
 
     """
     
-    def neglogsmoothind(self, gamma: float, responses: Tensor) -> Tensor:
-        lsfs = self.target_func.threshold - responses  # type: ignore
+    def neglogsmoothind(self, gamma: float, Fs: Tensor) -> Tensor:
+        lsfs = self.target_func.threshold - Fs  # type: ignore
         neglogsigmoids = torch.log1p(torch.exp(gamma * lsfs))
         return neglogsigmoids
+    
+    def grad_neglogsmoothind(self, gamma: float, Fs: Tensor) -> Tuple[Tensor, Tensor]:
+        neglogsigmoids = self.neglogsmoothind(gamma, Fs)
+        negloggrads = (
+            - math.log(gamma)
+            - gamma * (self.target_func.threshold - Fs)
+            + 2.0 * neglogsigmoids
+        )
+        grad_neglogsigmoids = -torch.exp(-negloggrads+neglogsigmoids)
+        return neglogsigmoids, grad_neglogsigmoids
     
 
 class GaussianSmoothing(SmoothedIndicator):
@@ -353,3 +416,6 @@ class GaussianSmoothing(SmoothedIndicator):
         lsfs = self.target_func.threshold - responses  # type: ignore
         neglogtanhs = math.log(2.0) - torch.log1p(torch.erf(-gamma*lsfs))
         return neglogtanhs
+    
+    def grad_neglogsmoothind(self, gamma: float, Fs: Tensor) -> Tuple[Tensor, Tensor]:
+        raise NotImplementedError()

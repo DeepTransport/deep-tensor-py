@@ -11,11 +11,25 @@ from .sirt import SIRT, SUBSET2DIRECTION
 from ..bridging_densities import Bridge, Tempering
 from ..ftt import Direction, FTT
 from ..preconditioners import Preconditioner
+from ..subspaces import Subspace, IdentitySubspace
 from ..target_functions import TargetFunc
 from ..tools.printing import dirt_info, format_time
 from ..tools import compute_f_divergence
 
 from torch import Tensor 
+
+
+def eval_normal_potential(xs: Tensor) -> Tensor:
+    """Evalutes the potential function of the (normalised) unit normal 
+    density at a set of values.
+    """
+    xs = torch.atleast_2d(xs)
+    dim = xs.shape[1]
+    neglogfxs = (
+        0.5 * xs.square().sum(dim=1)
+        + 0.5 * dim * math.log(2.0*torch.pi)
+    )
+    return neglogfxs
 
 
 class DIRT():
@@ -45,12 +59,15 @@ class DIRT():
         preconditioner: Preconditioner,
         ftt: FTT, 
         bridge: Bridge | None = None,
+        subspace: Subspace | None = None,
         options: DIRTOptions | None = None,
         device: torch.device = torch.get_default_device()
     ):
 
         if not isinstance(target_func, TargetFunc):
             target_func = TargetFunc(target_func)
+        if subspace is None:
+            subspace = IdentitySubspace(preconditioner.dim)
         if bridge is None:
             bridge = Tempering()
         if options is None:
@@ -64,6 +81,8 @@ class DIRT():
         self.ftt = ftt
         self.bridge = bridge
         self.bridge.initialise(preconditioner, target_func)
+        self.subspace = subspace
+        self.subspaces = {-1: subspace}
         self.ratio_type = options.ratio_type 
         self.num_error_samples = options.num_error_samples
         self.defensive = options.defensive
@@ -100,7 +119,7 @@ class DIRT():
     
     @property 
     def num_eval_diagnostic(self) -> int:
-        return self.num_error_samples * self.bridge.num_layers
+        return self.num_error_samples * (self.bridge.num_layers + 1)
 
     @property
     def num_eval(self) -> int:
@@ -145,13 +164,32 @@ class DIRT():
             the next bridging density.
         
         """
-        if self.num_layers == 0:
-            ftt = self.ftt.clone()
-        else:
+        
+        if isinstance(self.subspace, IdentitySubspace) and self.num_layers > 0:
             ftt = self.sirts[self.num_layers-1].ftt.clone()
+        else:
+            # Cannot use the previous FTT due to the possible change in 
+            # dimension
+            ftt = self.ftt.clone()
+    
+        self.subspaces[self.num_layers] = self.subspaces[self.num_layers-1].clone()
+
+        # TODO: compute the diagnostics at the same time as updating 
+        # the subspace..?
+
+        self.subspaces[self.num_layers].update(
+            self.bridge.eval_gradneglog, # type: ignore
+            self._eval_irt_reference
+        )
+
+        def target_func(xs):
+            # TODO: maybe increment the number of function evaluations in here.
+            return self.subspaces[self.num_layers].eval_neglogprofile(self.eval_ratio_func, xs)
+
         sirt = SIRT(
-            self.eval_ratio_func, 
+            target_func, 
             ftt, 
+            self.subspaces[self.num_layers].dim_red,
             self.reference, 
             self.defensive, 
             self.cdf_tol,
@@ -233,6 +271,8 @@ class DIRT():
         """Evaluates the deep Rosenblatt transport for the pullback of 
         the target density under the preconditioning map.
         """
+
+        print("need to fix this..")
         
         rs = us.clone()
         neglogfus = torch.zeros(rs.shape[0], device=self.device)
@@ -249,6 +289,31 @@ class DIRT():
 
         return rs, neglogfus
     
+    def _eval_irt_reference_k(
+        self, 
+        rs: Tensor, 
+        i: int, 
+        subset: str
+    ) -> Tuple[Tensor, Tensor]:
+        """TODO: write docstring.
+        
+        this function evaluates the reduced SIRT..
+        """
+        
+        rs_red = self.subspaces[i].eval_red2coef(rs)
+        rs_comp = self.subspaces[i].eval_comp2coef(rs)
+
+        zs_red = self.reference.eval_cdf(rs_red)[0]
+        ws_red, neglogfus_red = self.sirts[i]._eval_irt(zs_red, subset)
+        us_red = self.subspaces[i].eval_coef2red(ws_red)
+        us_comp = self.subspaces[i].eval_coef2comp(rs_comp)
+        neglogfus_comp = eval_normal_potential(rs_comp)
+
+        us = us_red + us_comp
+        neglogfus = neglogfus_red + neglogfus_comp
+
+        return us, neglogfus
+
     def _eval_irt_reference(
         self, 
         rs: Tensor, 
@@ -257,6 +322,9 @@ class DIRT():
     ) -> Tuple[Tensor, Tensor]:
         """Evaluates the deep inverse Rosenblatt transport for the 
         pullback of the target density under the preconditioning map.
+
+        TODO: if a non-identity subspace is used, we lose the ability 
+        to evaluate marginals etc. need to make this clear in the code.
         """
 
         if num_layers is None:
@@ -267,8 +335,9 @@ class DIRT():
 
         for i in range(num_layers-1, -1, -1):
             neglogrefs = self.reference.eval_potential(us)[0]
-            zs = self.reference.eval_cdf(us)[0]
-            us, neglogsirts = self.sirts[i]._eval_irt(zs, subset)
+            us, neglogsirts = self._eval_irt_reference_k(us, i, subset)
+            # zs = self.reference.eval_cdf(us)[0]
+            # us, neglogsirts = self.sirts[i]._eval_irt(zs, subset)
             neglogfus += neglogsirts - neglogrefs
 
         return us, neglogfus

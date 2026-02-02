@@ -16,7 +16,7 @@ from .debiasing.mcmc import (
 )
 # from .debiasing.mcmc_new import pCNKernel, MCMC
 from .domains import BoundedDomain, LinearDomain
-from .ftt import ApproxBases, Direction, FTT, EFTT, EFTTOptions, TT, TTOptions
+from .ftt import Direction, FTT, EFTT, EFTTOptions, TT, TTOptions
 from .irt import DIRT, DIRTMapping, DIRTOptions, SIRT
 from .polynomials import (
     Basis1D,
@@ -41,5 +41,6 @@ from .preconditioners import (
     UniformMapping
 )
 from .references import Reference, GaussianReference, UniformReference
+from .subspaces import LikelihoodInformedSubspace
 from .target_functions import RareEventFunc, TargetFunc
 from .tools import compute_f_divergence
