@@ -7,6 +7,7 @@ from ..ftt import Direction, FTT
 from ..linalg import batch_mul, n_mode_prod, unfold_left, unfold_right
 from ..polynomials import construct_cdf
 from ..references import Reference
+from ..tools import compute_f_divergence
 
 
 SUBSET2DIRECTION = {
@@ -70,6 +71,13 @@ class SIRT():
         self._Rs_b: Dict[int, Tensor] = {}
         self._marginalise_forward()
         self._marginalise_backward()
+
+        # Estimate the Hellinger divergence between the current ratio 
+        # function and the SIRT approximation
+        zs = torch.rand((1000, self.dim))
+        us, neglogfus = self._eval_irt(zs, subset="first")
+        neglogfus_exact = target_func(us)
+        self.dhell_ratio = compute_f_divergence(-neglogfus, -neglogfus_exact).sqrt()
         return
     
     @property
@@ -113,14 +121,14 @@ class SIRT():
         return ls, dldxs
     
     def _eval_measure_potential_local(self, ls: Tensor) -> Tensor:
-        # TODO: fix this.
+        """TODO: write docstring for me."""
         neglogwls = torch.zeros_like(ls[:, 0])
         for ls_i in ls.T:
             neglogwls -= self.basis.eval_log_measure(ls_i)
         return neglogwls
     
     def _eval_measure_potential_grad_local(self, ls: Tensor) -> Tensor:
-        # TODO: fix this.
+        """TODO: write docstring for me."""
         negloggradwls = torch.empty_like(ls)
         for i, ls_i in enumerate(ls.T):
             negloggradwls[:, i] = -self.basis.eval_log_measure_deriv(ls_i)

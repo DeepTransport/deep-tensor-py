@@ -1,6 +1,6 @@
 import math
 import time
-from typing import Callable, Dict, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import torch
 from torch import Tensor
@@ -134,6 +134,22 @@ class DIRT():
         if not self.sirts.keys():
             return 0.0
         return sum([math.log(self.sirts[k].z) for k in self.sirts])
+    
+    @property 
+    def subspace_dims(self) -> List:
+        return [self.subspaces[k].dim_red for k in range(self.num_layers)]
+    
+    @property
+    def dhell_ratios(self) -> List:
+        return [self.sirts[k].dhell_ratio for k in range(self.num_layers)]
+    
+    @property 
+    def error_accs(self) -> List:
+        return [self.subspaces[k].error_acc for k in range(self.num_layers)]  # type: ignore
+    
+    @property 
+    def error_news(self) -> List:
+        return [self.subspaces[k].error_new for k in range(self.num_layers)]  # type: ignore
   
     def eval_ratio_func(self, rs: Tensor) -> Tensor:
         """Evaluates the current ratio function at each element in rs, 
@@ -218,6 +234,9 @@ class DIRT():
         """Constructs the DIRT object to approximate the target function."""
 
         t0 = time.time()
+
+        self.dhell_bridges = []
+        self.dhell_targets = []
         
         while True:
             
@@ -225,8 +244,18 @@ class DIRT():
                 rs = self.reference.random(self.num_error_samples, self.dim, device=self.device)
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
                 log_weights, neglogbridges = self.bridge.update(us, neglogfus_dirt)
+
+                neglogfus_target = self.bridge._eval_pullback(us)
+                dhell_bridge = compute_f_divergence(-neglogfus_dirt, -neglogbridges).sqrt()
+                dhell_target = compute_f_divergence(-neglogfus_dirt, -neglogfus_target).sqrt()
+
             else:
                 log_weights, neglogbridges, neglogfus_dirt = None, None, None
+                dhell_bridge, dhell_target = None, None
+
+            if self.bridge.num_layers > 0:
+                self.dhell_bridges.append(dhell_bridge)
+                self.dhell_targets.append(dhell_target)
 
             if self.verbose > 0:
                 cum_time = time.time() - t0
@@ -251,8 +280,10 @@ class DIRT():
                 rs = self.reference.random(self.num_error_samples, self.dim, device=self.device)
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
                 neglogfus = self.bridge._eval_pullback(us)
-                dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
-                info_msgs += [f"DHell: {dhell2.sqrt():.4f}."]
+                dhell = compute_f_divergence(-neglogfus_dirt, -neglogfus).sqrt() 
+                info_msgs += [f"DHell: {dhell:.4f}."]
+                self.dhell_bridges.append(dhell)  # TODO: fix this. it should be the smoothed function.
+                self.dhell_targets.append(dhell)
 
             t1 = time.time()
             info_msgs += [f"Total time: {format_time(t1-t0)}."]

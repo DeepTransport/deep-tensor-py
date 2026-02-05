@@ -120,17 +120,6 @@ class Subspace(abc.ABC):
         grad_neglogtarget: Callable[[Tensor], Tensor],
         irt_func: Callable[[Tensor], Tuple[Tensor, Tensor]]
     ) -> None:
-        """
-        we will need:
-
-         - function that returns target and gradient of target w.r.t. parametre 
-         - function that 
-        
-         - logfunc (logbridge)
-         - gradloglik (logbridge-logprior)
-         - biasing density (in form of IRT for previous bridging density)
-
-        """
         pass
 
     @abc.abstractmethod 
@@ -248,12 +237,10 @@ class LikelihoodInformedSubspace(Subspace):
         neglogbridges, grad_neglogbridges = grad_neglogtarget(us)
         grad_neglogref_us = us.clone()
 
-        # TODO: shift before applying exp
         log_weights = neglogfus - neglogbridges
         log_weights -= log_weights.max()
         weights = log_weights.exp() / log_weights.exp().sum()
         ess = estimate_ess_ratio(log_weights) * weights.numel()
-        # TODO: check weights (ESS etc..)
 
         if weights.isnan().any():
             print("nan weights found..")
@@ -286,6 +273,11 @@ class LikelihoodInformedSubspace(Subspace):
         lis_info(" | ".join(diagnostics).ljust(40))
 
         # lis_info(f"Dimension of updated LIS: {self.dim_red}.".ljust(40))
+
+        # Estimate some errors
+        self.error_acc = torch.trace(self.P_comp @ H @ self.P_comp )
+        eigvals, _ = torch.linalg.eigh(H)
+        self.error_new = torch.sum(eigvals[:self.dim_comp])
         
         # Recompute fixed samples in the complement subspace
         if self.fixed_comp and self.num_comp > 0:
