@@ -140,7 +140,10 @@ class DIRT():
         return [self.subspaces[k].dim_red for k in range(self.num_layers)]
     
     @property
-    def dhell_ratios(self) -> List:
+    def dhell_ratios_red(self) -> List:
+        """The Hellinger divergences between the reduced ratio functions 
+        and their DIRT approximations.
+        """
         return [self.sirts[k].dhell_ratio for k in range(self.num_layers)]
     
     @property 
@@ -211,6 +214,14 @@ class DIRT():
             self.cdf_tol,
             device=self.device
         )
+
+        self.sirts[self.num_layers] = sirt
+
+        rs = self.reference.random(n=1000, d=self.dim)
+        us, neglogratios_dirt = self._eval_irt_reference_k(rs, self.num_layers, subset="first")
+        neglogratios_exact = self.eval_ratio_func(us)
+        dhell_ratio = compute_f_divergence(-neglogratios_dirt, -neglogratios_exact).sqrt()
+        self.dhell_ratios.append(dhell_ratio)
         return sirt
 
     def _print_progress(
@@ -237,6 +248,7 @@ class DIRT():
 
         self.dhell_bridges = []
         self.dhell_targets = []
+        self.dhell_ratios = []
         
         while True:
             
@@ -261,7 +273,7 @@ class DIRT():
                 cum_time = time.time() - t0
                 self._print_progress(log_weights, neglogbridges, neglogfus_dirt, cum_time)
 
-            self.sirts[self.num_layers] = self._get_new_layer()
+            self._get_new_layer()
             self.num_layers += 1
             if self.bridge.is_last:
                 break
