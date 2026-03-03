@@ -304,6 +304,30 @@ class DIRT():
                 dirt_info(f" • {msg}")
         
         return
+
+    def _eval_rt_reference_k(
+        self,
+        us: Tensor,
+        i: int,
+        subset: str
+    ) -> Tuple[Tensor, Tensor]:
+        """TODO: write this.."""
+
+        us_red = self.subspaces[i].eval_red2coef(us)
+        us_comp = self.subspaces[i].eval_comp2coef(us)
+
+        zs_red = self.sirts[i]._eval_rt(us_red, subset)
+        neglogfrs_red = self.sirts[i]._eval_potential(us_red, subset)
+        rs_red = self.reference.invert_cdf(zs_red)
+        rs_red = self.subspaces[i].eval_coef2red(rs_red)
+
+        rs_comp = self.subspaces[i].eval_coef2comp(us_comp)
+        neglogfrs_comp = eval_normal_potential(us_comp)
+
+        rs = rs_red + rs_comp 
+        neglogfrs = neglogfrs_red + neglogfrs_comp
+
+        return rs, neglogfrs
     
     def _eval_rt_reference(
         self,
@@ -314,16 +338,12 @@ class DIRT():
         """Evaluates the deep Rosenblatt transport for the pullback of 
         the target density under the preconditioning map.
         """
-
-        print("need to fix this..")
         
         rs = us.clone()
         neglogfus = torch.zeros(rs.shape[0], device=self.device)
 
         for i in range(num_layers):
-            zs = self.sirts[i]._eval_rt(rs, subset)
-            neglogsirts = self.sirts[i]._eval_potential(rs, subset)
-            rs = self.reference.invert_cdf(zs)
+            rs, neglogsirts = self._eval_rt_reference_k(rs, i, subset)
             neglogrefs = self.reference.eval_potential(rs)[0]
             neglogfus += neglogsirts - neglogrefs
 
@@ -349,6 +369,7 @@ class DIRT():
         zs_red = self.reference.eval_cdf(rs_red)[0]
         ws_red, neglogfus_red = self.sirts[i]._eval_irt(zs_red, subset)
         us_red = self.subspaces[i].eval_coef2red(ws_red)
+        
         us_comp = self.subspaces[i].eval_coef2comp(rs_comp)
         neglogfus_comp = eval_normal_potential(rs_comp)
 
@@ -379,6 +400,12 @@ class DIRT():
         for i in range(num_layers-1, -1, -1):
             neglogrefs = self.reference.eval_potential(us)[0]
             us, neglogsirts = self._eval_irt_reference_k(us, i, subset)
+
+            # xxs = torch.vstack([self._eval_rt_reference_k(us[k, :], i, subset)[0] for k in range(us.shape[0])])
+            # yys = torch.vstack([self._eval_irt_reference_k(xxs[k, :], i, subset)[0] for k in range(us.shape[0])])
+
+            # TODO: could try adding eval_rt_ref_k in here and see what happens..
+
             # zs = self.reference.eval_cdf(us)[0]
             # us, neglogsirts = self.sirts[i]._eval_irt(zs, subset)
             neglogfus += neglogsirts - neglogrefs
