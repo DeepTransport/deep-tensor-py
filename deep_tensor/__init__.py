@@ -35,6 +35,7 @@ from .polynomials import (
     construct_cdf
 )
 from .preconditioners import (
+    AffineMapping,
     GaussianMapping,
     IdentityMapping,
     Preconditioner, 
