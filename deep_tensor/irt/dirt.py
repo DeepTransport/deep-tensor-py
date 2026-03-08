@@ -118,16 +118,26 @@ class DIRT():
         return sum([self.sirts[k].num_eval for k in self.sirts])
     
     @property 
+    def num_eval_subspace(self) -> int:
+        return sum([self.subspaces[k].num_eval for k in self.subspaces])
+    
+    @property 
     def num_eval_diagnostic(self) -> int:
         return self.num_error_samples * (self.bridge.num_layers + 1)
-
-    @property
-    def num_eval(self) -> int:
-        return self.num_eval_sirt + self.num_eval_diagnostic
     
     @property 
     def num_eval_construction(self) -> int:
-        return sum([self.sirts[k].num_eval_construction for k in self.sirts])
+        num_eval_sirt = sum([self.sirts[k].num_eval_construction for k in self.sirts]) 
+        return num_eval_sirt + self.num_eval_subspace
+    
+    @property 
+    def num_eval_grad(self) -> int:
+        return sum([self.subspaces[k].num_eval_grad for k in self.subspaces])
+
+    @property
+    def num_eval(self) -> int:
+        return (self.num_eval_sirt + self.num_eval_subspace 
+                + self.num_eval_diagnostic)
     
     @property
     def log_z(self) -> float:

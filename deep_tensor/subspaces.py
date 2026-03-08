@@ -30,6 +30,24 @@ class Subspace(abc.ABC):
         return
     
     @property 
+    def num_eval(self) -> int:
+        return self._num_eval
+    
+    @num_eval.setter
+    def num_eval(self, val: int) -> None:
+        self._num_eval = val 
+        return
+    
+    @property 
+    def num_eval_grad(self) -> int:
+        return self._num_eval_grad
+    
+    @num_eval_grad.setter
+    def num_eval_grad(self, val: int) -> None:
+        self._num_eval_grad = val 
+        return
+    
+    @property 
     def dim(self) -> int:
         return self.dim_red + self.dim_comp
 
@@ -133,17 +151,23 @@ class IdentitySubspace(Subspace):
     def __init__(self, dim: int):
         self.basis_red = torch.eye(dim)
         self.basis_comp = torch.zeros((dim, 0))
+        self.num_eval = 0
+        self.num_eval_grad = 0
         return
     
     def eval_neglogprofile(
         self, 
         target_func: Callable[[Tensor], Tensor], 
-        vs_red: Tensor
+        xs: Tensor
     ) -> Tensor:
-        raise NotImplementedError()
+        return target_func(xs)
     
-    def update(self) -> None: 
-        raise NotImplementedError()
+    def update(
+        self, 
+        grad_neglogtarget: Callable[[Tensor], Tensor],
+        irt_func: Callable[[Tensor], Tuple[Tensor, Tensor]]
+    ) -> None: 
+        return
 
     def clone(self) -> IdentitySubspace:
         return IdentitySubspace(self.dim)
@@ -211,12 +235,15 @@ class LikelihoodInformedSubspace(Subspace):
         self.P_red = self.basis_red @ self.basis_red.T
         self.P_comp = self.basis_comp @ self.basis_comp.T
 
+        self.num_eval = 0
+        self.num_eval_grad = 0
+
         return
     
     def update(
         self, 
         grad_neglogtarget: Callable[[Tensor], Tensor],
-        irt_func: Callable[[Tensor], Tensor]
+        irt_func: Callable[[Tensor], Tuple[Tensor, Tensor]]
     ) -> None:
         """test...
         """
@@ -233,9 +260,11 @@ class LikelihoodInformedSubspace(Subspace):
         # density
         rs = torch.randn((self.num_samples_gram, self.dim))
         us, neglogfus = irt_func(rs)
-
         neglogbridges, grad_neglogbridges = grad_neglogtarget(us)
         grad_neglogref_us = us.clone()
+
+        self.num_evals += us.shape[0]
+        self.num_grad_evals += us.shape[0]
 
         log_weights = neglogfus - neglogbridges
         log_weights -= log_weights.max()
@@ -327,5 +356,4 @@ class LikelihoodInformedSubspace(Subspace):
             eps=self.eps, 
             initial_basis=self.basis_red
         )
-        # TODO: need to update the basis etc..
         return subspace
