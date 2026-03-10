@@ -218,6 +218,8 @@ class LikelihoodInformedSubspace(Subspace):
         self.update_method = update_method
         self.num_samples_gram = num_samples_gram
         self.eps = eps
+        self.num_eval = 0
+        self.num_eval_grad = 0
         
         self.initial_basis = initial_basis
 
@@ -234,9 +236,6 @@ class LikelihoodInformedSubspace(Subspace):
 
         self.P_red = self.basis_red @ self.basis_red.T
         self.P_comp = self.basis_comp @ self.basis_comp.T
-
-        self.num_eval = 0
-        self.num_eval_grad = 0
 
         return
     
@@ -263,8 +262,8 @@ class LikelihoodInformedSubspace(Subspace):
         neglogbridges, grad_neglogbridges = grad_neglogtarget(us)
         grad_neglogref_us = us.clone()
 
-        self.num_evals += us.shape[0]
-        self.num_grad_evals += us.shape[0]
+        self.num_eval += us.shape[0]
+        self.num_eval_grad += us.shape[0]
 
         log_weights = neglogfus - neglogbridges
         log_weights -= log_weights.max()
