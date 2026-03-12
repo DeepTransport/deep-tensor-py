@@ -97,6 +97,10 @@ class FTT():
         return self.tt.num_eval + self.num_error_samples
     
     @property
+    def num_eval_construction(self) -> int:
+        return self.tt.num_eval
+    
+    @property
     def is_finished(self) -> bool:
         max_core_error = float(self.tt.errors.max())
         is_finished = max_core_error < self.tt.options.tol_max_core_error
@@ -394,6 +398,10 @@ class EFTT(FTT):
         return self.num_error_samples + self.num_eval_fibres + self.tt.num_eval
     
     @property 
+    def num_eval_construction(self) -> int:
+        return self.num_eval_fibres + self.tt.num_eval
+    
+    @property 
     def basis_dims(self) -> Tensor:
         """Returns a tensor containing the dimension of the reduced 
         basis for each coordinate.
@@ -656,7 +664,13 @@ class EFTT(FTT):
             k: self.basis.nodes[self.tucker_inds[k]] 
             for k in range(self.dim)
         }
-        deim_grid = Grid(deim_nodes)
+        if reference is not None:
+            weights = (_compute_weights(deim_nodes, reference.domain, reference)
+                   if isinstance(reference, Reference)
+                   else None)
+            deim_grid = Grid(deim_nodes, weights)
+        else:
+            deim_grid = Grid(deim_nodes)
         self.construct_tt(deim_grid)
         return
     

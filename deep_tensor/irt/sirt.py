@@ -98,7 +98,7 @@ class SIRT():
     
     @property 
     def num_eval_construction(self) -> int:
-        return self.ftt.num_eval_tt
+        return self.ftt.num_eval_construction
     
     def local2approx(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         """Maps a set of samples distributed in (a subset of) the local 
