@@ -10,6 +10,11 @@ from .debiasing.importance_sampling import estimate_ess_ratio
 
 
 class Subspace(abc.ABC):
+
+    @property 
+    @abc.abstractmethod 
+    def is_fixed(self) -> bool:
+        pass
     
     @property 
     def basis_red(self) -> Tensor:
@@ -155,6 +160,10 @@ class IdentitySubspace(Subspace):
         self.num_eval_grad = 0
         return
     
+    @property 
+    def is_fixed(self) -> bool:
+        return True
+    
     def eval_neglogprofile(
         self, 
         target_func: Callable[[Tensor], Tensor], 
@@ -238,6 +247,10 @@ class LikelihoodInformedSubspace(Subspace):
         self.P_comp = self.basis_comp @ self.basis_comp.T
 
         return
+    
+    @property
+    def is_fixed(self) -> bool:
+        return self.update_method == "static"
     
     def update(
         self, 

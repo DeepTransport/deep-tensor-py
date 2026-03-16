@@ -194,7 +194,7 @@ class DIRT():
         
         """
         
-        if isinstance(self.subspace, IdentitySubspace) and self.num_layers > 0:
+        if self.subspace.is_fixed and self.num_layers > 0:
             ftt = self.sirts[self.num_layers-1].ftt.clone()
         else:
             # Cannot use the previous FTT due to the possible change in 
