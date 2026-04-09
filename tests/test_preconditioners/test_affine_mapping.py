@@ -7,7 +7,7 @@ from torch import Tensor
 import deep_tensor as dt
 
 
-EPS = 1e-2
+EPS = 1e-8
 
 
 class TestAffineMapping(unittest.TestCase):
