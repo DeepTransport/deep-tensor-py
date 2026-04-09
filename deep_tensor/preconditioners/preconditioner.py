@@ -1,6 +1,7 @@
 import abc
 
 from torch import Tensor
+from torch.autograd.functional import jacobian
 
 from ..references import Reference
 
@@ -136,3 +137,16 @@ class Preconditioner(abc.ABC):
         
         """
         pass
+
+    def grad_Q(self, xs: Tensor, subset: str = "first") -> Tensor:
+        """TODO: write docstring.. in particular, give the format in 
+        which the gradients are returned."""
+        num_xs, dim_xs = xs.shape        
+        us = self.Q(xs, subset)
+        def func(us: Tensor) -> Tensor:
+            us = us.reshape(num_xs, dim_xs)
+            xs = self.Q(us)
+            return xs.sum(dim=0)
+        dxdus: Tensor = jacobian(func, us.flatten(), vectorize=True)
+        dxdus = dxdus.reshape(dim_xs, num_xs, dim_xs)
+        return dxdus

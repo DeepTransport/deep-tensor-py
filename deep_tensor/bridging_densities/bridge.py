@@ -78,6 +78,13 @@ class Bridge(abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def eval_gradneglog(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+        """Evaluates the current bridging density and its gradient at a 
+        set of samples.
+        """
+        pass
+
     def initialise(
         self, 
         preconditioner: Preconditioner, 
@@ -94,6 +101,43 @@ class Bridge(abc.ABC):
         neglogdets = self.preconditioner.neglogdet_Q(us)
         return xs, neglogdets
     
+    def apply_preconditioner_grad(self, us: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        xs, neglogdets = self.apply_preconditioner(us)
+        dxdus = self.preconditioner.grad_Q(us)
+        return xs, neglogdets, dxdus
+    
+    def _check_grad(self) -> None:
+        """Throws an error if no gradients are supplied for the target 
+        function.
+        """
+        if not self.target_func._has_grad:
+            msg = "Gradients of the target function have not been supplied."
+            raise Exception(msg)
+        return
+    
+    def _grad_x2u(self, dfdxs: Tensor, dxdus: Tensor) -> Tensor:
+        """Converts a set of gradients in terms of x to gradients in 
+        terms of u.
+
+        Parameters
+        ----------
+        dfdxs:
+            An n * d matrix containing evaluations of the gradient of 
+            function f with respect to x.
+        dxdus:
+            A d * n * d tensor where each slice in the second dimension 
+            is an evaluation of the gradient of x with respect to u.
+
+        Returns
+        -------
+        dfdus:
+            An n * d matrix containing the corresponding evaluations of 
+            the gradient of function f with respect to u.
+        
+        """
+        dfdus = torch.einsum("...i, i...j", dfdxs, dxdus)
+        return dfdus
+    
     def _eval_pullback(self, us: Tensor) -> Tensor:
         """Evaluates the pullback of the target density under the 
         preconditioning mapping.
@@ -102,6 +146,16 @@ class Bridge(abc.ABC):
         neglogfxs = self.target_func(xs)
         neglogfus = neglogfxs + neglogdets
         return neglogfus
+    
+    def _eval_pullback_grad(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+        """Evaluates the pullback of the target density under the 
+        preconditioning mapping, and its gradient.
+        """
+        xs, neglogdets, dxdus = self.apply_preconditioner_grad(us)
+        neglogfxs, grad_neglogfxs = self.target_func.grad_func(xs) # NOTE: this may not work with a RareEventFunc currently.. maybe it should
+        neglogfus = neglogfxs + neglogdets
+        grad_neglogfus = self._grad_x2u(grad_neglogfxs, dxdus)
+        return neglogfus, grad_neglogfus
     
     def _reorder(
         self, 

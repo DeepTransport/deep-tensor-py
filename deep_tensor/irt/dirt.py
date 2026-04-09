@@ -16,17 +16,15 @@ from ..target_functions import TargetFunc
 from ..tools.printing import dirt_info, format_time
 from ..tools import compute_f_divergence
 
-from torch import Tensor 
 
-
-def eval_normal_potential(xs: Tensor) -> Tensor:
-    """Evalutes the potential function of the (normalised) unit normal 
-    density at a set of values.
+def unit_norm_pdf(xs: Tensor) -> Tensor:
+    """Evaluates the negative logarithm of the unit normal density at a 
+    set of values.
     """
     xs = torch.atleast_2d(xs)
     dim = xs.shape[1]
     neglogfxs = (
-        0.5 * xs.square().sum(dim=1)
+        0.5 * xs.square().sum(dim=1) 
         + 0.5 * dim * math.log(2.0*torch.pi)
     )
     return neglogfxs
@@ -82,7 +80,7 @@ class DIRT():
         self.bridge = bridge
         self.bridge.initialise(preconditioner, target_func)
         self.subspace = subspace
-        self.subspaces = {-1: subspace}
+        self.subspaces: Dict[int, Subspace] = {-1: subspace}
         self.ratio_type = options.ratio_type 
         self.num_error_samples = options.num_error_samples
         self.defensive = options.defensive
@@ -173,66 +171,45 @@ class DIRT():
                                               rs, us, neglogfus_dirt)
         return neglogratios
 
-    def _get_new_layer(self) -> SIRT:
+    def _get_new_layer(self) -> None:
         """Constructs a new SIRT to add to the current composition of 
         SIRTs.
-
-        Parameters
-        ----------
-        xs:
-            An n * d matrix containing samples distributed according to
-            the current bridging density.
-        neglogratios:
-            An n-dimensional vector containing the negative log-ratio 
-            function evaluated at each element in xs.
-
-        Returns
-        -------
-        sirt:
-            The squared inverse Rosenblatt transport approximation to 
-            the next bridging density.
-        
         """
-        
-        if self.subspace.is_fixed and self.num_layers > 0:
-            ftt = self.sirts[self.num_layers-1].ftt.clone()
+        k = self.num_layers
+        # If the subspace has changed, it is nontrivial to use 
+        # information from the previous FTT
+        if self.subspace.is_fixed and k > 0:
+            ftt = self.sirts[k-1].ftt.clone()
         else:
-            # Cannot use the previous FTT due to the possible change in 
-            # dimension
-            ftt = self.ftt.clone()
-    
-        self.subspaces[self.num_layers] = self.subspaces[self.num_layers-1].clone()
-
+            ftt = self.ftt.clone() 
         # TODO: compute the diagnostics at the same time as updating 
         # the subspace..?
-
-        self.subspaces[self.num_layers].update(
-            self.bridge.eval_gradneglog, # type: ignore
+        self.subspaces[k] = self.subspaces[k-1].clone()
+        self.subspaces[k].update(
+            self.bridge.eval_gradneglog,
             self._eval_irt_reference
         )
-
         def target_func(xs):
             # TODO: maybe increment the number of function evaluations in here.
-            return self.subspaces[self.num_layers].eval_neglogprofile(self.eval_ratio_func, xs)
+            return self.subspaces[k].eval_neglogprofile(self.eval_ratio_func, xs)
 
-        sirt = SIRT(
+        self.sirts[k] = SIRT(
             target_func, 
             ftt, 
-            self.subspaces[self.num_layers].dim_red,
+            self.subspaces[k].dim_red,
             self.reference, 
             self.defensive, 
             self.cdf_tol,
             device=self.device
         )
 
-        self.sirts[self.num_layers] = sirt
-
-        rs = self.reference.random(n=1000, d=self.dim)
-        us, neglogratios_dirt = self._eval_irt_reference_k(rs, self.num_layers, subset="first")
-        neglogratios_exact = self.eval_ratio_func(us)
-        dhell_ratio = compute_f_divergence(-neglogratios_dirt, -neglogratios_exact).sqrt()
-        self.dhell_ratios.append(dhell_ratio)
-        return sirt
+        # TODO: tidy this up..
+        # rs = self.reference.random(n=1000, d=self.dim)
+        # us, neglogratios_dirt = self._eval_irt_reference_i(rs, self.num_layers, subset="first")
+        # neglogratios_exact = self.eval_ratio_func(us)
+        # dhell_ratio = compute_f_divergence(-neglogratios_dirt, -neglogratios_exact).sqrt()
+        # self.dhell_ratios.append(dhell_ratio)
+        return
 
     def _print_progress(
         self,
@@ -315,13 +292,39 @@ class DIRT():
         
         return
 
-    def _eval_rt_reference_k(
+    def _eval_rt_reference_i(
         self,
         us: Tensor,
         i: int,
         subset: str
     ) -> Tuple[Tensor, Tensor]:
-        """TODO: write this.."""
+        """Evaluates the k-th reduced Rosenblatt transport mapping 
+        embedded into a larger linear mapping.
+        
+        Parameters
+        ----------
+        us:
+            An n * d matrix containing a set of samples at which to 
+            evaluate the Rosenblatt transport.
+        i:
+            The index of the (reduced) SIRT whose Rosenblatt transport 
+            should be evaluated.
+        subset: 
+            Whether `us` corresponds to the first $k$ variables 
+            (`subset='first'`) of the approximation, or the last $k$ 
+            variables (`subset='last'`).
+
+        Returns
+        -------
+        rs:
+            An n * d matrix containing the corresponding samples after 
+            applying the inverse Rosenblatt transport.
+        neglogfrs:
+            An n-dimensional vector containing the pullback of the 
+            reference density under the Rosenblatt transport evaluated 
+            at each of the samples in `us`.
+
+        """
 
         us_red = self.subspaces[i].eval_red2coef(us)
         us_comp = self.subspaces[i].eval_comp2coef(us)
@@ -332,7 +335,11 @@ class DIRT():
         rs_red = self.subspaces[i].eval_coef2red(rs_red)
 
         rs_comp = self.subspaces[i].eval_coef2comp(us_comp)
-        neglogfrs_comp = eval_normal_potential(us_comp)
+        # TODO: check what happens here when there is no reduced subspace.
+        # TODO: figure out whether the reference needs to be Gaussian if the subspace is reduced. 
+        # TODO: figure out whether this should be the (normalised) reference density..
+        neglogfrs_comp = self.reference.eval_potential(us_comp)[0]
+        # neglogfrs_comp = unit_norm_pdf(rs_comp)
 
         rs = rs_red + rs_comp 
         neglogfrs = neglogfrs_red + neglogfrs_comp
@@ -348,29 +355,48 @@ class DIRT():
         """Evaluates the deep Rosenblatt transport for the pullback of 
         the target density under the preconditioning map.
         """
-        
         rs = us.clone()
         neglogfus = torch.zeros(rs.shape[0], device=self.device)
-
         for i in range(num_layers):
-            rs, neglogsirts = self._eval_rt_reference_k(rs, i, subset)
+            rs, neglogsirts = self._eval_rt_reference_i(rs, i, subset)
             neglogrefs = self.reference.eval_potential(rs)[0]
             neglogfus += neglogsirts - neglogrefs
-
         neglogrefs = self.reference.eval_potential(rs)[0]
         neglogfus += neglogrefs
-
         return rs, neglogfus
     
-    def _eval_irt_reference_k(
+    def _eval_irt_reference_i(
         self, 
         rs: Tensor, 
         i: int, 
         subset: str
     ) -> Tuple[Tensor, Tensor]:
-        """TODO: write docstring.
+        """Evaluates the k-th reduced inverse Rosenblatt transport 
+        mapping embedded into a larger linear mapping.
         
-        this function evaluates the reduced SIRT..
+        Parameters
+        ----------
+        rs:
+            An n * d matrix containing a set of samples at which to 
+            evaluate the inverse Rosenblatt transport.
+        i:
+            The index of the (reduced) SIRT whose inverse Rosenblatt 
+            transport should be evaluated.
+        subset: 
+            Whether `rs` corresponds to the first $k$ variables 
+            (`subset='first'`) of the approximation, or the last $k$ 
+            variables (`subset='last'`).
+
+        Returns
+        -------
+        us:
+            An n * d matrix containing the corresponding samples after 
+            applying the inverse Rosenblatt transport.
+        neglogfus:
+            An n-dimensional vector containing the pushforward of the 
+            reference density under the inverse Rosenblatt transport 
+            evaluated at each of the samples in `us`.
+
         """
         
         rs_red = self.subspaces[i].eval_red2coef(rs)
@@ -381,7 +407,8 @@ class DIRT():
         us_red = self.subspaces[i].eval_coef2red(ws_red)
         
         us_comp = self.subspaces[i].eval_coef2comp(rs_comp)
-        neglogfus_comp = eval_normal_potential(rs_comp)
+        neglogfus_comp = self.reference.eval_potential(rs_comp)[0]
+        # neglogfus_comp = unit_norm_pdf(rs_comp)
 
         us = us_red + us_comp
         neglogfus = neglogfus_red + neglogfus_comp
@@ -396,30 +423,16 @@ class DIRT():
     ) -> Tuple[Tensor, Tensor]:
         """Evaluates the deep inverse Rosenblatt transport for the 
         pullback of the target density under the preconditioning map.
-
-        TODO: if a non-identity subspace is used, we lose the ability 
-        to evaluate marginals etc. need to make this clear in the code.
         """
-
         if num_layers is None:
             num_layers = self.num_layers
-        
         us = rs.clone()
+        us = self.reference._project_to_domain(us)
         neglogfus = self.reference.eval_potential(us)[0]
-
         for i in range(num_layers-1, -1, -1):
             neglogrefs = self.reference.eval_potential(us)[0]
-            us, neglogsirts = self._eval_irt_reference_k(us, i, subset)
-
-            # xxs = torch.vstack([self._eval_rt_reference_k(us[k, :], i, subset)[0] for k in range(us.shape[0])])
-            # yys = torch.vstack([self._eval_irt_reference_k(xxs[k, :], i, subset)[0] for k in range(us.shape[0])])
-
-            # TODO: could try adding eval_rt_ref_k in here and see what happens..
-
-            # zs = self.reference.eval_cdf(us)[0]
-            # us, neglogsirts = self.sirts[i]._eval_irt(zs, subset)
+            us, neglogsirts = self._eval_irt_reference_i(us, i, subset)
             neglogfus += neglogsirts - neglogrefs
-
         return us, neglogfus
 
     def _parse_subset(self, subset: str | None) -> str:

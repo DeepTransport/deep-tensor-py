@@ -25,8 +25,16 @@ class RareEventFunc(TargetFunc):
         values.
     threshold: 
         The threshold, $z$, which defines a rare event.
+    grad_func:
+        A function which returns the potential associated with the 
+        target density function, the gradient of the potential with 
+        respect to the parameters, the response function, and the 
+        gradient of the response function with respect to the 
+        parameters. The format of the arguments and returns is the same 
+        as `func`.
     vectorised:
-        Whether the function accepts multiple sets of parameters.
+        Whether `func` and `grad_func` accept multiple sets of 
+        parameters.
 
     Notes
     -----
@@ -56,8 +64,8 @@ class RareEventFunc(TargetFunc):
         self._func = func
         self._grad_func = grad_func
         self.threshold = threshold
-        self.vectorised = vectorised
-        self.has_grad = self._grad_func is not None
+        self._is_vectorised = vectorised
+        self._has_grad = self._grad_func is not None
         return
     
     def __call__(self, xs: Tensor) -> Tensor:
@@ -71,7 +79,7 @@ class RareEventFunc(TargetFunc):
         return neglogfxs
     
     def _func_vectorised(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
-        if self.vectorised:
+        if self._is_vectorised:
             return self._func(xs)
         num_xs = xs.shape[0]
         neglogfxs = torch.zeros((num_xs,), device=xs.device)
@@ -89,7 +97,7 @@ class RareEventFunc(TargetFunc):
             msg = "No gradients of the biasing density have been provided."
             raise Exception(msg)
 
-        if self.vectorised:
+        if self._is_vectorised:
             return self._grad_func(xs)
         
         num_xs = xs.shape[0]

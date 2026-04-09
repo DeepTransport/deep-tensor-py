@@ -272,6 +272,25 @@ class Tempering(Bridge):
         )
         
         return log_weights, neglogbridges
+    
+    def eval_gradneglog(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+
+        neglogref_us, grad_neglogref_us = self.reference.eval_potential_unnormalised(us)
+        neglogfus, grad_neglogfus = self._eval_pullback_grad(us)
+
+        k = self.num_layers
+
+        neglogbridges = (
+            (1.0 - self.betas[k]) * neglogref_us 
+            + self.betas[k] * neglogfus 
+        )
+        
+        grad_neglogbridges = (
+            (1.0 - self.betas[k]) * grad_neglogref_us
+            + self.betas[k] * grad_neglogfus
+        )
+
+        return neglogbridges, grad_neglogbridges
 
     def _get_diagnostics(
         self, 

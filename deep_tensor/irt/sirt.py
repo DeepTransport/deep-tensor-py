@@ -74,10 +74,11 @@ class SIRT():
 
         # Estimate the Hellinger divergence between the current ratio 
         # function and the SIRT approximation
-        zs = torch.rand((1000, self.dim))
-        us, neglogfus = self._eval_irt(zs, subset="first")
-        neglogfus_exact = target_func(us)
-        self.dhell_ratio = compute_f_divergence(-neglogfus, -neglogfus_exact).sqrt()
+        # TODO: tidy this up..
+        # zs = torch.rand((1000, self.dim))
+        # us, neglogfus = self._eval_irt(zs, subset="first")
+        # neglogfus_exact = target_func(us)
+        # self.dhell_ratio = compute_f_divergence(-neglogfus, -neglogfus_exact).sqrt()
         return
     
     @property
@@ -100,45 +101,7 @@ class SIRT():
     def num_eval_construction(self) -> int:
         return self.ftt.num_eval_construction
     
-    def local2approx(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
-        """Maps a set of samples distributed in (a subset of) the local 
-        domain to the approximation domain.
-        """
-        xs = torch.empty_like(ls)
-        dxdls = torch.empty_like(ls)
-        for i, ls_i in enumerate(ls.T):
-            xs[:, i], dxdls[:, i] = self.domain.local2approx(ls_i)
-        return xs, dxdls
-    
-    def approx2local(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
-        """Maps a set of samples from (a subset of) the approximation 
-        domain to the local domain.
-        """
-        ls = torch.empty_like(xs)
-        dldxs = torch.empty_like(xs)
-        for i, xs_i in enumerate(xs.T):
-            ls[:, i], dldxs[:, i] = self.domain.approx2local(xs_i)
-        return ls, dldxs
-    
-    def _eval_measure_potential_local(self, ls: Tensor) -> Tensor:
-        """TODO: write docstring for me."""
-        neglogwls = torch.zeros_like(ls[:, 0])
-        for ls_i in ls.T:
-            neglogwls -= self.basis.eval_log_measure(ls_i)
-        return neglogwls
-    
-    def _eval_measure_potential_grad_local(self, ls: Tensor) -> Tensor:
-        """TODO: write docstring for me."""
-        negloggradwls = torch.empty_like(ls)
-        for i, ls_i in enumerate(ls.T):
-            negloggradwls[:, i] = -self.basis.eval_log_measure_deriv(ls_i)
-        return negloggradwls
-    
-    def eval_measure_potential(
-        self, 
-        xs: Tensor, 
-        inds: range | None = None
-    ) -> Tuple[Tensor, Tensor]:
+    def eval_measure_potential(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         """Computes the target potential function and its gradient for 
         a set of samples from the approximation domain.
         
@@ -147,10 +110,6 @@ class SIRT():
         xs:
             An n * d matrix containing a set of samples from the 
             approximation domain.
-        inds:
-            The indices corresponding to the dimensions of the 
-            approximation domain the samples live in (can be a subset 
-            of {1, 2, ..., d}). 
         
         Returns
         -------
@@ -163,9 +122,9 @@ class SIRT():
             element of xs.
         
         """
-        ls, dldxs = self.approx2local(xs)
-        neglogwls = self._eval_measure_potential_local(ls)
-        gradneglogwls = self._eval_measure_potential_grad_local(ls)
+        ls, dldxs = self.domain.approx2local(xs)
+        neglogwls = -self.basis.eval_log_measure(ls).sum(dim=1)
+        gradneglogwls = -self.basis.eval_log_measure_deriv(ls)
         neglogwxs = neglogwls - dldxs.log().sum(dim=1)        
         gradneglogwxs = gradneglogwls * dldxs
         return neglogwxs, gradneglogwxs
@@ -176,7 +135,7 @@ class SIRT():
         in the local domain (note: this ratio is invariant to changes 
         of coordinate).
         """
-        xs = self.local2approx(ls)[0]
+        xs = self.domain.local2approx(ls)[0]
         neglogfxs = self.potential(xs)
         neglogwxs = self.eval_measure_potential(xs)[0]
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
@@ -404,20 +363,13 @@ class SIRT():
             sample.
 
         """
-
-        dim_zs = zs.shape[1]
-
         if direction == Direction.FORWARD:
-            indices = range(dim_zs)
             ls, gs_sq = self._eval_irt_local_forward(zs)
         else:
-            indices = range(self.dim-dim_zs, self.dim)
             ls, gs_sq = self._eval_irt_local_backward(zs)
-        
         neglogpls = -(gs_sq + self.coef_defensive).log()
-        neglogwls = self._eval_measure_potential_local(ls)
+        neglogwls = -self.basis.eval_log_measure(ls).sum(dim=1)
         neglogfls = self.z.log() + neglogpls + neglogwls
-
         return ls, neglogfls
 
     def _eval_cirt_local_forward(
@@ -427,7 +379,6 @@ class SIRT():
     ) -> Tuple[Tensor, Tensor]:
         
         n_xs, d_xs = ls_x.shape
-        n_zs, d_zs = zs.shape
         ls_y = torch.zeros_like(zs)
 
         cores = self.ftt.cores
@@ -461,7 +412,7 @@ class SIRT():
 
         ps = Gs_prod.flatten().square() + self.coef_defensive
 
-        neglogwls_y = self._eval_measure_potential_local(ls_y)
+        neglogwls_y = -self.basis.eval_log_measure(ls_y).sum(dim=1)
         neglogfls_y = ps_marg.log() - ps.log() + neglogwls_y
 
         return ls_y, neglogfls_y
@@ -504,7 +455,7 @@ class SIRT():
 
         ps = Gs_prod.flatten().square() + self.coef_defensive
 
-        neglogwls_y = self._eval_measure_potential_local(ls_y)
+        neglogwls_y = -self.basis.eval_log_measure(ls_y).sum(dim=1)
         neglogfls_y = ps_marg.log() - ps.log() + neglogwls_y
 
         return ls_y, neglogfls_y
@@ -571,7 +522,7 @@ class SIRT():
         ls, gs_sq = self._eval_irt_local_forward(zs)
         n_ls = ls.shape[0]
         ps = gs_sq + self.coef_defensive
-        neglogws = self._eval_measure_potential_local(ls)
+        neglogws = -self.basis.eval_log_measure(ls).sum(dim=1)
         ws = torch.exp(-neglogws)
         fs = ps * ws  # Don't need to normalise as derivative ends up being a ratio
         
@@ -849,12 +800,11 @@ class SIRT():
         if direction == Direction.FORWARD:
             gs = self.ftt(ls, direction=direction)
             gs_sq = (gs @ self._Rs_f[dim_l]).square().sum(dim=1)
-            
         else:
             gs = self.ftt(ls, direction=direction)
             gs_sq = (self._Rs_b[self.dim-dim_l-1] @ gs.T).square().sum(dim=0)
         
-        neglogwls = self._eval_measure_potential_local(ls)
+        neglogwls = -self.basis.eval_log_measure(ls).sum(dim=1)
         neglogfls = self.z.log() - (gs_sq + self.coef_defensive).log() + neglogwls
         return neglogfls
     
@@ -884,7 +834,7 @@ class SIRT():
 
         """
         direction = SUBSET2DIRECTION[subset]
-        ls, dldxs = self.approx2local(xs)
+        ls, dldxs = self.domain.approx2local(xs)
         neglogfls = self._eval_potential_local(ls, direction)
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
@@ -916,7 +866,7 @@ class SIRT():
 
         """
         direction = SUBSET2DIRECTION[subset]
-        ls = self.approx2local(xs)[0]
+        ls = self.domain.approx2local(xs)[0]
         zs = self._eval_rt_local(ls, direction)
         return zs
 
@@ -950,6 +900,6 @@ class SIRT():
         """
         direction = SUBSET2DIRECTION[subset]
         ls, neglogfls = self._eval_irt_local(zs, direction)
-        xs, dxdls = self.local2approx(ls)
+        xs, dxdls = self.domain.local2approx(ls)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs

@@ -129,19 +129,17 @@ class SmoothedIndicator(Bridge, abc.ABC):
         us: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         
-        if not self.target_func.has_grad:
-            msg = "Gradients of the target function have not been supplied."
-            raise Exception(msg)
-
+        self._check_grad()
         self.target_func: RareEventFunc
 
-        xs, neglogdets = self.apply_preconditioner(us)
-        neglogfxs, grad_neglogfxs, responses, grad_responses = self.target_func.grad_func(xs)
+        xs, neglogdets, dxdus = self.apply_preconditioner_grad(us)
+        neglogfxs, grad_neglogfxs, Fs, dFdxs = self.target_func.grad_func(xs)
         neglogfus = neglogfxs + neglogdets
+        
+        grad_neglogfus = self._grad_x2u(grad_neglogfxs, dxdus)
+        dFdus = self._grad_x2u(dFdxs, dxdus)
 
-        grad_neglogfus = grad_neglogfxs.clone()  # TODO: do this properly..
-
-        return neglogfus, grad_neglogfus, responses, grad_responses
+        return neglogfus, grad_neglogfus, Fs, dFdus
 
     def _compute_neglogbridges(
         self, 
@@ -252,9 +250,8 @@ class SmoothedIndicator(Bridge, abc.ABC):
         if not self.initialised:
             raise Exception("Need to call self.initialise().")
         
-        # TODO: this properly.
-        neglogref_rs = 0.5 * rs.square().sum(dim=1) # self.reference.eval_potential(rs)[0]
-        neglogref_us = 0.5 * us.square().sum(dim=1) # self.reference.eval_potential(us)[0]
+        neglogref_rs = self.reference.eval_potential_unnormalised(rs)[0]
+        neglogref_us = self.reference.eval_potential_unnormalised(us)[0]
         neglogfus, responses = self._eval_pullback_split(us)
 
         neglogratios = self._compute_ratio_func(
@@ -272,8 +269,7 @@ class SmoothedIndicator(Bridge, abc.ABC):
         if not self.initialised:
             raise Exception("Need to call self.initialise().")
         
-        # TODO: fix this.
-        neglogref_us = 0.5 * us.square().sum(dim=1) # self.reference.eval_potential(us)[0]
+        neglogref_us = self.reference.eval_potential_unnormalised(us)[0]
         neglogfus, responses = self._eval_pullback_split(us)
 
         neglogbridges = self._compute_neglogbridges(
@@ -296,27 +292,27 @@ class SmoothedIndicator(Bridge, abc.ABC):
         set of samples.
         """
 
-        neglogref_us, grad_neglogref_us = self.reference.eval_potential(us)
-        neglogref_us = 0.5 * us.square().sum(dim=1) # TODO: fix
-        neglogfus, grad_neglogfus, responses, grad_responses = self._eval_pullback_grad_split(us)
+        neglogref_us, grad_neglogref_us = self.reference.eval_potential_unnormalised(us)
+        neglogfus, grad_neglogfus, Fs, dFdus = self._eval_pullback_grad_split(us)
 
         k = self.num_layers
-        neglogsigmoids, grad_neglogsigmoids = self.grad_neglogsmoothind(self.gammas[k], responses)
+        negloginds, grad_negloginds = self.grad_neglogsmoothind(self.gammas[k], Fs)
 
-        grad_neglogsigmoids = grad_neglogsigmoids[:, None] * grad_responses # TODO: this gradient is in terms of x, rather than u
-        grad_neglogsigmoids[grad_neglogsigmoids.isnan()] = 0.0 # TODO: figure out what the correct value is here.
+        grad_negloginds = grad_negloginds[:, None] * dFdus
+        # TODO: figure out what the correct value is here.
+        grad_negloginds[grad_negloginds.isnan()] = 0.0
 
         neglogbridges = (
             (1.0 - self.betas[k]) * neglogref_us 
             + self.betas[k] * neglogfus 
-            + neglogsigmoids
+            + negloginds
         )
 
         # TODO: finite difference check on these.
         grad_neglogbridges = (
             (1.0 - self.betas[k]) * grad_neglogref_us
             + self.betas[k] * grad_neglogfus
-            + grad_neglogsigmoids
+            + grad_negloginds
         )
 
         return neglogbridges, grad_neglogbridges

@@ -664,13 +664,11 @@ class EFTT(FTT):
             k: self.basis.nodes[self.tucker_inds[k]] 
             for k in range(self.dim)
         }
-        if reference is not None:
-            weights = (_compute_weights(deim_nodes, reference.domain, reference)
+        weights = (_compute_weights(deim_nodes, reference.domain, reference)
                    if isinstance(reference, Reference)
                    else None)
-            deim_grid = Grid(deim_nodes, weights)
-        else:
-            deim_grid = Grid(deim_nodes)
+        
+        deim_grid = Grid(deim_nodes, weights)
         self.construct_tt(deim_grid)
         return
     

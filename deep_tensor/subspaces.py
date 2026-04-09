@@ -9,6 +9,9 @@ from .tools.printing import lis_info
 from .debiasing.importance_sampling import estimate_ess_ratio
 
 
+UPDATE_METHODS_LIS = ("augment", "rebuild", "static")
+
+
 class Subspace(abc.ABC):
 
     @property 
@@ -135,12 +138,17 @@ class Subspace(abc.ABC):
         target_func: Callable[[Tensor], Tensor],
         vs_red: Tensor
     ) -> Tensor:
+        """Evalutes the negative logarithm of the profile function at a 
+        set of points in the reduced subspace.
+        
+        TODO: finish this..
+        """
         pass
 
     @abc.abstractmethod 
     def update(
         self,
-        grad_neglogtarget: Callable[[Tensor], Tensor],
+        grad_neglogtarget: Callable[[Tensor], Tuple[Tensor, Tensor]],
         irt_func: Callable[[Tensor], Tuple[Tensor, Tensor]]
     ) -> None:
         pass
@@ -173,7 +181,7 @@ class IdentitySubspace(Subspace):
     
     def update(
         self, 
-        grad_neglogtarget: Callable[[Tensor], Tensor],
+        grad_neglogtarget: Callable[[Tensor], Tuple[Tensor, Tensor]],
         irt_func: Callable[[Tensor], Tuple[Tensor, Tensor]]
     ) -> None: 
         return
@@ -197,6 +205,14 @@ class LikelihoodInformedSubspace(Subspace):
         Whether to fix the samples from the complement subspace.
     update_method:
         How to update the subspace ("augment", "rebuild", "static").
+    num_samples_gram:
+        The number of samples to use to construct a Monte Carlo 
+        estimate of the Gram matrix.
+    eps:
+        TODO: write down the inequality with eps used to select 
+        dimension of subspace.
+    initial_basis:
+        A set of basis vectors to initialise the subspace with.
 
     """
 
@@ -213,6 +229,13 @@ class LikelihoodInformedSubspace(Subspace):
     ):
 
         # TODO: check target_func and update_method are valid.
+        update_method = update_method.lower()
+        if update_method not in UPDATE_METHODS_LIS:
+            msg = (
+                "Unknown update method. Accepted methods are "
+                + f"{", ".join(UPDATE_METHODS_LIS)}."
+            )
+            raise Exception(msg)
 
         if update_method == "static" and initial_basis is None:
             msg = (
@@ -254,7 +277,7 @@ class LikelihoodInformedSubspace(Subspace):
     
     def update(
         self, 
-        grad_neglogtarget: Callable[[Tensor], Tensor],
+        grad_neglogtarget: Callable[[Tensor], Tuple[Tensor, Tensor]],
         irt_func: Callable[[Tensor], Tuple[Tensor, Tensor]]
     ) -> None:
         """test...
@@ -264,7 +287,8 @@ class LikelihoodInformedSubspace(Subspace):
             return
 
         if self.update_method == "rebuild":
-            print("Rebuilding from scratch not implemented...")
+            msg = "Rebuilding from scratch not implemented..."
+            raise Exception(msg)
         
         lis_info("Computing estimate of Gram matrix...", end="\r")
 
@@ -273,7 +297,6 @@ class LikelihoodInformedSubspace(Subspace):
         rs = torch.randn((self.num_samples_gram, self.dim))
         us, neglogfus = irt_func(rs)
         neglogbridges, grad_neglogbridges = grad_neglogtarget(us)
-        grad_neglogref_us = us.clone()
 
         self.num_eval += us.shape[0]
         self.num_eval_grad += us.shape[0]
@@ -283,9 +306,12 @@ class LikelihoodInformedSubspace(Subspace):
         weights = log_weights.exp() / log_weights.exp().sum()
         ess = estimate_ess_ratio(log_weights) * weights.numel()
 
-        if weights.isnan().any():
+        if weights.isnan().any(): # TODO: should also check the gradients for nans, before and after taking the reference off..
             print("nan weights found..")
 
+        # Subtract the contribution of the standard Gaussian to the 
+        # gradient of the bridging density
+        grad_neglogref_us = us.clone()
         grad_neglogliks = grad_neglogbridges - grad_neglogref_us
 
         H = torch.zeros((self.dim, self.dim))
@@ -310,10 +336,7 @@ class LikelihoodInformedSubspace(Subspace):
             f"Dim: {self.dim_red}",
             f"ESS: {round(float(ess))}"
         ]
-
         lis_info(" | ".join(diagnostics).ljust(40))
-
-        # lis_info(f"Dimension of updated LIS: {self.dim_red}.".ljust(40))
 
         # Estimate some errors
         self.error_acc = torch.trace(self.P_comp @ H @ self.P_comp )
@@ -331,9 +354,7 @@ class LikelihoodInformedSubspace(Subspace):
         self, 
         target_func: Callable[[Tensor], Tensor], 
         vs_red: Tensor
-    ):
-        """evalutes the negative logarithm of the profile function at a 
-        set of points."""
+    ) -> Tensor:
 
         xs_red = self.eval_coef2red(vs_red)
         num_xs_red = xs_red.shape[0]

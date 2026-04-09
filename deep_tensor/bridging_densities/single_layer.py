@@ -43,3 +43,6 @@ class SingleLayer(Bridge):
         neglogfus_dirt: Tensor
     ) -> Tensor:
         return self._eval_pullback(us)
+    
+    def eval_gradneglog(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+        return self._eval_pullback_grad(us)
