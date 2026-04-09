@@ -1,4 +1,5 @@
 import abc
+from typing import Tuple
 
 from torch import Tensor
 from torch.autograd.functional import jacobian
@@ -49,7 +50,7 @@ class Preconditioner(abc.ABC):
         return
     
     @abc.abstractmethod
-    def Q(self, us: Tensor, subset: str = "first") -> Tensor:
+    def Q(self, us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
         r"""Applies the mapping $Q(\cdot)$ to a set of samples.
 
         Parameters
@@ -67,6 +68,9 @@ class Preconditioner(abc.ABC):
             An $n \times k$ matrix containing samples from the 
             approximation domain, after applying the mapping $Q(\cdot)$ 
             to each sample.
+        neglogdets:
+            An $n$-dimensional vector containing the negative 
+            log-determinant of $Q(\cdot)$ evaluated at each sample.
         
         """
         pass
@@ -90,47 +94,6 @@ class Preconditioner(abc.ABC):
             An $n \times k$ matrix containing samples from the 
             reference domain, after applying the mapping $Q^{-1}(\cdot)$ 
             to each sample.
-        
-        """
-        pass
-
-    @abc.abstractmethod
-    def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:
-        r"""Applies the mapping $Q(\cdot)$ to a set of samples.
-
-        Parameters
-        ----------
-        us:
-            An $n \times k$ matrix containing samples from the 
-            reference domain.
-        subset:    
-            If $k < d$, whether the samples are samples of the first 
-            (`subset='first'`) or last (`subset='last'`) $k$ variables. 
-            
-        Returns
-        -------
-        neglogdets:
-            An $n$-dimensional vector containing the negative 
-            log-determinant of $Q(\cdot)$ evaluated at each sample.
-        
-        """
-        pass
-
-    @abc.abstractmethod
-    def neglogdet_Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
-        r"""Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
-
-        Parameters
-        ----------
-        xs:
-            An $n \times k$ matrix containing samples from the 
-            approximation domain.
-        subset:    
-            If $k < d$, whether the samples are samples of the first 
-            (`subset='first'`) or last (`subset='last'`) $k$ variables. 
-            
-        Returns
-        -------
         neglogdets:
             An $n$-dimensional vector containing the negative 
             log-determinant of $Q^{-1}(\cdot)$ evaluated at each sample.
@@ -142,10 +105,10 @@ class Preconditioner(abc.ABC):
         """TODO: write docstring.. in particular, give the format in 
         which the gradients are returned."""
         num_xs, dim_xs = xs.shape        
-        us = self.Q(xs, subset)
+        us = self.Q(xs, subset)[0]
         def func(us: Tensor) -> Tensor:
             us = us.reshape(num_xs, dim_xs)
-            xs = self.Q(us)
+            xs = self.Q(us)[0]
             return xs.sum(dim=0)
         dxdus: Tensor = jacobian(func, us.flatten(), vectorize=True)
         dxdus = dxdus.reshape(dim_xs, num_xs, dim_xs)

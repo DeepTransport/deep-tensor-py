@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 from torch import Tensor
 from torch import linalg
@@ -57,42 +59,28 @@ class GaussianMapping(Preconditioner):
             raise Exception(msg)
         return
 
-    def Q(self, us: Tensor, subset: str = "first") -> Tensor:
+    def Q(self, us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
         self._check_subset(subset)
-        d_us = us.shape[1]
+        dim_us = us.shape[1]
         if subset == "first":
-            xs = self.mean[:d_us] + (us @ self.L[:d_us, :d_us].T)
+            xs = self.mean[:dim_us] + (us @ self.L[:dim_us, :dim_us].T)
+            Ls = self.L.diag()[:dim_us]
         else:
-            xs = self.mean[-d_us:] + (us @ self.L[-d_us:, -d_us:].T)
-        return xs
-    
-    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
-        self._check_subset(subset)
-        d_xs = xs.shape[1]
-        if subset == "first":
-            us = (xs - self.mean[:d_xs]) @ self.R[:d_xs, :d_xs].T
-        else:
-            us = (xs - self.mean[-d_xs:]) @ self.R[-d_xs:, -d_xs:].T
-        return us
-    
-    def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:
-        self._check_subset(subset)
-        d_us = us.shape[1]
-        if subset == "first":
-            Ls = self.L.diag()[:d_us]
-        else:
-            Ls = self.L.diag()[-d_us:]
+            xs = self.mean[-dim_us:] + (us @ self.L[-dim_us:, -dim_us:].T)
+            Ls = self.L.diag()[-dim_us:]
         neglogdet = -Ls.log().sum().item()
         neglogdets = torch.full((us.shape[0],), neglogdet, device=us.device)
-        return neglogdets 
+        return xs, neglogdets
     
-    def neglogdet_Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor: 
+    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
         self._check_subset(subset)
-        d_xs = xs.shape[1]
+        dim_xs = xs.shape[1]
         if subset == "first":
-            Rs = self.R.diag()[:d_xs]
+            us = (xs - self.mean[:dim_xs]) @ self.R[:dim_xs, :dim_xs].T
+            Rs = self.R.diag()[:dim_xs]
         else:
-            Rs = self.R.diag()[-d_xs:]
+            us = (xs - self.mean[-dim_xs:]) @ self.R[-dim_xs:, -dim_xs:].T
+            Rs = self.R.diag()[-dim_xs:]
         neglogdet = -Rs.log().sum().item()
         neglogdets = torch.full((xs.shape[0],), neglogdet, device=xs.device)
-        return neglogdets 
+        return us, neglogdets

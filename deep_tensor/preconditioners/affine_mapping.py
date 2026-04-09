@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 from torch import Tensor
 from torch import linalg
@@ -52,38 +54,23 @@ class AffineMapping(Preconditioner):
         self.dim = self.b.flatten().numel()
         return
 
-    def _check_subset(self, subset: str) -> None:
-        # TODO: need to fix this..
-        if self.diag is False and subset == "last":
-            msg = ("Preconditioner is only well-defined when "
-                    "subset='first', unless diag=True.")
+    def _check_shape(self, xs: Tensor) -> None:
+        if xs.shape[1] != self.dim:
+            msg = ("Preconditioner is not defined for a subset of "
+                   "the variables.")
             raise Exception(msg)
         return
 
-    def Q(self, us: Tensor, subset: str = "first") -> Tensor:
-        if us.shape[1] != self.dim: 
-            msg = "Preconditioner is not defined for a subset of the variables."
-            raise Exception(msg)
-        return self.b + us @ self.A.T
-    
-    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
-        if xs.shape[1] != self.dim: 
-            msg = "Preconditioner is not defined for a subset of the variables."
-            raise Exception(msg)
-        return (xs - self.b) @ self.A_inv.T
-    
-    def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:
-        if us.shape[1] != self.dim: 
-            msg = "Preconditioner is not defined for a subset of the variables."
-            raise Exception(msg)
+    def Q(self, us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
+        self._check_shape(us)
+        xs = self.b + us @ self.A.T
         neglogdet = -self.A.slogdet().logabsdet.item()
         neglogdets = torch.full((us.shape[0],), neglogdet, device=us.device)
-        return neglogdets 
+        return xs, neglogdets
     
-    def neglogdet_Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor: 
-        if xs.shape[1] != self.dim: 
-            msg = "Preconditioner is not defined for a subset of the variables."
-            raise Exception(msg)
+    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
+        self._check_shape(xs)
+        us = (xs - self.b) @ self.A_inv.T
         neglogdet = -self.A_inv.slogdet().logabsdet.item()
         neglogdets = torch.full((xs.shape[0],), neglogdet, device=xs.device)
-        return neglogdets 
+        return us, neglogdets

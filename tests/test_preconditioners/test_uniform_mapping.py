@@ -31,13 +31,13 @@ class TestUniformMapping(unittest.TestCase):
         us = torch.tensor([[-4.0, 0.0, 4.0], 
                            [4.0, 0.0, -4.0]])
         
-        xs = preconditioner.Q(us)
+        xs = preconditioner.Q(us)[0]
 
         xs_true = torch.tensor([[-2.0, 1.5, 2.0], 
                                 [2.0, 1.5, -1.0]])
 
-        xs_first = preconditioner.Q(us[:, :2], subset="first")
-        xs_last = preconditioner.Q(us[:, -2:], subset="last")
+        xs_first = preconditioner.Q(us[:, :2], subset="first")[0]
+        xs_last = preconditioner.Q(us[:, -2:], subset="last")[0]
         
         self.assertTrue((xs-xs_true).abs().max() < EPS)
         self.assertTrue((xs_first-xs_true[:, :2]).abs().max() < EPS)
@@ -52,13 +52,13 @@ class TestUniformMapping(unittest.TestCase):
         xs = torch.tensor([[-2.0, 1.5, 2.0], 
                            [2.0, 1.5, -1.0]])
     
-        us = preconditioner.Q_inv(xs)
+        us = preconditioner.Q_inv(xs)[0]
 
         us_true = torch.tensor([[-4.0, 0.0, 4.0], 
                                 [4.0, 0.0, -4.0]])
 
-        us_first = preconditioner.Q_inv(xs[:, :2], subset="first")
-        us_last = preconditioner.Q_inv(xs[:, -2:], subset="last")
+        us_first = preconditioner.Q_inv(xs[:, :2], subset="first")[0]
+        us_last = preconditioner.Q_inv(xs[:, -2:], subset="last")[0]
 
         self.assertTrue((us-us_true).abs().max() < EPS)
         self.assertTrue((us_first-us_true[:, :2]).abs().max() < EPS)

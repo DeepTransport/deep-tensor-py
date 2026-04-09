@@ -96,13 +96,8 @@ class Bridge(abc.ABC):
         self.target_func = target_func
         return
     
-    def apply_preconditioner(self, us: Tensor) -> Tuple[Tensor, Tensor]:
-        xs = self.preconditioner.Q(us)
-        neglogdets = self.preconditioner.neglogdet_Q(us)
-        return xs, neglogdets
-    
     def apply_preconditioner_grad(self, us: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
-        xs, neglogdets = self.apply_preconditioner(us)
+        xs, neglogdets = self.preconditioner.Q(us)
         dxdus = self.preconditioner.grad_Q(us)
         return xs, neglogdets, dxdus
     
@@ -142,7 +137,7 @@ class Bridge(abc.ABC):
         """Evaluates the pullback of the target density under the 
         preconditioning mapping.
         """
-        xs, neglogdets = self.apply_preconditioner(us)
+        xs, neglogdets = self.preconditioner.Q(us)
         neglogfxs = self.target_func(xs)
         neglogfus = neglogfxs + neglogdets
         return neglogfus

@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 from torch import Tensor
 
@@ -45,41 +47,30 @@ class UniformMapping(Preconditioner):
         self.dim = bounds.shape[0]
         return
 
-    def Q(self, us: Tensor, subset: str = "first") -> Tensor:
+    def Q(self, us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
         # Reference to uniform
-        d_us = us.shape[1]
+        num_us, dim_us = us.shape
         zs = self.reference.eval_cdf(us)[0]
         if subset == "first":
-            xs = self.lbs[:d_us] + self.dxs[:d_us] * zs 
+            xs = self.lbs[:dim_us] + self.dxs[:dim_us] * zs 
+            neglogfx = self.dxs[:dim_us].log().sum().item()
         elif subset == "last":
-            xs = self.lbs[-d_us:] + self.dxs[-d_us:] * zs
-        return xs 
+            xs = self.lbs[-dim_us:] + self.dxs[-dim_us:] * zs
+            neglogfx = self.dxs[-dim_us:].log().sum().item()
+        neglogfxs = torch.full((num_us,), neglogfx, device=us.device)
+        neglogdets = self.reference.eval_potential(us)[0] - neglogfxs
+        return xs, neglogdets
     
-    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
+    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
         # Uniform to reference
-        d_xs = xs.shape[1]
+        num_xs, dim_xs = xs.shape
         if subset == "first":
-            zs = (xs - self.lbs[:d_xs]) / self.dxs[:d_xs]
+            zs = (xs - self.lbs[:dim_xs]) / self.dxs[:dim_xs]
+            neglogfx = self.dxs[:dim_xs].log().sum().item()
         elif subset == "last":
-            zs = (xs - self.lbs[-d_xs:]) / self.dxs[-d_xs:]
+            zs = (xs - self.lbs[-dim_xs:]) / self.dxs[-dim_xs:]
+            neglogfx = self.dxs[-dim_xs:].log().sum().item()
         us = self.reference.invert_cdf(zs)
-        return us
-    
-    def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:
-        n_us, d_us = us.shape
-        if subset == "first":
-            neglogfx = self.dxs[:d_us].log().sum().item()
-        elif subset == "last":
-            neglogfx = self.dxs[-d_us:].log().sum().item()
-        neglogfxs = torch.full((n_us,), neglogfx, device=us.device)
-        return self.reference.eval_potential(us)[0] - neglogfxs
-    
-    def neglogdet_Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
-        n_xs, d_xs = xs.shape
-        if subset == "first":
-            neglogfx = self.dxs[:d_xs].log().sum().item()
-        elif subset == "last":
-            neglogfx = self.dxs[-d_xs:].log().sum().item()
-        neglogfxs = torch.full((n_xs,), neglogfx, device=xs.device)
-        us = self.Q_inv(xs, subset)
-        return neglogfxs - self.reference.eval_potential(us)[0]
+        neglogfxs = torch.full((num_xs,), neglogfx, device=xs.device)
+        neglogdets = neglogfxs - self.reference.eval_potential(us)[0]
+        return us, neglogdets

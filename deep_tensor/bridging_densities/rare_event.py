@@ -119,7 +119,7 @@ class SmoothedIndicator(Bridge, abc.ABC):
         """Evaluates the pullback of the target density under the 
         preconditioning mapping.
         """
-        xs, neglogdets = self.apply_preconditioner(us)
+        xs, neglogdets = self.preconditioner.Q(us)
         neglogfxs, responses = self.target_func.func(xs)
         neglogfus = neglogfxs + neglogdets
         return neglogfus, responses

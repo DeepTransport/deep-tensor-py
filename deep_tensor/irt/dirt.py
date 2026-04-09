@@ -501,8 +501,7 @@ class DIRT():
             num_layers = self.num_layers
         subset = self._parse_subset(subset)
 
-        neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs, subset)
-        us = self.preconditioner.Q_inv(xs, subset)
+        us, neglogdet_xs = self.preconditioner.Q_inv(xs, subset)
         rs, neglogfus = self._eval_rt_reference(us, subset, num_layers)
         neglogfxs = neglogfus + neglogdet_xs
         return rs, neglogfxs
@@ -551,8 +550,8 @@ class DIRT():
         subset = self._parse_subset(subset)
         
         us, neglogfus = self._eval_irt_reference(rs, subset, num_layers)
-        xs = self.preconditioner.Q(us, subset)
-        neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs, subset)
+        xs = self.preconditioner.Q(us, subset)[0]
+        neglogdet_xs = self.preconditioner.Q_inv(xs, subset)[1]
         neglogfxs = neglogfus + neglogdet_xs
         return xs, neglogfxs
     
@@ -1079,28 +1078,20 @@ class DIRTMapping(Preconditioner):
     
     """
 
-    # TODO: it could make sense to have a function which returns Q and 
-    # neglogdet_Q together, etc. Otherwise the RT/IRT functions will be 
-    # called 2x more than necessary.
-
     def __init__(self, dirt: DIRT):
         self.dirt = dirt
         self.reference = dirt.reference
         self.dim = dirt.dim
         return
 
-    def Q(self, us: Tensor, subset: str = "first") -> Tensor:
-        return self.dirt.eval_irt(us, subset)[0]
-    
-    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
-        return self.dirt.eval_rt(xs, subset)[0]
-    
-    def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:
+    def Q(self, us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
+        xs, neglogfxs = self.dirt.eval_irt(us, subset)
         neglogrefs = self.reference.eval_potential(us)[0]
-        neglogfxs = self.dirt.eval_irt(us, subset)[1]
-        return neglogrefs - neglogfxs
+        neglogdets = neglogrefs - neglogfxs
+        return xs, neglogdets
     
-    def neglogdet_Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor: 
-        us, neglogfus = self.dirt.eval_rt(xs, subset)
+    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
+        us, neglogfxs = self.dirt.eval_rt(xs, subset)
         neglogrefs = self.reference.eval_potential(us)[0]
-        return neglogfus - neglogrefs
+        neglogdets = neglogfxs - neglogrefs
+        return us, neglogdets
