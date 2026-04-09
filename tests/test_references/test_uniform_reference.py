@@ -60,7 +60,7 @@ class TestUniformReference(unittest.TestCase):
         log_pdfs, log_grad_pdfs = ref.eval_potential(rs)
 
         log_pdfs_true = torch.zeros(3)
-        log_grad_pdfs_true = torch.zeros(3)
+        log_grad_pdfs_true = torch.zeros(3, 4)
 
         self.assertTrue((log_pdfs - log_pdfs_true).abs().max() < EPS)
         self.assertTrue((log_grad_pdfs - log_grad_pdfs_true).abs().max() < EPS)

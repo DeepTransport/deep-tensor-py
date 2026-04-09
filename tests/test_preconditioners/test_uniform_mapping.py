@@ -13,7 +13,7 @@ class TestUniformMapping(unittest.TestCase):
     @staticmethod
     def generate_mapping():
 
-        bounds = torch.tensor([-4.0, 4.0])
+        bounds = [-4.0, 4.0]
         domain = dt.BoundedDomain(bounds)
         reference = dt.GaussianReference(domain)
 
