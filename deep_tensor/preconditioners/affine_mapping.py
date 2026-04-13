@@ -65,6 +65,6 @@ class AffineMapping(Preconditioner):
     def grad_Q(self, us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor, Tensor]:
         self._check_shape(us)
         num_us = us.shape[0]
-        xs, neglogdets = self.Q(us)
+        xs, neglogdets = self.Q(us, subset)
         dxdus = self.A[:, None, :].repeat(1, num_us, 1)
         return xs, neglogdets, dxdus

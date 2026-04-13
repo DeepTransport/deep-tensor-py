@@ -36,13 +36,11 @@ class GaussianMapping(Preconditioner):
         reference: GaussianReference | None = None,
         diag: bool = False
     ):
-
         if reference is None:
             reference = GaussianReference()
         elif not isinstance(reference, GaussianReference):
             msg = "Reference density must be Gaussian."
             raise Exception(msg)
-
         self.mean = mean.flatten()
         self.cov = cov 
         self.reference = reference
@@ -84,3 +82,13 @@ class GaussianMapping(Preconditioner):
         neglogdet = -Rs.log().sum().item()
         neglogdets = torch.full((xs.shape[0],), neglogdet, device=xs.device)
         return us, neglogdets
+    
+    def grad_Q(self, us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor, Tensor]:
+        self._check_subset(subset)
+        num_us, dim_us = us.shape
+        xs, neglogdets = self.Q(us, subset)
+        if subset == "first":
+            dxdus = self.L[:dim_us, None, :dim_us].repeat(1, num_us, 1)
+        else:
+            dxdus = self.L[-dim_us:, None, -dim_us:].repeat(1, num_us, 1)
+        return xs, neglogdets, dxdus
