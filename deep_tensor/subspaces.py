@@ -1,4 +1,5 @@
 import abc
+import logging
 import math
 from typing import Callable, Tuple
 
@@ -9,7 +10,11 @@ from .tools.printing import lis_info
 from .debiasing.importance_sampling import estimate_ess_ratio
 
 
-UPDATE_METHODS_LIS = ("augment", "rebuild", "static")
+logger = logging.getLogger(__name__)
+
+
+TARGET_FUNCS_LIS = ("bridge", "ratio")
+UPDATE_METHODS_LIS = ("augment", "rebuild", "fixed")
 
 
 class Subspace(abc.ABC):
@@ -135,31 +140,75 @@ class Subspace(abc.ABC):
     @abc.abstractmethod 
     def eval_neglogprofile(
         self, 
-        target_func: Callable[[Tensor], Tensor],
+        eval_neglogtarget: Callable[[Tensor], Tensor],
         vs_red: Tensor
     ) -> Tensor:
-        """Evalutes the negative logarithm of the profile function at a 
+        r"""Evalutes the negative logarithm of the profile function at a 
         set of points in the reduced subspace.
         
-        TODO: finish this..
+        Parameters
+        ----------
+        target_func:
+            A function that accepts an $n \times d$ matrix containing a 
+            set of samples in the reference domain, and returns an 
+            $n$-dimensional vector containing the negative logarithm of 
+            the target function (composed with the current IRT mapping) 
+            evaluated at each sample.
+        vs_red:
+            An $n \times d_{r}$ matrix containing the coefficients 
+            associated with a set of samples in the reduced subspace.
+
+        Returns
+        -------
+        neglogprofiles:
+            An $n$-dimensional vector containing the negative 
+            logarithm of the profile function evaluated at each of the 
+            samples in `vs_red`.
+
         """
         pass
 
     @abc.abstractmethod 
     def update(
         self,
-        grad_neglogtarget: Callable[[Tensor], Tuple[Tensor, Tensor]],
-        irt_func: Callable[[Tensor], Tuple[Tensor, Tensor]]
+        grad_neglogbridge: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]]
     ) -> None:
+        r"""Updates the basis associated with the current reduced subspace.
+        
+        Parameters
+        ----------
+        grad_neglogtarget:
+            A function that accepts an $n \times d$ matrix containing a 
+            set of samples in the approximation domain, and return an
+            $n$-dimensional vector containing the negative logarithm of 
+            the target function evaluated at each sample, and an 
+            $n \times d$ matrix containing the gradient of the negative 
+            logarithm of the target function evaluated at each sample.
+        irt_func:
+            A function that evaluates the current inverse Rosenblatt 
+            transport.
+
+        TODO:
+        combine grad_neglogtarget and irt_func together.. and fix docstring
+        
+        """
         pass
 
     @abc.abstractmethod 
     def clone(self) -> Subspace:
+        """Returns a copy of the subspace."""
         pass
 
 
 class IdentitySubspace(Subspace):
-    """Identity subspace."""
+    r"""Identity subspace (*i.e.,* the DIRT will be constructed on the full space).
+    
+    Parameters
+    ----------
+    dim:
+        The dimension of the target density.
+    
+    """
 
     def __init__(self, dim: int):
         self.basis_red = torch.eye(dim)
@@ -174,15 +223,14 @@ class IdentitySubspace(Subspace):
     
     def eval_neglogprofile(
         self, 
-        target_func: Callable[[Tensor], Tensor], 
+        eval_neglogtarget: Callable[[Tensor], Tensor], 
         xs: Tensor
     ) -> Tensor:
-        return target_func(xs)
+        return eval_neglogtarget(xs)
     
     def update(
         self, 
-        grad_neglogtarget: Callable[[Tensor], Tuple[Tensor, Tensor]],
-        irt_func: Callable[[Tensor], Tuple[Tensor, Tensor]]
+        grad_neglogbridge: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]]
     ) -> None: 
         return
 
@@ -228,19 +276,24 @@ class LikelihoodInformedSubspace(Subspace):
         initial_basis: Tensor | None = None
     ):
 
-        # TODO: check target_func and update_method are valid.
+        target_func = target_func.lower()
         update_method = update_method.lower()
-        if update_method not in UPDATE_METHODS_LIS:
+        if target_func not in TARGET_FUNCS_LIS:
             msg = (
-                "Unknown update method. Accepted methods are "
-                + f"{", ".join(UPDATE_METHODS_LIS)}."
+                "Unknown target function. Accepted target functions are `"
+                f"{"`, `".join(TARGET_FUNCS_LIS)}`."
             )
             raise Exception(msg)
-
-        if update_method == "static" and initial_basis is None:
+        if update_method not in UPDATE_METHODS_LIS:
             msg = (
-                "If update_method==`static`, need to pass in "
-                "an initial basis."
+                "Unknown update method. Accepted methods are `"
+                f"{"`, `".join(UPDATE_METHODS_LIS)}`."
+            )
+            raise Exception(msg)
+        if update_method == "fixed" and initial_basis is None:
+            msg = (
+                "If update_method==`fixed`, an initial basis must be "
+                "supplied."
             )
             raise Exception(msg)
 
@@ -252,18 +305,19 @@ class LikelihoodInformedSubspace(Subspace):
         self.eps = eps
         self.num_eval = 0
         self.num_eval_grad = 0
-        
         self.initial_basis = initial_basis
+        self.max_comp = dim - 2  # subspace must be at least two-dimensional
 
         if self.initial_basis is None:
             self.basis_red = torch.zeros((dim, 0))
             self.basis_comp = torch.eye(dim)
-
         if self.initial_basis is not None:
-            self.basis_red = self.initial_basis
+            self.basis_red = self.initial_basis.clone()
             self.basis_comp = self._compute_basis_comp(self.basis_red)
             if self.fixed_comp and self.num_comp > 0:
-                self.vs_comp = torch.randn((self.num_comp, self.dim_comp))
+                # TODO: fix the device. probably pass in self.device as an attribute
+                shape_comp = (self.num_comp, self.dim_comp)
+                self.vs_comp = torch.randn(shape_comp)
                 self.xs_comp = self.eval_coef2comp(self.vs_comp)
 
         self.P_red = self.basis_red @ self.basis_red.T
@@ -277,11 +331,8 @@ class LikelihoodInformedSubspace(Subspace):
     
     def update(
         self, 
-        grad_neglogtarget: Callable[[Tensor], Tuple[Tensor, Tensor]],
-        irt_func: Callable[[Tensor], Tuple[Tensor, Tensor]]
+        grad_neglogbridge: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]]
     ) -> None:
-        """test...
-        """
 
         if self.update_method == "static":
             return
@@ -293,25 +344,28 @@ class LikelihoodInformedSubspace(Subspace):
         lis_info("Computing estimate of Gram matrix...", end="\r")
 
         # Generate a set of samples distributed according to biasing 
-        # density
+        # density. TODO: should these be generated according to reference?
+        # TODO: fix device.
         rs = torch.randn((self.num_samples_gram, self.dim))
-        us, neglogfus = irt_func(rs)
-        neglogbridges, grad_neglogbridges = grad_neglogtarget(us)
+        neglogfus, neglogbridges, grad_neglogbridges = grad_neglogbridge(rs)
 
-        self.num_eval += us.shape[0]
-        self.num_eval_grad += us.shape[0]
+        self.num_eval += rs.shape[0]
+        self.num_eval_grad += rs.shape[0]
 
         log_weights = neglogfus - neglogbridges
         log_weights -= log_weights.max()
         weights = log_weights.exp() / log_weights.exp().sum()
         ess = estimate_ess_ratio(log_weights) * weights.numel()
 
-        if weights.isnan().any(): # TODO: should also check the gradients for nans, before and after taking the reference off..
-            print("nan weights found..")
+        # TODO: should also check the gradients for nans, before and 
+        # after taking the reference off..
+        if weights.isnan().any():
+            msg = "Some weights take NaN values."
+            logger.warning(msg)
 
         # Subtract the contribution of the standard Gaussian to the 
         # gradient of the bridging density
-        grad_neglogref_us = us.clone()
+        grad_neglogref_us = rs.clone()
         grad_neglogliks = grad_neglogbridges - grad_neglogref_us
 
         H = torch.zeros((self.dim, self.dim))
@@ -323,7 +377,7 @@ class LikelihoodInformedSubspace(Subspace):
         energies = torch.cumsum(eigvals.abs(), dim=0)
 
         dim_comp = (0.5 * torch.sqrt(energies) < self.eps).sum()
-        # TODO: check that the dimension of the basis is appropriate.
+        # dim_comp = torch.clamp(dim_comp, max=self.max_comp)
 
         # Update basis
         basis_up = eigvecs[:, dim_comp:].flip(dims=(1,))
@@ -339,39 +393,40 @@ class LikelihoodInformedSubspace(Subspace):
         lis_info(" | ".join(diagnostics).ljust(40))
 
         # Estimate some errors
-        self.error_acc = torch.trace(self.P_comp @ H @ self.P_comp )
-        eigvals, _ = torch.linalg.eigh(H)
-        self.error_new = torch.sum(eigvals[:self.dim_comp])
+        # self.error_acc = torch.trace(self.P_comp @ H @ self.P_comp)
+        # eigvals, _ = torch.linalg.eigh(H)
+        # self.error_new = torch.sum(eigvals[:self.dim_comp])
         
         # Recompute fixed samples in the complement subspace
         if self.fixed_comp and self.num_comp > 0:
-            self.vs_comp = torch.randn((self.num_comp, self.dim_comp))
+            self.vs_comp = torch.randn((self.num_comp, self.dim_comp)) # TODO: fix the device..
             self.xs_comp = self.eval_coef2comp(self.vs_comp)
         
         return 
     
     def eval_neglogprofile(
         self, 
-        target_func: Callable[[Tensor], Tensor], 
+        eval_neglogratio: Callable[[Tensor], Tensor], 
         vs_red: Tensor
     ) -> Tensor:
 
         xs_red = self.eval_coef2red(vs_red)
-        num_xs_red = xs_red.shape[0]
 
         if self.num_comp == 0:
-            return target_func(xs_red)
+            return eval_neglogratio(xs_red)
         
         if self.vs_comp is None:
             # Generate a new set of samples in the complement subspace
-            self.vs_comp = torch.randn((self.num_comp, self.dim_comp))
+            shape_comp = (self.num_comp, self.dim_comp)
+            self.vs_comp = torch.randn(shape_comp, device=vs_red.device)
             self.xs_comp = self.eval_coef2comp(self.vs_comp)
+        
+        num_red = xs_red.shape[0]
         num_comp = self.xs_comp.shape[0]
-
         xs = xs_red[:, None, :] + self.xs_comp[None, :, :]
-        xs = xs.reshape(-1, self.dim_red+self.dim_comp)
-        neglogfxs = target_func(xs)
-        neglogfxs = neglogfxs.reshape(num_xs_red, num_comp)
+        xs = xs.reshape(-1, self.dim_red + self.dim_comp)
+        neglogfxs = eval_neglogratio(xs)
+        neglogfxs = neglogfxs.reshape(num_red, num_comp)
         neglogfxs_mean = (
             - torch.logsumexp(-neglogfxs, dim=1)
             + math.log(num_comp)

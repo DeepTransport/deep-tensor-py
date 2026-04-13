@@ -149,42 +149,120 @@ class DIRT():
     # def error_news(self) -> List:
     #     return [self.subspaces[k].error_new for k in range(self.num_layers)]  # type: ignore
   
-    def eval_ratio_func(self, rs: Tensor) -> Tensor:
+    def _grad_neglogbridge(self, rs: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        """Evaluates the gradient of the negative logarithm of the 
+        current bridging density with respect to the reference random 
+        variable.
+
+        Parameters
+        ----------
+        rs:
+            An n * d matrix containing a set of samples from the domain 
+            of the reference density.
+        
+        Returns
+        -------
+        neglogfus:
+            An n-dimensional vector containing the pushforward of the 
+            reference density under the current IRT mapping, 
+            evaluated at each sample in `rs`.
+        neglogbridges:
+            An n-dimensional vector containing the current bridging 
+            density evaluated at each sample in `rs` after the current 
+            IRT mapping is applied.
+        grad_neglogbridges:
+            An n * d matrix containing the gradient of the negative 
+            logarithm of the composition of the current IRT mapping and 
+            the current bridging density, evaluated at each sample in 
+            rs.
+
+        """
+        
+        us, neglogfus = self._eval_irt_reference(rs)
+        neglogbs, dneglogbs_dus = self.bridge.eval_gradneglog(us)
+        
+        # TODO: make this its own function -- _eval_irt_jac_reference().
+        num_rs, dim_rs = rs.shape
+        def _eval_irt(rs: Tensor) -> Tensor:
+            rs = rs.reshape(num_rs, dim_rs)
+            return self._eval_irt_reference(rs)[0].sum(dim=0)
+        dudrs: Tensor = jacobian(_eval_irt, rs.flatten(), vectorize=True)
+        dudrs = dudrs.reshape(dim_rs, num_rs, dim_rs)
+
+        dneglogbs_drs = torch.einsum("i...j, ...j", dudrs, dneglogbs_dus)
+        return neglogfus, neglogbs, dneglogbs_drs
+
+    def _eval_neglogratio(self, rs: Tensor) -> Tensor:
         """Evaluates the current ratio function at each element in rs, 
         where rs is a set of samples from the reference domain.
+
+        Parameters
+        ----------
+        rs:
+            An n * d matrix containing a set of samples in the 
+            reference domain.
+        
+        Returns
+        -------
+        neglogratios:
+            An n-dimensional vector containing the composition of the 
+            current IRT mapping and the ratio function evaluated at 
+            each sample in rs.
+        
         """
         us, neglogfus_dirt = self._eval_irt_reference(rs)
-        neglogratios = self.bridge.ratio_func(self.ratio_type, 
-                                              rs, us, neglogfus_dirt)
+        neglogratios = self.bridge.ratio_func(
+            self.ratio_type, 
+            rs, us, 
+            neglogfus_dirt
+        )
         return neglogratios
+    
+    def _grad_neglogratio(self, rs: Tensor):
+        """TODO: write this. should make use of a new function, 
+        self.bridge.grad_neglogratio(), which I will write at some point...
+        
+        this will be useful for when the basis is replaced at each 
+        iteration..
+        """
+        raise NotImplementedError()
+        return
+    
+    def _eval_neglogprofile(self, rs: Tensor) -> Tensor:
+        """Evaluates the negative logarithm of the profile function.
+        
+        Parameters
+        ----------
+        rs:
+            An n * d matrix containing a set of samples from the 
+            reference domain.
+        
+        Returns
+        -------
+        neglogprofiles:
+            An n-dimensional vector containing the negative logarithm 
+            of the profile function evaluated at each sample in rs.
+            
+        """
+        subspace = self.subspaces[self.num_layers]
+        neglogprofiles = subspace.eval_neglogprofile(self._eval_neglogratio, rs)
+        return neglogprofiles
 
     def _get_new_layer(self) -> None:
         """Constructs a new SIRT to add to the current composition of 
         SIRTs.
         """
         k = self.num_layers
-        # If the subspace has changed, it is nontrivial to use 
-        # information from the previous FTT
         if self.subspace.is_fixed and k > 0:
             ftt = self.sirts[k-1].ftt.clone()
         else:
+            # If the subspace has changed, it is nontrivial to use 
+            # information from the previous FTT
             ftt = self.ftt.clone() 
-        # TODO: compute the diagnostics at the same time as updating 
-        # the subspace..?
         self.subspaces[k] = self.subspaces[k-1].clone()
-        self.subspaces[k].update(
-            self.bridge.eval_gradneglog,
-            self._eval_irt_reference
-        )
-        def target_func(xs):
-            # TODO: maybe increment the number of function evaluations in here.
-            # currently the number of function evaluations will not be 
-            # recorded correctly if we evaluate the profile function by 
-            # averaging over multiple samples.
-            return self.subspaces[k].eval_neglogprofile(self.eval_ratio_func, xs)
-
+        self.subspaces[k].update(self._grad_neglogbridge)
         self.sirts[k] = SIRT(
-            target_func, 
+            self._eval_neglogprofile, 
             ftt, 
             self.subspaces[k].dim_red,
             self.reference, 
@@ -192,7 +270,6 @@ class DIRT():
             self.cdf_tol,
             device=self.device
         )
-
         # TODO: tidy this up..
         # rs = self.reference.random(n=1000, d=self.dim)
         # us, neglogratios_dirt = self._eval_irt_reference_i(rs, self.num_layers, subset="first")
@@ -208,13 +285,16 @@ class DIRT():
         neglogfus_dirt: Tensor | None,
         cum_time: float
     ) -> None:
-
         msg = [
             f"Iter: {self.num_layers+1:=2}",
             f"Cum. Fevals: {self.num_eval:=.2e}",
             f"Cum. Time: {cum_time:=.2e} s"
         ]
-        msg += self.bridge._get_diagnostics(log_weights, neglogfus, neglogfus_dirt)
+        msg += self.bridge._get_diagnostics(
+            log_weights, 
+            neglogfus, 
+            neglogfus_dirt
+        )
         dirt_info(" | ".join(msg))
         return
     
