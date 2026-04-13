@@ -61,3 +61,10 @@ class AffineMapping(Preconditioner):
         neglogdet = -self.A_inv.slogdet().logabsdet.item()
         neglogdets = torch.full((xs.shape[0],), neglogdet, device=xs.device)
         return us, neglogdets
+
+    def grad_Q(self, us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor, Tensor]:
+        self._check_shape(us)
+        num_us = us.shape[0]
+        xs, neglogdets = self.Q(us)
+        dxdus = self.A[:, None, :].repeat(1, num_us, 1)
+        return xs, neglogdets, dxdus

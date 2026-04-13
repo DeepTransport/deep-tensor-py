@@ -103,7 +103,7 @@ class Preconditioner(abc.ABC):
 
     def grad_Q(
         self, 
-        xs: Tensor, 
+        us: Tensor, 
         subset: str = "first"
     ) -> Tuple[Tensor, Tensor, Tensor]:
         r"""Evaluates the mapping $Q(\cdot)$ and its gradient.
@@ -133,12 +133,12 @@ class Preconditioner(abc.ABC):
         """
         # Fall back to autodiff if no implementation for the child 
         # class is provided. 
-        num_xs, dim_xs = xs.shape        
-        us, neglogdets = self.Q(xs, subset)
+        num_us, dim_us = us.shape        
+        xs, neglogdets = self.Q(us, subset)
         def func(us: Tensor) -> Tensor:
-            us = us.reshape(num_xs, dim_xs)
+            us = us.reshape(num_us, dim_us)
             xs = self.Q(us, subset)[0]
             return xs.sum(dim=0)
-        dxdus: Tensor = jacobian(func, xs.flatten(), vectorize=True)
-        dxdus = dxdus.reshape(dim_xs, num_xs, dim_xs)
-        return us, neglogdets, dxdus
+        dxdus: Tensor = jacobian(func, us.flatten(), vectorize=True)
+        dxdus = dxdus.reshape(dim_us, num_us, dim_us)
+        return xs, neglogdets, dxdus
