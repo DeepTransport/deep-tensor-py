@@ -132,7 +132,7 @@ class SmoothedIndicator(Bridge, abc.ABC):
         self._check_grad()
         self.target_func: RareEventFunc
 
-        xs, neglogdets, dxdus = self.apply_preconditioner_grad(us)
+        xs, neglogdets, dxdus = self.preconditioner.grad_Q(us)
         neglogfxs, grad_neglogfxs, Fs, dFdxs = self.target_func.grad_func(xs)
         neglogfus = neglogfxs + neglogdets
         

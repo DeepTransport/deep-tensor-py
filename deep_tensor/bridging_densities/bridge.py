@@ -96,11 +96,6 @@ class Bridge(abc.ABC):
         self.target_func = target_func
         return
     
-    def apply_preconditioner_grad(self, us: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
-        xs, neglogdets = self.preconditioner.Q(us)
-        dxdus = self.preconditioner.grad_Q(us)
-        return xs, neglogdets, dxdus
-    
     def _check_grad(self) -> None:
         """Throws an error if no gradients are supplied for the target 
         function.
@@ -146,7 +141,7 @@ class Bridge(abc.ABC):
         """Evaluates the pullback of the target density under the 
         preconditioning mapping, and its gradient.
         """
-        xs, neglogdets, dxdus = self.apply_preconditioner_grad(us)
+        xs, neglogdets, dxdus = self.preconditioner.grad_Q(us)
         neglogfxs, grad_neglogfxs = self.target_func.grad_func(xs) # NOTE: this may not work with a RareEventFunc currently.. maybe it should
         neglogfus = neglogfxs + neglogdets
         grad_neglogfus = self._grad_x2u(grad_neglogfxs, dxdus)

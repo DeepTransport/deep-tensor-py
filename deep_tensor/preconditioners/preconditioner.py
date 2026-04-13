@@ -76,7 +76,7 @@ class Preconditioner(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
+    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
         r"""Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
 
         Parameters
@@ -101,15 +101,44 @@ class Preconditioner(abc.ABC):
         """
         pass
 
-    def grad_Q(self, xs: Tensor, subset: str = "first") -> Tensor:
-        """TODO: write docstring.. in particular, give the format in 
-        which the gradients are returned."""
+    def grad_Q(
+        self, 
+        xs: Tensor, 
+        subset: str = "first"
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        r"""Evaluates the mapping $Q(\cdot)$ and its gradient.
+
+        Parameters
+        ----------
+        us:
+            An $n \times k$ matrix containing samples from the 
+            reference domain.
+        subset:    
+            If $k < d$, whether the samples are samples of the first 
+            (`subset='first'`) or last (`subset='last'`) $k$ variables. 
+
+        Returns
+        -------
+        xs:
+            An $n \times k$ matrix containing samples from the 
+            approximation domain, after applying the mapping $Q(\cdot)$ 
+            to each sample.
+        neglogdets:
+            An $n$-dimensional vector containing the negative 
+            log-determinant of $Q(\cdot)$ evaluated at each sample.
+        dxdus:
+            A $k \times n \times k$ tensor, where `dxdus[:, i, :]` 
+            contains the Jacobian of $Q(\cdot)$ evaluated at `xs[i, :]`.
+        
+        """
+        # Fall back to autodiff if no implementation for the child 
+        # class is provided. 
         num_xs, dim_xs = xs.shape        
-        us = self.Q(xs, subset)[0]
+        us, neglogdets = self.Q(xs, subset)
         def func(us: Tensor) -> Tensor:
             us = us.reshape(num_xs, dim_xs)
-            xs = self.Q(us)[0]
+            xs = self.Q(us, subset)[0]
             return xs.sum(dim=0)
-        dxdus: Tensor = jacobian(func, us.flatten(), vectorize=True)
+        dxdus: Tensor = jacobian(func, xs.flatten(), vectorize=True)
         dxdus = dxdus.reshape(dim_xs, num_xs, dim_xs)
-        return dxdus
+        return us, neglogdets, dxdus

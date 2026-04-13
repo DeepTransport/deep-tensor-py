@@ -17,19 +17,6 @@ from ..tools.printing import dirt_info, format_time
 from ..tools import compute_f_divergence
 
 
-def unit_norm_pdf(xs: Tensor) -> Tensor:
-    """Evaluates the negative logarithm of the unit normal density at a 
-    set of values.
-    """
-    xs = torch.atleast_2d(xs)
-    dim = xs.shape[1]
-    neglogfxs = (
-        0.5 * xs.square().sum(dim=1) 
-        + 0.5 * dim * math.log(2.0*torch.pi)
-    )
-    return neglogfxs
-
-
 class DIRT():
     r"""Deep (squared) inverse Rosenblatt transport.
 
@@ -147,20 +134,20 @@ class DIRT():
     def subspace_dims(self) -> List:
         return [self.subspaces[k].dim_red for k in range(self.num_layers)]
     
-    @property
-    def dhell_ratios_red(self) -> List:
-        """The Hellinger divergences between the reduced ratio functions 
-        and their DIRT approximations.
-        """
-        return [self.sirts[k].dhell_ratio for k in range(self.num_layers)]
+    # @property
+    # def dhell_ratios_red(self) -> List:
+    #     """The Hellinger divergences between the reduced ratio functions 
+    #     and their DIRT approximations.
+    #     """
+    #     return [self.sirts[k].dhell_ratio for k in range(self.num_layers)]
     
-    @property 
-    def error_accs(self) -> List:
-        return [self.subspaces[k].error_acc for k in range(self.num_layers)]  # type: ignore
+    # @property 
+    # def error_accs(self) -> List:
+    #     return [self.subspaces[k].error_acc for k in range(self.num_layers)]  # type: ignore
     
-    @property 
-    def error_news(self) -> List:
-        return [self.subspaces[k].error_new for k in range(self.num_layers)]  # type: ignore
+    # @property 
+    # def error_news(self) -> List:
+    #     return [self.subspaces[k].error_new for k in range(self.num_layers)]  # type: ignore
   
     def eval_ratio_func(self, rs: Tensor) -> Tensor:
         """Evaluates the current ratio function at each element in rs, 
@@ -191,6 +178,9 @@ class DIRT():
         )
         def target_func(xs):
             # TODO: maybe increment the number of function evaluations in here.
+            # currently the number of function evaluations will not be 
+            # recorded correctly if we evaluate the profile function by 
+            # averaging over multiple samples.
             return self.subspaces[k].eval_neglogprofile(self.eval_ratio_func, xs)
 
         self.sirts[k] = SIRT(
@@ -244,17 +234,17 @@ class DIRT():
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
                 log_weights, neglogbridges = self.bridge.update(us, neglogfus_dirt)
 
-                neglogfus_target = self.bridge._eval_pullback(us)
-                dhell_bridge = compute_f_divergence(-neglogfus_dirt, -neglogbridges).sqrt()
-                dhell_target = compute_f_divergence(-neglogfus_dirt, -neglogfus_target).sqrt()
+                # neglogfus_target = self.bridge._eval_pullback(us)
+                # dhell_bridge = compute_f_divergence(-neglogfus_dirt, -neglogbridges).sqrt()
+                # dhell_target = compute_f_divergence(-neglogfus_dirt, -neglogfus_target).sqrt()
 
             else:
                 log_weights, neglogbridges, neglogfus_dirt = None, None, None
-                dhell_bridge, dhell_target = None, None
+                # dhell_bridge, dhell_target = None, None
 
-            if self.bridge.num_layers > 0:
-                self.dhell_bridges.append(dhell_bridge)
-                self.dhell_targets.append(dhell_target)
+            # if self.bridge.num_layers > 0:
+            #     self.dhell_bridges.append(dhell_bridge)
+            #     self.dhell_targets.append(dhell_target)
 
             if self.verbose > 0:
                 cum_time = time.time() - t0
@@ -339,7 +329,7 @@ class DIRT():
         # TODO: figure out whether the reference needs to be Gaussian if the subspace is reduced. 
         # TODO: figure out whether this should be the (normalised) reference density..
         neglogfrs_comp = self.reference.eval_potential(us_comp)[0]
-        # neglogfrs_comp = unit_norm_pdf(rs_comp)
+        # neglogfrs_comp = unit_norm_pdf(us_comp)
 
         rs = rs_red + rs_comp 
         neglogfrs = neglogfrs_red + neglogfrs_comp
