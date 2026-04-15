@@ -34,13 +34,100 @@ class Bridge(abc.ABC):
         return
 
     @abc.abstractmethod
-    def ratio_func(
+    def _eval_neglogratio(
         self, 
         method: str,
         rs: Tensor,
         us: Tensor,
         neglogfus_dirt: Tensor
     ) -> Tensor:
+        """TODO: write docstring for this.."""
+        pass
+
+    @abc.abstractmethod 
+    def _grad_neglogratio(
+        self,
+        method: str,
+        rs: Tensor,
+        us: Tensor,
+        neglogfus_dirt: Tensor,
+        grad_neglogfus_dirt: Tensor, 
+        dudrs: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        """Evaluates the gradient of the negative logarithm of the 
+        current ratio function.
+        
+        Parameters
+        ----------
+        method:
+            The ratio function to compute ('aratio' or 'eratio').
+        rs:
+            An n * d matrix containing a set of samples in the 
+            reference domain.
+        us:
+            An n * d matrix containing the corresponding samples after 
+            applying the IRT (without the preconditioner).
+        neglogfus_dirt:
+            An n-dimensional vector containing the pushforward of the 
+            reference density under the IRT mapping evaluated at each 
+            element in 'us'.
+        grad_neglogfus_dirt:
+            An n * d matrix where each row contains the gradient of the 
+            negative logarithm of the pushforward of the reference 
+            density under the IRT mapping, evaluated at each element in 
+            'us'.
+        dudrs:
+            An n * d * n tensor, where `dudrs[:, i, :]` contains the 
+            Jacobian of the DIRT mapping evaluated for `us[i, :]`.
+        
+        Returns
+        -------
+        neglogratios:
+            An n-dimensional vector containing the current ratio 
+            function evaluated at each element in `us`.
+        grad_neglogratios:
+            An n * d matrix containing the gradient of the composition 
+            of the current IRT and ratio function evaluated at each 
+            element in `rs`.
+            
+        """
+        pass
+
+    @abc.abstractmethod
+    def _grad_neglogbridge(
+        self, 
+        us: Tensor,
+        dudrs: Tensor 
+    ) -> Tuple[Tensor, Tensor]:
+        """Evaluates the current bridging density and its gradient at a 
+        set of samples.
+
+        Parameters
+        ----------
+        us:
+            An n * d matrix containing a set of samples from the 
+            reference domain after applying the IRT (without the 
+            preconditioning mapping).
+        dudrs:
+            An n * d * n matrix. `dudrs[:, i, :]` contains the gradient 
+            of the IRT mapping evaluated at `us[i, :]`.
+
+        Returns
+        -------
+        neglogbridges:
+            An n-dimensional vector containing the negative logarithm 
+            of the current bridging density (pulled back under the 
+            preconditioner) evaluated at each sample in `us`.
+        grad_neglogbridges:
+            An n-dimensional vector containing the negative logarithm 
+            of the composition of the IRT and the current bridging 
+            density.
+
+        TODO: the returns section needs work I think. For clarity maybe it 
+        even makes sense to pass in rs here (to be consistent with 
+        _eval_neglogratio). Probably not though.
+        
+        """
         pass
 
     @abc.abstractmethod
@@ -78,13 +165,6 @@ class Bridge(abc.ABC):
         """
         pass
 
-    @abc.abstractmethod
-    def eval_gradneglog(self, us: Tensor) -> Tuple[Tensor, Tensor]:
-        """Evaluates the current bridging density and its gradient at a 
-        set of samples.
-        """
-        pass
-
     def initialise(
         self, 
         preconditioner: Preconditioner, 
@@ -105,7 +185,7 @@ class Bridge(abc.ABC):
             raise Exception(msg)
         return
     
-    def _grad_x2u(self, dfdxs: Tensor, dxdus: Tensor) -> Tensor:
+    def _grad_chain(self, dfdxs: Tensor, dxdus: Tensor) -> Tensor:
         """Converts a set of gradients in terms of x to gradients in 
         terms of u.
 
@@ -137,14 +217,17 @@ class Bridge(abc.ABC):
         neglogfus = neglogfxs + neglogdets
         return neglogfus
     
-    def _eval_pullback_grad(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+    def _grad_pullback(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         """Evaluates the pullback of the target density under the 
         preconditioning mapping, and its gradient.
         """
         xs, neglogdets, dxdus = self.preconditioner.grad_Q(us)
-        neglogfxs, grad_neglogfxs = self.target_func.grad_func(xs) # NOTE: this may not work with a RareEventFunc currently.. maybe it should
+        # NOTE: this may not work with a RareEventFunc currently. maybe 
+        # it should. could also have a slightly different implementation 
+        # of this in the RareEventFunc class.
+        neglogfxs, grad_neglogfxs = self.target_func.grad_func(xs)
         neglogfus = neglogfxs + neglogdets
-        grad_neglogfus = self._grad_x2u(grad_neglogfxs, dxdus)
+        grad_neglogfus = self._grad_chain(grad_neglogfxs, dxdus)
         return neglogfus, grad_neglogfus
     
     def _reorder(

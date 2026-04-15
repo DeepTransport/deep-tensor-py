@@ -174,27 +174,16 @@ class DIRT():
             An n * d matrix containing the gradient of the negative 
             logarithm of the composition of the current IRT mapping and 
             the current bridging density, evaluated at each sample in 
-            rs.
+            `rs`.
 
         """
-        
-        us, neglogfus = self._eval_irt_reference(rs)
-        neglogbs, dneglogbs_dus = self.bridge.eval_gradneglog(us)
-        
-        # TODO: make this its own function -- _eval_irt_jac_reference().
-        num_rs, dim_rs = rs.shape
-        def _eval_irt(rs: Tensor) -> Tensor:
-            rs = rs.reshape(num_rs, dim_rs)
-            return self._eval_irt_reference(rs)[0].sum(dim=0)
-        dudrs: Tensor = jacobian(_eval_irt, rs.flatten(), vectorize=True)
-        dudrs = dudrs.reshape(dim_rs, num_rs, dim_rs)
-
-        dneglogbs_drs = torch.einsum("i...j, ...j", dudrs, dneglogbs_dus)
-        return neglogfus, neglogbs, dneglogbs_drs
+        us, neglogfus, dudrs = self._jac_irt_reference(rs)        
+        neglogbridges, grad_neglogbridges = self.bridge._grad_neglogbridge(us, dudrs)
+        return neglogfus, neglogbridges, grad_neglogbridges
 
     def _eval_neglogratio(self, rs: Tensor) -> Tensor:
-        """Evaluates the current ratio function at each element in rs, 
-        where rs is a set of samples from the reference domain.
+        """Evaluates the negative logarithm of the current ratio 
+        function at a set of samples from the reference domain.
 
         Parameters
         ----------
@@ -207,26 +196,34 @@ class DIRT():
         neglogratios:
             An n-dimensional vector containing the composition of the 
             current IRT mapping and the ratio function evaluated at 
-            each sample in rs.
+            each sample in `rs`.
         
         """
         us, neglogfus_dirt = self._eval_irt_reference(rs)
-        neglogratios = self.bridge.ratio_func(
+        neglogratios = self.bridge._eval_neglogratio(
             self.ratio_type, 
             rs, us, 
             neglogfus_dirt
         )
         return neglogratios
     
-    def _grad_neglogratio(self, rs: Tensor):
-        """TODO: write this. should make use of a new function, 
-        self.bridge.grad_neglogratio(), which I will write at some point...
-        
-        this will be useful for when the basis is replaced at each 
-        iteration..
+    def _grad_neglogratio(self, rs: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        """Evaluates the gradient of the negative logarithm of the 
+        current ratio function with respect to the reference random 
+        variable. 
+
+        TODO: need to compute the gradient of neglogfus at some point --
+        although this is only necessary for the exact ratio function.
         """
-        raise NotImplementedError()
-        return
+        us, neglogfus, dudrs = self._jac_irt_reference(rs)        
+        neglogratios, grad_neglogratios = self.bridge._grad_neglogratio(
+            self.ratio_type,
+            rs, us, 
+            neglogfus, 
+            None,
+            dudrs
+        )
+        return neglogfus, neglogratios, grad_neglogratios
     
     def _eval_neglogprofile(self, rs: Tensor) -> Tensor:
         """Evaluates the negative logarithm of the profile function.
@@ -260,7 +257,7 @@ class DIRT():
             # information from the previous FTT
             ftt = self.ftt.clone() 
         self.subspaces[k] = self.subspaces[k-1].clone()
-        self.subspaces[k].update(self._grad_neglogbridge)
+        self.subspaces[k].update(self._grad_neglogbridge, self._grad_neglogratio)
         self.sirts[k] = SIRT(
             self._eval_neglogprofile, 
             ftt, 
@@ -504,6 +501,65 @@ class DIRT():
             us, neglogsirts = self._eval_irt_reference_i(us, i, subset)
             neglogfus += neglogsirts - neglogrefs
         return us, neglogfus
+    
+    def _jac_irt_reference(
+        self, 
+        rs: Tensor,
+        subset: str = "first",
+        num_layers: int | None = None
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        """Evaluates the Jacobian of the IRT mapping without the 
+        preconditioner applied.
+        
+        TODO: change the name of eval_irt_jac (or _jac_irt_reference) 
+        to align with one another.
+        TODO: change the implementation of eval_irt_jac to be 
+        consistent with this implementation.
+
+        Parameters
+        ----------
+        rs:
+            An n * d matrix containing samples from the domain of the 
+            reference.
+        subset: 
+            Whether `rs` corresponds to the first $k$ variables 
+            (`subset='first'`) of the approximation, or the last $k$ 
+            variables (`subset='last'`).
+        num_layers:
+            The number of layers of the IRT mapping (without the 
+            preconditioner) to evaluate the Jacobian for.
+        
+        Returns
+        -------
+        us:
+            An n * d matrix containing the corresponding samples from 
+            the reference domain, after applying the IRT mapping 
+            without the preconditioner.
+        neglogfus:
+            An n-dimensional vector containing the pushforward of the 
+            reference density under the IRT (without the preconditioner) 
+            evaluated at each sample in `us`. 
+        dudrs:
+            An n * d * n tensor. `dudrs[:, i, :]` contains the Jacobian 
+            of the IRT evaluated at `us[i, :]`.
+        
+        """
+        
+        num_rs, dim_rs = rs.shape
+        rs_flat = rs.flatten()
+
+        def _eval_irt_reference(
+            rs: Tensor
+        ) -> Tuple[Tensor, Tuple[Tensor, Tensor]]:
+            rs = rs.reshape(num_rs, dim_rs)
+            xs, neglogfxs = self._eval_irt_reference(rs, subset, num_layers)
+            xs_summed = xs.sum(dim=0)
+            return xs_summed, (xs, neglogfxs)
+        
+        jac = torch.func.jacrev(_eval_irt_reference, has_aux=True)
+        dudrs, (us, neglogfus) = jac(rs_flat)
+        dudrs = dudrs.reshape(dim_rs, num_rs, dim_rs)
+        return us, neglogfus, dudrs
 
     def _parse_subset(self, subset: str | None) -> str:
         
@@ -614,7 +670,6 @@ class DIRT():
         
         rs = rs.to(self.device)
         rs = self.reference._project_to_domain(rs)
-
         if num_layers is None:
             num_layers = self.num_layers
         subset = self._parse_subset(subset)
@@ -672,7 +727,6 @@ class DIRT():
 
         ys = ys.to(self.device)
         rs = rs.to(self.device)
-        
         ys = torch.atleast_2d(ys)
         rs = torch.atleast_2d(rs)
         n_rs, d_rs = rs.shape

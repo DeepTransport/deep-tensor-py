@@ -24,12 +24,14 @@ class SmoothedIndicator(Bridge, abc.ABC):
         self.num_layers = 0
         self.initialised = False
         self.is_adaptive = False
-
-        self._ratio_weight_funcs = {
-            "aratio": self._compute_weights_aratio,
-            "eratio": self._compute_weights_eratio
+        self._eval_neglogratio_funcs = {
+            "aratio": self._eval_neglogweights_aratio,
+            "eratio": self._eval_neglogweights_eratio
         }
-        
+        self._grad_neglogweight_funcs = {
+            "aratio": self._grad_neglogweights_aratio,
+            "eratio": self._grad_neglogweights_eratio
+        }
         return
     
     @property
@@ -69,7 +71,7 @@ class SmoothedIndicator(Bridge, abc.ABC):
         return gammas, betas
     
     @abc.abstractmethod
-    def neglogsmoothind(self, gamma: float, responses: Tensor) -> Tensor:
+    def neglogsmoothind(self, gamma: float, Fs: Tensor) -> Tensor:
         """Evaluates the negative logarithm of the smooth surrogate to 
         the indicator function for a given value of the gamma parameter 
         and a set of response values.
@@ -78,7 +80,7 @@ class SmoothedIndicator(Bridge, abc.ABC):
         ----------
         gamma:
             The value of the shape parameter, gamma.
-        responses:
+        Fs:
             An n-dimensional vector containing the value of the 
             response function at each of the set of samples.
         
@@ -93,7 +95,11 @@ class SmoothedIndicator(Bridge, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def grad_neglogsmoothind(self, gamma: float, responses: Tensor) -> Tensor:
+    def grad_neglogsmoothind(
+        self, 
+        gamma: float, 
+        Fs: Tensor
+    ) -> Tuple[Tensor, Tensor]:
         """TODO: write docstring for me..."""
         pass
 
@@ -120,11 +126,11 @@ class SmoothedIndicator(Bridge, abc.ABC):
         preconditioning mapping.
         """
         xs, neglogdets = self.preconditioner.Q(us)
-        neglogfxs, responses = self.target_func.func(xs)
+        neglogfxs, Fs = self.target_func.func(xs)
         neglogfus = neglogfxs + neglogdets
-        return neglogfus, responses
+        return neglogfus, Fs
     
-    def _eval_pullback_grad_split(
+    def _grad_pullback_split(
         self, 
         us: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
@@ -136,32 +142,16 @@ class SmoothedIndicator(Bridge, abc.ABC):
         neglogfxs, grad_neglogfxs, Fs, dFdxs = self.target_func.grad_func(xs)
         neglogfus = neglogfxs + neglogdets
         
-        grad_neglogfus = self._grad_x2u(grad_neglogfxs, dxdus)
-        dFdus = self._grad_x2u(dFdxs, dxdus)
+        grad_neglogfus = self._grad_chain(grad_neglogfxs, dxdus)
+        dFdus = self._grad_chain(dFdxs, dxdus)
 
         return neglogfus, grad_neglogfus, Fs, dFdus
 
-    def _compute_neglogbridges(
-        self, 
-        neglogref_us: Tensor,
-        neglogfus: Tensor,
-        responses: Tensor
-    ) -> Tensor:
-        
-        k = self.num_layers
-        neglogsigmoids_p = self.neglogsmoothind(self.gammas[k-1], responses)
-        neglogbridges = (
-            + (1.0 - self.betas[k-1]) * neglogref_us 
-            + self.betas[k-1] * neglogfus 
-            + neglogsigmoids_p
-        )
-        return neglogbridges
-
-    def _compute_weights_aratio(
+    def _eval_neglogweights_aratio(
         self,
         neglogref_us: Tensor, 
         neglogfus: Tensor, 
-        responses: Tensor,
+        Fs: Tensor,
         neglogfus_dirt: Tensor
     ) -> Tensor:
         """Computes the ratio between the current bridging density and 
@@ -169,8 +159,8 @@ class SmoothedIndicator(Bridge, abc.ABC):
         """
         
         k = self.num_layers
-        negloginds = self.neglogsmoothind(self.gammas[k], responses)
-        negloginds_p = self.neglogsmoothind(self.gammas[k-1], responses)
+        negloginds = self.neglogsmoothind(self.gammas[k], Fs)
+        negloginds_p = self.neglogsmoothind(self.gammas[k-1], Fs)
         negloginds_p[negloginds_p.isinf()] = 0.0
         
         neglogweights = (
@@ -179,22 +169,54 @@ class SmoothedIndicator(Bridge, abc.ABC):
             + (negloginds - negloginds_p)
         )
         return neglogweights
+    
+    def _grad_neglogweights_aratio(
+        self,
+        neglogref_us: Tensor,
+        grad_neglogref_us: Tensor,
+        neglogfus: Tensor, 
+        grad_neglogfus: Tensor,
+        Fs: Tensor, 
+        dFdus: Tensor,
+        neglogfus_dirt: Tensor,
+        grad_neglogfus_dirt: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        k = self.num_layers
+        neglogweights = self._eval_neglogweights_aratio(
+            neglogref_us, 
+            neglogfus, 
+            Fs, 
+            neglogfus_dirt
+        )
+        # Compute gradient of indicator function w.r.t. u
+        # TODO: wrap this into its own function.
+        # TODO: figure out whether I need to do any post-processing here..
+        grad_negloginds = self.grad_neglogsmoothind(self.gammas[k], Fs)[1]
+        grad_negloginds_p = self.grad_neglogsmoothind(self.gammas[k-1], Fs)[1]
+        # grad_negloginds = self.grad_neglogsmoothind(self.gammas[k], Fs)[1]
+        grad_negloginds = grad_negloginds[:, None] * dFdus
+        grad_negloginds_p = grad_negloginds_p[:, None] * dFdus
 
-    def _compute_weights_eratio(
+        grad_neglogweights = (
+            + (self.betas[k-1] - self.betas[k]) * grad_neglogref_us 
+            + (self.betas[k] - self.betas[k-1]) * grad_neglogfus 
+            + (grad_negloginds - grad_negloginds_p)
+        )
+        return neglogweights, grad_neglogweights
+    
+    def _eval_neglogweights_eratio(
         self,
         neglogref_us, 
         neglogfus, 
-        responses,
+        Fs,
         neglogfus_dirt
     ) -> Tensor:
-        """Computes the ratio between the current bridging density and 
-        the DIRT approximation to the previous bridging density for 
-        each particle.
+        """Computes the negative logarithm of the ratio between the 
+        current bridging density and the DIRT approximation to the 
+        previous bridging density for each particle.
         """
-
         k = self.num_layers
-        negloginds = self.neglogsmoothind(self.gammas[k], responses)
-        
+        negloginds = self.neglogsmoothind(self.gammas[k], Fs)
         neglogweights = (
             + (1.0 - self.betas[k]) * neglogref_us 
             + self.betas[k] * neglogfus
@@ -202,44 +224,39 @@ class SmoothedIndicator(Bridge, abc.ABC):
             - neglogfus_dirt
         )
         return neglogweights
-    
-    def _compute_ratio_func(
-        self, 
-        method: str,
-        neglogref_rs: Tensor,
-        neglogref_us: Tensor, 
-        neglogfus: Tensor, 
-        responses: Tensor,
-        neglogfus_dirt: Tensor
-    ) -> Tensor:
 
-        neglogratios = self._ratio_weight_funcs[method](
-            neglogref_us,
-            neglogfus, 
-            responses, 
-            neglogfus_dirt
-        ) + neglogref_rs
-        return neglogratios
-    
-    def _compute_log_weights(
+    def _grad_neglogweights_eratio(
         self,
         neglogref_us: Tensor,
+        grad_neglogref_us: Tensor,
         neglogfus: Tensor, 
-        responses: Tensor, 
-        neglogfus_dirt: Tensor
-    ) -> Tensor:
-        """Returns the logarithm of the ratio between the next bridging 
-        density and the current bridging density.
-        """
-        neglogweights = self._ratio_weight_funcs["aratio"](
+        grad_neglogfus: Tensor,
+        Fs: Tensor, 
+        dFdus: Tensor,
+        neglogfus_dirt: Tensor,
+        grad_neglogfus_dirt: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        
+        neglogweights = self._eval_neglogweights_eratio(
             neglogref_us,
-            neglogfus, 
-            responses, 
+            neglogfus,
+            Fs,
             neglogfus_dirt
         )
-        return -neglogweights
+
+        k = self.num_layers
+        grad_negloginds = self.grad_neglogsmoothind(self.gammas[k], Fs)[1]
+        grad_negloginds = grad_negloginds[:, None] * dFdus
+        
+        grad_neglogweights = (
+            + (1.0 - self.betas[k]) * grad_neglogref_us 
+            + self.betas[k] * grad_neglogfus
+            + grad_negloginds
+            - grad_neglogfus_dirt
+        )
+        return neglogweights, grad_neglogweights
     
-    def ratio_func(
+    def _eval_neglogratio(
         self,
         method: str,
         rs: Tensor,
@@ -247,22 +264,124 @@ class SmoothedIndicator(Bridge, abc.ABC):
         neglogfus_dirt: Tensor
     ) -> Tensor:
         
+        # TODO: wrap this into a function.
         if not self.initialised:
             raise Exception("Need to call self.initialise().")
         
         neglogref_rs = self.reference.eval_potential_unnormalised(rs)[0]
         neglogref_us = self.reference.eval_potential_unnormalised(us)[0]
-        neglogfus, responses = self._eval_pullback_split(us)
+        neglogfus, Fs = self._eval_pullback_split(us)
 
-        neglogratios = self._compute_ratio_func(
-            method,
-            neglogref_rs,
+        neglogratios = self._eval_neglogratio_funcs[method](
             neglogref_us,
-            neglogfus,
-            responses,
+            neglogfus, 
+            Fs, 
+            neglogfus_dirt
+        ) + neglogref_rs
+        return neglogratios
+    
+    def _grad_neglogratio(
+        self,
+        method: str,
+        rs: Tensor,
+        us: Tensor,
+        neglogfus_dirt: Tensor,
+        grad_neglogfus_dirt: Tensor, 
+        dudrs: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        # TODO: finite difference check on this output!!
+        
+        # TODO: the naming for eval_potential could be split into 
+        # a function of the same name and grad_potential... it probably
+        # doesn't matter that much though
+
+        neglogref_rs, grad_neglogref_rs = self.reference.eval_potential_unnormalised(rs)
+        neglogref_us, grad_neglogref_us = self.reference.eval_potential_unnormalised(us)
+
+        neglogfus, grad_neglogfus, Fs, dFdus = self._grad_pullback_split(us)
+
+        neglogweights, grad_neglogweights = self._grad_neglogweight_funcs[method](
+            neglogref_us,
+            grad_neglogref_us,
+            neglogfus, 
+            grad_neglogfus,
+            Fs, 
+            dFdus,
+            neglogfus_dirt,
+            grad_neglogfus_dirt
+        )
+        # Convert gradient of log-weights w.r.t. u to gradient w.r.t. r
+        grad_neglogweights = self._grad_chain(grad_neglogweights, dudrs)
+
+        neglogratios = neglogweights + neglogref_rs
+        grad_neglogratios = grad_neglogweights + grad_neglogref_rs
+        return neglogratios, grad_neglogratios
+    
+    def _eval_neglogbridge(
+        self, 
+        neglogref_us: Tensor,
+        neglogfus: Tensor,
+        Fs: Tensor,
+        num_layers: int | None = None  # in case we want to evaluate a previous density
+    ) -> Tensor:
+        k = num_layers if num_layers is not None else self.num_layers
+        neglogsigmoids = self.neglogsmoothind(self.gammas[k], Fs)
+        neglogbridges = (
+            + (1.0 - self.betas[k]) * neglogref_us 
+            + self.betas[k] * neglogfus 
+            + neglogsigmoids
+        )
+        return neglogbridges
+
+    def _grad_neglogbridge(
+        self, 
+        us: Tensor, 
+        dudrs: Tensor 
+    ) -> Tuple[Tensor, Tensor]:
+
+        # TODO: finite difference check on this output!!
+
+        neglogref_us, grad_neglogref_us = self.reference.eval_potential_unnormalised(us)
+        neglogfus, grad_neglogfus, Fs, dFdus = self._grad_pullback_split(us)
+
+        k = self.num_layers
+        gamma, beta = self.gammas[k], self.betas[k]
+        grad_negloginds = self.grad_neglogsmoothind(gamma, Fs)[1]
+        grad_negloginds = grad_negloginds[:, None] * dFdus
+        # TODO: figure out what the correct value is here. 
+        # also probably a good idea to add this to the logging output.
+        grad_negloginds[grad_negloginds.isnan()] = 0.0
+
+        neglogbridges = self._eval_neglogbridge(neglogref_us, neglogfus, Fs)
+
+        # Compute gradient w.r.t. u
+        grad_neglogbridges = (
+            (1.0 - beta) * grad_neglogref_us
+            + beta * grad_neglogfus
+            + grad_negloginds
+        )
+        # Change variable such that gradient is w.r.t. r
+        grad_neglogbridges = self._grad_chain(grad_neglogbridges, dudrs)
+
+        return neglogbridges, grad_neglogbridges
+
+    def _compute_log_weights(
+        self,
+        neglogref_us: Tensor,
+        neglogfus: Tensor, 
+        Fs: Tensor, 
+        neglogfus_dirt: Tensor
+    ) -> Tensor:
+        """Returns the logarithm of the ratio between the next bridging 
+        density and the current bridging density.
+        """
+        neglogweights = self._eval_neglogratio_funcs["aratio"](
+            neglogref_us,
+            neglogfus, 
+            Fs, 
             neglogfus_dirt
         )
-        return neglogratios
+        return -neglogweights
 
     def update(self, us: Tensor, neglogfus_dirt: Tensor) -> Tuple[Tensor, Tensor]:
         
@@ -270,52 +389,23 @@ class SmoothedIndicator(Bridge, abc.ABC):
             raise Exception("Need to call self.initialise().")
         
         neglogref_us = self.reference.eval_potential_unnormalised(us)[0]
-        neglogfus, responses = self._eval_pullback_split(us)
+        neglogfus, Fs = self._eval_pullback_split(us)
 
-        neglogbridges = self._compute_neglogbridges(
+        neglogbridges = self._eval_neglogbridge(
             neglogref_us,
             neglogfus,
-            responses
+            Fs,
+            num_layers=self.num_layers-1
         )
 
         log_weights = self._compute_log_weights(
             neglogref_us,
             neglogfus, 
-            responses, 
+            Fs, 
             neglogfus_dirt
         )
 
         return log_weights, neglogbridges
-    
-    def eval_gradneglog(self, us: Tensor) -> Tuple[Tensor, Tensor]:
-        """Evaluates the current bridging density and its gradient at a 
-        set of samples.
-        """
-
-        neglogref_us, grad_neglogref_us = self.reference.eval_potential_unnormalised(us)
-        neglogfus, grad_neglogfus, Fs, dFdus = self._eval_pullback_grad_split(us)
-
-        k = self.num_layers
-        negloginds, grad_negloginds = self.grad_neglogsmoothind(self.gammas[k], Fs)
-
-        grad_negloginds = grad_negloginds[:, None] * dFdus
-        # TODO: figure out what the correct value is here.
-        grad_negloginds[grad_negloginds.isnan()] = 0.0
-
-        neglogbridges = (
-            (1.0 - self.betas[k]) * neglogref_us 
-            + self.betas[k] * neglogfus 
-            + negloginds
-        )
-
-        # TODO: finite difference check on these.
-        grad_neglogbridges = (
-            (1.0 - self.betas[k]) * grad_neglogref_us
-            + self.betas[k] * grad_neglogfus
-            + grad_negloginds
-        )
-
-        return neglogbridges, grad_neglogbridges
 
     def _get_diagnostics(
         self, 
@@ -397,7 +487,7 @@ class SigmoidSmoothing(SmoothedIndicator):
     def grad_neglogsmoothind(self, gamma: float, Fs: Tensor) -> Tuple[Tensor, Tensor]:
         neglogsigmoids = self.neglogsmoothind(gamma, Fs)
         negloggrads = (
-            - math.log(gamma)
+            - torch.tensor(gamma).log()
             - gamma * (self.target_func.threshold - Fs)
             + 2.0 * neglogsigmoids
         )
@@ -411,8 +501,8 @@ class GaussianSmoothing(SmoothedIndicator):
     TODO: finish this docstring.
     """
 
-    def neglogsmoothind(self, gamma: float, responses: Tensor) -> Tensor:
-        lsfs = self.target_func.threshold - responses  # type: ignore
+    def neglogsmoothind(self, gamma: float, Fs: Tensor) -> Tensor:
+        lsfs = self.target_func.threshold - Fs  # type: ignore
         neglogtanhs = math.log(2.0) - torch.log1p(torch.erf(-gamma*lsfs))
         return neglogtanhs
     
