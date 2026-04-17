@@ -306,16 +306,14 @@ class LikelihoodInformedSubspace(Subspace):
         self.initial_basis = initial_basis
 
         if self.initial_basis is None:
+            # TODO: fix device here..
             self.basis_red = torch.zeros((dim, 0))
             self.basis_comp = torch.eye(dim)
         if self.initial_basis is not None:
             self.basis_red = self.initial_basis.clone()
             self.basis_comp = self._compute_basis_comp(self.basis_red)
             if self.fixed_comp and self.num_comp > 0:
-                # TODO: fix the device. probably pass in device to the constructor
-                shape_comp = (self.num_comp, self.dim_comp)
-                self.vs_comp = torch.randn(shape_comp)
-                self.xs_comp = self.eval_coef2comp(self.vs_comp)
+                self._recompute_samples_comp()
 
         self.P_red = self.basis_red @ self.basis_red.T
         self.P_comp = self.basis_comp @ self.basis_comp.T
@@ -355,10 +353,9 @@ class LikelihoodInformedSubspace(Subspace):
         """Re-computes the (fixed) set of samples in the complement 
         subspace.
         """
-        if self.fixed_comp and self.num_comp > 0:
-            # TODO: fix device.
-            self.vs_comp = torch.randn((self.num_comp, self.dim_comp))
-            self.xs_comp = self.eval_coef2comp(self.vs_comp)
+        # TODO: fix device.
+        self.vs_comp = torch.randn((self.num_comp, self.dim_comp))
+        self.xs_comp = self.eval_coef2comp(self.vs_comp)
         return
     
     def _print_diagnostics(self, ess: Tensor) -> None:
@@ -411,6 +408,11 @@ class LikelihoodInformedSubspace(Subspace):
         grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]]
     ) -> None:
         
+        # TODO: if an initial subspace gets passed in, should it be 
+        # retained every time the subspace gets rebuilt? alternative 
+        # is to not allow passing in an initial subspace if the method 
+        # is `rebuild`.
+
         # Generate a set of samples distributed according to biasing 
         # density. TODO: should these be generated according to reference?
         # TODO: fix device.
@@ -471,8 +473,8 @@ class LikelihoodInformedSubspace(Subspace):
         # self.error_acc = torch.trace(self.P_comp @ H @ self.P_comp)
         # eigvals, _ = torch.linalg.eigh(H)
         # self.error_new = torch.sum(eigvals[:self.dim_comp])
-        
-        self._recompute_samples_comp()
+        if self.fixed_comp and self.num_comp > 0:
+            self._recompute_samples_comp()
         return 
     
     def eval_neglogprofile(
@@ -488,9 +490,7 @@ class LikelihoodInformedSubspace(Subspace):
         
         if self.vs_comp is None:
             # Generate a new set of samples in the complement subspace
-            shape_comp = (self.num_comp, self.dim_comp)
-            self.vs_comp = torch.randn(shape_comp, device=vs_red.device)
-            self.xs_comp = self.eval_coef2comp(self.vs_comp)
+            self._recompute_samples_comp()
         
         num_red = xs_red.shape[0]
         num_comp = self.xs_comp.shape[0]
