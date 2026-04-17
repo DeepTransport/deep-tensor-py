@@ -31,7 +31,7 @@ class AffineMapping(Preconditioner):
         reference: GaussianReference | None = None
     ):
         if b is None:
-            b = torch.zeros((A.shape[0],))
+            b = torch.zeros((A.shape[0],), device=A.device)
         if reference is None:
             reference = GaussianReference()
         self.A = A
