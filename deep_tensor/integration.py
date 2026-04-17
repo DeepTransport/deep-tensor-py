@@ -9,7 +9,7 @@ def integrate(
     x0: float | Tensor,
     x1: float | Tensor,
     n: int = 150,
-    device: torch.device = torch.device("cpu")
+    device: torch.device = torch.get_default_device()
 ) -> Tensor:
     """Approximates the integral of a given function on the interval 
     [x0, x1] using the trapezoidal rule.
