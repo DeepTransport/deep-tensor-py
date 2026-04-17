@@ -507,4 +507,8 @@ class GaussianSmoothing(SmoothedIndicator):
         return neglogtanhs
     
     def grad_neglogsmoothind(self, gamma: float, Fs: Tensor) -> Tuple[Tensor, Tensor]:
-        raise NotImplementedError()
+        lsfs = self.target_func.threshold - Fs
+        neglogpdfs = lsfs**2 * gamma**2 + 0.5*math.log(math.pi / (gamma**2))
+        neglogcdfs = self.neglogsmoothind(gamma, Fs)
+        grad_neglogcdfs = -torch.exp(neglogcdfs - neglogpdfs)
+        return neglogcdfs, grad_neglogcdfs
