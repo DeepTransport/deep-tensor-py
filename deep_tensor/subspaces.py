@@ -208,9 +208,14 @@ class IdentitySubspace(Subspace):
     
     """
 
-    def __init__(self, dim: int):
-        self.basis_red = torch.eye(dim)
-        self.basis_comp = torch.zeros((dim, 0))
+    def __init__(
+        self, 
+        dim: int, 
+        device: torch.device = torch.get_default_device()
+    ):
+        self.device = device
+        self.basis_red = torch.eye(dim, device=self.device)
+        self.basis_comp = torch.zeros((dim, 0), device=self.device)
         self.num_eval = 0
         self.num_eval_grad = 0
         return
@@ -272,7 +277,8 @@ class LikelihoodInformedSubspace(Subspace):
         update_method: str = "augment",
         num_samples_gram: int = 100,
         eps: float = 0.01,
-        initial_basis: Tensor | None = None
+        initial_basis: Tensor | None = None,
+        device: torch.device = torch.get_default_device()
     ):
 
         target_func = target_func.lower()
@@ -312,17 +318,15 @@ class LikelihoodInformedSubspace(Subspace):
         self.num_eval = 0
         self.num_eval_grad = 0
         self.initial_basis = initial_basis
-
+        self.device = device
         if self.initial_basis is None:
-            # TODO: fix device here..
-            self.basis_red = torch.zeros((dim, 0))
-            self.basis_comp = torch.eye(dim)
+            self.basis_red = torch.zeros((dim, 0), device=self.device)
+            self.basis_comp = torch.eye(dim, device=self.device)
         if self.initial_basis is not None:
             self.basis_red = self.initial_basis.clone()
             self.basis_comp = self._compute_basis_comp(self.basis_red)
             if self.fixed_comp and self.num_comp > 0:
                 self._recompute_samples_comp()
-
         self.P_red = self.basis_red @ self.basis_red.T
         self.P_comp = self.basis_comp @ self.basis_comp.T
 
@@ -368,7 +372,10 @@ class LikelihoodInformedSubspace(Subspace):
         return
     
     def _print_diagnostics(self, ess: Tensor) -> None:
-        diagnostics = [f"Dim: {self.dim_red}", f"ESS: {round(float(ess))}"]
+        diagnostics = [
+            f"Dim: {self.dim_red}", 
+            f"ESS: {round(float(ess))}"
+        ]
         lis_info(" | ".join(diagnostics).ljust(40))
         return
 
@@ -379,8 +386,7 @@ class LikelihoodInformedSubspace(Subspace):
         
         # Generate a set of samples distributed according to biasing 
         # density. TODO: should these be generated according to reference?
-        # TODO: fix device.
-        rs = torch.randn((self.num_samples_gram, self.dim))
+        rs = torch.randn((self.num_samples_gram, self.dim), device=self.device)
         neglogfus, neglogbridges, grad_neglogbridges = grad_neglogbridge(rs)
 
         self.num_eval += rs.shape[0]
@@ -416,16 +422,10 @@ class LikelihoodInformedSubspace(Subspace):
         self, 
         grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]]
     ) -> None:
-        
-        # TODO: if an initial subspace gets passed in, should it be 
-        # retained every time the subspace gets rebuilt? alternative 
-        # is to not allow passing in an initial subspace if the method 
-        # is `rebuild`.
 
         # Generate a set of samples distributed according to biasing 
         # density. TODO: should these be generated according to reference?
-        # TODO: fix device.
-        rs = torch.randn((self.num_samples_gram, self.dim))
+        rs = torch.randn((self.num_samples_gram, self.dim), device=self.device)
         neglogfus, neglogratios, grad_neglogratios = grad_neglogratio(rs)
 
         self.num_eval += rs.shape[0]
