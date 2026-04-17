@@ -148,7 +148,7 @@ class Tempering(Bridge):
         neglogfus: Tensor, 
         grad_neglogfus: Tensor,
         neglogfus_dirt: Tensor,
-        grad_neglogfus_dirt: Tensor
+        grad_neglogfus_dirt: Tensor | None
     ) -> Tuple[Tensor, Tensor]:
         k = self.num_layers
         neglogweights = self._eval_neglogweights_aratio(
@@ -236,9 +236,16 @@ class Tempering(Bridge):
         rs: Tensor,
         us: Tensor,
         neglogfus_dirt: Tensor,
-        grad_neglogfus_dirt: Tensor,
+        grad_neglogfus_dirt: Tensor | None,
         dudrs: Tensor
     ) -> Tuple[Tensor, Tensor]:
+        
+        if grad_neglogfus_dirt is None and method == "eratio":
+            msg = (
+                "If method==`eratio`, the gradient of the DIRT density " 
+                "must be passed in."
+            )
+            raise Exception(msg)
         
         # TODO: finite difference check on the output!!
         

@@ -51,7 +51,7 @@ class Bridge(abc.ABC):
         rs: Tensor,
         us: Tensor,
         neglogfus_dirt: Tensor,
-        grad_neglogfus_dirt: Tensor, 
+        grad_neglogfus_dirt: Tensor | None, 
         dudrs: Tensor
     ) -> Tuple[Tensor, Tensor]:
         """Evaluates the gradient of the negative logarithm of the 

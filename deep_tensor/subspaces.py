@@ -425,13 +425,13 @@ class LikelihoodInformedSubspace(Subspace):
 
         # Generate a set of samples distributed according to biasing 
         # density. TODO: should these be generated according to reference?
+        # TODO: it might be a good idea to pass the reference into these 
+        # functions..
         rs = torch.randn((self.num_samples_gram, self.dim), device=self.device)
-        neglogfus, neglogratios, grad_neglogratios = grad_neglogratio(rs)
+        neglogref_rs, neglogratios, grad_neglogratios = grad_neglogratio(rs)
 
         self.num_eval += rs.shape[0]
         self.num_eval_grad += rs.shape[0]
-
-        neglogref_rs = 0.5 * rs.square().sum(dim=1)
 
         log_weights = neglogref_rs - neglogratios
         log_weights -= log_weights.max()

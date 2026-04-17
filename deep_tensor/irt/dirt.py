@@ -177,9 +177,10 @@ class DIRT():
             `rs`.
 
         """
+        neglogref_rs = self.reference.eval_potential(rs)[0]
         us, neglogfus, dudrs = self._jac_irt_reference(rs)        
         neglogbridges, grad_neglogbridges = self.bridge._grad_neglogbridge(us, dudrs)
-        return neglogfus, neglogbridges, grad_neglogbridges
+        return neglogref_rs, neglogbridges, grad_neglogbridges
 
     def _eval_neglogratio(self, rs: Tensor) -> Tensor:
         """Evaluates the negative logarithm of the current ratio 
@@ -210,17 +211,19 @@ class DIRT():
     def _grad_neglogratio(self, rs: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """Evaluates the gradient of the negative logarithm of the 
         current ratio function with respect to the reference random 
-        variable. 
-
-        TODO: need to compute the gradient of neglogfus at some point --
-        although this is only necessary for the exact ratio function.
+        variable.
         """
-        us, neglogfus, dudrs = self._jac_irt_reference(rs)        
+        # TODO make a function that returns (xs, neglogfus, grad_neglogfus)
+        us, neglogfus, dudrs = self._jac_irt_reference(rs)
+        if self.ratio_type == "eratio":
+            grad_neglogfus = self._grad_potential_reference(rs)[0]
+        else:
+            grad_neglogfus = None
         neglogratios, grad_neglogratios = self.bridge._grad_neglogratio(
             self.ratio_type,
             rs, us, 
             neglogfus, 
-            None,
+            grad_neglogfus,
             dudrs
         )
         return neglogfus, neglogratios, grad_neglogratios
@@ -417,11 +420,13 @@ class DIRT():
         self,
         us: Tensor,
         subset: str,
-        num_layers: int
+        num_layers: int | None = None 
     ) -> Tuple[Tensor, Tensor]:
         """Evaluates the deep Rosenblatt transport for the pullback of 
         the target density under the preconditioning map.
         """
+        if num_layers is None:
+            num_layers = self.num_layers
         rs = us.clone()
         neglogfus = torch.zeros(rs.shape[0], device=self.device)
         for i in range(num_layers):
@@ -501,7 +506,7 @@ class DIRT():
             us, neglogsirts = self._eval_irt_reference_i(us, i, subset)
             neglogfus += neglogsirts - neglogrefs
         return us, neglogfus
-    
+
     def _jac_irt_reference(
         self, 
         rs: Tensor,
@@ -560,6 +565,29 @@ class DIRT():
         dudrs, (us, neglogfus) = jac(rs_flat)
         dudrs = dudrs.reshape(dim_rs, num_rs, dim_rs)
         return us, neglogfus, dudrs
+
+    def _grad_potential_reference(
+        self,
+        rs: Tensor,
+        subset: str = "first",
+        num_layers: int | None = None
+    ) -> Tuple[Tensor, Tensor]:
+        """Evaluates the potential of pushforward of the reference 
+        density under the current IRT mapping (without the 
+        preconditioner) and its gradient.
+        """
+        
+        num_rs, dim_rs = rs.shape
+        rs_flat = rs.flatten()
+
+        def _eval_irt_reference(rs: Tensor) -> Tuple[Tensor, Tensor]:
+            rs = rs.reshape(num_rs, dim_rs)
+            neglogfus = self._eval_irt_reference(rs, subset, num_layers)[1]
+            return neglogfus, neglogfus
+        
+        jac = torch.func.jacrev(_eval_irt_reference, has_aux=True)
+        grad_neglogfus, neglogfus = jac(rs_flat)
+        return neglogfus, grad_neglogfus
 
     def _parse_subset(self, subset: str | None) -> str:
         

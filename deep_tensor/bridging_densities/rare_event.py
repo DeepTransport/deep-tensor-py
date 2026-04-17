@@ -179,7 +179,7 @@ class SmoothedIndicator(Bridge, abc.ABC):
         Fs: Tensor, 
         dFdus: Tensor,
         neglogfus_dirt: Tensor,
-        grad_neglogfus_dirt: Tensor
+        grad_neglogfus_dirt: Tensor | None
     ) -> Tuple[Tensor, Tensor]:
         k = self.num_layers
         neglogweights = self._eval_neglogweights_aratio(
@@ -286,9 +286,17 @@ class SmoothedIndicator(Bridge, abc.ABC):
         rs: Tensor,
         us: Tensor,
         neglogfus_dirt: Tensor,
-        grad_neglogfus_dirt: Tensor, 
+        grad_neglogfus_dirt: Tensor | None, 
         dudrs: Tensor
     ) -> Tuple[Tensor, Tensor]:
+        
+        if grad_neglogfus_dirt is None and method == "eratio":
+            msg = (
+                "If method==`eratio`, the gradient of the DIRT density " 
+                "must be passed in."
+            )
+            raise Exception(msg)
+
         # TODO: finite difference check on this output!!
         
         # TODO: the naming for eval_potential could be split into 
