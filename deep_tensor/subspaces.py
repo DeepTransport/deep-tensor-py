@@ -2,6 +2,7 @@ import abc
 import logging
 import math
 from typing import Callable, Tuple
+import warnings
 
 import torch 
 from torch import Tensor
@@ -294,6 +295,13 @@ class LikelihoodInformedSubspace(Subspace):
                 "supplied."
             )
             raise Exception(msg)
+        if update_method == "rebuild" and initial_basis is not None:
+            msg = (
+                "If update_method==`rebuild`, the initial basis is not "
+                "used. To start from an initial subspace, use "
+                "update_method==`augment`."
+            )
+            warnings.warn(msg)
 
         self.target_func = target_func 
         self.num_comp = num_comp 
@@ -344,6 +352,7 @@ class LikelihoodInformedSubspace(Subspace):
     
     def _build_H(self, grads: Tensor, weights: Tensor) -> Tensor:
         """Computes an importance sampling estimate of the Gram matrix."""
+        grads = torch.nan_to_num(grads)
         H = torch.zeros((self.dim, self.dim))
         for grad, weight in zip(grads, weights):
             H += weight * grad[:, None] @ grad[None, :]
