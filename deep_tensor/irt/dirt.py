@@ -4,7 +4,6 @@ from typing import Callable, Dict, List, Tuple
 
 import torch
 from torch import Tensor
-from torch.autograd.functional import jacobian
 
 from .dirt_options import DIRTOptions
 from .sirt import SIRT, SUBSET2DIRECTION
@@ -1075,12 +1074,12 @@ class DIRT():
         neglogfxs = neglogfyxs - neglogfys
         return neglogfxs
 
-    def eval_rt_jac(
+    def jac_rt(
         self, 
         xs: Tensor, 
         subset: str | None = None,
         num_layers: int | None = None 
-    ) -> Tensor:
+    ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the Jacobian of the deep Rosenblatt transport.
 
         Evaluates the Jacobian of the mapping $R = \mathcal{R}(X)$, 
@@ -1094,7 +1093,7 @@ class DIRT():
         Parameters
         ----------
         xs:
-            An $n \times d$ matrix containing a set of samples from the 
+            An $n \times k$ matrix containing a set of samples from the 
             approximation domain.
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
@@ -1108,7 +1107,10 @@ class DIRT():
 
         Returns
         -------
-        Js:
+        rs:
+            An $n \times k$ tensor, containing the corresponding 
+            samples after applying the Rosenblatt transport.
+        drdxs:
             A $k \times n \times k$ tensor, where element $ijk$ 
             contains element $ik$ of the Jacobian for the $j$th sample 
             in `xs`.
@@ -1116,21 +1118,26 @@ class DIRT():
         """
 
         xs = xs.to(self.device)
-        n_xs, d_xs = xs.shape
+        num_xs, dim_xs = xs.shape
+        xs_flat = xs.flatten()
 
-        def _eval_rt(xs: Tensor) -> Tensor:
-            xs = xs.reshape(n_xs, d_xs)
-            return self.eval_rt(xs, subset, num_layers)[0].sum(dim=0)
+        def _eval_rt(xs: Tensor) -> Tuple[Tensor, Tensor]:
+            xs = xs.reshape(num_xs, dim_xs)
+            rs, _ = self.eval_rt(xs, subset, num_layers)
+            rs_summed = rs.sum(dim=1)
+            return rs_summed, rs
         
-        Js: Tensor = jacobian(_eval_rt, xs.flatten(), vectorize=True)
-        return Js.reshape(d_xs, n_xs, d_xs)
+        jac = torch.func.jacrev(_eval_rt, has_aux=True)
+        drdxs, rs = jac(xs_flat)
+        drdxs = drdxs.reshape(dim_xs, num_xs, dim_xs)
+        return rs, drdxs
     
-    def eval_irt_jac(
+    def jac_irt(
         self, 
         rs: Tensor, 
         subset: str | None = None,
         num_layers: int | None = None 
-    ) -> Tensor:
+    ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the Jacobian of the deep inverse Rosenblatt transport.
 
         Evaluates the Jacobian of the mapping $X = \mathcal{T}(R)$, 
@@ -1144,7 +1151,7 @@ class DIRT():
         Parameters
         ----------
         rs:
-            An $n \times d$ matrix containing a set of samples from the 
+            An $n \times k$ matrix containing a set of samples from the 
             reference domain.
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
@@ -1159,22 +1166,30 @@ class DIRT():
 
         Returns
         -------
-        Js:
-            A $k \times n \times k$ tensor, where element $ijk$ 
-            contains element $ik$ of the Jacobian for the $j$th sample 
+        xs:
+            An $n \times k$ matrix containing the corresponding samples 
+            after applying the inverse Rosenblatt transport.
+        dxdrs:
+            A $k \times n \times k$ tensor, where element $ijl$ 
+            contains element $ik$ of the Jacobian for the $l$th sample 
             in `rs`.
 
         """
 
         rs = rs.to(self.device)
-        n_rs, d_rs = rs.shape
+        num_rs, dim_rs = rs.shape
+        rs_flat = rs.flatten()
 
-        def _eval_irt(rs: Tensor) -> Tensor:
-            rs = rs.reshape(n_rs, d_rs)
-            return self.eval_irt(rs, subset, num_layers)[0].sum(dim=0)
+        def _eval_irt(rs: Tensor) -> Tuple[Tensor, Tensor]:
+            rs = rs.reshape(num_rs, dim_rs)
+            xs, _ = self.eval_irt(rs, subset, num_layers)
+            xs_summed = xs.sum(dim=0)
+            return xs_summed, xs
         
-        Js: Tensor = jacobian(_eval_irt, rs.flatten(), vectorize=True)
-        return Js.reshape(d_rs, n_rs, d_rs)
+        jac = torch.func.jacrev(_eval_irt, has_aux=True)
+        dxdrs, xs = jac(rs_flat)
+        dxdrs = dxdrs.reshape(dim_rs, num_rs, dim_rs)
+        return xs, dxdrs
 
     def random(self, n: int) -> Tensor: 
         r"""Generates a set of random samples. 
