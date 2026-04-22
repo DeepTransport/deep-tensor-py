@@ -51,7 +51,7 @@ class DIRT():
         if not isinstance(target_func, TargetFunc):
             target_func = TargetFunc(target_func)
         if subspace is None:
-            subspace = IdentitySubspace(preconditioner.dim)
+            subspace = IdentitySubspace(preconditioner.dim, device=device)
         if bridge is None:
             bridge = Tempering()
         if options is None:
