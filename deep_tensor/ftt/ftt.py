@@ -361,8 +361,8 @@ class EFTT(FTT):
     
     Parameters
     ----------
-    bases:
-        A set of basis functions for each dimension of the EFTT.
+    basis:
+        The basis function used for each dimension of the FTT.
     tt: 
         A tensor train object.
     options: 

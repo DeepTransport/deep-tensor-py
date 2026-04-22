@@ -514,11 +514,6 @@ class DIRT():
     ) -> Tuple[Tensor, Tensor, Tensor]:
         """Evaluates the Jacobian of the IRT mapping without the 
         preconditioner applied.
-        
-        TODO: change the name of eval_irt_jac (or _jac_irt_reference) 
-        to align with one another.
-        TODO: change the implementation of eval_irt_jac to be 
-        consistent with this implementation.
 
         Parameters
         ----------
