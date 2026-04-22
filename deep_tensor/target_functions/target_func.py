@@ -19,8 +19,15 @@ class TargetFunc(object):
         vector containing the function evaluated at each sample. If 
         `vectorised=False`, the function should accept a $d$-dimensional 
         vector and return a single scalar value.
+    grad_neglogfx:
+        A function which returns the negative logarithm of a (possibly 
+        unnormalised version of) the target density function, and the 
+        gradient of the negative logarithm of the target density 
+        function. The format of the arguments and returns is the same 
+        as `neglogfx`.
     vectorised:
-        Whether the function accepts multiple sets of parameters.
+        Whether the `neglogfx` and `grad_neglogfx` accept multiple sets 
+        of parameters.
 
     """
 

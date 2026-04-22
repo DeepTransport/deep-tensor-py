@@ -26,12 +26,12 @@ class RareEventFunc(TargetFunc):
     threshold: 
         The threshold, $z$, which defines a rare event.
     grad_func:
-        A function which returns the potential associated with the 
-        target density function, the gradient of the potential with 
-        respect to the parameters, the response function, and the 
-        gradient of the response function with respect to the 
-        parameters. The format of the arguments and returns is the same 
-        as `func`.
+        A function which returns the negative logarithm of a (possibly 
+        unnormalised version of) the target density function, the 
+        gradient of the negative logarithm of the target density 
+        function, the response function, and the gradient of the 
+        response function with respect to the parameters. The format of 
+        the arguments and returns is the same as `func`.
     vectorised:
         Whether `func` and `grad_func` accept multiple sets of 
         parameters.

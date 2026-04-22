@@ -38,6 +38,8 @@ class SIRT():
     cdf_tol:
         The tolerance used when solving the rootfinding problem to 
         evaluate the inverse of each conditional CDF.
+    device:
+        The device to carry out computations on.
 
     """
 

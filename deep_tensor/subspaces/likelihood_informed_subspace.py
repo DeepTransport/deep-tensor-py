@@ -13,31 +13,38 @@ from ..tools.printing import lis_info
 
 logger = logging.getLogger(__name__)
 
-TARGET_FUNCS_LIS = ("bridge", "ratio")
-UPDATE_METHODS_LIS = ("augment", "rebuild", "fixed")
+UPDATE_METHODS_LIS = ("fixed", "rebuild", "augment")
 
 
 class LikelihoodInformedSubspace(Subspace):
-    """A likelihood-informed subspace.
+    r"""A likelihood-informed subspace.
 
     Parameters
     ----------
-    target_func:
-        Whether to estimate the Gram matrix associated with the 
-        bridging density or ratio function at each iteration.
     num_comp:
         The number of samples from the complement subspace to use when 
         evaluating the profile function.
     fixed_comp:
         Whether to fix the samples from the complement subspace.
     update_method:
-        How to update the subspace ("augment", "rebuild", "static").
+        How to update the subspace. This can be `'fixed'` (no updating, 
+        need to specify `initial_basis`), `'rebuild'` (construct a new 
+        subspace from scratch at each DIRT layer), or `'augment'` 
+        (retain the previously-constructed subspace at each DIRT layer, 
+        and potentially add new components).
     num_samples_gram:
         The number of samples to use to construct a Monte Carlo 
         estimate of the Gram matrix.
     eps:
-        TODO: write down the inequality with eps used to select 
-        dimension of subspace.
+        The tolerance, $\epsilon$, used to select the dimension of the 
+        subspace. The dimension of the subspace is the smallest $r$ 
+        such that 
+        $$
+            \frac{1}{2}\left(\sum_{k=r+1}^{d}\lambda_{k}\right)^{1/2} 
+                \leq \epsilon,
+        $$
+        where $\{\lambda_{k}\}_{k=1}^{n}$ denote the eigenvalues of the 
+        current Gram matrix ordered from largest to smallest.
     initial_basis:
         A set of basis vectors to initialise the subspace with.
     device:
@@ -48,7 +55,6 @@ class LikelihoodInformedSubspace(Subspace):
     def __init__(
         self, 
         dim: int, 
-        target_func: str = "bridge",
         num_comp: int = 0,
         fixed_comp: bool = True,
         update_method: str = "augment",
@@ -57,15 +63,7 @@ class LikelihoodInformedSubspace(Subspace):
         initial_basis: Tensor | None = None,
         device: torch.device = torch.get_default_device()
     ):
-
-        target_func = target_func.lower()
-        update_method = update_method.lower()
-        if target_func not in TARGET_FUNCS_LIS:
-            msg = (
-                "Unknown target function. Accepted target functions are `"
-                f"{"`, `".join(TARGET_FUNCS_LIS)}`."
-            )
-            raise Exception(msg)
+        
         if update_method not in UPDATE_METHODS_LIS:
             msg = (
                 "Unknown update method. Accepted methods are `"
@@ -86,7 +84,6 @@ class LikelihoodInformedSubspace(Subspace):
             )
             warnings.warn(msg)
 
-        self.target_func = target_func 
         self.num_comp = num_comp 
         self.fixed_comp = fixed_comp
         self.update_method = update_method
@@ -294,7 +291,6 @@ class LikelihoodInformedSubspace(Subspace):
     def clone(self) -> LikelihoodInformedSubspace:
         subspace = LikelihoodInformedSubspace(
             dim=self.dim, 
-            target_func=self.target_func, 
             num_comp=self.num_comp,
             fixed_comp=self.fixed_comp,
             update_method=self.update_method,
