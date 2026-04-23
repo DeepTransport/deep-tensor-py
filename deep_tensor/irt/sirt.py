@@ -3,10 +3,11 @@ from typing import Callable, Dict, Tuple
 import torch
 from torch import Tensor
 
-from ..ftt import ApproxBases, Direction, FTT
+from ..ftt import Direction, FTT
 from ..linalg import batch_mul, n_mode_prod, unfold_left, unfold_right
-from ..polynomials import CDF1D, construct_cdf
+from ..polynomials import construct_cdf
 from ..references import Reference
+from ..tools import compute_f_divergence
 
 
 SUBSET2DIRECTION = {
@@ -37,6 +38,8 @@ class SIRT():
     cdf_tol:
         The tolerance used when solving the rootfinding problem to 
         evaluate the inverse of each conditional CDF.
+    device:
+        The device to carry out computations on.
 
     """
 
@@ -44,6 +47,7 @@ class SIRT():
         self, 
         target_func: Callable[[Tensor], Tensor], 
         ftt: FTT,
+        dim: int,
         reference: Reference,
         defensive: float,
         cdf_tol: float,
@@ -52,12 +56,12 @@ class SIRT():
 
         self.potential = target_func
         self.ftt = ftt
-        self.bases = self.ftt.bases
-        self.dim = self.ftt.dim
+        self.basis = self.ftt.basis
+        self.dim = dim
         self.domain = reference.domain
         self.defensive = defensive
-        self.cdfs = self.construct_cdfs(self.bases, cdf_tol)
-        self.ftt.approximate(self._target_func, reference)
+        self.cdf = construct_cdf(self.basis, error_tol=cdf_tol) 
+        self.ftt.approximate(self._target_func, dim, reference)
         self.device = device
 
         # Precompute coefficient tensors and marginalisation 
@@ -69,6 +73,14 @@ class SIRT():
         self._Rs_b: Dict[int, Tensor] = {}
         self._marginalise_forward()
         self._marginalise_backward()
+
+        # Estimate the Hellinger divergence between the current ratio 
+        # function and the SIRT approximation
+        # TODO: tidy this up..
+        # zs = torch.rand((1000, self.dim))
+        # us, neglogfus = self._eval_irt(zs, subset="first")
+        # neglogfus_exact = target_func(us)
+        # self.dhell_ratio = compute_f_divergence(-neglogfus, -neglogfus_exact).sqrt()
         return
     
     @property
@@ -89,40 +101,9 @@ class SIRT():
     
     @property 
     def num_eval_construction(self) -> int:
-        return self.ftt.num_eval_tt
-
-    @staticmethod
-    def construct_cdfs(bases: ApproxBases, tol: float) -> Dict[int, CDF1D]:
-        cdfs = {}
-        for k in range(bases.dim):
-            cdfs[k] = construct_cdf(bases[k], error_tol=tol) 
-        return cdfs
+        return self.ftt.num_eval_construction
     
-    def local2approx(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
-        """Maps a set of samples distributed in (a subset of) the local 
-        domain to the approximation domain.
-        """
-        xs = torch.empty_like(ls)
-        dxdls = torch.empty_like(ls)
-        for i, ls_i in enumerate(ls.T):
-            xs[:, i], dxdls[:, i] = self.domain.local2approx(ls_i)
-        return xs, dxdls
-    
-    def approx2local(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
-        """Maps a set of samples from (a subset of) the approximation 
-        domain to the local domain.
-        """
-        ls = torch.empty_like(xs)
-        dldxs = torch.empty_like(xs)
-        for i, xs_i in enumerate(xs.T):
-            ls[:, i], dldxs[:, i] = self.domain.approx2local(xs_i)
-        return ls, dldxs
-    
-    def eval_measure_potential(
-        self, 
-        xs: Tensor, 
-        inds: range | None = None
-    ) -> Tuple[Tensor, Tensor]:
+    def eval_measure_potential(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         """Computes the target potential function and its gradient for 
         a set of samples from the approximation domain.
         
@@ -131,10 +112,6 @@ class SIRT():
         xs:
             An n * d matrix containing a set of samples from the 
             approximation domain.
-        inds:
-            The indices corresponding to the dimensions of the 
-            approximation domain the samples live in (can be a subset 
-            of {1, 2, ..., d}). 
         
         Returns
         -------
@@ -147,17 +124,10 @@ class SIRT():
             element of xs.
         
         """
-        
-        if inds is None:
-            inds = range(self.dim)
-        ApproxBases._check_indices_shape(inds, xs)
-
-        ls, dldxs = self.approx2local(xs)
-        
-        neglogwls = self.bases.eval_measure_potential(ls, inds)
-        neglogwxs = neglogwls - dldxs.log().sum(dim=1)
-        
-        gradneglogwls = self.bases.eval_measure_potential_grad(ls, inds)
+        ls, dldxs = self.domain.approx2local(xs)
+        neglogwls = -self.basis.eval_log_measure(ls).sum(dim=1)
+        gradneglogwls = -self.basis.eval_log_measure_deriv(ls)
+        neglogwxs = neglogwls - dldxs.log().sum(dim=1)        
         gradneglogwxs = gradneglogwls * dldxs
         return neglogwxs, gradneglogwxs
 
@@ -167,7 +137,7 @@ class SIRT():
         in the local domain (note: this ratio is invariant to changes 
         of coordinate).
         """
-        xs = self.local2approx(ls)[0]
+        xs = self.domain.local2approx(ls)[0]
         neglogfxs = self.potential(xs)
         neglogwxs = self.eval_measure_potential(xs)[0]
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
@@ -184,7 +154,7 @@ class SIRT():
 
         for k in range(self.dim-1, -1, -1):
             self._Bs_f[k] = n_mode_prod(cores[k], self._Rs_f[k+1].T, n=2)
-            C_k = n_mode_prod(self._Bs_f[k], self.bases[k].mass_R.T, n=1)
+            C_k = n_mode_prod(self._Bs_f[k], self.basis.mass_R.T, n=1)
             C_k = unfold_right(C_k)
             self._Rs_f[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
@@ -202,7 +172,7 @@ class SIRT():
 
         for k in range(self.dim):
             self._Bs_b[k] = n_mode_prod(cores[k], self._Rs_b[k-1], n=0)
-            C_k = n_mode_prod(self._Bs_b[k], self.bases[k].mass_R, n=1)
+            C_k = n_mode_prod(self._Bs_b[k], self.basis.mass_R, n=1)
             C_k = unfold_left(C_k)
             self._Rs_b[k] = torch.linalg.qr(C_k, mode="reduced")[1]
 
@@ -221,15 +191,15 @@ class SIRT():
         for k in range(dim_ls):
             
             # Compute (unnormalised) conditional PDF for each sample
-            Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT.eval_core(self.basis, Bs[k], self.cdf.nodes)
             gs = torch.einsum("jl, ilk -> ijk", Gs_prod, Ps)
             ps = gs.square().sum(dim=2) + self.coef_defensive
 
             # Evaluate CDF to obtain corresponding uniform variates
-            zs[:, k] = self.cdfs[k].eval_cdf(ps, ls[:, k])
+            zs[:, k] = self.cdf.eval_cdf(ps, ls[:, k])
 
             # Compute incremental product of tensor cores for each sample
-            Gs = FTT.eval_core(self.bases[k], cores[k], ls[:, k])
+            Gs = FTT.eval_core(self.basis, cores[k], ls[:, k])
             Gs_prod = torch.einsum("il, ilk -> ik", Gs_prod, Gs)
 
         return zs
@@ -247,15 +217,15 @@ class SIRT():
         for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
 
             # Compute (unnormalised) conditional PDF for each sample
-            Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT.eval_core(self.basis, Bs[k], self.cdf.nodes)
             gs = torch.einsum("ijl, lk -> ijk", Ps, Gs_prod)
             ps = gs.square().sum(dim=1) + self.coef_defensive
 
             # Evaluate CDF to obtain corresponding uniform variates
-            zs[:, -i] = self.cdfs[k].eval_cdf(ps, ls[:, -i])
+            zs[:, -i] = self.cdf.eval_cdf(ps, ls[:, -i])
             
             # Compute incremental product of tensor cores for each sample
-            Gs = FTT.eval_core(self.bases[k], cores[k], ls[:, -i])
+            Gs = FTT.eval_core(self.basis, cores[k], ls[:, -i])
             Gs_prod = torch.einsum("ijl, li -> ji", Gs, Gs_prod)
 
         return zs
@@ -314,12 +284,12 @@ class SIRT():
 
         for k in range(d_zs):
             
-            Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT.eval_core(self.basis, Bs[k], self.cdf.nodes)
             gls = n_mode_prod(Ps, gs, n=1)
             ps = gls.square().sum(dim=2) + self.coef_defensive
-            ls[:, k] = self.cdfs[k].invert_cdf(ps, zs[:, k])
+            ls[:, k] = self.cdf.invert_cdf(ps, zs[:, k])
 
-            Gs = FTT.eval_core(self.bases[k], self.ftt.cores[k], ls[:, k])
+            Gs = FTT.eval_core(self.basis, self.ftt.cores[k], ls[:, k])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
         
         gs_sq = (gs @ self._Rs_f[d_zs]).square().sum(dim=1)
@@ -356,12 +326,12 @@ class SIRT():
 
         for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
 
-            Ps = FTT.eval_core_rev(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT.eval_core_rev(self.basis, Bs[k], self.cdf.nodes)
             gls = n_mode_prod(Ps, gs, n=1)
             ps = gls.square().sum(dim=2) + self.coef_defensive
-            ls[:, -i] = self.cdfs[k].invert_cdf(ps, zs[:, -i])
+            ls[:, -i] = self.cdf.invert_cdf(ps, zs[:, -i])
 
-            Gs = FTT.eval_core_rev(self.bases[k], cores[k], ls[:, -i])
+            Gs = FTT.eval_core_rev(self.basis, cores[k], ls[:, -i])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
         gs_sq = (self._Rs_b[d_min-1] @ gs.T).square().sum(dim=0)
@@ -395,20 +365,13 @@ class SIRT():
             sample.
 
         """
-
-        dim_zs = zs.shape[1]
-
         if direction == Direction.FORWARD:
-            indices = range(dim_zs)
             ls, gs_sq = self._eval_irt_local_forward(zs)
         else:
-            indices = range(self.dim-dim_zs, self.dim)
             ls, gs_sq = self._eval_irt_local_backward(zs)
-        
         neglogpls = -(gs_sq + self.coef_defensive).log()
-        neglogwls = self.bases.eval_measure_potential(ls, indices)
+        neglogwls = -self.basis.eval_log_measure(ls).sum(dim=1)
         neglogfls = self.z.log() + neglogpls + neglogwls
-
         return ls, neglogfls
 
     def _eval_cirt_local_forward(
@@ -418,7 +381,6 @@ class SIRT():
     ) -> Tuple[Tensor, Tensor]:
         
         n_xs, d_xs = ls_x.shape
-        n_zs, d_zs = zs.shape
         ls_y = torch.zeros_like(zs)
 
         cores = self.ftt.cores
@@ -427,33 +389,32 @@ class SIRT():
         Gs_prod = torch.ones((n_xs, 1, 1), device=self.device)
 
         for k in range(d_xs-1):
-            Gs = FTT.eval_core(self.bases[k], cores[k], ls_x[:, k])
+            Gs = FTT.eval_core(self.basis, cores[k], ls_x[:, k])
             Gs_prod = batch_mul(Gs_prod, Gs)
         
         k = d_xs-1
 
-        Ps = FTT.eval_core(self.bases[k], Bs[k], ls_x[:, k])
+        Ps = FTT.eval_core(self.basis, Bs[k], ls_x[:, k])
         gs_marg = batch_mul(Gs_prod, Ps)
         ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.coef_defensive
 
-        Gs = FTT.eval_core(self.bases[k], cores[k], ls_x[:, k])
+        Gs = FTT.eval_core(self.basis, cores[k], ls_x[:, k])
         Gs_prod = batch_mul(Gs_prod, Gs)
 
         # Generate conditional samples
         for i, k in enumerate(range(d_xs, self.dim)):
             
-            Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT.eval_core(self.basis, Bs[k], self.cdf.nodes)
             gs = torch.einsum("mij, ljk -> lmk", Gs_prod, Ps)
             ps = gs.square().sum(dim=2) + self.coef_defensive
-            ls_y[:, i] = self.cdfs[k].invert_cdf(ps, zs[:, i])
+            ls_y[:, i] = self.cdf.invert_cdf(ps, zs[:, i])
 
-            Gs = FTT.eval_core(self.bases[k], cores[k], ls_y[:, i])
+            Gs = FTT.eval_core(self.basis, cores[k], ls_y[:, i])
             Gs_prod = batch_mul(Gs_prod, Gs)
 
         ps = Gs_prod.flatten().square() + self.coef_defensive
 
-        indices = range(d_xs, d_xs+d_zs)
-        neglogwls_y = self.bases.eval_measure_potential(ls_y, indices)
+        neglogwls_y = -self.basis.eval_log_measure(ls_y).sum(dim=1)
         neglogfls_y = ps_marg.log() - ps.log() + neglogwls_y
 
         return ls_y, neglogfls_y
@@ -473,31 +434,30 @@ class SIRT():
         Gs_prod = torch.ones((n_zs, 1, 1), device=zs.device)
 
         for i, k in enumerate(range(self.dim-1, d_zs, -1), start=1):
-            Gs = FTT.eval_core(self.bases[k], cores[k], ls_x[:, -i])
+            Gs = FTT.eval_core(self.basis, cores[k], ls_x[:, -i])
             Gs_prod = batch_mul(Gs, Gs_prod)
 
-        Ps = FTT.eval_core(self.bases[d_zs], Bs[d_zs], ls_x[:, 0])
+        Ps = FTT.eval_core(self.basis, Bs[d_zs], ls_x[:, 0])
         gs_marg = batch_mul(Ps, Gs_prod)
         ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.coef_defensive
 
-        Gs = FTT.eval_core(self.bases[d_zs], cores[d_zs], ls_x[:, 0])
+        Gs = FTT.eval_core(self.basis, cores[d_zs], ls_x[:, 0])
         Gs_prod = batch_mul(Gs, Gs_prod)
 
         # Generate conditional samples
         for k in range(d_zs-1, -1, -1):
 
-            Ps = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps = FTT.eval_core(self.basis, Bs[k], self.cdf.nodes)
             gs = torch.einsum("lij, mjk -> lmi", Ps, Gs_prod)
             ps = gs.square().sum(dim=2) + self.coef_defensive
-            ls_y[:, k] = self.cdfs[k].invert_cdf(ps, zs[:, k])
+            ls_y[:, k] = self.cdf.invert_cdf(ps, zs[:, k])
 
-            Gs = FTT.eval_core(self.bases[k], cores[k], ls_y[:, k])
+            Gs = FTT.eval_core(self.basis, cores[k], ls_y[:, k])
             Gs_prod = batch_mul(Gs, Gs_prod)
 
         ps = Gs_prod.flatten().square() + self.coef_defensive
 
-        indices = range(d_zs-1, -1, -1)
-        neglogwls_y = self.bases.eval_measure_potential(ls_y, indices)
+        neglogwls_y = -self.basis.eval_log_measure(ls_y).sum(dim=1)
         neglogfls_y = ps_marg.log() - ps.log() + neglogwls_y
 
         return ls_y, neglogfls_y
@@ -564,7 +524,7 @@ class SIRT():
         ls, gs_sq = self._eval_irt_local_forward(zs)
         n_ls = ls.shape[0]
         ps = gs_sq + self.coef_defensive
-        neglogws = self.bases.eval_measure_potential(ls)
+        neglogws = -self.basis.eval_log_measure(ls).sum(dim=1)
         ws = torch.exp(-neglogws)
         fs = ps * ws  # Don't need to normalise as derivative ends up being a ratio
         
@@ -575,11 +535,11 @@ class SIRT():
         
         for k in range(self.dim):
 
-            ws_k = self.bases[k].eval_measure(ls[:, k])
-            dwdls_k = self.bases[k].eval_measure_deriv(ls[:, k])
+            ws_k = self.basis.eval_measure(ls[:, k])
+            dwdls_k = self.basis.eval_measure_deriv(ls[:, k])
 
-            Gs_k = FTT.eval_core(self.bases[k], cores[k], ls[:, k])
-            dGdls_k = FTT.eval_core_deriv(self.bases[k], cores[k], ls[:, k])
+            Gs_k = FTT.eval_core(self.basis, cores[k], ls[:, k])
+            dGdls_k = FTT.eval_core_deriv(self.basis, cores[k], ls[:, k])
             Gs_prod = batch_mul(Gs_prod, Gs_k)
             
             for j in range(self.dim):
@@ -628,17 +588,17 @@ class SIRT():
         for k in range(self.dim):
 
             # Evaluate weighting function
-            wls[k] = self.bases[k].eval_measure(ls[:, k])
+            wls[k] = self.basis.eval_measure(ls[:, k])
 
             # Evaluate kth tensor core and derivative
-            Gs[k] = FTT.eval_core(self.bases[k], cores[k], ls[:, k])
-            Gs_deriv[k] = FTT.eval_core_deriv(self.bases[k], cores[k], ls[:, k])
+            Gs[k] = FTT.eval_core(self.basis, cores[k], ls[:, k])
+            Gs_deriv[k] = FTT.eval_core_deriv(self.basis, cores[k], ls[:, k])
             Gs_prod[k] = batch_mul(Gs_prod[k-1], Gs[k])
 
             # Evaluate kth marginalisation core and derivative
-            Ps[k] = FTT.eval_core(self.bases[k], Bs[k], ls[:, k])
-            Ps_deriv[k] = FTT.eval_core_deriv(self.bases[k], Bs[k], ls[:, k])
-            Ps_grid[k] = FTT.eval_core(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps[k] = FTT.eval_core(self.basis, Bs[k], ls[:, k])
+            Ps_deriv[k] = FTT.eval_core_deriv(self.basis, Bs[k], ls[:, k])
+            Ps_grid[k] = FTT.eval_core(self.basis, Bs[k], self.cdf.nodes)
 
             # Evaluate marginal probability for the first k elements of 
             # each sample
@@ -690,9 +650,9 @@ class SIRT():
             for j in range(k):
                 grad_cond = (ps_grid_deriv[k][j] * ps_marg[k-1] 
                              - ps_grid[k] * ps_marg_deriv[k-1][j]) / ps_marg[k-1].square()
-                if self.bases[k].constant_weight:
+                if self.basis.constant_weight:
                     grad_cond *= wls[k]
-                Jacs[k, :, j] = self.cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
+                Jacs[k, :, j] = self.cdf.eval_int_deriv(grad_cond, ls[:, k])
 
         return Jacs
     
@@ -723,17 +683,17 @@ class SIRT():
         for k in range(self.dim-1, -1, -1):
 
             # Evaluate weighting function
-            wls[k] = self.bases[k].eval_measure(ls[:, k])
+            wls[k] = self.basis.eval_measure(ls[:, k])
 
             # Evaluate kth tensor core and derivative
-            Gs[k] = FTT.eval_core_rev(self.bases[k], cores[k], ls[:, k])
-            Gs_deriv[k] = FTT.eval_core_deriv_rev(self.bases[k], cores[k], ls[:, k])
+            Gs[k] = FTT.eval_core_rev(self.basis, cores[k], ls[:, k])
+            Gs_deriv[k] = FTT.eval_core_deriv_rev(self.basis, cores[k], ls[:, k])
             Gs_prod[k] = batch_mul(Gs_prod[k+1], Gs[k])
 
             # Evaluate kth marginalisation core and derivative
-            Ps[k] = FTT.eval_core_rev(self.bases[k], Bs[k], ls[:, k])
-            Ps_deriv[k] = FTT.eval_core_deriv_rev(self.bases[k], Bs[k], ls[:, k])
-            Ps_grid[k] = FTT.eval_core_rev(self.bases[k], Bs[k], self.cdfs[k].nodes)
+            Ps[k] = FTT.eval_core_rev(self.basis, Bs[k], ls[:, k])
+            Ps_deriv[k] = FTT.eval_core_deriv_rev(self.basis, Bs[k], ls[:, k])
+            Ps_grid[k] = FTT.eval_core_rev(self.basis, Bs[k], self.cdf.nodes)
 
             # Evaluate marginal probability for the first k elements of 
             # each sample
@@ -785,9 +745,9 @@ class SIRT():
             for j in range(k+1, self.dim):
                 grad_cond = (ps_grid_deriv[k][j] * ps_marg[k+1] 
                              - ps_grid[k] * ps_marg_deriv[k+1][j]) / ps_marg[k+1].square()
-                if self.bases[k].constant_weight:
+                if self.basis.constant_weight:
                     grad_cond *= wls[k]
-                Jacs[k, :, j] = self.cdfs[k].eval_int_deriv(grad_cond, ls[:, k])
+                Jacs[k, :, j] = self.cdf.eval_int_deriv(grad_cond, ls[:, k])
             
         return Jacs
 
@@ -840,16 +800,13 @@ class SIRT():
         dim_l = ls.shape[1]
 
         if direction == Direction.FORWARD:
-            indices = range(dim_l)
             gs = self.ftt(ls, direction=direction)
             gs_sq = (gs @ self._Rs_f[dim_l]).square().sum(dim=1)
-            
         else:
-            indices = range(self.dim-dim_l, self.dim)
             gs = self.ftt(ls, direction=direction)
             gs_sq = (self._Rs_b[self.dim-dim_l-1] @ gs.T).square().sum(dim=0)
         
-        neglogwls = self.bases.eval_measure_potential(ls, indices)
+        neglogwls = -self.basis.eval_log_measure(ls).sum(dim=1)
         neglogfls = self.z.log() - (gs_sq + self.coef_defensive).log() + neglogwls
         return neglogfls
     
@@ -879,7 +836,7 @@ class SIRT():
 
         """
         direction = SUBSET2DIRECTION[subset]
-        ls, dldxs = self.approx2local(xs)
+        ls, dldxs = self.domain.approx2local(xs)
         neglogfls = self._eval_potential_local(ls, direction)
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
@@ -911,7 +868,7 @@ class SIRT():
 
         """
         direction = SUBSET2DIRECTION[subset]
-        ls = self.approx2local(xs)[0]
+        ls = self.domain.approx2local(xs)[0]
         zs = self._eval_rt_local(ls, direction)
         return zs
 
@@ -945,6 +902,6 @@ class SIRT():
         """
         direction = SUBSET2DIRECTION[subset]
         ls, neglogfls = self._eval_irt_local(zs, direction)
-        xs, dxdls = self.local2approx(ls)
+        xs, dxdls = self.domain.local2approx(ls)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs

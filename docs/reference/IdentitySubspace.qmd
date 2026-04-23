@@ -1,0 +1,17 @@
+# IdentitySubspace { #deep_tensor.IdentitySubspace }
+
+```python
+IdentitySubspace(dim: int, device: torch.device = torch.get_default_device())
+```
+
+Identity subspace (*i.e.,* no dimension reduction).
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**dim**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The dimension of the target density.
+
+<code>[**device**]{.parameter-name} [:]{.parameter-annotation-sep} [torch.device]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.get_default_device()]{.parameter-default}</code>
+
+:   The device to carry out computations on.

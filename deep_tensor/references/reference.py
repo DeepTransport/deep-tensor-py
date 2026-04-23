@@ -1,12 +1,15 @@
 import abc
+import logging
 from typing import Tuple
-import warnings
 
 import torch
 from torch import Tensor
 from torch.quasirandom import SobolEngine
 
 from ..domains import Domain
+
+
+logger = logging.getLogger(__name__)
 
 
 class Reference(abc.ABC):
@@ -112,6 +115,31 @@ class Reference(abc.ABC):
         """
         pass
 
+    @abc.abstractmethod
+    def eval_potential_unnormalised(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+        """Evaluates the unnormalised potential function and the 
+        gradient of the potential function of the reference at 
+        a set of points. This can be useful for numerical stability.
+
+        Parameters
+        ----------
+        rs:
+            An n * d matrix containing points at which to evaluate the 
+            potential function and its gradient.
+
+        Returns
+        -------
+        neglogrefs:
+            An n-dimensional vector containing the potential function 
+            evaluated at each sample in rs.
+        grad_neglogrefs:
+            An n * d matrix where each row contains the gradient of the 
+            potential function evaluated at the corresponding sample in 
+            rs.
+        
+        """
+        pass
+
     def _out_domain(self, rs: Tensor) -> Tensor:
         outside = (rs < self.domain.left) | (self.domain.right < rs)
         return outside
@@ -119,6 +147,8 @@ class Reference(abc.ABC):
     def _check_samples_in_domain(self, rs: Tensor) -> None:
         """Raises a warning if any of a set of samples are outside the
         domain of the reference.
+
+        TODO: check whether this is still used..
         """
         outside = self._out_domain(rs)
         if (num_outside := outside.sum()) > 0:
@@ -126,7 +156,7 @@ class Reference(abc.ABC):
                 f"{num_outside} points lie outside the domain of the "
                 "reference distribution."
             )
-            warnings.warn(msg)
+            logger.debug(msg)
         return
     
     def _project_to_domain(self, rs: Tensor) -> Tensor:
@@ -141,7 +171,7 @@ class Reference(abc.ABC):
                 "closest point in the domain of the reference "
                 "distribution."
             )
-            warnings.warn(msg)
+            logger.debug(msg)
             rs = torch.clamp(rs, min=self.domain.left, max=self.domain.right)
         return rs
     

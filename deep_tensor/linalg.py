@@ -66,9 +66,8 @@ def n_mode_prod(T: Tensor, M: Tensor, n: int) -> Tensor:
         raise Exception("M must be a matrix or vector.")
 
     prod = T.swapdims(n, -1)
-
     if M.ndim == 1:
-        prod = torch.einsum("...ij,j", prod, M)
+        prod = torch.einsum("...ij, j", prod, M)
     else:
         prod = torch.einsum("...ij, kj", prod, M)
         prod = prod.swapdims(n, -1)
@@ -88,18 +87,15 @@ def mode_n_unfolding(T: Tensor, n: int) -> Tensor:
 
 def mode_n_folding(M: Tensor, n: int, newshape: Sequence) -> Tensor:
     """Computes the inverse of the mode-n unfolding operation."""
-
     newshape = list(newshape)
     newshape[n], newshape[-1] = newshape[-1], newshape[n]
-
     T = M.reshape(*newshape)
     T = T.swapdims(n, -1)
     return T
 
 
 def unfold_left(T: Tensor) -> Tensor:
-    """Forms the left unfolding matrix of a three-dimensional tensor.
-    """
+    """Forms the left unfolding matrix of a 3-dimensional tensor."""
     if T.ndim != 3:
         msg = "Input tensor must be 3-dimensional."
         raise ValueError(msg)
@@ -121,8 +117,7 @@ def unfold_right(T: Tensor) -> Tensor:
 
 
 def fold_left(H: Tensor, newshape: Sequence) -> Tensor:
-    """Computes the inverse of the unfold_left operation.
-    """
+    """Computes the inverse of the unfold_left operation."""
     if H.ndim > 2:
         msg = "Dimension of input tensor cannot be greater than 2."
         raise ValueError(msg)
@@ -131,8 +126,7 @@ def fold_left(H: Tensor, newshape: Sequence) -> Tensor:
 
 
 def fold_right(H: Tensor, newshape: Sequence) -> Tensor:
-    """Computes the inverse of the unfold_right operation.
-    """
+    """Computes the inverse of the unfold_right operation."""
     if H.ndim > 2:
         msg = "Dimension of input tensor cannot be greater than 2."
         raise ValueError(msg)

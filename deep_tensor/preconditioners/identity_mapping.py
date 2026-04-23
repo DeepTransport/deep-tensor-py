@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 from torch import Tensor
 
@@ -26,24 +28,25 @@ class IdentityMapping(Preconditioner):
         dim: int, 
         reference: Reference | None = None
     ):
-        if reference is None:
-            reference = GaussianReference()  
         self.dim = dim
-        self.reference = reference
+        self.reference = GaussianReference() if reference is None else reference
         return
 
     @staticmethod
-    def Q(us: Tensor, subset: str = "first") -> Tensor:
-        return us
+    def Q(us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
+        num_us = us.shape[0]
+        neglogdets = torch.zeros((num_us,), device=us.device)
+        return us, neglogdets
     
     @staticmethod
-    def Q_inv(xs: Tensor, subset: str = "first") -> Tensor:
-        return xs
+    def Q_inv(xs: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
+        num_xs = xs.shape[0]
+        neglogdets = torch.zeros((num_xs,), device=xs.device)
+        return xs, neglogdets
     
-    @staticmethod
-    def neglogdet_Q(us: Tensor, subset: str = "first") -> Tensor:
-        return torch.zeros_like(us[:, 0])
-    
-    @staticmethod
-    def neglogdet_Q_inv(xs: Tensor, subset: str = "first") -> Tensor: 
-        return torch.zeros_like(xs[:, 0])
+    @staticmethod 
+    def grad_Q(us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor, Tensor]:
+        num_us, dim_us = us.shape
+        neglogdets = torch.zeros((num_us,), device=us.device)
+        dxdus = torch.eye(dim_us, device=us.device)[:, None, :].repeat(1, num_us, 1)
+        return us, neglogdets, dxdus

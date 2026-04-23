@@ -92,8 +92,13 @@ class Tempering(Bridge):
         self.initialised = False
 
         self._ratio_weight_funcs = {
-            "aratio": self._compute_weights_aratio,
-            "eratio": self._compute_weights_eratio
+            "aratio": self._eval_neglogweights_aratio,
+            "eratio": self._eval_neglogweights_eratio
+        }
+
+        self._grad_neglogweight_funcs = {
+            "aratio": self._grad_neglogweights_aratio,
+            "eratio": self._grad_neglogweights_eratio
         }
 
         return
@@ -119,23 +124,8 @@ class Tempering(Bridge):
         Bridge.initialise(self, preconditioner, target_func)
         self.initialised = True
         return
-  
-    def _compute_neglogbridges(
-        self, 
-        neglogref_us: Tensor,
-        neglogfus: Tensor
-    ) -> Tensor:
-        
-        k = self.num_layers
-        if k == 0: 
-            return neglogref_us
-        neglogbridges = (
-            + (1.0 - self.betas[k-1]) * neglogref_us 
-            + self.betas[k-1] * neglogfus
-        )
-        return neglogbridges
     
-    def _compute_weights_aratio(
+    def _eval_neglogweights_aratio(
         self,
         neglogref_us: Tensor, 
         neglogfus: Tensor, 
@@ -150,17 +140,34 @@ class Tempering(Bridge):
             + (self.betas[k] - self.betas[k-1]) * neglogfus
         )
         return neglogweights
-
-    def _compute_weights_eratio(
+    
+    def _grad_neglogweights_aratio(
         self,
-        neglogref_us, 
-        neglogfus, 
-        neglogfus_dirt
+        neglogref_us: Tensor,
+        grad_neglogref_us: Tensor,
+        neglogfus: Tensor, 
+        grad_neglogfus: Tensor,
+        neglogfus_dirt: Tensor,
+        grad_neglogfus_dirt: Tensor | None
+    ) -> Tuple[Tensor, Tensor]:
+        k = self.num_layers
+        neglogweights = self._eval_neglogweights_aratio(
+            neglogref_us, 
+            neglogfus, 
+            neglogfus_dirt
+        )
+        grad_neglogweights = (
+            + (self.betas[k-1] - self.betas[k]) * grad_neglogref_us 
+            + (self.betas[k] - self.betas[k-1]) * grad_neglogfus
+        )
+        return neglogweights, grad_neglogweights
+
+    def _eval_neglogweights_eratio(
+        self,
+        neglogref_us: Tensor, 
+        neglogfus: Tensor, 
+        neglogfus_dirt: Tensor
     ) -> Tensor:
-        """Computes the ratio between the current bridging density and 
-        the DIRT approximation to the previous bridging density for 
-        each particle.
-        """
         k = self.num_layers
         neglogweights = (
             + (1.0 - self.betas[k]) * neglogref_us 
@@ -169,21 +176,27 @@ class Tempering(Bridge):
         )
         return neglogweights
     
-    def _compute_ratio_func(
-        self, 
-        method: str,
-        neglogref_rs: Tensor,
-        neglogref_us: Tensor, 
+    def _grad_neglogweights_eratio(
+        self,
+        neglogref_us: Tensor,
+        grad_neglogref_us: Tensor,
         neglogfus: Tensor, 
-        neglogfus_dirt: Tensor
-    ) -> Tensor:
-
-        neglogratios = self._ratio_weight_funcs[method](
+        grad_neglogfus: Tensor,
+        neglogfus_dirt: Tensor,
+        grad_neglogfus_dirt: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        k = self.num_layers
+        neglogweights = self._eval_neglogweights_eratio(
             neglogref_us,
-            neglogfus, 
+            neglogfus,
             neglogfus_dirt
-        ) + neglogref_rs
-        return neglogratios
+        )
+        grad_neglogweights = (
+            + (1.0 - self.betas[k]) * grad_neglogref_us 
+            + self.betas[k] * grad_neglogfus
+            - grad_neglogfus_dirt
+        )
+        return neglogweights, grad_neglogweights
     
     def _compute_log_weights(
         self, 
@@ -195,7 +208,7 @@ class Tempering(Bridge):
         log_weights = -beta*neglogfus - (1-beta)*neglogrefs + neglogfus_dirt
         return log_weights
     
-    def ratio_func(
+    def _eval_neglogratio(
         self,
         method: str,
         rs: Tensor,
@@ -210,14 +223,85 @@ class Tempering(Bridge):
         neglogref_us = self.reference.eval_potential(us)[0]
         neglogfus = self._eval_pullback(us)
 
-        neglogratios = self._compute_ratio_func(
-            method,
-            neglogref_rs,
+        neglogratios = self._ratio_weight_funcs[method](
             neglogref_us,
-            neglogfus,
+            neglogfus, 
             neglogfus_dirt
-        )
+        ) + neglogref_rs
         return neglogratios
+    
+    def _grad_neglogratio(
+        self,
+        method: str,
+        rs: Tensor,
+        us: Tensor,
+        neglogfus_dirt: Tensor,
+        grad_neglogfus_dirt: Tensor | None,
+        dudrs: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        
+        if grad_neglogfus_dirt is None and method == "eratio":
+            msg = (
+                "If method==`eratio`, the gradient of the DIRT density " 
+                "must be passed in."
+            )
+            raise Exception(msg)
+        
+        # TODO: finite difference check on the output!!
+        
+        neglogref_rs, grad_neglogref_rs = self.reference.eval_potential_unnormalised(rs)
+        neglogref_us, grad_neglogref_us = self.reference.eval_potential_unnormalised(us)
+
+        neglogfus, grad_neglogfus = self._grad_pullback(us)
+
+        neglogweights, grad_neglogweights = self._grad_neglogweight_funcs[method](
+            neglogref_us,
+            grad_neglogref_us,
+            neglogfus,
+            grad_neglogfus,
+            neglogfus_dirt,
+            grad_neglogfus_dirt
+        )
+        grad_neglogweights = self._grad_chain(grad_neglogweights, dudrs)
+        
+        neglogratios = neglogweights + neglogref_rs 
+        grad_neglogratios = grad_neglogweights + grad_neglogref_rs
+        return neglogratios, grad_neglogratios
+
+    def _eval_neglogbridge(
+        self, 
+        neglogref_us: Tensor,
+        neglogfus: Tensor,
+        num_layers: int | None = None  # in case we want to evaluate a previous density
+    ) -> Tensor:
+        k = num_layers if num_layers is not None else self.num_layers
+        beta = self.betas[k]
+        neglogbridges = (1.0 - beta) * neglogref_us + beta * neglogfus
+        return neglogbridges
+    
+    def _grad_neglogbridge(
+        self, 
+        us: Tensor,
+        dudrs: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+
+        beta = self.betas[self.num_layers]
+
+        neglogref_us, grad_neglogref_us = self.reference.eval_potential_unnormalised(us)
+        neglogfus, grad_neglogfus = self._grad_pullback(us)
+
+        neglogbridges = (1.0 - beta) * neglogref_us + beta * neglogfus
+
+        # Compute gradient w.r.t. u
+        grad_neglogbridges = (
+            (1.0 - beta) * grad_neglogref_us 
+            + beta * grad_neglogfus
+        )
+
+        # Change variable such that gradient is w.r.t. r 
+        grad_neglogbridges = self._grad_chain(grad_neglogbridges, dudrs)
+        
+        return neglogbridges, grad_neglogbridges
     
     def _adapt_beta(
         self,
@@ -265,14 +349,15 @@ class Tempering(Bridge):
             neglogfus, 
             neglogfus_dirt
         )
-        
-        neglogbridges = self._compute_neglogbridges(
+
+        neglogbridges = self._eval_neglogbridge(
             neglogref_us, 
-            neglogfus
+            neglogfus,
+            num_layers=self.num_layers-1
         )
         
         return log_weights, neglogbridges
-
+    
     def _get_diagnostics(
         self, 
         log_weights: Tensor | None,

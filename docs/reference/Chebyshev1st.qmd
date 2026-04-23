@@ -1,7 +1,7 @@
 # Chebyshev1st { #deep_tensor.Chebyshev1st }
 
 ```python
-Chebyshev1st(order: int, device: torch.device = torch.device('cpu'))
+Chebyshev1st(order: int, device: torch.device = torch.get_default_device())
 ```
 
 Chebyshev polynomials of the first kind.

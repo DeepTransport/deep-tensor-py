@@ -1,21 +1,19 @@
 import math
 import time
-from typing import Callable, Dict, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import torch
 from torch import Tensor
-from torch.autograd.functional import jacobian
 
 from .dirt_options import DIRTOptions
 from .sirt import SIRT, SUBSET2DIRECTION
 from ..bridging_densities import Bridge, Tempering
 from ..ftt import Direction, FTT
 from ..preconditioners import Preconditioner
+from ..subspaces import Subspace, IdentitySubspace
 from ..target_functions import TargetFunc
 from ..tools.printing import dirt_info, format_time
 from ..tools import compute_f_divergence
-
-from torch import Tensor 
 
 
 class DIRT():
@@ -45,12 +43,15 @@ class DIRT():
         preconditioner: Preconditioner,
         ftt: FTT, 
         bridge: Bridge | None = None,
+        subspace: Subspace | None = None,
         options: DIRTOptions | None = None,
         device: torch.device = torch.get_default_device()
     ):
 
         if not isinstance(target_func, TargetFunc):
             target_func = TargetFunc(target_func)
+        if subspace is None:
+            subspace = IdentitySubspace(preconditioner.dim, device=device)
         if bridge is None:
             bridge = Tempering()
         if options is None:
@@ -64,6 +65,8 @@ class DIRT():
         self.ftt = ftt
         self.bridge = bridge
         self.bridge.initialise(preconditioner, target_func)
+        self.subspace = subspace
+        self.subspaces: Dict[int, Subspace] = {-1: subspace}
         self.ratio_type = options.ratio_type 
         self.num_error_samples = options.num_error_samples
         self.defensive = options.defensive
@@ -99,65 +102,180 @@ class DIRT():
         return sum([self.sirts[k].num_eval for k in self.sirts])
     
     @property 
+    def num_eval_subspace(self) -> int:
+        return sum([self.subspaces[k].num_eval for k in self.subspaces])
+    
+    @property 
     def num_eval_diagnostic(self) -> int:
-        return self.num_error_samples * self.bridge.num_layers
-
-    @property
-    def num_eval(self) -> int:
-        return self.num_eval_sirt + self.num_eval_diagnostic
+        return self.num_error_samples * (self.bridge.num_layers + 1)
     
     @property 
     def num_eval_construction(self) -> int:
-        return sum([self.sirts[k].num_eval_construction for k in self.sirts])
+        num_eval_sirt = sum([self.sirts[k].num_eval_construction for k in self.sirts]) 
+        return num_eval_sirt + self.num_eval_subspace
+    
+    @property 
+    def num_eval_grad(self) -> int:
+        return sum([self.subspaces[k].num_eval_grad for k in self.subspaces])
+
+    @property
+    def num_eval(self) -> int:
+        return (self.num_eval_sirt + self.num_eval_subspace 
+                + self.num_eval_diagnostic)
     
     @property
     def log_z(self) -> float:
         if not self.sirts.keys():
             return 0.0
         return sum([math.log(self.sirts[k].z) for k in self.sirts])
+    
+    @property 
+    def subspace_dims(self) -> List:
+        return [self.subspaces[k].dim_red for k in range(self.num_layers)]
+    
+    # @property
+    # def dhell_ratios_red(self) -> List:
+    #     """The Hellinger divergences between the reduced ratio functions 
+    #     and their DIRT approximations.
+    #     """
+    #     return [self.sirts[k].dhell_ratio for k in range(self.num_layers)]
+    
+    # @property 
+    # def error_accs(self) -> List:
+    #     return [self.subspaces[k].error_acc for k in range(self.num_layers)]  # type: ignore
+    
+    # @property 
+    # def error_news(self) -> List:
+    #     return [self.subspaces[k].error_new for k in range(self.num_layers)]  # type: ignore
   
-    def eval_ratio_func(self, rs: Tensor) -> Tensor:
-        """Evaluates the current ratio function at each element in rs, 
-        where rs is a set of samples from the reference domain.
-        """
-        us, neglogfus_dirt = self._eval_irt_reference(rs)
-        neglogratios = self.bridge.ratio_func(self.ratio_type, 
-                                              rs, us, neglogfus_dirt)
-        return neglogratios
-
-    def _get_new_layer(self) -> SIRT:
-        """Constructs a new SIRT to add to the current composition of 
-        SIRTs.
+    def _grad_neglogbridge(self, rs: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        """Evaluates the gradient of the negative logarithm of the 
+        current bridging density with respect to the reference random 
+        variable.
 
         Parameters
         ----------
-        xs:
-            An n * d matrix containing samples distributed according to
-            the current bridging density.
-        neglogratios:
-            An n-dimensional vector containing the negative log-ratio 
-            function evaluated at each element in xs.
-
+        rs:
+            An n * d matrix containing a set of samples from the domain 
+            of the reference density.
+        
         Returns
         -------
-        sirt:
-            The squared inverse Rosenblatt transport approximation to 
-            the next bridging density.
+        neglogfus:
+            An n-dimensional vector containing the pushforward of the 
+            reference density under the current IRT mapping, 
+            evaluated at each sample in `rs`.
+        neglogbridges:
+            An n-dimensional vector containing the current bridging 
+            density evaluated at each sample in `rs` after the current 
+            IRT mapping is applied.
+        grad_neglogbridges:
+            An n * d matrix containing the gradient of the negative 
+            logarithm of the composition of the current IRT mapping and 
+            the current bridging density, evaluated at each sample in 
+            `rs`.
+
+        """
+        neglogref_rs = self.reference.eval_potential(rs)[0]
+        us, neglogfus, dudrs = self._jac_irt_reference(rs)        
+        neglogbridges, grad_neglogbridges = self.bridge._grad_neglogbridge(us, dudrs)
+        return neglogref_rs, neglogbridges, grad_neglogbridges
+
+    def _eval_neglogratio(self, rs: Tensor) -> Tensor:
+        """Evaluates the negative logarithm of the current ratio 
+        function at a set of samples from the reference domain.
+
+        Parameters
+        ----------
+        rs:
+            An n * d matrix containing a set of samples in the 
+            reference domain.
+        
+        Returns
+        -------
+        neglogratios:
+            An n-dimensional vector containing the composition of the 
+            current IRT mapping and the ratio function evaluated at 
+            each sample in `rs`.
         
         """
-        if self.num_layers == 0:
-            ftt = self.ftt.clone()
+        us, neglogfus_dirt = self._eval_irt_reference(rs)
+        neglogratios = self.bridge._eval_neglogratio(
+            self.ratio_type, 
+            rs, us, 
+            neglogfus_dirt
+        )
+        return neglogratios
+    
+    def _grad_neglogratio(self, rs: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
+        """Evaluates the gradient of the negative logarithm of the 
+        current ratio function with respect to the reference random 
+        variable.
+        """
+        # TODO make a function that returns (xs, neglogfus, grad_neglogfus)
+        us, neglogfus, dudrs = self._jac_irt_reference(rs)
+        if self.ratio_type == "eratio":
+            grad_neglogfus = self._grad_potential_reference(rs)[0]
         else:
-            ftt = self.sirts[self.num_layers-1].ftt.clone()
-        sirt = SIRT(
-            self.eval_ratio_func, 
+            grad_neglogfus = None
+        neglogratios, grad_neglogratios = self.bridge._grad_neglogratio(
+            self.ratio_type,
+            rs, us, 
+            neglogfus, 
+            grad_neglogfus,
+            dudrs
+        )
+        return neglogfus, neglogratios, grad_neglogratios
+    
+    def _eval_neglogprofile(self, rs: Tensor) -> Tensor:
+        """Evaluates the negative logarithm of the profile function.
+        
+        Parameters
+        ----------
+        rs:
+            An n * d matrix containing a set of samples from the 
+            reference domain.
+        
+        Returns
+        -------
+        neglogprofiles:
+            An n-dimensional vector containing the negative logarithm 
+            of the profile function evaluated at each sample in rs.
+            
+        """
+        subspace = self.subspaces[self.num_layers]
+        neglogprofiles = subspace.eval_neglogprofile(self._eval_neglogratio, rs)
+        return neglogprofiles
+
+    def _get_new_layer(self) -> None:
+        """Constructs a new SIRT to add to the current composition of 
+        SIRTs.
+        """
+        k = self.num_layers
+        if self.subspace.is_fixed and k > 0:
+            ftt = self.sirts[k-1].ftt.clone()
+        else:
+            # If the subspace has changed, it is nontrivial to use 
+            # information from the previous FTT
+            ftt = self.ftt.clone() 
+        self.subspaces[k] = self.subspaces[k-1].clone()
+        self.subspaces[k].update(self._grad_neglogbridge, self._grad_neglogratio)
+        self.sirts[k] = SIRT(
+            self._eval_neglogprofile, 
             ftt, 
+            self.subspaces[k].dim_red,
             self.reference, 
             self.defensive, 
             self.cdf_tol,
             device=self.device
         )
-        return sirt
+        # TODO: tidy this up..
+        # rs = self.reference.random(n=1000, d=self.dim)
+        # us, neglogratios_dirt = self._eval_irt_reference_i(rs, self.num_layers, subset="first")
+        # neglogratios_exact = self.eval_ratio_func(us)
+        # dhell_ratio = compute_f_divergence(-neglogratios_dirt, -neglogratios_exact).sqrt()
+        # self.dhell_ratios.append(dhell_ratio)
+        return
 
     def _print_progress(
         self,
@@ -166,13 +284,16 @@ class DIRT():
         neglogfus_dirt: Tensor | None,
         cum_time: float
     ) -> None:
-
         msg = [
             f"Iter: {self.num_layers+1:=2}",
             f"Cum. Fevals: {self.num_eval:=.2e}",
             f"Cum. Time: {cum_time:=.2e} s"
         ]
-        msg += self.bridge._get_diagnostics(log_weights, neglogfus, neglogfus_dirt)
+        msg += self.bridge._get_diagnostics(
+            log_weights, 
+            neglogfus, 
+            neglogfus_dirt
+        )
         dirt_info(" | ".join(msg))
         return
     
@@ -180,6 +301,10 @@ class DIRT():
         """Constructs the DIRT object to approximate the target function."""
 
         t0 = time.time()
+
+        self.dhell_bridges = []
+        self.dhell_targets = []
+        self.dhell_ratios = []
         
         while True:
             
@@ -187,14 +312,24 @@ class DIRT():
                 rs = self.reference.random(self.num_error_samples, self.dim, device=self.device)
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
                 log_weights, neglogbridges = self.bridge.update(us, neglogfus_dirt)
+
+                # neglogfus_target = self.bridge._eval_pullback(us)
+                # dhell_bridge = compute_f_divergence(-neglogfus_dirt, -neglogbridges).sqrt()
+                # dhell_target = compute_f_divergence(-neglogfus_dirt, -neglogfus_target).sqrt()
+
             else:
                 log_weights, neglogbridges, neglogfus_dirt = None, None, None
+                # dhell_bridge, dhell_target = None, None
+
+            # if self.bridge.num_layers > 0:
+            #     self.dhell_bridges.append(dhell_bridge)
+            #     self.dhell_targets.append(dhell_target)
 
             if self.verbose > 0:
                 cum_time = time.time() - t0
                 self._print_progress(log_weights, neglogbridges, neglogfus_dirt, cum_time)
 
-            self.sirts[self.num_layers] = self._get_new_layer()
+            self._get_new_layer()
             self.num_layers += 1
             if self.bridge.is_last:
                 break
@@ -213,8 +348,10 @@ class DIRT():
                 rs = self.reference.random(self.num_error_samples, self.dim, device=self.device)
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
                 neglogfus = self.bridge._eval_pullback(us)
-                dhell2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
-                info_msgs += [f"DHell: {dhell2.sqrt():.4f}."]
+                dhell = compute_f_divergence(-neglogfus_dirt, -neglogfus).sqrt() 
+                info_msgs += [f"DHell: {dhell:.4f}."]
+                self.dhell_bridges.append(dhell)  # TODO: fix this. it should be the smoothed function.
+                self.dhell_targets.append(dhell)
 
             t1 = time.time()
             info_msgs += [f"Total time: {format_time(t1-t0)}."]
@@ -223,32 +360,132 @@ class DIRT():
                 dirt_info(f" • {msg}")
         
         return
+
+    def _eval_rt_reference_i(
+        self,
+        us: Tensor,
+        i: int,
+        subset: str
+    ) -> Tuple[Tensor, Tensor]:
+        """Evaluates the k-th reduced Rosenblatt transport mapping 
+        embedded into a larger linear mapping.
+        
+        Parameters
+        ----------
+        us:
+            An n * d matrix containing a set of samples at which to 
+            evaluate the Rosenblatt transport.
+        i:
+            The index of the (reduced) SIRT whose Rosenblatt transport 
+            should be evaluated.
+        subset: 
+            Whether `us` corresponds to the first $k$ variables 
+            (`subset='first'`) of the approximation, or the last $k$ 
+            variables (`subset='last'`).
+
+        Returns
+        -------
+        rs:
+            An n * d matrix containing the corresponding samples after 
+            applying the inverse Rosenblatt transport.
+        neglogfrs:
+            An n-dimensional vector containing the pullback of the 
+            reference density under the Rosenblatt transport evaluated 
+            at each of the samples in `us`.
+
+        """
+
+        us_red = self.subspaces[i].eval_red2coef(us)
+        us_comp = self.subspaces[i].eval_comp2coef(us)
+
+        zs_red = self.sirts[i]._eval_rt(us_red, subset)
+        neglogfrs_red = self.sirts[i]._eval_potential(us_red, subset)
+        rs_red = self.reference.invert_cdf(zs_red)
+        rs_red = self.subspaces[i].eval_coef2red(rs_red)
+
+        rs_comp = self.subspaces[i].eval_coef2comp(us_comp)
+        # TODO: check what happens here when there is no reduced subspace.
+        # TODO: figure out whether the reference needs to be Gaussian if the subspace is reduced. 
+        # TODO: figure out whether this should be the (normalised) reference density..
+        neglogfrs_comp = self.reference.eval_potential(us_comp)[0]
+        # neglogfrs_comp = unit_norm_pdf(us_comp)
+
+        rs = rs_red + rs_comp 
+        neglogfrs = neglogfrs_red + neglogfrs_comp
+
+        return rs, neglogfrs
     
     def _eval_rt_reference(
         self,
         us: Tensor,
         subset: str,
-        num_layers: int
+        num_layers: int | None = None 
     ) -> Tuple[Tensor, Tensor]:
         """Evaluates the deep Rosenblatt transport for the pullback of 
         the target density under the preconditioning map.
         """
-        
+        if num_layers is None:
+            num_layers = self.num_layers
         rs = us.clone()
         neglogfus = torch.zeros(rs.shape[0], device=self.device)
-
         for i in range(num_layers):
-            zs = self.sirts[i]._eval_rt(rs, subset)
-            neglogsirts = self.sirts[i]._eval_potential(rs, subset)
-            rs = self.reference.invert_cdf(zs)
+            rs, neglogsirts = self._eval_rt_reference_i(rs, i, subset)
             neglogrefs = self.reference.eval_potential(rs)[0]
             neglogfus += neglogsirts - neglogrefs
-
         neglogrefs = self.reference.eval_potential(rs)[0]
         neglogfus += neglogrefs
-
         return rs, neglogfus
     
+    def _eval_irt_reference_i(
+        self, 
+        rs: Tensor, 
+        i: int, 
+        subset: str
+    ) -> Tuple[Tensor, Tensor]:
+        """Evaluates the k-th reduced inverse Rosenblatt transport 
+        mapping embedded into a larger linear mapping.
+        
+        Parameters
+        ----------
+        rs:
+            An n * d matrix containing a set of samples at which to 
+            evaluate the inverse Rosenblatt transport.
+        i:
+            The index of the (reduced) SIRT whose inverse Rosenblatt 
+            transport should be evaluated.
+        subset: 
+            Whether `rs` corresponds to the first $k$ variables 
+            (`subset='first'`) of the approximation, or the last $k$ 
+            variables (`subset='last'`).
+
+        Returns
+        -------
+        us:
+            An n * d matrix containing the corresponding samples after 
+            applying the inverse Rosenblatt transport.
+        neglogfus:
+            An n-dimensional vector containing the pushforward of the 
+            reference density under the inverse Rosenblatt transport 
+            evaluated at each of the samples in `us`.
+
+        """
+        
+        rs_red = self.subspaces[i].eval_red2coef(rs)
+        rs_comp = self.subspaces[i].eval_comp2coef(rs)
+
+        zs_red = self.reference.eval_cdf(rs_red)[0]
+        ws_red, neglogfus_red = self.sirts[i]._eval_irt(zs_red, subset)
+        us_red = self.subspaces[i].eval_coef2red(ws_red)
+        
+        us_comp = self.subspaces[i].eval_coef2comp(rs_comp)
+        neglogfus_comp = self.reference.eval_potential(rs_comp)[0]
+        # neglogfus_comp = unit_norm_pdf(rs_comp)
+
+        us = us_red + us_comp
+        neglogfus = neglogfus_red + neglogfus_comp
+
+        return us, neglogfus
+
     def _eval_irt_reference(
         self, 
         rs: Tensor, 
@@ -258,20 +495,93 @@ class DIRT():
         """Evaluates the deep inverse Rosenblatt transport for the 
         pullback of the target density under the preconditioning map.
         """
-
         if num_layers is None:
             num_layers = self.num_layers
-        
         us = rs.clone()
+        us = self.reference._project_to_domain(us)
         neglogfus = self.reference.eval_potential(us)[0]
-
         for i in range(num_layers-1, -1, -1):
             neglogrefs = self.reference.eval_potential(us)[0]
-            zs = self.reference.eval_cdf(us)[0]
-            us, neglogsirts = self.sirts[i]._eval_irt(zs, subset)
+            us, neglogsirts = self._eval_irt_reference_i(us, i, subset)
             neglogfus += neglogsirts - neglogrefs
-
         return us, neglogfus
+
+    def _jac_irt_reference(
+        self, 
+        rs: Tensor,
+        subset: str = "first",
+        num_layers: int | None = None
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        """Evaluates the Jacobian of the IRT mapping without the 
+        preconditioner applied.
+
+        Parameters
+        ----------
+        rs:
+            An n * d matrix containing samples from the domain of the 
+            reference.
+        subset: 
+            Whether `rs` corresponds to the first $k$ variables 
+            (`subset='first'`) of the approximation, or the last $k$ 
+            variables (`subset='last'`).
+        num_layers:
+            The number of layers of the IRT mapping (without the 
+            preconditioner) to evaluate the Jacobian for.
+        
+        Returns
+        -------
+        us:
+            An n * d matrix containing the corresponding samples from 
+            the reference domain, after applying the IRT mapping 
+            without the preconditioner.
+        neglogfus:
+            An n-dimensional vector containing the pushforward of the 
+            reference density under the IRT (without the preconditioner) 
+            evaluated at each sample in `us`. 
+        dudrs:
+            An n * d * n tensor. `dudrs[:, i, :]` contains the Jacobian 
+            of the IRT evaluated at `us[i, :]`.
+        
+        """
+        
+        num_rs, dim_rs = rs.shape
+        rs_flat = rs.flatten()
+
+        def _eval_irt_reference(
+            rs: Tensor
+        ) -> Tuple[Tensor, Tuple[Tensor, Tensor]]:
+            rs = rs.reshape(num_rs, dim_rs)
+            xs, neglogfxs = self._eval_irt_reference(rs, subset, num_layers)
+            xs_summed = xs.sum(dim=0)
+            return xs_summed, (xs, neglogfxs)
+        
+        jac = torch.func.jacrev(_eval_irt_reference, has_aux=True)
+        dudrs, (us, neglogfus) = jac(rs_flat)
+        dudrs = dudrs.reshape(dim_rs, num_rs, dim_rs)
+        return us, neglogfus, dudrs
+
+    def _grad_potential_reference(
+        self,
+        rs: Tensor,
+        subset: str = "first",
+        num_layers: int | None = None
+    ) -> Tuple[Tensor, Tensor]:
+        """Evaluates the potential of pushforward of the reference 
+        density under the current IRT mapping (without the 
+        preconditioner) and its gradient.
+        """
+        
+        num_rs, dim_rs = rs.shape
+        rs_flat = rs.flatten()
+
+        def _eval_irt_reference(rs: Tensor) -> Tuple[Tensor, Tensor]:
+            rs = rs.reshape(num_rs, dim_rs)
+            neglogfus = self._eval_irt_reference(rs, subset, num_layers)[1]
+            return neglogfus, neglogfus
+        
+        jac = torch.func.jacrev(_eval_irt_reference, has_aux=True)
+        grad_neglogfus, neglogfus = jac(rs_flat)
+        return neglogfus, grad_neglogfus
 
     def _parse_subset(self, subset: str | None) -> str:
         
@@ -339,8 +649,7 @@ class DIRT():
             num_layers = self.num_layers
         subset = self._parse_subset(subset)
 
-        neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs, subset)
-        us = self.preconditioner.Q_inv(xs, subset)
+        us, neglogdet_xs = self.preconditioner.Q_inv(xs, subset)
         rs, neglogfus = self._eval_rt_reference(us, subset, num_layers)
         neglogfxs = neglogfus + neglogdet_xs
         return rs, neglogfxs
@@ -383,14 +692,13 @@ class DIRT():
         
         rs = rs.to(self.device)
         rs = self.reference._project_to_domain(rs)
-
         if num_layers is None:
             num_layers = self.num_layers
         subset = self._parse_subset(subset)
         
         us, neglogfus = self._eval_irt_reference(rs, subset, num_layers)
-        xs = self.preconditioner.Q(us, subset)
-        neglogdet_xs = self.preconditioner.neglogdet_Q_inv(xs, subset)
+        xs = self.preconditioner.Q(us, subset)[0]
+        neglogdet_xs = self.preconditioner.Q_inv(xs, subset)[1]
         neglogfxs = neglogfus + neglogdet_xs
         return xs, neglogfxs
     
@@ -441,7 +749,6 @@ class DIRT():
 
         ys = ys.to(self.device)
         rs = rs.to(self.device)
-        
         ys = torch.atleast_2d(ys)
         rs = torch.atleast_2d(rs)
         n_rs, d_rs = rs.shape
@@ -762,12 +1069,12 @@ class DIRT():
         neglogfxs = neglogfyxs - neglogfys
         return neglogfxs
 
-    def eval_rt_jac(
+    def jac_rt(
         self, 
         xs: Tensor, 
         subset: str | None = None,
         num_layers: int | None = None 
-    ) -> Tensor:
+    ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the Jacobian of the deep Rosenblatt transport.
 
         Evaluates the Jacobian of the mapping $R = \mathcal{R}(X)$, 
@@ -781,7 +1088,7 @@ class DIRT():
         Parameters
         ----------
         xs:
-            An $n \times d$ matrix containing a set of samples from the 
+            An $n \times k$ matrix containing a set of samples from the 
             approximation domain.
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
@@ -795,7 +1102,10 @@ class DIRT():
 
         Returns
         -------
-        Js:
+        rs:
+            An $n \times k$ tensor, containing the corresponding 
+            samples after applying the Rosenblatt transport.
+        drdxs:
             A $k \times n \times k$ tensor, where element $ijk$ 
             contains element $ik$ of the Jacobian for the $j$th sample 
             in `xs`.
@@ -803,21 +1113,26 @@ class DIRT():
         """
 
         xs = xs.to(self.device)
-        n_xs, d_xs = xs.shape
+        num_xs, dim_xs = xs.shape
+        xs_flat = xs.flatten()
 
-        def _eval_rt(xs: Tensor) -> Tensor:
-            xs = xs.reshape(n_xs, d_xs)
-            return self.eval_rt(xs, subset, num_layers)[0].sum(dim=0)
+        def _eval_rt(xs: Tensor) -> Tuple[Tensor, Tensor]:
+            xs = xs.reshape(num_xs, dim_xs)
+            rs, _ = self.eval_rt(xs, subset, num_layers)
+            rs_summed = rs.sum(dim=1)
+            return rs_summed, rs
         
-        Js: Tensor = jacobian(_eval_rt, xs.flatten(), vectorize=True)
-        return Js.reshape(d_xs, n_xs, d_xs)
+        jac = torch.func.jacrev(_eval_rt, has_aux=True)
+        drdxs, rs = jac(xs_flat)
+        drdxs = drdxs.reshape(dim_xs, num_xs, dim_xs)
+        return rs, drdxs
     
-    def eval_irt_jac(
+    def jac_irt(
         self, 
         rs: Tensor, 
         subset: str | None = None,
         num_layers: int | None = None 
-    ) -> Tensor:
+    ) -> Tuple[Tensor, Tensor]:
         r"""Evaluates the Jacobian of the deep inverse Rosenblatt transport.
 
         Evaluates the Jacobian of the mapping $X = \mathcal{T}(R)$, 
@@ -831,7 +1146,7 @@ class DIRT():
         Parameters
         ----------
         rs:
-            An $n \times d$ matrix containing a set of samples from the 
+            An $n \times k$ matrix containing a set of samples from the 
             reference domain.
         subset: 
             If the samples contain a subset of the variables, (*i.e.,* 
@@ -846,22 +1161,30 @@ class DIRT():
 
         Returns
         -------
-        Js:
-            A $k \times n \times k$ tensor, where element $ijk$ 
-            contains element $ik$ of the Jacobian for the $j$th sample 
+        xs:
+            An $n \times k$ matrix containing the corresponding samples 
+            after applying the inverse Rosenblatt transport.
+        dxdrs:
+            A $k \times n \times k$ tensor, where element $ijl$ 
+            contains element $ik$ of the Jacobian for the $l$th sample 
             in `rs`.
 
         """
 
         rs = rs.to(self.device)
-        n_rs, d_rs = rs.shape
+        num_rs, dim_rs = rs.shape
+        rs_flat = rs.flatten()
 
-        def _eval_irt(rs: Tensor) -> Tensor:
-            rs = rs.reshape(n_rs, d_rs)
-            return self.eval_irt(rs, subset, num_layers)[0].sum(dim=0)
+        def _eval_irt(rs: Tensor) -> Tuple[Tensor, Tensor]:
+            rs = rs.reshape(num_rs, dim_rs)
+            xs, _ = self.eval_irt(rs, subset, num_layers)
+            xs_summed = xs.sum(dim=0)
+            return xs_summed, xs
         
-        Js: Tensor = jacobian(_eval_irt, rs.flatten(), vectorize=True)
-        return Js.reshape(d_rs, n_rs, d_rs)
+        jac = torch.func.jacrev(_eval_irt, has_aux=True)
+        dxdrs, xs = jac(rs_flat)
+        dxdrs = dxdrs.reshape(dim_rs, num_rs, dim_rs)
+        return xs, dxdrs
 
     def random(self, n: int) -> Tensor: 
         r"""Generates a set of random samples. 
@@ -917,28 +1240,20 @@ class DIRTMapping(Preconditioner):
     
     """
 
-    # TODO: it could make sense to have a function which returns Q and 
-    # neglogdet_Q together, etc. Otherwise the RT/IRT functions will be 
-    # called 2x more than necessary.
-
     def __init__(self, dirt: DIRT):
         self.dirt = dirt
         self.reference = dirt.reference
         self.dim = dirt.dim
         return
 
-    def Q(self, us: Tensor, subset: str = "first") -> Tensor:
-        return self.dirt.eval_irt(us, subset)[0]
-    
-    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor:
-        return self.dirt.eval_rt(xs, subset)[0]
-    
-    def neglogdet_Q(self, us: Tensor, subset: str = "first") -> Tensor:
+    def Q(self, us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
+        xs, neglogfxs = self.dirt.eval_irt(us, subset)
         neglogrefs = self.reference.eval_potential(us)[0]
-        neglogfxs = self.dirt.eval_irt(us, subset)[1]
-        return neglogrefs - neglogfxs
+        neglogdets = neglogrefs - neglogfxs
+        return xs, neglogdets
     
-    def neglogdet_Q_inv(self, xs: Tensor, subset: str = "first") -> Tensor: 
-        us, neglogfus = self.dirt.eval_rt(xs, subset)
+    def Q_inv(self, xs: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
+        us, neglogfxs = self.dirt.eval_rt(xs, subset)
         neglogrefs = self.reference.eval_potential(us)[0]
-        return neglogfus - neglogrefs
+        neglogdets = neglogfxs - neglogrefs
+        return us, neglogdets

@@ -1,11 +1,14 @@
 import abc 
+import logging
 from typing import Tuple
-import warnings
 
 import torch
 from torch import Tensor
 
 from ..constants import EPS
+
+
+logger = logging.getLogger(__name__)
 
 
 class CDF1D(abc.ABC):
@@ -143,7 +146,7 @@ class CDF1D(abc.ABC):
                 f"{num_violations} negative PDF values found. "
                 f"Minimum value: {ps.min()}."
             )
-            warnings.warn(msg)
+            logger.debug(msg)
         return
 
     @staticmethod
@@ -170,7 +173,7 @@ class CDF1D(abc.ABC):
                 f"Rootfinding: {num_violations} initial intervals "
                 "without roots found."
             )
-            # warnings.warn(msg)
+            logger.debug(msg)
         return
     
     def check_pdf_dims(self, ps: Tensor, xs: Tensor) -> None:
@@ -259,17 +262,14 @@ class CDF1D(abc.ABC):
         return converged
     
     def print_unconverged(self, fs: Tensor, dls: Tensor, method: str) -> None:
-        
         error_fs = fs.abs()
         error_dls = dls.abs()
         unconverged = (torch.min(error_fs, error_dls) >= self.error_tol)
         max_residual = error_fs.abs().max()
-        
         msg = (
             f"Rootfinding: {method} did not converge "
             f"({unconverged.sum()} unconverged samples). "
             f"Maximum residual: {max_residual:.4e}."
         )
-        warnings.warn(msg)
-        
+        logger.warning(msg)
         return None

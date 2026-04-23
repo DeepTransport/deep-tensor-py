@@ -6,8 +6,9 @@ DIRT(
     preconditioner: Preconditioner,
     ftt: FTT,
     bridge: Bridge | None = None,
+    subspace: Subspace | None = None,
     options: DIRTOptions | None = None,
-    device: torch.device = torch.device('cpu'),
+    device: torch.device = torch.get_default_device(),
 )
 ```
 
@@ -46,6 +47,8 @@ Deep (squared) inverse Rosenblatt transport.
 | [eval_cirt](#deep_tensor.DIRT.eval_cirt) | Evaluates the conditional inverse Rosenblatt transport. |
 | [eval_irt_pullback](#deep_tensor.DIRT.eval_irt_pullback) | Evaluates the pullback of a density function. |
 | [eval_cirt_pullback](#deep_tensor.DIRT.eval_cirt_pullback) | Evaluates the pullback of a conditional density function. |
+| [jac_rt](#deep_tensor.DIRT.jac_rt) | Evaluates the Jacobian of the deep Rosenblatt transport. |
+| [jac_irt](#deep_tensor.DIRT.jac_irt) | Evaluates the Jacobian of the deep inverse Rosenblatt transport. |
 | [random](#deep_tensor.DIRT.random) | Generates a set of random samples.  |
 | [sobol](#deep_tensor.DIRT.sobol) | Generates a set of QMC samples. |
 
@@ -345,6 +348,94 @@ function.
 <code>[**neglogfxs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
 :   An $n$-dimensional vector containing the potential of the  target function evaluated at each element in `rs`, pushed  forward under the IRT; that is, $-\log(f(\mathcal{T}(r)\\|y))$.
+
+### jac_rt { #deep_tensor.DIRT.jac_rt }
+
+```python
+DIRT.jac_rt(
+    xs: Tensor,
+    subset: str | None = None,
+    num_layers: int | None = None,
+)
+```
+
+Evaluates the Jacobian of the deep Rosenblatt transport.
+
+Evaluates the Jacobian of the mapping $R = \mathcal{R}(X)$, 
+where $R$ denotes the reference random variable, $X$ denotes 
+the approximation to the target random variable, and 
+$\mathcal{R}$ denotes the Rosenblatt transport.
+
+Note that element $J_{ij}$ of the Jacobian is given by
+$$J_{ij} = \frac{\partial r_{i}}{\partial x_{j}}.$$
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing a set of samples from the  approximation domain.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
+
+<code>[**num_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The number of layers of the deep Rosenblatt transport to  evaluate the Jacobian for. If not specified, the Jacobian  for the full Rosenblatt transport will be evaluated.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ tensor, containing the corresponding  samples after applying the Rosenblatt transport.
+
+<code>[**drdxs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A $k \times n \times k$ tensor, where element $ijk$  contains element $ik$ of the Jacobian for the $j$th sample  in `xs`.
+
+### jac_irt { #deep_tensor.DIRT.jac_irt }
+
+```python
+DIRT.jac_irt(
+    rs: Tensor,
+    subset: str | None = None,
+    num_layers: int | None = None,
+)
+```
+
+Evaluates the Jacobian of the deep inverse Rosenblatt transport.
+
+Evaluates the Jacobian of the mapping $X = \mathcal{T}(R)$, 
+where $R$ denotes the reference random variable, $X$ denotes 
+the approximation to the target random variable, and 
+$\mathcal{T}$ denotes the inverse Rosenblatt transport.
+
+Note that element $J_{ij}$ of the Jacobian is given by
+$$J_{ij} = \frac{\partial x_{i}}{\partial r_{j}}.$$
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing a set of samples from the  reference domain.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
+
+<code>[**num_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The number of layers of the deep inverse Rosenblatt  transport to evaluate the Jacobian for. If not specified, the Jacobian for the full inverse Rosenblatt transport will be evaluated.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing the corresponding samples  after applying the inverse Rosenblatt transport.
+
+<code>[**dxdrs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A $k \times n \times k$ tensor, where element $ijl$  contains element $ik$ of the Jacobian for the $l$th sample  in `rs`.
 
 ### random { #deep_tensor.DIRT.random }
 

@@ -55,7 +55,6 @@ Objects used to construct functional tensor train approximations.
 | [FTT](FTT.qmd#deep_tensor.FTT) | A functional tensor train, defined on $[-1, 1]^{d}$. |
 | [EFTT](EFTT.qmd#deep_tensor.EFTT) | An extended functional tensor train, defined on $[-1, 1]^{d}$. |
 | [EFTTOptions](EFTTOptions.qmd#deep_tensor.EFTTOptions) | Options for configuring the construction of an EFTT object. |
-| [ApproxBases](ApproxBases.qmd#deep_tensor.ApproxBases) | An object that contains a polynomial basis in each dimension,  |
 | [TT](TT.qmd#deep_tensor.TT) | A tensor train factorisation. |
 | [TTOptions](TTOptions.qmd#deep_tensor.TTOptions) | Options for configuring the construction of a TT object. |
 
@@ -81,6 +80,16 @@ Objects used to generate the intermediate densities approximated during DIRT con
 | [SingleLayer](SingleLayer.qmd#deep_tensor.SingleLayer) | Constructs the DIRT using a single layer. |
 | [Tempering](Tempering.qmd#deep_tensor.Tempering) | Likelihood tempering. |
 | [SigmoidSmoothing](SigmoidSmoothing.qmd#deep_tensor.SigmoidSmoothing) | Uses a sigmoid function in place of an indicator function. |
+| [GaussianSmoothing](GaussianSmoothing.qmd#deep_tensor.GaussianSmoothing) | Uses a Gaussian CDF in place of an indicator function. |
+
+## Subspaces
+
+Objects used to construct DIRT objects in reduced spaces.
+
+| | |
+| --- | --- |
+| [IdentitySubspace](IdentitySubspace.qmd#deep_tensor.IdentitySubspace) | Identity subspace (*i.e.,* no dimension reduction). |
+| [LikelihoodInformedSubspace](LikelihoodInformedSubspace.qmd#deep_tensor.LikelihoodInformedSubspace) | A likelihood-informed subspace. |
 
 ## Debiasing
 

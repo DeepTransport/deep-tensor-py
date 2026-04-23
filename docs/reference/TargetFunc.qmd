@@ -1,7 +1,11 @@
 # TargetFunc { #deep_tensor.TargetFunc }
 
 ```python
-TargetFunc(neglogfx: Callable[[Tensor], Tensor], vectorised: bool = True)
+TargetFunc(
+    neglogfx: Callable[[Tensor], Tensor],
+    grad_neglogfx: Callable[[Tensor], Tuple[Tensor, Tensor]] | None = None,
+    vectorised: bool = True,
+)
 ```
 
 The negative logarithm of a density function to be approximated.
@@ -12,6 +16,10 @@ The negative logarithm of a density function to be approximated.
 
 :   A function which returns the negative logarithm of a (possibly  unnormalised version of) the target density function. If  `vectorised=True`, the function should accept an $n \times d$  matrix (where $n$ denotes the number of samples and $d$ denotes  the dimension of the parameters), and return an $n$-dimensional  vector containing the function evaluated at each sample. If  `vectorised=False`, the function should accept a $d$-dimensional  vector and return a single scalar value.
 
+<code>[**grad_neglogfx**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor\], Tuple\[Tensor, Tensor\]\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   A function which returns the negative logarithm of a (possibly  unnormalised version of) the target density function, and the  gradient of the negative logarithm of the target density  function. The format of the arguments and returns is the same  as `neglogfx`.
+
 <code>[**vectorised**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
 
-:   Whether the function accepts multiple sets of parameters.
+:   Whether the `neglogfx` and `grad_neglogfx` accept multiple sets  of parameters.
