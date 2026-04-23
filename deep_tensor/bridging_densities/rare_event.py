@@ -479,7 +479,8 @@ class SigmoidSmoothing(SmoothedIndicator):
     $Q(\cdot)$, and $g_{\gamma_{k}}(\cdot)$ denotes the sigmoid 
     function, which is defined as
     $$
-        g_{\gamma_{k}}(z) := (1 + \exp(\gamma_{k}(F(\theta) - z)))^{-1}.
+        g_{\gamma_{k}}(\theta) := 
+            (1 + \exp(\gamma_{k}(F(\theta) - z)))^{-1}.
     $$
     The sequences $\{\beta_{k}\}_{k=1}^{N}$ and 
     $\{\gamma_{k}\}_{k=1}^{N}$ must satisfy 
@@ -505,9 +506,52 @@ class SigmoidSmoothing(SmoothedIndicator):
     
 
 class GaussianSmoothing(SmoothedIndicator):
-    """Uses a Gaussian CDF in place of an indicator function.
+    r"""Uses a Gaussian CDF in place of an indicator function.
 
-    TODO: finish this docstring.
+    This bridge must be used with a `RareEventFunc` as the target 
+    function.
+
+    Parameters
+    ----------
+    gammas:
+        A sequence of values, $\{\gamma_{k}\}_{k=1}^{N}$, which define 
+        the sigmoid functions.
+    betas:
+        A sequence of values, $\{\beta_{k}\}_{k=1}^{N}$, to use to 
+        temper the density of the parameter. If these are not provided, 
+        a value of $\beta_{k}=1$ will be used when defining all 
+        intermediate densities.
+
+    Notes
+    -----
+    This bridge is used in rare event estimation problems to 
+    approximate the optimal biasing density, which takes the form
+    $$
+        \pi^{*}(\theta) \propto \pi(\theta)\mathbb{I}_{\mathcal{F}}(\theta), 
+        \qquad \textrm{where } \mathcal{F} := \{\theta : F(\theta) \geq z\}.
+    $$
+    In the above, $\theta$ denotes a set of parameters with density 
+    $\pi(\cdot)$, $F(\cdot)$ denotes the system response function, and 
+    $z$ denotes a (scalar--valued) rare event threshold.
+    
+    The intermediate densities generated using this approach take the 
+    form [@Cui2023]
+    $$
+        \pi_{k}(\theta) \propto (Q_{\sharp}\rho(\theta))^{1-\beta_{k}}
+            \pi(\theta)^{\beta_{k}}g_{\gamma_{k}}(z).
+    $$
+    In the above, $Q_{\sharp}\rho(\cdot)$ denotes the pushforward of 
+    the reference density, $\rho(\cdot)$, under the preconditioner, 
+    $Q(\cdot)$, and $g_{\gamma_{k}}(\cdot)$ is defined as 
+    $$
+        g_{\gamma_{k}}(\theta) := 
+            \frac{1}{2}\left(1 + \erf(\gamma_{k}(F(\theta) - z))\right).
+    $$
+    The sequences $\{\beta_{k}\}_{k=1}^{N}$ and 
+    $\{\gamma_{k}\}_{k=1}^{N}$ must satisfy 
+    $0 \leq \gamma_{1} \leq \cdots \leq \gamma_{N}$ and
+    $0 \leq \beta_{1} \leq \cdots \leq \beta_{N} = 1$.
+
     """
 
     def neglogsmoothind(self, gamma: float, Fs: Tensor) -> Tensor:
