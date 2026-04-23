@@ -95,8 +95,6 @@ for i, D in enumerate(Ds):
         ms, sds, dim
     )
 
-    bases = dt.ApproxBases(basis, dim)
-
     for j in range(num_replications):
         
         # Generate covariates
@@ -114,11 +112,11 @@ for i, D in enumerate(Ds):
             tt = dt.TT(tt_options, device=device)
 
             if ftt_name == "FTT":
-                ftt = dt.FTT(bases, tt, device=device)
+                ftt = dt.FTT(basis, tt, device=device)
             elif ftt_name == "EFTT (POD)":
-                ftt = dt.EFTT(bases, tt, eftt_pod_options, device=device)
+                ftt = dt.EFTT(basis, tt, eftt_pod_options, device=device)
             elif ftt_name == "EFTT (ACA)":
-                ftt = dt.EFTT(bases, tt, eftt_aca_options, device=device)
+                ftt = dt.EFTT(basis, tt, eftt_aca_options, device=device)
             else:
                 raise Exception(f"Unknown FTT type: '{ftt_name}'.")
 

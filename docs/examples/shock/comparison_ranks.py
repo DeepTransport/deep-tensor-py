@@ -80,7 +80,6 @@ preconditioner = GammaNormalMapping(
 )
 
 basis = dt.Lagrange1(num_elems=29, device=device)
-bases = dt.ApproxBases(basis, dim)
 
 bridge = dt.SingleLayer()
 
@@ -109,11 +108,11 @@ for i, rank in enumerate(ranks):
             tt = dt.TT(tt_options, device=device)
 
             if ftt_name == "FTT":
-                ftt = dt.FTT(bases, tt, device=device)
+                ftt = dt.FTT(basis, tt, device=device)
             elif ftt_name == "EFTT (POD)":
-                ftt = dt.EFTT(bases, tt, eftt_pod_options, device=device)
+                ftt = dt.EFTT(basis, tt, eftt_pod_options, device=device)
             elif ftt_name == "EFTT (ACA)":
-                ftt = dt.EFTT(bases, tt, eftt_aca_options, device=device)
+                ftt = dt.EFTT(basis, tt, eftt_aca_options, device=device)
             else:
                 raise Exception(f"Unknown FTT type: '{ftt_name}'.")
 
