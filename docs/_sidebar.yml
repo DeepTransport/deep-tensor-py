@@ -27,7 +27,6 @@ website:
       - reference/FTT.qmd
       - reference/EFTT.qmd
       - reference/EFTTOptions.qmd
-      - reference/ApproxBases.qmd
       - reference/TT.qmd
       - reference/TTOptions.qmd
       section: Functional Tensor Trains
@@ -43,7 +42,12 @@ website:
       - reference/SingleLayer.qmd
       - reference/Tempering.qmd
       - reference/SigmoidSmoothing.qmd
+      - reference/GaussianSmoothing.qmd
       section: Bridges
+    - contents:
+      - reference/IdentitySubspace.qmd
+      - reference/LikelihoodInformedSubspace.qmd
+      section: Subspaces
     - contents:
       - reference/run_importance_sampling.qmd
       - reference/run_independence_sampler.qmd

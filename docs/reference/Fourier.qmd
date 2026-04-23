@@ -1,7 +1,7 @@
 # Fourier { #deep_tensor.Fourier }
 
 ```python
-Fourier(order: int, device: torch.device = torch.device('cpu'))
+Fourier(order: int, device: torch.device = torch.get_default_device())
 ```
 
 Fourier polynomials.

@@ -27,7 +27,7 @@ The density must be truncated to a bounded interval.
 GaussianReference.random(
     n: int,
     d: int,
-    device: torch.device = torch.device('cpu'),
+    device: torch.device = torch.get_default_device(),
 )
 ```
 
@@ -55,7 +55,7 @@ Generates a set of random samples.
 GaussianReference.sobol(
     n: int,
     d: int,
-    device: torch.device = torch.device('cpu'),
+    device: torch.device = torch.get_default_device(),
 )
 ```
 

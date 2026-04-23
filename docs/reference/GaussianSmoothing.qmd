@@ -1,13 +1,13 @@
-# SigmoidSmoothing { #deep_tensor.SigmoidSmoothing }
+# GaussianSmoothing { #deep_tensor.GaussianSmoothing }
 
 ```python
-SigmoidSmoothing(
+GaussianSmoothing(
     gammas: Sequence | Tensor | float,
     betas: Sequence | Tensor | float = 1.0,
 )
 ```
 
-Uses a sigmoid function in place of an indicator function.
+Uses a Gaussian CDF in place of an indicator function.
 
 This bridge must be used with a `RareEventFunc` as the target 
 function.
@@ -42,11 +42,10 @@ $$
 $$
 In the above, $Q_{\sharp}\rho(\cdot)$ denotes the pushforward of 
 the reference density, $\rho(\cdot)$, under the preconditioner, 
-$Q(\cdot)$, and $g_{\gamma_{k}}(\cdot)$ denotes the sigmoid 
-function, which is defined as
+$Q(\cdot)$, and $g_{\gamma_{k}}(\cdot)$ is defined as 
 $$
     g_{\gamma_{k}}(\theta) := 
-        (1 + \exp(\gamma_{k}(F(\theta) - z)))^{-1}.
+        \frac{1}{2}\left(1 + \erf(\gamma_{k}(F(\theta) - z))\right).
 $$
 The sequences $\{\beta_{k}\}_{k=1}^{N}$ and 
 $\{\gamma_{k}\}_{k=1}^{N}$ must satisfy 
