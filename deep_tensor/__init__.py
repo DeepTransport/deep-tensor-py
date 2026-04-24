@@ -42,6 +42,6 @@ from .preconditioners import (
     UniformMapping
 )
 from .references import Reference, GaussianReference, UniformReference
-from .subspaces import IdentitySubspace, LikelihoodInformedSubspace
+from .subspaces import FixedSubspace, IdentitySubspace, LikelihoodInformedSubspace
 from .target_functions import RareEventFunc, TargetFunc
 from .tools import compute_f_divergence

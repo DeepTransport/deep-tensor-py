@@ -77,6 +77,26 @@ class Subspace(abc.ABC):
     def P_comp(self, val: Tensor) -> None:
         self._P_comp = val 
         return
+    
+    @property
+    def device(self) -> torch.device:
+        return self._device
+    
+    @device.setter 
+    def device(self, val: torch.device) -> None:
+        self._device = val 
+        return
+    
+    def _compute_samples_comp(self, num_comp: int) -> None:
+        """Re-computes the (fixed) set of samples in the complement 
+        subspace.
+        """
+        # TODO: these should probably be varied for every sample in 
+        # the block..
+        shape_vs_comp = (num_comp, self.dim_comp)
+        self.vs_comp = torch.randn(shape_vs_comp, device=self.device)
+        self.xs_comp = self.eval_coef2comp(self.vs_comp)
+        return
 
     def eval_coef2red(self, vs: Tensor) -> Tensor:
         """Computes the reduced subspace vectors associated with a 

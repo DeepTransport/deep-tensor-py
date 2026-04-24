@@ -13,7 +13,7 @@ from ..tools.printing import lis_info
 
 logger = logging.getLogger(__name__)
 
-UPDATE_METHODS_LIS = ("fixed", "rebuild", "augment")
+UPDATE_METHODS_LIS = ("rebuild", "augment")
 
 
 class LikelihoodInformedSubspace(Subspace):
@@ -27,9 +27,8 @@ class LikelihoodInformedSubspace(Subspace):
     fixed_comp:
         Whether to fix the samples from the complement subspace.
     update_method:
-        How to update the subspace. This can be `'fixed'` (no updating, 
-        need to specify `initial_basis`), `'rebuild'` (construct a new 
-        subspace from scratch at each DIRT layer), or `'augment'` 
+        How to update the subspace. This can be `'rebuild'` (construct 
+        a new subspace from scratch at each DIRT layer), or `'augment'` 
         (retain the previously-constructed subspace at each DIRT layer, 
         and potentially add new components).
     num_samples_gram:
@@ -70,12 +69,6 @@ class LikelihoodInformedSubspace(Subspace):
                 f"{"`, `".join(UPDATE_METHODS_LIS)}`."
             )
             raise Exception(msg)
-        if update_method == "fixed" and initial_basis is None:
-            msg = (
-                "If update_method==`fixed`, an initial basis must be "
-                "supplied."
-            )
-            raise Exception(msg)
         if update_method == "rebuild" and initial_basis is not None:
             msg = (
                 "If update_method==`rebuild`, the initial basis is not "
@@ -108,7 +101,7 @@ class LikelihoodInformedSubspace(Subspace):
     
     @property
     def is_fixed(self) -> bool:
-        return self.update_method == "fixed"
+        return False
 
     def _check_weights(self, weights: Tensor) -> None:
         """Checks a set of importance weights."""
@@ -240,9 +233,6 @@ class LikelihoodInformedSubspace(Subspace):
         grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]]
     ) -> None:
 
-        if self.update_method == "fixed":
-            return
-        
         lis_info("Computing estimate of Gram matrix...", end="\r")
 
         if self.update_method == "augment":
@@ -296,6 +286,7 @@ class LikelihoodInformedSubspace(Subspace):
             update_method=self.update_method,
             num_samples_gram=self.num_samples_gram, 
             eps=self.eps, 
-            initial_basis=self.basis_red
+            initial_basis=self.basis_red,
+            device=self.device
         )
         return subspace
