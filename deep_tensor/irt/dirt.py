@@ -34,6 +34,8 @@ class DIRT():
         at each layer of the DIRT construction.
     options: 
         Options which control the DIRT construction process.
+    device:
+        The device to carry out computations on.
     
     """
 
