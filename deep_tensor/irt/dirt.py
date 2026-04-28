@@ -105,6 +105,9 @@ class DIRT():
     
     @property 
     def num_eval_subspace(self) -> int:
+        """The total number of function evaluations used when updating 
+        the subspace(s) of the DIRT.
+        """
         return sum([self.subspaces[k].num_eval for k in self.subspaces])
     
     @property 
@@ -163,9 +166,8 @@ class DIRT():
         
         Returns
         -------
-        neglogfus:
-            An n-dimensional vector containing the pushforward of the 
-            reference density under the current IRT mapping, 
+        neglogref_rs:
+            An n-dimensional vector containing the reference density 
             evaluated at each sample in `rs`.
         neglogbridges:
             An n-dimensional vector containing the current bridging 

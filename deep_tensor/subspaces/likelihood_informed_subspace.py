@@ -93,7 +93,7 @@ class LikelihoodInformedSubspace(Subspace):
             self.basis_red = self.initial_basis.clone()
             self.basis_comp = self._compute_basis_comp(self.basis_red)
             if self.fixed_comp and self.num_comp > 0:
-                self._recompute_samples_comp()
+                self._compute_samples_comp(self.num_comp)
         self.P_red = self.basis_red @ self.basis_red.T
         self.P_comp = self.basis_comp @ self.basis_comp.T
 
@@ -128,15 +128,6 @@ class LikelihoodInformedSubspace(Subspace):
         for grad, weight in zip(grads, weights):
             H += weight * grad[:, None] @ grad[None, :]
         return H
-    
-    def _recompute_samples_comp(self) -> None:
-        """Re-computes the (fixed) set of samples in the complement 
-        subspace.
-        """
-        shape_vs_comp = (self.num_comp, self.dim_comp)
-        self.vs_comp = torch.randn(shape_vs_comp, device=self.device)
-        self.xs_comp = self.eval_coef2comp(self.vs_comp)
-        return
     
     def _print_diagnostics(self, ess: Tensor) -> None:
         diagnostics = [
@@ -247,8 +238,11 @@ class LikelihoodInformedSubspace(Subspace):
         # self.error_acc = torch.trace(self.P_comp @ H @ self.P_comp)
         # eigvals, _ = torch.linalg.eigh(H)
         # self.error_new = torch.sum(eigvals[:self.dim_comp])
+        
+        # The subspace is likely to have changed, so we recompute the 
+        # samples in the complement subspace.
         if self.fixed_comp and self.num_comp > 0:
-            self._recompute_samples_comp()
+            self._compute_samples_comp(self.num_comp)
         return 
     
     def eval_neglogprofile(
@@ -262,13 +256,14 @@ class LikelihoodInformedSubspace(Subspace):
         if self.num_comp == 0:
             return eval_neglogratio(xs_red)
         
-        if self.vs_comp is None:
-            # Generate a new set of samples in the complement subspace
-            self._recompute_samples_comp()
-        
         num_red = xs_red.shape[0]
         num_comp = self.xs_comp.shape[0]
-        xs = xs_red[:, None, :] + self.xs_comp[None, :, :]
+        if self.fixed_comp:
+            xs_comp = self.xs_comp[None, :, :]
+        else: 
+            xs_comp = self._generate_xs_comp(self.num_comp * num_red)
+            xs_comp = xs_comp.reshape(num_red, self.num_comp, self.dim)
+        xs = xs_red[:, None, :] + xs_comp
         xs = xs.reshape(-1, self.dim_red + self.dim_comp)
         neglogfxs = eval_neglogratio(xs)
         neglogfxs = neglogfxs.reshape(num_red, num_comp)

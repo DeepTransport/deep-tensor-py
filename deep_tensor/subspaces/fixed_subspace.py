@@ -22,11 +22,6 @@ class FixedSubspace(Subspace):
     device:
         The device to carry out computations on.
 
-    TODO: need to pass in complement space samples etc..
-    TODO: need to check the evaluations... should this be recorded in 
-    the DIRT/SIRT object? I don't know what is being recorded in the 
-    reduced subspaces.
-
     """
 
     def __init__(
@@ -61,19 +56,21 @@ class FixedSubspace(Subspace):
 
         if self.num_comp == 0:
             return eval_neglogratio(xs_red)
-    
-        if not self.fixed_comp:
-            self._compute_samples_comp(self.num_comp)
         
         num_red = xs_red.shape[0]
-        num_comp = self.xs_comp.shape[0]
-        xs = xs_red[:, None, :] + self.xs_comp[None, :, :]
+        if self.fixed_comp:
+            xs_comp = self.xs_comp[None, :, :]
+        else: 
+            xs_comp = self._generate_xs_comp(self.num_comp * num_red)
+            xs_comp = xs_comp.reshape(num_red, self.num_comp, self.dim)
+        
+        xs = xs_red[:, None, :] + xs_comp
         xs = xs.reshape(-1, self.dim)
         neglogfxs = eval_neglogratio(xs)
-        neglogfxs = neglogfxs.reshape(num_red, num_comp)
+        neglogfxs = neglogfxs.reshape(num_red, self.num_comp)
         neglogfxs_mean = (
             - torch.logsumexp(-neglogfxs, dim=1)
-            + math.log(num_comp)
+            + math.log(self.num_comp)
         )
         return neglogfxs_mean 
     
