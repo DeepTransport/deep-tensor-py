@@ -36,6 +36,10 @@ Deep (squared) inverse Rosenblatt transport.
 
 :   Options which control the DIRT construction process.
 
+<code>[**device**]{.parameter-name} [:]{.parameter-annotation-sep} [torch.device]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.get_default_device()]{.parameter-default}</code>
+
+:   The device to carry out computations on.
+
 ## Methods
 
 | Name | Description |

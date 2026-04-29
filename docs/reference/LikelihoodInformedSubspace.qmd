@@ -27,7 +27,7 @@ A likelihood-informed subspace.
 
 <code>[**update_method**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'augment\']{.parameter-default}</code>
 
-:   How to update the subspace. This can be `'fixed'` (no updating,  need to specify `initial_basis`), `'rebuild'` (construct a new  subspace from scratch at each DIRT layer), or `'augment'`  (retain the previously-constructed subspace at each DIRT layer,  and potentially add new components).
+:   How to update the subspace. This can be `'rebuild'` (construct  a new subspace from scratch at each DIRT layer), or `'augment'`  (retain the previously-constructed subspace at each DIRT layer,  and potentially add new components).
 
 <code>[**num_samples_gram**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [100]{.parameter-default}</code>
 

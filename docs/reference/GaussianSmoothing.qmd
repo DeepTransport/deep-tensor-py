@@ -38,7 +38,7 @@ The intermediate densities generated using this approach take the
 form [@Cui2023]
 $$
     \pi_{k}(\theta) \propto (Q_{\sharp}\rho(\theta))^{1-\beta_{k}}
-        \pi(\theta)^{\beta_{k}}g_{\gamma_{k}}(z).
+        \pi(\theta)^{\beta_{k}}g_{\gamma_{k}}(\theta).
 $$
 In the above, $Q_{\sharp}\rho(\cdot)$ denotes the pushforward of 
 the reference density, $\rho(\cdot)$, under the preconditioner, 
