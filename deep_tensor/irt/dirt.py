@@ -34,6 +34,8 @@ class DIRT():
         at each layer of the DIRT construction.
     options: 
         Options which control the DIRT construction process.
+    device:
+        The device to carry out computations on.
     
     """
 
@@ -103,6 +105,9 @@ class DIRT():
     
     @property 
     def num_eval_subspace(self) -> int:
+        """The total number of function evaluations used when updating 
+        the subspace(s) of the DIRT.
+        """
         return sum([self.subspaces[k].num_eval for k in self.subspaces])
     
     @property 
@@ -161,9 +166,8 @@ class DIRT():
         
         Returns
         -------
-        neglogfus:
-            An n-dimensional vector containing the pushforward of the 
-            reference density under the current IRT mapping, 
+        neglogref_rs:
+            An n-dimensional vector containing the reference density 
             evaluated at each sample in `rs`.
         neglogbridges:
             An n-dimensional vector containing the current bridging 
@@ -608,6 +612,21 @@ class DIRT():
         
         return subset
 
+    def _check_dimension(self, xs: Tensor) -> None:
+        """Checks whether the dimension of a set of samples is 
+        compatible with the subspace being used (if marginals are being 
+        evaluated, only an IdentitySubspace can be used).
+        """
+        evaluating_marginal = xs.shape[1] != self.dim
+        identity_subspace = isinstance(self.subspace, IdentitySubspace)
+        if evaluating_marginal and not identity_subspace:
+            msg = (
+                "If a reduced subspace is used for the construction of" 
+                "a DIRT object, marginals cannot be evaluated."
+            )
+            raise ValueError(msg)
+        return
+
     def eval_rt(
         self,
         xs: Tensor,
@@ -648,6 +667,7 @@ class DIRT():
         if num_layers is None:
             num_layers = self.num_layers
         subset = self._parse_subset(subset)
+        self._check_dimension(xs)
 
         us, neglogdet_xs = self.preconditioner.Q_inv(xs, subset)
         rs, neglogfus = self._eval_rt_reference(us, subset, num_layers)
@@ -695,6 +715,7 @@ class DIRT():
         if num_layers is None:
             num_layers = self.num_layers
         subset = self._parse_subset(subset)
+        self._check_dimension(rs)
         
         us, neglogfus = self._eval_irt_reference(rs, subset, num_layers)
         xs = self.preconditioner.Q(us, subset)[0]
@@ -755,19 +776,27 @@ class DIRT():
         n_ys, d_ys = ys.shape
         rs = self.reference._project_to_domain(rs)
 
+        if not isinstance(self.subspace, IdentitySubspace):
+            msg = (
+                "To evaluate conditions of the inverse Rosenblatt "
+                "transport, an IdentitySubspace must be used."
+            )
+            raise Exception(msg)
         if d_rs == 0 or d_ys == 0:
             msg = "The dimensions of both 'ys' and 'rs' must be at least 1."
             raise ValueError(msg)
-        
         if d_rs + d_ys != self.dim:
-            msg = ("The dimensions of 'ys' and 'rs' must sum " 
-                   + "to the dimension of the approximation.")
+            msg = (
+                "The dimensions of 'ys' and 'rs' must sum to the "
+                "dimension of the approximation."
+            )
             raise ValueError(msg)
-
         if n_rs != n_ys: 
             if n_ys != 1:
-                msg = ("The number of samples in 'ys' and 'rs' "
-                       + "(i.e., the number of rows) must be equal.")
+                msg = (
+                    "The number of samples in 'ys' and 'rs' (i.e., the "
+                    "number of rows) must be equal."
+                )
                 raise ValueError(msg)
             ys = ys.repeat(n_rs, 1)
         

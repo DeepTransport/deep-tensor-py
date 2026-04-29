@@ -81,4 +81,4 @@ class IdentitySubspace(Subspace):
         return
 
     def clone(self) -> IdentitySubspace:
-        return IdentitySubspace(self.dim)
+        return IdentitySubspace(dim=self.dim, device=self.device)

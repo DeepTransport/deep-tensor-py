@@ -52,11 +52,11 @@ class UniformMapping(Preconditioner):
         num_us, dim_us = us.shape
         zs = self.reference.eval_cdf(us)[0]
         if subset == "first":
-            xs = self.lbs[:dim_us] + self.dxs[:dim_us] * zs 
-            neglogfx = self.dxs[:dim_us].log().sum().item()
+            lbs, dxs = self.lbs[:dim_us], self.dxs[:dim_us]
         elif subset == "last":
-            xs = self.lbs[-dim_us:] + self.dxs[-dim_us:] * zs
-            neglogfx = self.dxs[-dim_us:].log().sum().item()
+            lbs, dxs = self.lbs[-dim_us:], self.dxs[-dim_us:]
+        xs = lbs + dxs * zs 
+        neglogfx = dxs.log().sum().item()
         neglogfxs = torch.full((num_us,), neglogfx, device=us.device)
         neglogdets = self.reference.eval_potential(us)[0] - neglogfxs
         return xs, neglogdets
@@ -65,12 +65,31 @@ class UniformMapping(Preconditioner):
         # Uniform to reference
         num_xs, dim_xs = xs.shape
         if subset == "first":
-            zs = (xs - self.lbs[:dim_xs]) / self.dxs[:dim_xs]
-            neglogfx = self.dxs[:dim_xs].log().sum().item()
+            lbs, dxs = self.lbs[:dim_xs], self.dxs[:dim_xs]
         elif subset == "last":
-            zs = (xs - self.lbs[-dim_xs:]) / self.dxs[-dim_xs:]
-            neglogfx = self.dxs[-dim_xs:].log().sum().item()
+            lbs, dxs = self.lbs[-dim_xs:], self.dxs[-dim_xs:]
+        zs = (xs - lbs) / dxs
+        neglogfx = dxs.log().sum().item()
         us = self.reference.invert_cdf(zs)
         neglogfxs = torch.full((num_xs,), neglogfx, device=xs.device)
         neglogdets = neglogfxs - self.reference.eval_potential(us)[0]
         return us, neglogdets
+    
+    def grad_Q(
+        self, 
+        us: Tensor, 
+        subset: str = "first"
+    ) -> Tuple[Tensor, Tensor, Tensor]:
+        num_us, dim_us = us.shape
+        zs = self.reference.eval_cdf(us)[0]
+        if subset == "first":
+            lbs, dxs = self.lbs[:dim_us], self.dxs[:dim_us]
+        elif subset == "last":
+            lbs, dxs = self.lbs[-dim_us:], self.dxs[-dim_us:]
+        xs = lbs + dxs * zs
+        neglogfx = dxs.log().sum().item()
+        neglogfxs = torch.full((num_us,), neglogfx, device=us.device)
+        neglogdets = self.reference.eval_potential(us)[0] - neglogfxs
+        dxdus = self.reference.eval_pdf(us)[0] * dxs
+        dxdus = torch.cat([torch.diag(dxdu)[:, None, :] for dxdu in dxdus], dim=1)
+        return xs, neglogdets, dxdus

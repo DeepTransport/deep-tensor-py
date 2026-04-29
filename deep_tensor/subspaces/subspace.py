@@ -77,6 +77,40 @@ class Subspace(abc.ABC):
     def P_comp(self, val: Tensor) -> None:
         self._P_comp = val 
         return
+    
+    @property
+    def device(self) -> torch.device:
+        return self._device
+    
+    @device.setter 
+    def device(self, val: torch.device) -> None:
+        self._device = val 
+        return
+    
+    def _compute_basis_comp(self, basis_red: Tensor) -> Tensor:
+        """Given a basis for the reduced subspace, computes a basis for 
+        the complement subspace.
+        """
+        P_comp = torch.eye(basis_red.shape[0]) - basis_red @ basis_red.T
+        _, eigvecs = torch.linalg.eigh(P_comp)
+        basis_comp = eigvecs[:, self.dim_red:]
+        return basis_comp
+    
+    def _compute_samples_comp(self, num_comp: int) -> None:
+        """Computes a (fixed) set of samples in the complement subspace."""
+        shape_vs_comp = (num_comp, self.dim_comp)
+        self.vs_comp = torch.randn(shape_vs_comp, device=self.device)
+        self.xs_comp = self.eval_coef2comp(self.vs_comp)
+        return
+    
+    def _generate_xs_comp(self, num_samples: int) -> Tensor:
+        """Generates a set of samples in the complement subspace with 
+        the appropriate dimension.
+        """
+        shape_comp = (num_samples, self.dim_comp)
+        vs_comp = torch.randn(shape_comp, device=self.device)
+        xs_comp = self.eval_coef2comp(vs_comp)
+        return xs_comp
 
     def eval_coef2red(self, vs: Tensor) -> Tensor:
         """Computes the reduced subspace vectors associated with a 
@@ -115,15 +149,6 @@ class Subspace(abc.ABC):
         """Projects a set of vectors onto the complement subspace."""
         xs = torch.atleast_2d(xs)
         return xs @ self.P_comp
-    
-    def _compute_basis_comp(self, basis_red: Tensor) -> Tensor:
-        """Given a basis for the reduced subspace, computes a basis for 
-        the complement subspace.
-        """
-        P_comp = torch.eye(basis_red.shape[0]) - basis_red @ basis_red.T
-        _, eigvecs = torch.linalg.eigh(P_comp)
-        basis_comp = eigvecs[:, self.dim_red:]
-        return basis_comp
 
     @abc.abstractmethod 
     def eval_neglogprofile(
@@ -162,20 +187,8 @@ class Subspace(abc.ABC):
         grad_neglogbridge: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]],
         grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]]
     ) -> None:
-        r"""Updates the basis associated with the current reduced subspace.
-        
-        Parameters
-        ----------
-        grad_neglogbridge:
-            A function that accepts an $n \times d$ matrix containing a 
-            set of samples in the approximation domain, and return an
-            $n$-dimensional vector containing the negative logarithm of 
-            the target function evaluated at each sample, and an 
-            $n \times d$ matrix containing the gradient of the negative 
-            logarithm of the target function evaluated at each sample.
-        grad_neglogratio:
-            TODO: write this.
-        
+        """Updates the basis associated with the current reduced 
+        subspace.
         """
         pass
 
