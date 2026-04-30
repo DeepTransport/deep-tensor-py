@@ -8,7 +8,7 @@ from torch import Tensor
 
 from examples.priors import GaussianRandomField
 
-from reduced_order_modelling import compute_pod_basis
+from examples.reduced_order_modelling import compute_pod_basis
 
 dl.set_log_level(dl.LogLevel.WARNING)
 

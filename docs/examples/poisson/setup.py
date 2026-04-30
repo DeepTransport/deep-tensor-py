@@ -7,25 +7,27 @@ import torch
 
 from examples.priors import Prior, SquaredExponential, GaussianRandomField
 from examples.poisson.solver import PoissonSolver, PoissonSolverROM
-from examples.poisson.reduced_order_modelling import compute_pod_basis
+from examples.reduced_order_modelling import compute_pod_basis
+
+
+def boundary_left(x: np.ndarray, on_boundary: bool) -> bool:
+    """Returns True if the input point is on the left-hand boundary, 
+    and False otherwise.
+    """
+    return on_boundary and (x[0] < 1e-8)
+
+
+def boundary_right(x: np.ndarray, on_boundary: bool) -> bool:
+    """Returns True if the input point is on the right-hand boundary, 
+    and False otherwise.
+    """
+    return on_boundary and (x[0] > 1.0 - 1e-8)
 
 
 def setup_poisson_problem(
     rom: bool = False,
     num_kl: int | None = None
 ) -> Tuple[Prior, PoissonSolver | PoissonSolverROM]:
-
-    def boundary_left(x: np.ndarray, on_boundary: bool) -> bool:
-        """Returns True if the input point is on the left-hand boundary, 
-        and False otherwise.
-        """
-        return on_boundary and (x[0] < 1e-8)
-
-    def boundary_right(x: np.ndarray, on_boundary: bool) -> bool:
-        """Returns True if the input point is on the right-hand boundary, 
-        and False otherwise.
-        """
-        return on_boundary and (x[0] > 1.0 - 1e-8)
     
     nx, ny = 32, 32
 
