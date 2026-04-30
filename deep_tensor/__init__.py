@@ -9,12 +9,12 @@ from .debiasing.importance_sampling import (
     run_importance_sampling
 )
 from .debiasing.mcmc import (
+    MCMC,
     MCMCResult, 
-    run_irt_pcn, 
-    run_cirt_pcn,
-    run_independence_sampler
+    run_independence_sampler,
+    pCNKernel
 )
-# from .debiasing.mcmc_new import pCNKernel, MCMC
+from .debiasing.stats import estimate_iact
 from .domains import BoundedDomain, LinearDomain
 from .ftt import Direction, FTT, EFTT, EFTTOptions, TT, TTOptions
 from .irt import DIRT, DIRTMapping, DIRTOptions, SIRT
