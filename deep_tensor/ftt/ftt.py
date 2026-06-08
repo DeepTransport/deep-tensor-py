@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Callable, Dict, Tuple
 import warnings
 
@@ -46,7 +48,7 @@ def _compute_weights(
     reference_weights = {}
     for k in grid_points:
         nodes_approx_k = domain.local2approx(grid_points[k])[0]
-        reference_weights[k] = reference.eval_pdf(nodes_approx_k)[0]
+        reference_weights[k] = reference.eval_pdf(nodes_approx_k)[0].sqrt()
     return reference_weights
 
 
@@ -345,7 +347,7 @@ class FTT():
         self.construct_tt(grid)
         return
     
-    def clone(self):
+    def clone(self) -> FTT:
 
         tt = TT(self.tt.options, device=self.device)
         tt.cores = {k: self.tt.cores[k].clone() for k in self.tt.cores}
@@ -672,7 +674,7 @@ class EFTT(FTT):
         self.construct_tt(deim_grid)
         return
     
-    def clone(self):
+    def clone(self) -> EFTT:
         # Note: we cannot copy the cores and index sets over, because 
         # the indices corresponding to the DEIM projection onto the 
         # reduced bases in each dimension can change. Instead we start 
