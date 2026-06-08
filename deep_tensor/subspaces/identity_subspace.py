@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Callable, Tuple
 
 import torch 
@@ -26,6 +28,7 @@ class IdentitySubspace(Subspace):
         self.device = device
         self.basis_red = torch.eye(dim, device=self.device)
         self.basis_comp = torch.zeros((dim, 0), device=self.device)
+        self.num_comp = 0
         self.num_eval = 0
         self.num_eval_grad = 0
         return

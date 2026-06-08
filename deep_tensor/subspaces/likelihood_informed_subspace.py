@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import math
 from typing import Callable, Tuple
@@ -21,6 +23,8 @@ class LikelihoodInformedSubspace(Subspace):
 
     Parameters
     ----------
+    dim:
+        The dimension of the (full) target random variable.
     num_comp:
         The number of samples from the complement subspace to use when 
         evaluating the profile function.

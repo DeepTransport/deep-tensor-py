@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc 
 from typing import Callable, Tuple
 
@@ -46,6 +48,15 @@ class Subspace(abc.ABC):
     @num_eval_grad.setter
     def num_eval_grad(self, val: int) -> None:
         self._num_eval_grad = val 
+        return
+    
+    @property 
+    def num_comp(self) -> int:
+        return self._num_comp
+    
+    @num_comp.setter
+    def num_comp(self, val: int) -> None:
+        self._num_comp = val 
         return
     
     @property 
