@@ -208,7 +208,7 @@ class Basis1D(abc.ABC, object):
         """
         if (outside := self._out_domain(ls)).any():
             msg = f"{outside.sum()} points are outside the domain."
-            warnings.warn(msg)
+            # warnings.warn(msg) # TODO: add logger here instead.
         return
     
     def _check_eval_dims(self, coeffs: Tensor, ls: Tensor) -> None:
@@ -352,5 +352,5 @@ class Basis1D(abc.ABC, object):
         if not self.constant_weight:
             basis_vals = self.eval_basis(ls)
             gradwls = self.eval_measure_deriv(ls)[:, None]
-            gradfwls += (basis_vals @ coeffs) * gradwls
+            gradfwls = gradfwls + (basis_vals @ coeffs) * gradwls
         return gradfwls
