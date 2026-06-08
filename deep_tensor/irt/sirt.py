@@ -51,6 +51,7 @@ class SIRT():
         reference: Reference,
         defensive: float,
         cdf_tol: float,
+        num_error_samples: int = 1000,  # TODO: need to add an option for this.
         device: torch.device = torch.get_default_device()
     ):
 
@@ -76,11 +77,11 @@ class SIRT():
 
         # Estimate the Hellinger divergence between the current ratio 
         # function and the SIRT approximation
-        # TODO: tidy this up..
-        # zs = torch.rand((1000, self.dim))
-        # us, neglogfus = self._eval_irt(zs, subset="first")
-        # neglogfus_exact = target_func(us)
-        # self.dhell_ratio = compute_f_divergence(-neglogfus, -neglogfus_exact).sqrt()
+
+        if num_error_samples > 0:
+            self._dhell_ratio = self._estimate_dhell(num_error_samples)
+        else:
+            self._dhell_ratio = None
         return
     
     @property
@@ -905,3 +906,10 @@ class SIRT():
         xs, dxdls = self.domain.local2approx(ls)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs
+    
+    def _estimate_dhell(self, num_samples: int) -> Tensor:
+        zs = torch.rand((num_samples, self.dim))
+        us, neglogfus = self._eval_irt(zs, subset="first")
+        neglogfus_exact = self.potential(us)
+        dhell = compute_f_divergence(-neglogfus, -neglogfus_exact).sqrt()
+        return dhell

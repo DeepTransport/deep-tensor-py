@@ -16,6 +16,19 @@ from ..tools.printing import dirt_info, format_time
 from ..tools import compute_f_divergence
 
 
+def unit_norm_pdf(xs: Tensor) -> Tensor:
+    """Evaluates the negative logarithm of the unit normal density at a 
+    set of values.
+    """
+    xs = torch.atleast_2d(xs)
+    dim = xs.shape[1]
+    neglogfxs = (
+        0.5 * xs.square().sum(dim=1) 
+        + 0.5 * dim * math.log(2.0*torch.pi)
+    )
+    return neglogfxs
+
+
 class DIRT():
     r"""Deep (squared) inverse Rosenblatt transport.
 
@@ -76,6 +89,7 @@ class DIRT():
         self.verbose = options.verbose
         self.sirts: Dict[int, SIRT] = {}
         self.device = device
+        self._dhell_ratios: Dict[int, float] = {}
 
         if self.bridge.is_adaptive and self.num_error_samples == 0:
             msg = (
@@ -101,7 +115,8 @@ class DIRT():
 
     @property 
     def num_eval_sirt(self) -> int:
-        return sum([self.sirts[k].num_eval for k in self.sirts])
+        return sum([self.sirts[k].num_eval * max(self.subspaces[k].num_comp, 1) 
+                    for k in self.sirts])
     
     @property 
     def num_eval_subspace(self) -> int:
@@ -116,7 +131,8 @@ class DIRT():
     
     @property 
     def num_eval_construction(self) -> int:
-        num_eval_sirt = sum([self.sirts[k].num_eval_construction for k in self.sirts]) 
+        num_eval_sirt = sum([self.sirts[k].num_eval_construction * max(self.subspaces[k].num_comp, 1) 
+                             for k in self.sirts]) 
         return num_eval_sirt + self.num_eval_subspace
     
     @property 
@@ -138,12 +154,19 @@ class DIRT():
     def subspace_dims(self) -> List:
         return [self.subspaces[k].dim_red for k in range(self.num_layers)]
     
-    # @property
-    # def dhell_ratios_red(self) -> List:
-    #     """The Hellinger divergences between the reduced ratio functions 
-    #     and their DIRT approximations.
-    #     """
-    #     return [self.sirts[k].dhell_ratio for k in range(self.num_layers)]
+    @property
+    def dhell_ratios_red(self) -> Tensor:
+        """Estimates of the Hellinger divergences between each reduced 
+        ratio function and its SIRT approximation.
+        """
+        return torch.tensor([self.sirts[k]._dhell_ratio for k in range(self.num_layers)])
+    
+    @property
+    def dhell_ratios(self) -> Tensor:
+        """Estimates of the Hellinger divergences between each ratio 
+        function and its SIRT approximation.
+        """
+        return torch.tensor([self._dhell_ratios[k] for k in range(self.num_layers)]) 
     
     # @property 
     # def error_accs(self) -> List:
@@ -271,15 +294,21 @@ class DIRT():
             self.reference, 
             self.defensive, 
             self.cdf_tol,
+            self.num_error_samples,
             device=self.device
         )
-        # TODO: tidy this up..
-        # rs = self.reference.random(n=1000, d=self.dim)
-        # us, neglogratios_dirt = self._eval_irt_reference_i(rs, self.num_layers, subset="first")
-        # neglogratios_exact = self.eval_ratio_func(us)
-        # dhell_ratio = compute_f_divergence(-neglogratios_dirt, -neglogratios_exact).sqrt()
-        # self.dhell_ratios.append(dhell_ratio)
+        if self.num_error_samples > 0:
+            dhell_ratio = self._estimate_dhell_ratio(self.num_error_samples)
+            self._dhell_ratios[k] = float(dhell_ratio)
         return
+
+    def _estimate_dhell_ratio(self, num_samples: int) -> Tensor:
+        rs = self.reference.random(n=num_samples, d=self.dim)
+        us, neglogratios_dirt = self._eval_irt_reference_i(rs, self.num_layers, subset="first")
+        neglogratios_exact = self._eval_neglogratio(us)
+        dhell_ratio = compute_f_divergence(-neglogratios_dirt, -neglogratios_exact).sqrt()
+        # self.dhell_ratios.append(dhell_ratio)
+        return dhell_ratio
 
     def _print_progress(
         self,
@@ -308,7 +337,6 @@ class DIRT():
 
         self.dhell_bridges = []
         self.dhell_targets = []
-        self.dhell_ratios = []
         
         while True:
             
@@ -476,6 +504,10 @@ class DIRT():
         
         rs_red = self.subspaces[i].eval_red2coef(rs)
         rs_comp = self.subspaces[i].eval_comp2coef(rs)
+
+        # TEMP
+        rs_red = self.reference._project_to_domain(rs_red)
+        rs_comp = self.reference._project_to_domain(rs_comp)
 
         zs_red = self.reference.eval_cdf(rs_red)[0]
         ws_red, neglogfus_red = self.sirts[i]._eval_irt(zs_red, subset)
@@ -1209,7 +1241,6 @@ class DIRT():
             xs, _ = self.eval_irt(rs, subset, num_layers)
             xs_summed = xs.sum(dim=0)
             return xs_summed, xs
-        
         jac = torch.func.jacrev(_eval_irt, has_aux=True)
         dxdrs, xs = jac(rs_flat)
         dxdrs = dxdrs.reshape(dim_rs, num_rs, dim_rs)
