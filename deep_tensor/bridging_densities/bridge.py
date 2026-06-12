@@ -205,7 +205,7 @@ class Bridge(abc.ABC):
             the gradient of function f with respect to u.
         
         """
-        dfdus = torch.einsum("i...j, ...j", dxdus, dfdxs)
+        dfdus = torch.einsum("j...i, ...j", dxdus, dfdxs)
         return dfdus
     
     def _eval_pullback(self, us: Tensor) -> Tensor:
