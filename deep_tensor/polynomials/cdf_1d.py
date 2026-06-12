@@ -215,7 +215,7 @@ class CDF1D(abc.ABC):
         dls = -z1s * (l1s - l0s) / (z1s - z0s)
         dls[dls.isinf() | dls.isnan()] = 0.0
         ls = l1s + dls
-        ls = torch.clamp(ls, l0s, l1s)
+        # ls = torch.clamp(ls, l0s, l1s)
         return ls, dls
     
     @staticmethod
