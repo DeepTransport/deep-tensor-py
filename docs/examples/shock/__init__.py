@@ -14,7 +14,7 @@ CENSORED_PATH = DATA_PATH.joinpath("censored.pt")
 Data = namedtuple("Data", ["failure_dists", "censored"])
 
 
-def load_shock_data(device: torch.device = torch.device("cpu")) -> Data:
+def load_shock_data(device: torch.device = torch.get_default_device()) -> Data:
     """Reads in the data (failure distances (km) and censorship 
     information) used in @Dolgov2020.
     """
