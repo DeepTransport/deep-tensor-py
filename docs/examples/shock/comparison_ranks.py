@@ -86,7 +86,7 @@ bridge = dt.SingleLayer()
 ranks = [6, 8, 10, 12, 14, 16, 18, 20]  # max ranks after two ALS iterations with AMEn (kick rank=2)
 
 eftt_pod_options = dt.EFTTOptions(fibre_method="random", tol_svd=1.0e-2, num_snapshots=50)
-eftt_aca_options = dt.EFTTOptions(fibre_method="aca", tol_aca=1.0e-2, num_aca=100)
+eftt_aca_options = dt.EFTTOptions(fibre_method="aca", tol_aca=1.0e-3, num_aca=100)
 
 num_replications = 10
 
@@ -162,4 +162,5 @@ axes[1].legend(fontsize=10)
 axes[1].ticklabel_format(axis="y", scilimits=(0, 0))
 
 save_path = plot_path.joinpath("plots", "ranks.pdf").resolve()
+plt.tight_layout()
 plt.savefig(save_path)

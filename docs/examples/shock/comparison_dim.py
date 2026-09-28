@@ -20,7 +20,7 @@ data = load_shock_data(device)
 failure_dists, censored = data.failure_dists, data.censored
 
 
-def _neglogpost(xs: Tensor, params: Tensor) -> Tensor:
+def _eval_neglogpost(xs: Tensor, params: Tensor) -> Tensor:
 
     bs, t2s = params[:, :-1], params[:, -1:]
 
@@ -55,7 +55,7 @@ colours = ["tab:blue", "tab:red", "tab:green"]
 
 tt_options = dt.TTOptions(tt_method="amen", max_als=2, init_rank=8, verbose=2)
 eftt_pod_options = dt.EFTTOptions(fibre_method="random", tol_svd=1.0e-2, num_snapshots=50)
-eftt_aca_options = dt.EFTTOptions(fibre_method="aca", tol_aca=1.0e-2, num_aca=100)
+eftt_aca_options = dt.EFTTOptions(fibre_method="aca", tol_aca=1.0e-3, num_aca=100)
 
 Ds = torch.tensor([2, 4, 6, 8, 10, 12, 14]) 
 
@@ -100,10 +100,10 @@ for i, D in enumerate(Ds):
         # Generate covariates
         xs = torch.randn((failure_dists.numel(), D), device=device) / D
 
-        def neglogpost(params: Tensor) -> Tensor:
-            return _neglogpost(xs, params)
+        def eval_neglogpost(params: Tensor) -> Tensor:
+            return _eval_neglogpost(xs, params)
 
-        target_func = dt.TargetFunc(neglogpost)
+        target_func = dt.TargetFunc(eval_neglogpost)
 
         rs = reference.random(n=5_000, d=dim, device=device)
 
@@ -125,8 +125,7 @@ for i, D in enumerate(Ds):
 
             samples_dirt, potentials_dirt = dirt.eval_irt(rs)
 
-            # Run an independence MCMC sampler
-            potentials_true = neglogpost(samples_dirt)
+            potentials_true = eval_neglogpost(samples_dirt)
 
             dhell = dt.compute_f_divergence(-potentials_dirt, -potentials_true).sqrt().item()
 
@@ -178,4 +177,5 @@ axes[1].legend(fontsize=10)
 axes[1].ticklabel_format(axis="y", scilimits=(0, 0))
 
 save_path = plot_path.joinpath("plots", "dims.pdf").resolve()
+plt.tight_layout()
 plt.savefig(save_path)
