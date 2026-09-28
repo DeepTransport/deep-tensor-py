@@ -38,7 +38,7 @@ class DIRTOptions():
     ratio_type: str = "aratio"
     num_error_samples: int = 1000
     defensive: float = 1e-08
-    cdf_tol: float = 1e-10
+    cdf_tol: float = 1e-12
     verbose: float = 1
     
     def __post_init__(self):
