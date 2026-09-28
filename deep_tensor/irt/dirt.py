@@ -653,7 +653,7 @@ class DIRT():
         identity_subspace = isinstance(self.subspace, IdentitySubspace)
         if evaluating_marginal and not identity_subspace:
             msg = (
-                "If a reduced subspace is used for the construction of" 
+                "If a reduced subspace is used for the construction of " 
                 "a DIRT object, marginals cannot be evaluated."
             )
             raise ValueError(msg)
@@ -1227,7 +1227,7 @@ class DIRT():
             after applying the inverse Rosenblatt transport.
         dxdrs:
             A $k \times n \times k$ tensor, where element $ijl$ 
-            contains element $ik$ of the Jacobian for the $l$th sample 
+            contains element $il$ of the Jacobian for the $j$th sample 
             in `rs`.
 
         """
