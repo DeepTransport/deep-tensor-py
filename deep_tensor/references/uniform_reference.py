@@ -27,13 +27,15 @@ class UniformReference(Reference):
     
     def eval_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         self._check_samples_in_domain(rs)
-        ps = torch.ones_like(rs)
-        dpdrs = torch.zeros_like(rs)
-        return ps, dpdrs
+        prs = torch.ones_like(rs)
+        grad_prs = torch.zeros_like(rs)
+        return prs, grad_prs
     
     def eval_potential(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         self._check_samples_in_domain(rs)
-        n_rs = rs.shape[0]
-        log_ps = torch.zeros(n_rs)
-        log_dpdrs = torch.zeros(n_rs)  # TODO: look at this more closely.
-        return log_ps, log_dpdrs
+        neglogprs = torch.zeros((rs.shape[0],), device=rs.device)
+        grad_neglogprs = torch.zeros_like(rs)
+        return neglogprs, grad_neglogprs
+    
+    def eval_potential_unnormalised(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+        return self.eval_potential(rs)

@@ -1,4 +1,3 @@
-import torch
 from torch import Tensor
 
 from .gaussian_mapping import GaussianMapping
@@ -32,12 +31,9 @@ class SampleBasedMapping(GaussianMapping):
         reference: GaussianReference | None = None,
         perturb_eigvals: bool = False
     ):
-        
         mean = samples.mean(dim=0)
         cov = samples.T.cov()
-
         if perturb_eigvals:
             cov += 1e-8 * cov.diag().diag()
-
         GaussianMapping.__init__(self, mean, cov, reference)
         return

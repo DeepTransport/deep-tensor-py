@@ -9,14 +9,14 @@ from .debiasing.importance_sampling import (
     run_importance_sampling
 )
 from .debiasing.mcmc import (
+    MCMC,
     MCMCResult, 
-    run_irt_pcn, 
-    run_cirt_pcn,
-    run_independence_sampler
+    run_independence_sampler,
+    pCNKernel
 )
-# from .debiasing.mcmc_new import pCNKernel, MCMC
+from .debiasing.stats import estimate_iact
 from .domains import BoundedDomain, LinearDomain
-from .ftt import ApproxBases, Direction, FTT, EFTT, EFTTOptions, TT, TTOptions
+from .ftt import Direction, FTT, EFTT, EFTTOptions, TT, TTOptions
 from .irt import DIRT, DIRTMapping, DIRTOptions, SIRT
 from .polynomials import (
     Basis1D,
@@ -42,5 +42,6 @@ from .preconditioners import (
     UniformMapping
 )
 from .references import Reference, GaussianReference, UniformReference
+from .subspaces import FixedSubspace, IdentitySubspace, LikelihoodInformedSubspace
 from .target_functions import RareEventFunc, TargetFunc
 from .tools import compute_f_divergence

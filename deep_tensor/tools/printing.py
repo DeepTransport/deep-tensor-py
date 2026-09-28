@@ -1,5 +1,6 @@
 GREEN  = "\033[32m"
 BLUE = "\033[94m"
+MAGENTA  = "\033[95m"
 END_COLOUR = "\033[0m"
 
 
@@ -9,6 +10,10 @@ def als_info(msg: str, **kwargs):
 
 def dirt_info(msg: str, **kwargs):
     print(f"{GREEN}[DIRT]{END_COLOUR} {msg}", **kwargs)
+
+
+def lis_info(msg: str, **kwargs):
+    print(f"{MAGENTA}[LIS]{END_COLOUR}  {msg}", **kwargs)
 
 
 def format_time(t: float) -> str:

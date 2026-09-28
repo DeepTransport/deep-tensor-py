@@ -1,7 +1,7 @@
 # Chebyshev2nd { #deep_tensor.Chebyshev2nd }
 
 ```python
-Chebyshev2nd(order: int, device: torch.device = torch.device('cpu'))
+Chebyshev2nd(order: int, device: torch.device = torch.get_default_device())
 ```
 
 Chebyshev polynomials of the second kind.

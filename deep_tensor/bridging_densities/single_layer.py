@@ -35,7 +35,7 @@ class SingleLayer(Bridge):
         log_weights = -neglogfus + neglogfus_dirt
         return log_weights, neglogfus
         
-    def ratio_func(
+    def _eval_neglogratio(
         self,
         method: str,
         rs: Tensor, 
@@ -43,3 +43,21 @@ class SingleLayer(Bridge):
         neglogfus_dirt: Tensor
     ) -> Tensor:
         return self._eval_pullback(us)
+    
+    def _grad_neglogratio(
+        self,
+        method: str,
+        rs: Tensor, 
+        us: Tensor,
+        neglogfus_dirt: Tensor,
+        grad_neglogfus_dirt: Tensor,
+        dudrs: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        return self._grad_pullback(us)
+    
+    def _grad_neglogbridge(
+        self, 
+        us: Tensor,
+        dudrs: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        return self._grad_pullback(us)

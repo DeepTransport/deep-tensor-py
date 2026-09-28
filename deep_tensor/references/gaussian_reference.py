@@ -36,8 +36,13 @@ class GaussianReference(SymmetricReference):
         return us
 
     def eval_unit_potential(self, us: Tensor) -> Tuple[Tensor, Tensor]:
-        d_us = us.shape[1]
-        neglogps = (0.5 * d_us * math.log(2.0*torch.pi) 
+        dim_us = us.shape[1]
+        neglogps = (0.5 * dim_us * math.log(2.0*torch.pi) 
                     + 0.5 * us.square().sum(dim=1))
-        grad_neglogps = us  # gradient of negative log
+        grad_neglogps = us.clone()  # gradient of negative log
+        return neglogps, grad_neglogps
+    
+    def eval_unit_potential_unnormalised(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+        neglogps = 0.5 * us.square().sum(dim=1)
+        grad_neglogps = us.clone()
         return neglogps, grad_neglogps

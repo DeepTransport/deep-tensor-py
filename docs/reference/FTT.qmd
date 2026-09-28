@@ -2,10 +2,10 @@
 
 ```python
 FTT(
-    bases: ApproxBases,
+    basis: Basis1D,
     tt: TT | None = None,
     num_error_samples: int = 1000,
-    device: torch.device = torch.device('cpu'),
+    device: torch.device = torch.get_default_device(),
 )
 ```
 
@@ -13,7 +13,7 @@ A functional tensor train, defined on $[-1, 1]^{d}$.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**bases**]{.parameter-name} [:]{.parameter-annotation-sep} [ApproxBases]{.parameter-annotation}</code>
+<code>[**basis**]{.parameter-name} [:]{.parameter-annotation-sep} [Basis1D]{.parameter-annotation}</code>
 
 :   A set of basis functions for each dimension of the FTT.
 
@@ -37,6 +37,7 @@ A functional tensor train, defined on $[-1, 1]^{d}$.
 ```python
 FTT.approximate(
     target_func: Callable[[Tensor], Tensor],
+    dim: int,
     reference: Reference | None = None,
 )
 ```

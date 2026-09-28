@@ -46,8 +46,7 @@ construct a class derived from this class with methods `Q()`,
 | --- | --- |
 | [Q](#deep_tensor.Preconditioner.Q) | Applies the mapping $Q(\cdot)$ to a set of samples. |
 | [Q_inv](#deep_tensor.Preconditioner.Q_inv) | Applies the mapping $Q^{-1}(\cdot)$ to a set of samples. |
-| [neglogdet_Q](#deep_tensor.Preconditioner.neglogdet_Q) | Applies the mapping $Q(\cdot)$ to a set of samples. |
-| [neglogdet_Q_inv](#deep_tensor.Preconditioner.neglogdet_Q_inv) | Applies the mapping $Q^{-1}(\cdot)$ to a set of samples. |
+| [grad_Q](#deep_tensor.Preconditioner.grad_Q) | Evaluates the mapping $Q(\cdot)$ and its gradient. |
 
 ### Q { #deep_tensor.Preconditioner.Q }
 
@@ -73,6 +72,10 @@ Applies the mapping $Q(\cdot)$ to a set of samples.
 
 :   An $n \times k$ matrix containing samples from the  approximation domain, after applying the mapping $Q(\cdot)$  to each sample.
 
+<code>[**neglogdets**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the negative  log-determinant of $Q(\cdot)$ evaluated at each sample.
+
 ### Q_inv { #deep_tensor.Preconditioner.Q_inv }
 
 ```python
@@ -97,13 +100,17 @@ Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
 
 :   An $n \times k$ matrix containing samples from the  reference domain, after applying the mapping $Q^{-1}(\cdot)$  to each sample.
 
-### neglogdet_Q { #deep_tensor.Preconditioner.neglogdet_Q }
+<code>[**neglogdets**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the negative  log-determinant of $Q^{-1}(\cdot)$ evaluated at each sample.
+
+### grad_Q { #deep_tensor.Preconditioner.grad_Q }
 
 ```python
-Preconditioner.neglogdet_Q(us: Tensor, subset: str = 'first')
+Preconditioner.grad_Q(us: Tensor, subset: str = 'first')
 ```
 
-Applies the mapping $Q(\cdot)$ to a set of samples.
+Evaluates the mapping $Q(\cdot)$ and its gradient.
 
 #### Parameters {.doc-section .doc-section-parameters}
 
@@ -117,30 +124,14 @@ Applies the mapping $Q(\cdot)$ to a set of samples.
 
 #### Returns {.doc-section .doc-section-returns}
 
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing samples from the  approximation domain, after applying the mapping $Q(\cdot)$  to each sample.
+
 <code>[**neglogdets**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
 :   An $n$-dimensional vector containing the negative  log-determinant of $Q(\cdot)$ evaluated at each sample.
 
-### neglogdet_Q_inv { #deep_tensor.Preconditioner.neglogdet_Q_inv }
+<code>[**dxdus**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
-```python
-Preconditioner.neglogdet_Q_inv(xs: Tensor, subset: str = 'first')
-```
-
-Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
-
-#### Parameters {.doc-section .doc-section-parameters}
-
-<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
-
-:   An $n \times k$ matrix containing samples from the  approximation domain.
-
-<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'first\']{.parameter-default}</code>
-
-:   If $k < d$, whether the samples are samples of the first  (`subset='first'`) or last (`subset='last'`) $k$ variables.
-
-#### Returns {.doc-section .doc-section-returns}
-
-<code>[**neglogdets**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
-
-:   An $n$-dimensional vector containing the negative  log-determinant of $Q^{-1}(\cdot)$ evaluated at each sample.
+:   A $k \times n \times k$ tensor, where `dxdus[:, i, :]`  contains the Jacobian of $Q(\cdot)$ evaluated at `xs[i, :]`.

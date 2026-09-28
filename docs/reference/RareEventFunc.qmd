@@ -4,6 +4,7 @@
 RareEventFunc(
     func: Callable[[Tensor], Tuple[Tensor, Tensor]],
     threshold: float,
+    grad_func: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor, Tensor]] | None = None,
     vectorised: bool = True,
 )
 ```
@@ -20,9 +21,13 @@ A function for rare event estimation problems.
 
 :   The threshold, $z$, which defines a rare event.
 
+<code>[**grad_func**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor\], Tuple\[Tensor, Tensor, Tensor, Tensor\]\] \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   A function which returns the negative logarithm of a (possibly  unnormalised version of) the target density function, the  gradient of the negative logarithm of the target density  function, the response function, and the gradient of the  response function with respect to the parameters. The format of  the arguments and returns is the same as `func`.
+
 <code>[**vectorised**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
 
-:   Whether the function accepts multiple sets of parameters.
+:   Whether `func` and `grad_func` accept multiple sets of  parameters.
 
 ## Notes {.doc-section .doc-section-notes}
 

@@ -30,9 +30,8 @@ class TestDIRTStandardGaussian(unittest.TestCase):
         target_func = dt.TargetFunc(self.neglogtarget)
         preconditioner = dt.IdentityMapping(dim=dim)
         
-        bases = dt.ApproxBases(basis, dim)
         tt = dt.TT(options=dt.TTOptions(verbose=0))
-        ftt = dt.FTT(bases, tt)
+        ftt = dt.FTT(basis, tt)
 
         # bounds = torch.tensor([[-4.0] * dim, [4.0] * dim]).T
         # preconditioner = dt.UniformMapping(bounds, reference=dt.UniformReference())

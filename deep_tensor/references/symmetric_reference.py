@@ -106,13 +106,38 @@ class SymmetricReference(Reference, abc.ABC):
 
         Returns
         -------
-        log_ps:
+        neglogps:
             A d-dimensional vector containing the PDF of the joint unit 
             reference distribution evaluated at each sample in us.
-        log_dpdus:
-            An n * d matrix containing the log of the gradient of the 
-            joint unit reference density evaluated at each sample in 
-            us.
+        grad_neglogps:
+            An n * d matrix containing the gradient of the logarithm of 
+            the joint unit reference density evaluated at each sample 
+            in us.
+        
+        """
+        pass
+
+    @abc.abstractmethod
+    def eval_unit_potential_unnormalised(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+        """Returns the negative log-PDF and gradient of the negative 
+        log-PDF of the reference distribution evaluated at each element 
+        of us.
+
+        Parameters
+        ----------
+        us:
+            An n * d matrix vector containing samples distributed 
+            according to the joint reference distribution.
+
+        Returns
+        -------
+        neglogps:
+            A d-dimensional vector containing the PDF of the joint unit 
+            reference distribution evaluated at each sample in us.
+        grad_neglogps:
+            An n * d matrix containing the gradient of the logarithm of 
+            the joint unit reference density evaluated at each sample 
+            in us.
         
         """
         pass
@@ -136,14 +161,14 @@ class SymmetricReference(Reference, abc.ABC):
         return
 
     def eval_cdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
-        self._project_to_domain(rs)
+        rs = self._project_to_domain(rs)
         zs, dzdrs = self.eval_unit_cdf(rs)
         zs = (zs - self.cdf_left) / self.norm
         dzdrs = dzdrs / self.norm
         return zs, dzdrs
     
     def eval_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
-        self._project_to_domain(rs)
+        rs = self._project_to_domain(rs)
         ps, dpdrs = self.eval_unit_pdf(rs)
         ps = ps / self.norm
         dpdrs = dpdrs / self.norm
@@ -156,8 +181,13 @@ class SymmetricReference(Reference, abc.ABC):
         return us
         
     def eval_potential(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
-        self._project_to_domain(rs)
-        d_rs = rs.shape[1]
-        log_ps, log_dpdrs = self.eval_unit_potential(rs)
-        log_ps = log_ps + d_rs * math.log(self.norm)
-        return log_ps, log_dpdrs
+        rs = self._project_to_domain(rs)
+        dim_rs = rs.shape[1]
+        neglogprs, grad_neglogprs = self.eval_unit_potential(rs)
+        # Normalise to account for the truncated sections of the reference
+        neglogprs = neglogprs + dim_rs * math.log(self.norm)
+        return neglogprs, grad_neglogprs
+    
+    def eval_potential_unnormalised(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+        rs = self._project_to_domain(rs)
+        return self.eval_unit_potential_unnormalised(rs)

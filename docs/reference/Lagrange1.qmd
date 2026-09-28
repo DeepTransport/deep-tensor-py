@@ -1,7 +1,7 @@
 # Lagrange1 { #deep_tensor.Lagrange1 }
 
 ```python
-Lagrange1(num_elems: int, device: torch.device = torch.device('cpu'))
+Lagrange1(num_elems: int, device: torch.device = torch.get_default_device())
 ```
 
 Piecewise linear polynomials.

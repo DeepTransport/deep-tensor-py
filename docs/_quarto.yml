@@ -91,7 +91,7 @@ quartodoc:
       desc: An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.
       contents:
         - name: DIRT
-          members: [eval_potential, eval_potential_cond, eval_rt, eval_irt, eval_cirt, eval_irt_pullback, eval_cirt_pullback, random, sobol]
+          members: [eval_potential, eval_potential_cond, eval_rt, eval_irt, eval_cirt, eval_irt_pullback, eval_cirt_pullback, jac_rt, jac_irt, random, sobol]
         - name: DIRTOptions
 
     - title: Target Functions
@@ -106,7 +106,7 @@ quartodoc:
       desc: Initial guesses for the mapping between the reference random variable and the target random variable.
       contents:
         - name: Preconditioner
-          members: [Q, Q_inv, neglogdet_Q, neglogdet_Q_inv]
+          members: [Q, Q_inv, grad_Q]
         - name: IdentityMapping
           members: []
         - name: UniformMapping
@@ -137,8 +137,6 @@ quartodoc:
           members: [approximate, eval]
         - name: EFTTOptions
           members: []
-        - name: ApproxBases
-          members: []
         - name: TT
           members: [initialise, sweep, round]
         - name: TTOptions
@@ -168,6 +166,16 @@ quartodoc:
         - name: Tempering
           members: []
         - name: SigmoidSmoothing
+          members: []
+        - name: GaussianSmoothing
+          members: []
+    
+    - title: Subspaces
+      desc: Objects used to construct DIRT objects in reduced spaces.
+      contents:
+        - name: IdentitySubspace
+          members: []
+        - name: LikelihoodInformedSubspace
           members: []
 
     - title: Debiasing

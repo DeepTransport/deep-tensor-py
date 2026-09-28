@@ -19,7 +19,7 @@ The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$.
 UniformReference.random(
     n: int,
     d: int,
-    device: torch.device = torch.device('cpu'),
+    device: torch.device = torch.get_default_device(),
 )
 ```
 
@@ -47,7 +47,7 @@ Generates a set of random samples.
 UniformReference.sobol(
     n: int,
     d: int,
-    device: torch.device = torch.device('cpu'),
+    device: torch.device = torch.get_default_device(),
 )
 ```
 

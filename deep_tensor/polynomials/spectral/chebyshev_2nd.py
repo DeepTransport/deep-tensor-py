@@ -81,6 +81,7 @@ class Chebyshev2nd(Spectral):
     
     def eval_log_measure(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
+        ls = ls.clamp(self.domain[0]+EPS, self.domain[1]-EPS)
         ts = 1.0 - ls.square()
         logws = 0.5 * ts.log() + math.log(2.0/torch.pi)
         return logws

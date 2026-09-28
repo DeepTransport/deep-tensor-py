@@ -1,6 +1,6 @@
 import torch 
 from torch import Tensor 
-from torchdiffeq import odeint
+import torchode as to
 
 
 class SIRModel():
@@ -14,7 +14,7 @@ class SIRModel():
         I0: float = 1.0,
         R0: float = 0.0,
         t_eval: Tensor | None = None,
-        device: torch.device = torch.device("cpu")
+        device: torch.device = torch.get_default_device()
     ):
 
         if t_eval is None:
@@ -36,12 +36,21 @@ class SIRModel():
         b, g = params.T
         num_params = params.shape[0]
 
-        def sir_func(t, y: Tensor) -> Tensor:
-            S, I, _ = y.reshape(3, -1)
-            return torch.vstack([-b*S*I, b*S*I - g*I, g*I]).flatten()
+        def sir_func(t: float, y: Tensor) -> Tensor:
+            S, I, _ = y.T
+            return torch.vstack([-b*S*I, b*S*I - g*I, g*I]).T
         
-        y0 = self.y0.repeat_interleave(num_params)
-        sol = odeint(sir_func, y0, self.t_eval, rtol=1e-06, atol=1e-06)
+        y0 = torch.tile(self.y0.flatten(), (num_params, 1))
+        t_eval = torch.tile(self.t_eval, (num_params, 1))
+
+        term = to.ODETerm(sir_func)  # type: ignore
+        step_method = to.Dopri5(term=term)
+        step_size_controller = to.IntegralController(atol=1e-6, rtol=1e-6, term=term)
+        prob = to.InitialValueProblem(y0=y0, t_eval=t_eval)  # type: ignore
+        solver = to.AutoDiffAdjoint(step_method, step_size_controller)  # type: ignore
+        sol = solver.solve(prob, args=params)
+        sol = sol.ys.movedim(0, 2).reshape(-1, 3*num_params)
+        
         return sol.T[num_params:(2*num_params), 1:]  # type: ignore
     
     def solve(self, params: Tensor, batch_size: int = 100_000) -> Tensor:
@@ -96,12 +105,13 @@ class SIRCompartmentModel():
         """
 
         num_params = params.shape[0]
-        thetas = params[:, 0::2]
-        nus = params[:, 1::2]
+        
+        def sir_func(t, y: Tensor, params: Tensor) -> Tensor:
 
-        def sir_func(t, y: Tensor) -> Tensor:
+            S, I, R = y.reshape(num_params, 3, self.K).swapdims(0, 1)
 
-            S, I, R = y.reshape(3, num_params, self.K)
+            thetas = params[:, 0::2]
+            nus = params[:, 1::2]
 
             S_neighbours = (self.A[None, ...] * (S[..., None] - S[:, None, :])).sum(dim=1)
             I_neighbours = (self.A[None, ...] * (I[..., None] - I[:, None, :])).sum(dim=1)
@@ -111,13 +121,20 @@ class SIRCompartmentModel():
             dIdt = thetas * S * I - nus * I + 0.5 * I_neighbours
             dRdt = nus * I + 0.5 * R_neighbours
             
-            return torch.vstack([dSdt, dIdt, dRdt]).flatten()
-        
-        y0 = torch.tile(self.y0, (1, num_params)).flatten()
-        sol = odeint(sir_func, y0, self.t_eval, rtol=1e-6, atol=1e-6)
+            return torch.hstack([dSdt, dIdt, dRdt])
 
-        ys = self._get_infected(sol, num_params)  # type: ignore
-        return ys
+        y0 = torch.tile(self.y0.flatten(), (num_params, 1))
+        t_eval = torch.tile(self.t_eval, (num_params, 1))
+
+        term = to.ODETerm(sir_func, with_args=True)  # type: ignore
+        step_method = to.Dopri5(term=term)
+        step_size_controller = to.IntegralController(atol=1e-6, rtol=1e-6, term=term)
+        prob = to.InitialValueProblem(y0=y0, t_eval=t_eval)  # type: ignore
+        solver = to.AutoDiffAdjoint(step_method, step_size_controller)  # type: ignore
+        sol = solver.solve(prob, args=params)
+
+        infected = sol.ys[..., self.K:2*self.K].swapdims(1, 2).reshape(num_params, -1)
+        return infected
     
     def solve(self, params: Tensor, batch_size: int = 100_000) -> Tensor:
         param_batches = [params[i:i+batch_size] 

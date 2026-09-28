@@ -70,6 +70,6 @@ class Spectral(Basis1D, abc.ABC):
         """Applies the mapping l -> arccos(l) to a vector of values on
         [-1, 1].
         """
-        thetas = ls.clamp(-1.0, 1.0).acos()
+        thetas = ls.clone().clamp(-1.0, 1.0).arccos()
         check_finite(thetas)
         return thetas

@@ -2,10 +2,10 @@
 
 ```python
 EFTT(
-    bases: ApproxBases,
+    basis: Basis1D,
     tt: TT,
     options: EFTTOptions | None = None,
-    device: torch.device = torch.device('cpu'),
+    device: torch.device = torch.get_default_device(),
 )
 ```
 
@@ -13,9 +13,9 @@ An extended functional tensor train, defined on $[-1, 1]^{d}$.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
-<code>[**bases**]{.parameter-name} [:]{.parameter-annotation-sep} [ApproxBases]{.parameter-annotation}</code>
+<code>[**basis**]{.parameter-name} [:]{.parameter-annotation-sep} [Basis1D]{.parameter-annotation}</code>
 
-:   A set of basis functions for each dimension of the EFTT.
+:   The basis function used for each dimension of the FTT.
 
 <code>[**tt**]{.parameter-name} [:]{.parameter-annotation-sep} [TT]{.parameter-annotation}</code>
 
@@ -43,6 +43,7 @@ An extended functional tensor train, defined on $[-1, 1]^{d}$.
 ```python
 EFTT.approximate(
     target_func: Callable[[Tensor], Tensor],
+    dim: int,
     reference: Reference | None = None,
 )
 ```
