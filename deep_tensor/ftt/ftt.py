@@ -419,13 +419,15 @@ class EFTT(FTT):
     ) -> Tensor:
         
         n_k = grid.points[k].numel()
+        sample_size = (self.options.num_snapshots, self.dim)
 
-        if reference is None:
-            sample_size = (self.options.num_snapshots, self.dim)
-            point_samples = 2.0 * torch.rand(sample_size, device=self.device) - 1.0
-        else:
-            point_samples = reference.random(self.options.num_snapshots, self.dim)
+        # if self.options.fibre_sampler is not None:
+        #     point_samples = self.options.fibre_sampler(sample_size)
+        if reference is not None:
+            point_samples = reference.random(*sample_size)
             point_samples = reference.domain.approx2local(point_samples)[0]
+        else:
+            point_samples = 2.0 * torch.rand(sample_size, device=self.device) - 1.0
 
         point_samples = point_samples.repeat((n_k, 1))
         point_samples[:, k] = grid.points[k].repeat_interleave(self.options.num_snapshots)
@@ -502,10 +504,13 @@ class EFTT(FTT):
         inds_eval = inds.clone()
         vals_eval = vals.clone()
 
+        max_abs_func = torch.tensor(0.0)
+
         for _ in range(1, self.options.max_fibres):
 
             num_inds = inds.shape[0]
             inds_rand, func_vals = self._generate_points_aca(num_aca, grid)
+            max_abs_func = torch.max(max_abs_func, func_vals.abs().max())
 
             inds_int = inds.repeat(num_inds, 1)
             inds_int[:, k] = inds[:, k].repeat_interleave(num_inds, dim=0)
@@ -556,8 +561,8 @@ class EFTT(FTT):
             # because it is invariant to rescalings of the target 
             # function
             cross_vals = B_cols @ linalg.solve(B_int, B_rows)
-            residuals = torch.diag(func_vals - cross_vals).abs()
-            error = residuals.max() / func_vals.diag().abs().max()
+            residuals = (func_vals - cross_vals.diag()).abs()
+            error = residuals.max() / max_abs_func
             if error < self.options.tol_aca:
                 break
 
@@ -609,6 +614,11 @@ class EFTT(FTT):
                 fibre_matrix = self.compute_fibre_submatrix_random(grid, reference, k)
                 basis_k = tsvd(fibre_matrix, tol=self.options.tol_svd)[0]
                 inds_k, factor_k = deim(basis_k)
+                # if self.options.additional_inds is not None:
+                #     inds_k = torch.hstack((self.options.additional_inds[k], inds_k)).unique()
+                #     basis_k = torch.linalg.svd(fibre_matrix).U
+                #     basis_k = basis_k[:, :inds_k.numel()]
+                # factor_k = linalg.solve(basis_k[inds_k], basis_k, left=False)
 
             elif self.options.fibre_method == "aca":
                 fibre_matrix = self.compute_fibre_submatrix_aca(grid, k)

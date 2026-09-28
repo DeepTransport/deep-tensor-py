@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+from typing import Callable, Tuple
+
+from torch import Tensor
 
 from ..verification import verify_method
 
@@ -53,16 +56,24 @@ class EFTTOptions():
     num_snapshots:
         If `fibre_method="random"`, the number of snapshots to 
         sample.
+    # fibre_sampler: 
+    #     TODO: write this docstring. 
+    #     The sampler needs to return samples distributed on [-1,1]^d.
+    # additional_inds:
+    #     TODO: write this docstring.
+    #     Indices that will always be included in each dimension.
     
     """
         
     num_error_samples: int = 1000
     fibre_method: str = "random"
-    tol_svd: float = 1e-12
+    tol_svd: float = 1e-3
     num_aca: int = 50
-    tol_aca: float = 1e-10
+    tol_aca: float = 1e-4
     max_fibres: int = 30
     num_snapshots: int = 30
+    # fibre_sampler: Callable[[Tuple[int, int]], Tensor] | None = None
+    # additional_inds: Tensor | None = None
     
     def __post_init__(self):
         verify_method(self.fibre_method, FIBRE_METHODS)
