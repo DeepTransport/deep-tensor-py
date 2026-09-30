@@ -30,8 +30,8 @@ An object containing a constructed Markov chain.
 
 ## Notes {.doc-section .doc-section-notes}
 
-The IACT for parameter $i$, denoted using $\tau_{i}$, is estimated 
-using the monotone sequence estimator outlined by Geyer (2011).
+The IACT for each parameter is estimated using the monotone 
+sequence estimator outlined by Geyer (2011).
 
 ## References {.doc-section .doc-section-references}
 

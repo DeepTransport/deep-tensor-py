@@ -76,13 +76,13 @@ def _step(
 def run_pcn(
     potential: Callable[[Tensor], Tensor],
     x0s: Tensor,
-    dt_: float = 2.0,
+    stepsize: float = 2.0,
     num_steps: int = 1000,
     num_warmup: int = 0
 ):
     
-    a = 2.0 * math.sqrt(2.0*dt_) / (2.0+dt_)
-    b = (2.0-dt_) / (2.0+dt_)
+    a = 2.0 * math.sqrt(2.0*stepsize) / (2.0+stepsize)
+    b = (2.0-stepsize) / (2.0+stepsize)
 
     num_chains, dim = x0s.shape
 

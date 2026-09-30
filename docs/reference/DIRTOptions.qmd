@@ -5,7 +5,7 @@ DIRTOptions(
     ratio_type: str = 'aratio',
     num_error_samples: int = 1000,
     defensive: float = 1e-08,
-    cdf_tol: float = 1e-10,
+    cdf_tol: float = 1e-12,
     verbose: float = 1,
 )
 ```
@@ -26,7 +26,7 @@ Options for configuring the construction of a DIRT object.
 
 :   The defensive term (often referred to as $\gamma$ or $\tau$)  used to make the tails of the DIRT approximation to the target  density heavier.
 
-<code>[**cdf_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-10]{.parameter-default}</code>
+<code>[**cdf_tol**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1e-12]{.parameter-default}</code>
 
 :   The numerical tolerance used when evaluating the inverse CDFs  required to evaluate the (deep) inverse Rosenblatt transport.
 

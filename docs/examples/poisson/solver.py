@@ -108,7 +108,7 @@ class PoissonSolver(object):
             bc.apply(A)
         return
 
-    def solve(self, log_k: Tensor) -> Tensor:
+    def _solve(self, log_k: Tensor) -> Tensor:
         """Solves the forward problem for a given coefficient field."""
 
         # Assemble stiffness matrix
@@ -122,9 +122,13 @@ class PoissonSolver(object):
         dl.solve(A, u, self.f, "lu")
 
         return torch.from_numpy(u[:])
+
+    def solve(self, logks: Tensor) -> Tensor:
+        logks = torch.atleast_2d(logks)
+        return torch.vstack([self._solve(logk) for logk in logks])
     
     def observe(self, us: Tensor) -> Tensor:
-        return self.B @ us
+        return us @ self.B.T
     
     def eval_jacobian(self, log_k: Tensor) -> Tensor:
         """Evaluates the Jacobian of the parameter-to-observable 

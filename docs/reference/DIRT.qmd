@@ -439,7 +439,7 @@ $$J_{ij} = \frac{\partial x_{i}}{\partial r_{j}}.$$
 
 <code>[**dxdrs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
-:   A $k \times n \times k$ tensor, where element $ijl$  contains element $ik$ of the Jacobian for the $l$th sample  in `rs`.
+:   A $k \times n \times k$ tensor, where element $ijl$  contains element $il$ of the Jacobian for the $j$th sample  in `rs`.
 
 ### random { #deep_tensor.DIRT.random }
 

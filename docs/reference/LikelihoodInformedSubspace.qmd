@@ -17,6 +17,10 @@ A likelihood-informed subspace.
 
 ## Parameters {.doc-section .doc-section-parameters}
 
+<code>[**dim**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The dimension of the (full) target random variable.
+
 <code>[**num_comp**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
 
 :   The number of samples from the complement subspace to use when  evaluating the profile function.

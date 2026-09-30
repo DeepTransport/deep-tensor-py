@@ -1,5 +1,14 @@
 project:
   type: website
+  render: 
+    - "*.qmd"
+    - "*.ipynb"
+    - "!examples/double_banana/"
+    - "!examples/heat/"
+    - "!examples/hgg/"
+    - "!examples/pai/"
+    - "!examples/poisson/"
+    - "!examples/sir/sandbox"
 
 bibliography: references.bib
 toc: true
@@ -31,24 +40,16 @@ website:
       contents:
         - title: Examples
           href: examples/index.qmd
-        - section: Bayesian Inference
+        - section: "Package Paper: Numerical Experiments"
           contents:
+          - title: Shock Absorber
+            href: examples/shock/example_paper.ipynb
           - title: SIR Model
-            href: examples/sir/example_inference.ipynb
-          - title: Shock Absorber Model
-            href: examples/shock/example_inference.ipynb
+            href: examples/sir/example_paper.ipynb
+        - section: Additional Examples
+          contents:
           - title: Logistic Regression
             href: examples/logistic/example_inference.ipynb
-          - title: Heat Equation
-            href: examples/heat/example_inference.ipynb
-        - section: Rare Event Estimation
-          contents:
-          - title: SIR Model
-            href: examples/sir/example_rare_event.ipynb
-        - section: Amortised Inference
-          contents:
-          - title: Poisson Equation
-            href: examples/poisson/example_amortised.ipynb
 
 execute:
   freeze: auto
