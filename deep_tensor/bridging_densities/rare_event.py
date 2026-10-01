@@ -497,7 +497,7 @@ class SigmoidSmoothing(SmoothedIndicator):
     def grad_neglogsmoothind(self, gamma: float, Fs: Tensor) -> Tuple[Tensor, Tensor]:
         neglogsigmoids = self.neglogsmoothind(gamma, Fs)
         negloggrads = (
-            - torch.tensor(gamma).log()
+            - torch.tensor(gamma, device=Fs.device).log()
             - gamma * (self.target_func.threshold - Fs)
             + 2.0 * neglogsigmoids
         )
@@ -561,7 +561,10 @@ class GaussianSmoothing(SmoothedIndicator):
     
     def grad_neglogsmoothind(self, gamma: float, Fs: Tensor) -> Tuple[Tensor, Tensor]:
         lsfs = self.target_func.threshold - Fs
-        neglogpdfs = lsfs**2 * gamma**2 + 0.5*torch.log(torch.pi / (torch.tensor(gamma)**2))
+        neglogpdfs = (
+            lsfs**2 * gamma**2 
+            + 0.5*torch.log(torch.pi / (torch.tensor(gamma, device=Fs.device)**2))
+        )
         neglogcdfs = self.neglogsmoothind(gamma, Fs)
         grad_neglogcdfs = -torch.exp(neglogcdfs - neglogpdfs)
         return neglogcdfs, grad_neglogcdfs

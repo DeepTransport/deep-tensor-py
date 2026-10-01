@@ -102,8 +102,6 @@ class LikelihoodInformedSubspace(Subspace):
 
     def _check_weights(self, weights: Tensor) -> None:
         """Checks a set of importance weights."""
-        # TODO: should also check the gradients for nans, before and 
-        # after taking the reference off..
         if weights.isnan().any():
             msg = "Some weights take NaN values."
             logger.warning(msg)
