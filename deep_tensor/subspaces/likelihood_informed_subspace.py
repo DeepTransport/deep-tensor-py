@@ -100,12 +100,13 @@ class LikelihoodInformedSubspace(Subspace):
     def is_fixed(self) -> bool:
         return False
 
-    def _check_weights(self, weights: Tensor) -> None:
+    def _check_weights(self, weights: Tensor) -> Tensor:
         """Checks a set of importance weights."""
-        if weights.isnan().any():
-            msg = "Some weights take NaN values."
-            logger.warning(msg)
-        return
+        if ~weights.isnan().any():
+            return weights
+        msg = "Some weights take NaN values."
+        logger.warning(msg)
+        return weights.nan_to_num()
     
     def _compute_dim(self, eigvals: Tensor) -> int:
         """Computes the dimension of the updated LIS based on the 
@@ -180,7 +181,7 @@ class LikelihoodInformedSubspace(Subspace):
         log_weights = neglogref_rs - neglogratios
         log_weights -= log_weights.max()
         weights = log_weights.exp() / log_weights.exp().sum()
-        self._check_weights(weights)
+        weights = self._check_weights(weights)
 
         grad_neglogref_rs = reference.eval_potential(rs)[1]
         grad_neglogliks = grad_neglogratios - grad_neglogref_rs
