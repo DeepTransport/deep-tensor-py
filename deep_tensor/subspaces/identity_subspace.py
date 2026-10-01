@@ -6,6 +6,7 @@ import torch
 from torch import Tensor
 
 from .subspace import Subspace
+from ..references import Reference
 
 
 class IdentitySubspace(Subspace):
@@ -78,8 +79,8 @@ class IdentitySubspace(Subspace):
     
     def update(
         self, 
-        grad_neglogbridge: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]],
-        grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]]
+        grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]],
+        reference: Reference
     ) -> None: 
         return
 

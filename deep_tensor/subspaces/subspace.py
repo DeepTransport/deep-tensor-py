@@ -6,6 +6,8 @@ from typing import Callable, Tuple
 import torch
 from torch import Tensor 
 
+from ..references import Reference
+
 
 class Subspace(abc.ABC):
 
@@ -195,8 +197,8 @@ class Subspace(abc.ABC):
     @abc.abstractmethod 
     def update(
         self,
-        grad_neglogbridge: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]],
-        grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]]
+        grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]],
+        reference: Reference
     ) -> None:
         """Updates the basis associated with the current reduced 
         subspace.

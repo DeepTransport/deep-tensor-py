@@ -286,7 +286,7 @@ class DIRT():
             # information from the previous FTT
             ftt = self.ftt.clone() 
         self.subspaces[k] = self.subspaces[k-1].clone()
-        self.subspaces[k].update(self._grad_neglogbridge, self._grad_neglogratio)
+        self.subspaces[k].update(self._grad_neglogratio, self.reference)
         self.sirts[k] = SIRT(
             self._eval_neglogprofile, 
             ftt, 

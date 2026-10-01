@@ -3,13 +3,13 @@ from __future__ import annotations
 import logging
 import math
 from typing import Callable, Tuple
-import warnings
 
 import torch 
 from torch import Tensor
 
 from .subspace import Subspace
 from ..debiasing.importance_sampling import estimate_ess_ratio
+from ..references import GaussianReference
 from ..tools.printing import lis_info
 
 
@@ -49,7 +49,8 @@ class LikelihoodInformedSubspace(Subspace):
         where $\{\lambda_{k}\}_{k=1}^{n}$ denote the eigenvalues of the 
         current Gram matrix ordered from largest to smallest.
     initial_basis:
-        A set of basis vectors to initialise the subspace with.
+        A set of basis vectors to initialise the subspace with. Note 
+        that this is only supported if `update_method='augment'`.
     device:
         The device to carry out computations on.
 
@@ -73,13 +74,6 @@ class LikelihoodInformedSubspace(Subspace):
                 f"{"`, `".join(UPDATE_METHODS_LIS)}`."
             )
             raise Exception(msg)
-        if update_method == "rebuild" and initial_basis is not None:
-            msg = (
-                "If update_method==`rebuild`, the initial basis is not "
-                "used. To start from an initial subspace, use "
-                "update_method==`augment`."
-            )
-            warnings.warn(msg)
 
         self.num_comp = num_comp 
         self.fixed_comp = fixed_comp
@@ -96,11 +90,10 @@ class LikelihoodInformedSubspace(Subspace):
         if self.initial_basis is not None:
             self.basis_red = self.initial_basis.clone()
             self.basis_comp = self._compute_basis_comp(self.basis_red)
-            if self.fixed_comp and self.num_comp > 0:
-                self._compute_samples_comp(self.num_comp)
+        if self.fixed_comp and self.num_comp > 0:
+            self._compute_samples_comp(self.num_comp)
         self.P_red = self.basis_red @ self.basis_red.T
         self.P_comp = self.basis_comp @ self.basis_comp.T
-
         return
     
     @property
@@ -125,13 +118,37 @@ class LikelihoodInformedSubspace(Subspace):
         dim_red = self.dim - dim_comp
         return int(dim_red)
     
-    def _build_H(self, grads: Tensor, weights: Tensor) -> Tensor:
+    def _build_gram(self, grad_neglogliks: Tensor, weights: Tensor) -> Tensor:
         """Computes an importance sampling estimate of the Gram matrix."""
-        grads = torch.nan_to_num(grads)
-        H = torch.zeros((self.dim, self.dim))
-        for grad, weight in zip(grads, weights):
-            H += weight * grad[:, None] @ grad[None, :]
-        return H
+        grad_neglogliks = torch.nan_to_num(grad_neglogliks)
+        ws = weights[None, None, :]
+        gs_0 = grad_neglogliks.T[:, None, :]
+        gs_1 = grad_neglogliks.T[None, :, :]
+        gram = (ws * gs_0 * gs_1).sum(dim=2)
+        return gram
+
+    def _update_basis_augment(self, eigvals: Tensor, eigvecs: Tensor) -> None:
+        """Augments the existing basis with a new set of (orthogonal) 
+        vectors.
+        """
+        dim_aug = self._compute_dim(eigvals)
+        if dim_aug < 2 - self.dim_red:
+            msg = "Dimension of computed subspace is less than 2. Increasing..."
+            logger.info(msg)
+            dim_aug = 2 - self.dim_red
+        basis_aug = eigvecs.flip(dims=(1,))[:, :dim_aug]
+        self.basis_red = torch.hstack((self.basis_red, basis_aug))
+        return 
+
+    def _update_basis_rebuild(self, eigvals: Tensor, eigvecs: Tensor) -> None:
+        """Computes a new basis from scratch."""
+        dim_red = self._compute_dim(eigvals)
+        if dim_red < 2:
+            msg = "Dimension of computed subspace is less than 2. Increasing..."
+            logger.info(msg)
+            dim_red = 2
+        self.basis_red = eigvecs.flip(dims=(1,))[:, :dim_red]
+        return
     
     def _print_diagnostics(self, ess: Tensor) -> None:
         diagnostics = [
@@ -140,113 +157,54 @@ class LikelihoodInformedSubspace(Subspace):
         ]
         lis_info(" | ".join(diagnostics).ljust(40))
         return
-
-    def _update_augment(
-        self, 
-        grad_neglogbridge: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]]
-    ) -> None:
-        
-        # Generate a set of samples distributed according to biasing 
-        # density. TODO: should these be generated according to reference?
-        shape_rs = (self.num_samples_gram, self.dim)
-        rs = torch.randn(shape_rs, device=self.device)
-        neglogfus, neglogbridges, grad_neglogbridges = grad_neglogbridge(rs)
-
-        self.num_eval += rs.shape[0]
-        self.num_eval_grad += rs.shape[0]
-
-        log_weights = neglogfus - neglogbridges
-        log_weights -= log_weights.max()
-        weights = log_weights.exp() / log_weights.exp().sum()
-        self._check_weights(weights)
-        ess = estimate_ess_ratio(log_weights) * weights.numel()
-
-        # Subtract the contribution of the standard Gaussian to the 
-        # gradient of the bridging density
-        grad_neglogref_us = rs.clone()
-        grad_neglogliks = grad_neglogbridges - grad_neglogref_us
-
-        H = self._build_H(grad_neglogliks, weights)
-        H_comp = self.P_comp @ H @ self.P_comp
-        eigvals, eigvecs = torch.linalg.eigh(H_comp)
-        dim_red = self._compute_dim(eigvals)
-
-        # Update basis and projection operators
-        basis_up = eigvecs.flip(dims=(1,))[:, :dim_red]
-        self.basis_red = torch.hstack((self.basis_red, basis_up))
-        self.basis_comp = self._compute_basis_comp(self.basis_red)
-        self.P_red = self.basis_red @ self.basis_red.T
-        self.P_comp = self.basis_comp @ self.basis_comp.T
-
-        self._print_diagnostics(ess)
-        return
     
-    def _update_rebuild(
+    def update(
         self, 
-        grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]]
+        grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]],
+        reference: GaussianReference
     ) -> None:
 
-        # Generate a set of samples distributed according to biasing 
-        # density. TODO: should these be generated according to reference?
-        # TODO: it might be a good idea to pass the reference into these 
-        # functions..
-        rs = torch.randn((self.num_samples_gram, self.dim), device=self.device)
-        neglogref_rs, neglogratios, grad_neglogratios = grad_neglogratio(rs)
+        if self.update_method not in UPDATE_METHODS_LIS:
+            msg = (
+                "Unknown update method provided. "
+                + "Accepted values are " 
+                + ", ".join(UPDATE_METHODS_LIS) + "."
+            )
+            raise Exception(msg)
 
-        self.num_eval += rs.shape[0]
-        self.num_eval_grad += rs.shape[0]
+        lis_info("Computing estimate of Gram matrix...", end="\r")
+
+        rs = reference.random(self.num_samples_gram, self.dim, device=self.device)
+        neglogref_rs, neglogratios, grad_neglogratios = grad_neglogratio(rs)
+        self.num_eval += self.num_samples_gram
+        self.num_eval_grad += self.num_samples_gram
 
         log_weights = neglogref_rs - neglogratios
         log_weights -= log_weights.max()
         weights = log_weights.exp() / log_weights.exp().sum()
         self._check_weights(weights)
-        ess = estimate_ess_ratio(log_weights) * weights.numel()
 
-        # Subtract the contribution of the standard Gaussian to the 
-        # gradient of the ratio
-        # self.reference.eval_potential()
-        grad_neglogref_rs = rs.clone()
+        grad_neglogref_rs = reference.eval_potential(rs)[1]
         grad_neglogliks = grad_neglogratios - grad_neglogref_rs
 
-        H = self._build_H(grad_neglogliks, weights)
-        eigvals, eigvecs = torch.linalg.eigh(H)
-        dim_red = self._compute_dim(eigvals)
-        dim_red = max(dim_red, 2)
-
-        # Update basis and projection operators
-        self.basis_red = eigvecs.flip(dims=(1,))[:, :dim_red]
-        self.basis_comp = self._compute_basis_comp(self.basis_red)
-        self.P_red = self.basis_red @ self.basis_red.T
-        self.P_comp = self.basis_comp @ self.basis_comp.T
-
-        self._print_diagnostics(ess)
-        return
-    
-    def update(
-        self, 
-        grad_neglogbridge: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]],
-        grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]]
-    ) -> None:
-
-        lis_info("Computing estimate of Gram matrix...", end="\r")
+        gram = self._build_gram(grad_neglogliks, weights)
+        if self.update_method == "augment":
+            gram = self.P_comp @ gram @ self.P_comp 
+        eigvals, eigvecs = torch.linalg.eigh(gram)
 
         if self.update_method == "augment":
-            self._update_augment(grad_neglogbridge)
+            self._update_basis_augment(eigvals, eigvecs)
         elif self.update_method == "rebuild":
-            self._update_rebuild(grad_neglogratio)
-        else:
-            msg = "Unknown update method provided."
-            raise Exception(msg)
-
-        # Estimate some errors
-        # self.error_acc = torch.trace(self.P_comp @ H @ self.P_comp)
-        # eigvals, _ = torch.linalg.eigh(H)
-        # self.error_new = torch.sum(eigvals[:self.dim_comp])
+            self._update_basis_rebuild(eigvals, eigvecs)
+        self.basis_comp = self._compute_basis_comp(self.basis_red)    
+        self.P_red = self.basis_red @ self.basis_red.T
+        self.P_comp = self.basis_comp @ self.basis_comp.T
         
-        # The subspace is likely to have changed, so we recompute the 
-        # samples in the complement subspace.
         if self.fixed_comp and self.num_comp > 0:
             self._compute_samples_comp(self.num_comp)
+
+        ess = estimate_ess_ratio(log_weights) * self.num_samples_gram
+        self._print_diagnostics(ess)
         return 
     
     def eval_neglogprofile(
