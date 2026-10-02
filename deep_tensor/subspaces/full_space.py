@@ -9,8 +9,8 @@ from .subspace import Subspace
 from ..references import Reference
 
 
-class IdentitySubspace(Subspace):
-    r"""Identity subspace (*i.e.,* no dimension reduction).
+class FullSpace(Subspace):
+    r"""No dimension reduction.
     
     Parameters
     ----------
@@ -84,5 +84,5 @@ class IdentitySubspace(Subspace):
     ) -> None: 
         return
 
-    def clone(self) -> IdentitySubspace:
-        return IdentitySubspace(dim=self.dim, device=self.device)
+    def clone(self) -> FullSpace:
+        return FullSpace(dim=self.dim, device=self.device)

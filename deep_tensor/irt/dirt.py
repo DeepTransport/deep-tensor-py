@@ -10,7 +10,7 @@ from .sirt import SIRT, SUBSET2DIRECTION
 from ..bridging_densities import Bridge, Tempering
 from ..ftt import Direction, FTT
 from ..preconditioners import Preconditioner
-from ..subspaces import Subspace, IdentitySubspace
+from ..subspaces import Subspace, FullSpace
 from ..target_functions import TargetFunc
 from ..tools.printing import dirt_info, format_time
 from ..tools import compute_f_divergence
@@ -66,7 +66,7 @@ class DIRT():
         if not isinstance(target_func, TargetFunc):
             target_func = TargetFunc(target_func)
         if subspace is None:
-            subspace = IdentitySubspace(preconditioner.dim, device=device)
+            subspace = FullSpace(preconditioner.dim, device=device)
         if bridge is None:
             bridge = Tempering()
         if options is None:
@@ -647,11 +647,11 @@ class DIRT():
     def _check_dimension(self, xs: Tensor) -> None:
         """Checks whether the dimension of a set of samples is 
         compatible with the subspace being used (if marginals are being 
-        evaluated, only an IdentitySubspace can be used).
+        evaluated, only a FullSpace can be used).
         """
         evaluating_marginal = xs.shape[1] != self.dim
-        identity_subspace = isinstance(self.subspace, IdentitySubspace)
-        if evaluating_marginal and not identity_subspace:
+        full_space = isinstance(self.subspace, FullSpace)
+        if evaluating_marginal and not full_space:
             msg = (
                 "If a reduced subspace is used for the construction of " 
                 "a DIRT object, marginals cannot be evaluated."
@@ -808,10 +808,10 @@ class DIRT():
         n_ys, d_ys = ys.shape
         rs = self.reference._project_to_domain(rs)
 
-        if not isinstance(self.subspace, IdentitySubspace):
+        if not isinstance(self.subspace, FullSpace):
             msg = (
                 "To evaluate conditions of the inverse Rosenblatt "
-                "transport, an IdentitySubspace must be used."
+                "transport, a FullSpace must be used."
             )
             raise Exception(msg)
         if d_rs == 0 or d_ys == 0:
