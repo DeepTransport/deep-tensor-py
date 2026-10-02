@@ -1,5 +1,55 @@
+import math
+import warnings
+
 import torch
 from torch import Tensor
+
+
+def estimate_dhell(
+    neglogfxs: Tensor, 
+    negloggxs: Tensor,
+    negloghxs: Tensor | None = None
+) -> Tensor:
+    """Estimates the Hellinger divergence between two (unnormalised)
+    probability densities using an importance sampling estimate.
+
+    Parameters
+    ----------
+    neglogfxs:
+        An n-dimensional vector containing evaluations of the negative 
+        logarithm of the first (possibly unnormalised) density.
+    negloggxs:
+        An n-dimensional vector containing evaluations of the negative 
+        logarithm of the second (possibly unnormalised) density.
+    negloghs:
+        An n-dimensional vector containing evaluations of the negative 
+        logarithm of the proposal density. If this is not supplied, 
+        neglogfxs will be assumed to be draws from the (normalised) 
+        importance density.
+    
+    Returns
+    -------
+    dhell:
+        An importance sampling estimate of the Hellinger divergence.
+    
+    """
+
+    if negloghxs is None:
+        negloghxs = neglogfxs.clone()
+
+    n = neglogfxs.numel()
+    neglogfx_norm = -torch.logsumexp(negloghxs - neglogfxs, dim=0) + math.log(n)
+    negloggx_norm = -torch.logsumexp(negloghxs - negloggxs, dim=0) + math.log(n)
+
+    neglogfxs_norm = neglogfxs - neglogfx_norm
+    negloggxs_norm = negloggxs - negloggx_norm
+
+    dhell_sq = 1.0 - torch.exp(
+        torch.logsumexp(-0.5*neglogfxs_norm-0.5*negloggxs_norm+negloghxs, dim=0) 
+        - math.log(n)
+    )
+    dhell = dhell_sq.clamp(min=0.0) ** 0.5
+    return dhell
 
 
 DIVERGENCES = ("h2", "kl", "tv")
@@ -57,6 +107,9 @@ def compute_f_divergence(logqs: Tensor, logps: Tensor, div: str = "h2") -> Tenso
     https://en.wikipedia.org/wiki/F-divergence#Common_examples_of_f-divergences
         
     """
+    
+    msg = "This function is deprecated. Please use `estimate_dhell` instead."
+    warnings.warn(msg)
 
     div = div.lower()
     if div not in DIVERGENCES:

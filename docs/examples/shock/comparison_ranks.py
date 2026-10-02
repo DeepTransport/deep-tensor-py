@@ -123,7 +123,7 @@ for i, rank in enumerate(ranks):
             # Run an independence MCMC sampler
             potentials_true = neglogpost(samples_dirt)
 
-            dhell = dt.compute_f_divergence(-potentials_dirt, -potentials_true).sqrt().item()
+            dhell = dt.estimate_dhell(potentials_dirt, potentials_true)
 
             dhells[i][j][k] = dhell 
             evals[i][j][k] = dirt.num_eval_construction

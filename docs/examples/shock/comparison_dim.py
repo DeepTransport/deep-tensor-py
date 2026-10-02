@@ -127,7 +127,7 @@ for i, D in enumerate(Ds):
 
             potentials_true = eval_neglogpost(samples_dirt)
 
-            dhell = dt.compute_f_divergence(-potentials_dirt, -potentials_true).sqrt().item()
+            dhell = dt.estimate_dhell(potentials_dirt, potentials_true)
 
             dhells[i][j][k] = dhell 
             evals[i][j][k] = dirt.num_eval_construction

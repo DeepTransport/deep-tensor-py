@@ -7,7 +7,7 @@ from ..ftt import Direction, FTT
 from ..linalg import batch_mul, n_mode_prod, unfold_left, unfold_right
 from ..polynomials import construct_cdf
 from ..references import Reference
-from ..tools import compute_f_divergence
+from ..tools import estimate_dhell
 
 
 SUBSET2DIRECTION = {
@@ -911,5 +911,5 @@ class SIRT():
         zs = torch.rand((num_samples, self.dim))
         us, neglogfus = self._eval_irt(zs, subset="first")
         neglogfus_exact = self.potential(us)
-        dhell = compute_f_divergence(-neglogfus, -neglogfus_exact).sqrt()
+        dhell = estimate_dhell(neglogfus, neglogfus_exact)
         return dhell

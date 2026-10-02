@@ -7,7 +7,7 @@ from .bridge import Bridge
 from ..debiasing.importance_sampling import estimate_ess_ratio
 from ..preconditioners import Preconditioner
 from ..target_functions import TargetFunc
-from ..tools import compute_f_divergence
+from ..tools import estimate_dhell
 
 
 class Tempering(Bridge):
@@ -372,7 +372,7 @@ class Tempering(Bridge):
             or isinstance(neglogfus_dirt, NoneType)): 
             return msg
 
-        div_h2 = compute_f_divergence(-neglogfus_dirt, -neglogfus)
+        dhell = estimate_dhell(neglogfus_dirt, neglogfus)
         ess = estimate_ess_ratio(log_weights)
-        msg += [f"DHell: {div_h2.sqrt():.4f}", f"ESS: {ess:.4f}"]
+        msg += [f"DHell: {dhell:.4f}", f"ESS: {ess:.4f}"]
         return msg

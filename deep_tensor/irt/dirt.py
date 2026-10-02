@@ -13,7 +13,7 @@ from ..preconditioners import Preconditioner
 from ..subspaces import Subspace, FullSpace
 from ..target_functions import TargetFunc
 from ..tools.printing import dirt_info, format_time
-from ..tools import compute_f_divergence
+from ..tools import estimate_dhell
 
 
 def unit_norm_pdf(xs: Tensor) -> Tensor:
@@ -306,7 +306,7 @@ class DIRT():
         rs = self.reference.random(n=num_samples, d=self.dim)
         us, neglogratios_dirt = self._eval_irt_reference_i(rs, self.num_layers, subset="first")
         neglogratios_exact = self._eval_neglogratio(us)
-        dhell_ratio = compute_f_divergence(-neglogratios_dirt, -neglogratios_exact).sqrt()
+        dhell_ratio = estimate_dhell(neglogratios_dirt, neglogratios_exact)
         # self.dhell_ratios.append(dhell_ratio)
         return dhell_ratio
 
@@ -346,8 +346,8 @@ class DIRT():
                 log_weights, neglogbridges = self.bridge.update(us, neglogfus_dirt)
 
                 # neglogfus_target = self.bridge._eval_pullback(us)
-                # dhell_bridge = compute_f_divergence(-neglogfus_dirt, -neglogbridges).sqrt()
-                # dhell_target = compute_f_divergence(-neglogfus_dirt, -neglogfus_target).sqrt()
+                # dhell_bridge = estimate_dhell(neglogfus_dirt, neglogbridges)
+                # dhell_target = estimate_dhell(neglogfus_dirt, neglogfus_target)
 
             else:
                 log_weights, neglogbridges, neglogfus_dirt = None, None, None
@@ -380,7 +380,7 @@ class DIRT():
                 rs = self.reference.random(self.num_error_samples, self.dim, device=self.device)
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
                 neglogfus = self.bridge._eval_pullback(us)
-                dhell = compute_f_divergence(-neglogfus_dirt, -neglogfus).sqrt() 
+                dhell = estimate_dhell(neglogfus_dirt, neglogfus)
                 info_msgs += [f"DHell: {dhell:.4f}."]
                 self.dhell_bridges.append(dhell)  # TODO: fix this. it should be the smoothed function.
                 self.dhell_targets.append(dhell)

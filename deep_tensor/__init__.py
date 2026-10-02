@@ -44,4 +44,4 @@ from .preconditioners import (
 from .references import Reference, GaussianReference, UniformReference
 from .subspaces import FixedSubspace, FullSpace, LikelihoodInformedSubspace
 from .target_functions import RareEventFunc, TargetFunc
-from .tools import compute_f_divergence
+from .tools import estimate_dhell, compute_f_divergence
