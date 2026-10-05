@@ -45,8 +45,9 @@ website:
       - reference/GaussianSmoothing.qmd
       section: Bridges
     - contents:
-      - reference/IdentitySubspace.qmd
+      - reference/FullSpace.qmd
       - reference/LikelihoodInformedSubspace.qmd
+      - reference/FixedSubspace.qmd
       section: Subspaces
     - contents:
       - reference/run_importance_sampling.qmd

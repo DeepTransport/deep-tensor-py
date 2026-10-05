@@ -43,7 +43,7 @@ A likelihood-informed subspace.
 
 <code>[**initial_basis**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
-:   A set of basis vectors to initialise the subspace with.
+:   A set of basis vectors to initialise the subspace with. Note  that this is only supported if `update_method='augment'`.
 
 <code>[**device**]{.parameter-name} [:]{.parameter-annotation-sep} [torch.device]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.get_default_device()]{.parameter-default}</code>
 

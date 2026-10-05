@@ -1,10 +1,10 @@
-# IdentitySubspace { #deep_tensor.IdentitySubspace }
+# FullSpace { #deep_tensor.FullSpace }
 
 ```python
-IdentitySubspace(dim: int, device: torch.device = torch.get_default_device())
+FullSpace(dim: int, device: torch.device = torch.get_default_device())
 ```
 
-Identity subspace (*i.e.,* no dimension reduction).
+No dimension reduction.
 
 ## Parameters {.doc-section .doc-section-parameters}
 

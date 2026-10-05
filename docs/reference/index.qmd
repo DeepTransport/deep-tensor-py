@@ -88,8 +88,9 @@ Objects used to construct DIRT objects in reduced spaces.
 
 | | |
 | --- | --- |
-| [IdentitySubspace](IdentitySubspace.qmd#deep_tensor.IdentitySubspace) | Identity subspace (*i.e.,* no dimension reduction). |
+| [FullSpace](FullSpace.qmd#deep_tensor.FullSpace) | No dimension reduction. |
 | [LikelihoodInformedSubspace](LikelihoodInformedSubspace.qmd#deep_tensor.LikelihoodInformedSubspace) | A likelihood-informed subspace. |
+| [FixedSubspace](FixedSubspace.qmd#deep_tensor.FixedSubspace) | A fixed subspace. |
 
 ## Debiasing
 

@@ -7,8 +7,8 @@ project:
     - "!examples/heat/"
     - "!examples/hgg/"
     - "!examples/pai/"
-    - "!examples/poisson/"
-    - "!examples/sir/sandbox"
+    - "!examples/poisson/sandbox/"
+    - "!examples/sir/sandbox/"
 
 bibliography: references.bib
 toc: true
@@ -46,6 +46,8 @@ website:
             href: examples/shock/example_paper.ipynb
           - title: SIR Model
             href: examples/sir/example_paper.ipynb
+          - title: Poisson Equation
+            href: examples/poisson/example_amortised_kl.ipynb
         - section: Additional Examples
           contents:
           - title: Logistic Regression
@@ -174,9 +176,11 @@ quartodoc:
     - title: Subspaces
       desc: Objects used to construct DIRT objects in reduced spaces.
       contents:
-        - name: IdentitySubspace
+        - name: FullSpace
           members: []
         - name: LikelihoodInformedSubspace
+          members: []
+        - name: FixedSubspace
           members: []
 
     - title: Debiasing

@@ -1,0 +1,30 @@
+# FixedSubspace { #deep_tensor.FixedSubspace }
+
+```python
+FixedSubspace(
+    basis: Tensor,
+    num_comp: int = 0,
+    fixed_comp: bool = True,
+    device: torch.device = torch.get_default_device(),
+)
+```
+
+A fixed subspace.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**basis**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   The basis for the subspace.
+
+<code>[**num_comp**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [0]{.parameter-default}</code>
+
+:   The number of samples from the complement subspace to use when  evaluating the profile function.
+
+<code>[**fixed_comp**]{.parameter-name} [:]{.parameter-annotation-sep} [bool]{.parameter-annotation} [ = ]{.parameter-default-sep} [True]{.parameter-default}</code>
+
+:   Whether to fix the samples from the complement subspace.
+
+<code>[**device**]{.parameter-name} [:]{.parameter-annotation-sep} [torch.device]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.get_default_device()]{.parameter-default}</code>
+
+:   The device to carry out computations on.
