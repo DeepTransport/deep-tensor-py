@@ -40,6 +40,44 @@ Deep (squared) inverse Rosenblatt transport.
 
 :   The device to carry out computations on.
 
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**num_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The number of layers of the approximation.
+
+<code>[**log_z**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation}</code>
+
+:   The logarithm of the normalising constant of the approximation.
+
+<code>[**subspace_dims**]{.parameter-name} [:]{.parameter-annotation-sep} [List]{.parameter-annotation}</code>
+
+:   The dimensions of the subspaces within which each layer of the  DIRT is constructed.
+
+<code>[**num_eval_construction**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The total number of function evaluations made during DIRT  construction, excluding evaluations made for diagnostic  purposes.
+
+<code>[**num_eval**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The total number of evaluations of the target density made  during DIRT construction.
+
+<code>[**num_grad**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The number of evaluations of the gradient of the target density  made during DIRT construction.
+
+<code>[**dhells**]{.parameter-name} [:]{.parameter-annotation-sep} [List]{.parameter-annotation}</code>
+
+:   Importance sampling estimates of the Hellinger distances  between the DIRT approximation and the corresponding bridging  density at each layer of the DIRT construction.
+
+<code>[**dhell_ratios**]{.parameter-name} [:]{.parameter-annotation-sep} [List]{.parameter-annotation}</code>
+
+:   Importance sampling estimates of the Hellinger distances  between each ratio function and its SIRT approximation.
+
+<code>[**dhell_ratios_red**]{.parameter-name} [:]{.parameter-annotation-sep} [List]{.parameter-annotation}</code>
+
+:   Importance sampling estimates of the Hellinger distances  between each reduced ratio function and its SIRT approximation.
+
 ## Methods
 
 | Name | Description |

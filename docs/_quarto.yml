@@ -94,7 +94,13 @@ quartodoc:
       desc: An object used to generate an approximate coupling between random variables using a composition of squared inverse Rosenblatt transports, constructed using functional tensor trains.
       contents:
         - name: DIRT
-          members: [eval_potential, eval_potential_cond, eval_rt, eval_irt, eval_cirt, eval_irt_pullback, eval_cirt_pullback, jac_rt, jac_irt, random, sobol]
+          members: [
+            eval_potential, eval_potential_cond, 
+            eval_rt, eval_irt, eval_cirt, 
+            eval_irt_pullback, eval_cirt_pullback, 
+            jac_rt, jac_irt, 
+            random, sobol
+          ]
         - name: DIRTOptions
 
     - title: Target Functions

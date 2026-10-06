@@ -38,6 +38,10 @@ class SIRT():
     cdf_tol:
         The tolerance used when solving the rootfinding problem to 
         evaluate the inverse of each conditional CDF.
+    num_error_samples:
+        The number of samples to use to compute and importance sampling 
+        estimate of the Hellinger distance between the target function 
+        and the SIRT approximation.
     device:
         The device to carry out computations on.
 
@@ -51,7 +55,7 @@ class SIRT():
         reference: Reference,
         defensive: float,
         cdf_tol: float,
-        num_error_samples: int = 1000,  # TODO: need to add an option for this.
+        num_error_samples: int,
         device: torch.device = torch.get_default_device()
     ):
 
@@ -74,14 +78,7 @@ class SIRT():
         self._Rs_b: Dict[int, Tensor] = {}
         self._marginalise_forward()
         self._marginalise_backward()
-
-        # Estimate the Hellinger divergence between the current ratio 
-        # function and the SIRT approximation
-
-        if num_error_samples > 0:
-            self._dhell_ratio = self._estimate_dhell(num_error_samples)
-        else:
-            self._dhell_ratio = None
+        self._dhell = self._estimate_dhell(num_error_samples)
         return
     
     @property
@@ -104,9 +101,9 @@ class SIRT():
     def num_eval_construction(self) -> int:
         return self.ftt.num_eval_construction
     
-    def eval_measure_potential(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
-        """Computes the target potential function and its gradient for 
-        a set of samples from the approximation domain.
+    def _eval_measure_potential(self, xs: Tensor) -> Tensor:
+        """Computes the target potential function for a set of samples 
+        from the approximation domain.
         
         Parameters
         ----------
@@ -119,18 +116,12 @@ class SIRT():
         neglogwxs:
             An n-dimensional vector containing the weighting function 
             evaluated at each element of xs.
-        negloggradwxs:
-            An n * d matrix containing the gradient of the negative 
-            logarithm of each weighting function evaluated at each 
-            element of xs.
         
         """
         ls, dldxs = self.domain.approx2local(xs)
         neglogwls = -self.basis.eval_log_measure(ls).sum(dim=1)
-        gradneglogwls = -self.basis.eval_log_measure_deriv(ls)
         neglogwxs = neglogwls - dldxs.log().sum(dim=1)        
-        gradneglogwxs = gradneglogwls * dldxs
-        return neglogwxs, gradneglogwxs
+        return neglogwxs
 
     def _target_func(self, ls: Tensor) -> Tensor:
         """Returns the square root of the ratio between the target 
@@ -140,7 +131,7 @@ class SIRT():
         """
         xs = self.domain.local2approx(ls)[0]
         neglogfxs = self.potential(xs)
-        neglogwxs = self.eval_measure_potential(xs)[0]
+        neglogwxs = self._eval_measure_potential(xs)[0]
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
         return gs
     
@@ -907,9 +898,14 @@ class SIRT():
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs
     
-    def _estimate_dhell(self, num_samples: int) -> Tensor:
-        zs = torch.rand((num_samples, self.dim))
+    def _estimate_dhell(self, num_samples: int) -> float | None:
+        """Computes an estimate of the Hellinger distance between 
+        the ratio function and SIRT approximation.
+        """
+        if num_samples == 0:
+            return None
+        zs = torch.rand(num_samples, self.dim)
         us, neglogfus = self._eval_irt(zs, subset="first")
         neglogfus_exact = self.potential(us)
         dhell = estimate_dhell(neglogfus, neglogfus_exact)
-        return dhell
+        return float(dhell)

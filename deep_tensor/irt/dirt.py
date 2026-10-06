@@ -37,6 +37,36 @@ class DIRT():
         Options which control the DIRT construction process.
     device:
         The device to carry out computations on.
+
+    Attributes
+    ----------
+    num_layers:
+        The number of layers of the approximation.
+    log_z:
+        The logarithm of the normalising constant of the approximation.
+    subspace_dims:
+        The dimensions of the subspaces within which each layer of the 
+        DIRT is constructed.
+    num_eval_construction:
+        The total number of function evaluations made during DIRT 
+        construction, excluding evaluations made for diagnostic 
+        purposes.
+    num_eval:
+        The total number of evaluations of the target density made 
+        during DIRT construction.
+    num_grad:
+        The number of evaluations of the gradient of the target density 
+        made during DIRT construction.
+    dhells:
+        Importance sampling estimates of the Hellinger distances 
+        between the DIRT approximation and the corresponding bridging 
+        density at each layer of the DIRT construction.
+    dhell_ratios:
+        Importance sampling estimates of the Hellinger distances 
+        between each ratio function and its SIRT approximation.
+    dhell_ratios_red: 
+        Importance sampling estimates of the Hellinger distances 
+        between each reduced ratio function and its SIRT approximation.
     
     """
 
@@ -72,12 +102,15 @@ class DIRT():
         self.subspaces: Dict[int, Subspace] = {-1: subspace}
         self.ratio_type = options.ratio_type 
         self.num_error_samples = options.num_error_samples
+        self.num_error_samples_ratio = options.num_error_samples_ratio
+        self.num_error_samples_ratio_red = options.num_error_samples_ratio_red
         self.defensive = options.defensive
         self.cdf_tol = options.cdf_tol
         self.verbose = options.verbose
         self.sirts: Dict[int, SIRT] = {}
         self.device = device
-        self._dhell_ratios: Dict[int, float] = {}
+        self._dhell_ratios: Dict[int, float | None] = {}
+        self._dhells: Dict[int, float | None] = {}
 
         if self.bridge.is_adaptive and self.num_error_samples == 0:
             msg = (
@@ -100,78 +133,85 @@ class DIRT():
 
         self._build()
         return
+
+    @property 
+    def _num_eval_sirt(self) -> int:
+        sirt_evals = [
+            self.sirts[k].num_eval * max(self.subspaces[k].num_comp, 1) 
+            for k in self.sirts
+        ]
+        return sum(sirt_evals)
+    
+    @property 
+    def _num_eval_subspace(self) -> int:
+        return sum([self.subspaces[k].num_eval for k in self.subspaces])
+    
+    @property 
+    def _num_eval_diagnostic(self) -> int:
+        num_eval = (
+            self.num_error_samples * (self.num_layers + 1)
+            + self.num_error_samples_ratio * self.num_layers
+            + self.num_error_samples_ratio_red * self.num_layers
+        )
+        return num_eval
+    
+    @property 
+    def _num_grad_subspace(self) -> int:
+        return sum([self.subspaces[k].num_eval_grad for k in self.subspaces])
     
     @property 
     def num_layers(self) -> int:
         return self.bridge.num_layers
-    
+
     @num_layers.setter
     def num_layers(self, value: int) -> None:
         self.bridge.num_layers = value 
         return
 
-    @property 
-    def num_eval_sirt(self) -> int:
-        return sum([self.sirts[k].num_eval * max(self.subspaces[k].num_comp, 1) 
-                    for k in self.sirts])
-    
-    @property 
-    def num_eval_subspace(self) -> int:
-        """The total number of function evaluations used when updating 
-        the subspace(s) of the DIRT.
-        """
-        return sum([self.subspaces[k].num_eval for k in self.subspaces])
-    
-    @property 
-    def num_eval_diagnostic(self) -> int:
-        return self.num_error_samples * (self.bridge.num_layers + 1)
-    
-    @property 
-    def num_eval_construction(self) -> int:
-        num_eval_sirt = sum([self.sirts[k].num_eval_construction * max(self.subspaces[k].num_comp, 1) 
-                             for k in self.sirts]) 
-        return num_eval_sirt + self.num_eval_subspace
-    
-    @property 
-    def num_eval_grad(self) -> int:
-        return sum([self.subspaces[k].num_eval_grad for k in self.subspaces])
-
-    @property
-    def num_eval(self) -> int:
-        return (self.num_eval_sirt + self.num_eval_subspace 
-                + self.num_eval_diagnostic)
-    
     @property
     def log_z(self) -> float:
         if not self.sirts.keys():
             return 0.0
         return sum([math.log(self.sirts[k].z) for k in self.sirts])
-    
+
     @property 
     def subspace_dims(self) -> List:
         return [self.subspaces[k].dim_red for k in range(self.num_layers)]
-    
+
+    @property 
+    def num_eval_construction(self) -> int:
+        sirt_evals = [
+            self.sirts[k].num_eval_construction 
+            * max(self.subspaces[k].num_comp, 1) 
+            for k in self.sirts
+        ]
+        num_eval_sirt = sum(sirt_evals) 
+        return num_eval_sirt + self._num_eval_subspace
+
     @property
-    def dhell_ratios_red(self) -> Tensor:
-        """Estimates of the Hellinger divergences between each reduced 
-        ratio function and its SIRT approximation.
-        """
-        return torch.tensor([self.sirts[k]._dhell_ratio for k in range(self.num_layers)])
-    
+    def num_eval(self) -> int:
+        evals = (
+            self._num_eval_sirt 
+            + self._num_eval_subspace 
+            + self._num_eval_diagnostic
+        )
+        return evals
+
+    @property 
+    def num_grad(self) -> int:
+        return self._num_grad_subspace
+
+    @property 
+    def dhells(self) -> List:
+        return [self._dhells[k] for k in range(self.num_layers)]
+
     @property
-    def dhell_ratios(self) -> Tensor:
-        """Estimates of the Hellinger divergences between each ratio 
-        function and its SIRT approximation.
-        """
-        return torch.tensor([self._dhell_ratios[k] for k in range(self.num_layers)]) 
-    
-    # @property 
-    # def error_accs(self) -> List:
-    #     return [self.subspaces[k].error_acc for k in range(self.num_layers)]  # type: ignore
-    
-    # @property 
-    # def error_news(self) -> List:
-    #     return [self.subspaces[k].error_new for k in range(self.num_layers)]  # type: ignore
+    def dhell_ratios(self) -> List:
+        return [self._dhell_ratios[k] for k in range(self.num_layers)]
+
+    @property
+    def dhell_ratios_red(self) -> List:
+        return [self.sirts[k]._dhell for k in range(self.num_layers)]
   
     def _grad_neglogbridge(self, rs: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """Evaluates the gradient of the negative logarithm of the 
@@ -290,21 +330,21 @@ class DIRT():
             self.reference, 
             self.defensive, 
             self.cdf_tol,
-            self.num_error_samples,
+            self.num_error_samples_ratio_red,
             device=self.device
         )
-        if self.num_error_samples > 0:
-            dhell_ratio = self._estimate_dhell_ratio(self.num_error_samples)
-            self._dhell_ratios[k] = float(dhell_ratio)
+        dhell_ratio = self._estimate_dhell_ratio(self.num_error_samples_ratio)
+        self._dhell_ratios[k] = dhell_ratio
         return
 
-    def _estimate_dhell_ratio(self, num_samples: int) -> Tensor:
+    def _estimate_dhell_ratio(self, num_samples: int) -> float | None:
+        if num_samples == 0:
+            return None
         rs = self.reference.random(n=num_samples, d=self.dim)
         us, neglogratios_dirt = self._eval_irt_reference_i(rs, self.num_layers, subset="first")
         neglogratios_exact = self._eval_neglogratio(us)
         dhell_ratio = estimate_dhell(neglogratios_dirt, neglogratios_exact)
-        # self.dhell_ratios.append(dhell_ratio)
-        return dhell_ratio
+        return float(dhell_ratio)
 
     def _print_progress(
         self,
@@ -328,34 +368,36 @@ class DIRT():
     
     def _build(self) -> None:
         """Constructs the DIRT object to approximate the target function."""
-
+        
         t0 = time.time()
 
-        self.dhell_bridges = []
-        self.dhell_targets = []
-        
         while True:
             
             if self.num_error_samples > 0:
-                rs = self.reference.random(self.num_error_samples, self.dim, device=self.device)
+                rs = self.reference.random(
+                    self.num_error_samples, self.dim, 
+                    device=self.device
+                )
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
                 log_weights, neglogbridges = self.bridge.update(us, neglogfus_dirt)
-
-                # neglogfus_target = self.bridge._eval_pullback(us)
-                # dhell_bridge = estimate_dhell(neglogfus_dirt, neglogbridges)
-                # dhell_target = estimate_dhell(neglogfus_dirt, neglogfus_target)
-
+                dhell = float(estimate_dhell(neglogfus_dirt, neglogbridges))
             else:
-                log_weights, neglogbridges, neglogfus_dirt = None, None, None
-                # dhell_bridge, dhell_target = None, None
+                log_weights = None
+                neglogbridges = None
+                neglogfus_dirt = None
+                dhell = None
 
-            # if self.bridge.num_layers > 0:
-            #     self.dhell_bridges.append(dhell_bridge)
-            #     self.dhell_targets.append(dhell_target)
+            if self.num_layers > 0:
+                self._dhells[self.num_layers-1] = dhell
 
             if self.verbose > 0:
                 cum_time = time.time() - t0
-                self._print_progress(log_weights, neglogbridges, neglogfus_dirt, cum_time)
+                self._print_progress(
+                    log_weights, 
+                    neglogbridges, 
+                    neglogfus_dirt, 
+                    cum_time
+                )
 
             self._get_new_layer()
             self.num_layers += 1
@@ -371,19 +413,21 @@ class DIRT():
             ]
 
             if self.num_error_samples > 0:
-                # Note: the Hellinger divergence is invariant to bijective 
-                # transformations.
-                rs = self.reference.random(self.num_error_samples, self.dim, device=self.device)
+                rs = self.reference.random(
+                    self.num_error_samples, self.dim, 
+                    device=self.device
+                )
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
                 neglogfus = self.bridge._eval_pullback(us)
                 dhell = estimate_dhell(neglogfus_dirt, neglogfus)
+                self._dhells[self.num_layers-1] = float(dhell)
                 info_msgs += [f"DHell: {dhell:.4f}."]
-                self.dhell_bridges.append(dhell)  # TODO: fix this. it should be the smoothed function.
-                self.dhell_targets.append(dhell)
+            else:
+                self._dhells[self.num_layers-1] = None
 
             t1 = time.time()
             info_msgs += [f"Total time: {format_time(t1-t0)}."]
-            
+
             for msg in info_msgs:
                 dirt_info(f" • {msg}")
         
