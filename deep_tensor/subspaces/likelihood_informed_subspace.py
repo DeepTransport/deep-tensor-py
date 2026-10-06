@@ -51,6 +51,11 @@ class LikelihoodInformedSubspace(Subspace):
     initial_basis:
         A set of basis vectors to initialise the subspace with. Note 
         that this is only supported if `update_method='augment'`.
+    verbose:
+        Whether to print diagnostic information (ESS of the samples 
+        used as part of the importance sampling estimate of the Gram 
+        matrix, and the subspace dimension) when the subspace is 
+        updated.
     device:
         The device to carry out computations on.
 
@@ -65,6 +70,7 @@ class LikelihoodInformedSubspace(Subspace):
         num_samples_gram: int = 100,
         eps: float = 0.01,
         initial_basis: Tensor | None = None,
+        verbose: bool = True,
         device: torch.device = torch.get_default_device()
     ):
         
@@ -83,6 +89,7 @@ class LikelihoodInformedSubspace(Subspace):
         self.num_eval = 0
         self.num_eval_grad = 0
         self.initial_basis = initial_basis
+        self.verbose = verbose
         self.device = device
         if self.initial_basis is None:
             self.basis_red = torch.zeros((dim, 0), device=self.device)
@@ -202,8 +209,9 @@ class LikelihoodInformedSubspace(Subspace):
         if self.fixed_comp and self.num_comp > 0:
             self._compute_samples_comp(self.num_comp)
 
-        ess = estimate_ess_ratio(log_weights) * self.num_samples_gram
-        self._print_diagnostics(ess)
+        if self.verbose:
+            ess = estimate_ess_ratio(log_weights) * self.num_samples_gram
+            self._print_diagnostics(ess)
         return 
     
     def eval_neglogprofile(
