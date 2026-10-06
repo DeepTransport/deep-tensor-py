@@ -17,19 +17,6 @@ from ..tools.printing import dirt_info, format_time
 from ..tools import estimate_dhell
 
 
-def unit_norm_pdf(xs: Tensor) -> Tensor:
-    """Evaluates the negative logarithm of the unit normal density at a 
-    set of values.
-    """
-    xs = torch.atleast_2d(xs)
-    dim = xs.shape[1]
-    neglogfxs = (
-        0.5 * xs.square().sum(dim=1) 
-        + 0.5 * dim * math.log(2.0*torch.pi)
-    )
-    return neglogfxs
-
-
 class DIRT():
     r"""Deep (squared) inverse Rosenblatt transport.
 
@@ -249,7 +236,6 @@ class DIRT():
         current ratio function with respect to the reference random 
         variable.
         """
-        # TODO make a function that returns (xs, neglogfus, grad_neglogfus)
         us, neglogfus, dudrs = self._jac_irt_reference(rs)
         if self.ratio_type == "eratio":
             grad_neglogfus = self._grad_potential_reference(rs)[0]
@@ -449,7 +435,6 @@ class DIRT():
         # TODO: check what happens here when there is no reduced subspace.
         # TODO: figure out whether this should be the (normalised) reference density..
         neglogfrs_comp = self.reference.eval_potential(us_comp)[0]
-        # neglogfrs_comp = unit_norm_pdf(us_comp)
 
         rs = rs_red + rs_comp 
         neglogfrs = neglogfrs_red + neglogfrs_comp
@@ -524,7 +509,6 @@ class DIRT():
         
         us_comp = self.subspaces[i].eval_coef2comp(rs_comp)
         neglogfus_comp = self.reference.eval_potential(rs_comp)[0]
-        # neglogfus_comp = unit_norm_pdf(rs_comp)
 
         us = us_red + us_comp
         neglogfus = neglogfus_red + neglogfus_comp
