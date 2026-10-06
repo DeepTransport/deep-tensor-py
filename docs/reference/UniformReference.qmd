@@ -6,6 +6,12 @@ UniformReference()
 
 The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$.
 
+## Notes {.doc-section .doc-section-notes}
+
+A UniformReference cannot be used in combination with a reduced 
+subspace when constructing a DIRT approximation; instead, a 
+GaussianReference must be used.
+
 ## Methods
 
 | Name | Description |

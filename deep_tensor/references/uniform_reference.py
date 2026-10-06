@@ -9,6 +9,13 @@ from ..domains import BoundedDomain
 
 class UniformReference(Reference):
     r"""The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$.
+
+    Notes
+    -----
+    A UniformReference cannot be used in combination with a reduced 
+    subspace when constructing a DIRT approximation; instead, a 
+    GaussianReference must be used.
+
     """
 
     def __init__(self):

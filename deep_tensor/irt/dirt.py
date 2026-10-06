@@ -10,6 +10,7 @@ from .sirt import SIRT, SUBSET2DIRECTION
 from ..bridging_densities import Bridge, Tempering
 from ..ftt import Direction, FTT
 from ..preconditioners import Preconditioner
+from ..references import GaussianReference
 from ..subspaces import Subspace, FullSpace
 from ..target_functions import TargetFunc
 from ..tools.printing import dirt_info, format_time
@@ -98,6 +99,15 @@ class DIRT():
                 "Either pre-specify the bridging densities or set "
                 "num_error_samples to a positive number (ideally at "
                 "least 100)."
+            )
+            raise Exception(msg)
+
+        reduced_space = not isinstance(self.subspace, FullSpace) 
+        gaussian_ref = isinstance(self.reference, GaussianReference)
+        if reduced_space and not gaussian_ref:
+            msg = (
+                "Constructing a DIRT object in a reduced space "
+                "currently requires a Gaussian reference density."
             )
             raise Exception(msg)
 
@@ -437,7 +447,6 @@ class DIRT():
 
         rs_comp = self.subspaces[i].eval_coef2comp(us_comp)
         # TODO: check what happens here when there is no reduced subspace.
-        # TODO: figure out whether the reference needs to be Gaussian if the subspace is reduced. 
         # TODO: figure out whether this should be the (normalised) reference density..
         neglogfrs_comp = self.reference.eval_potential(us_comp)[0]
         # neglogfrs_comp = unit_norm_pdf(us_comp)
