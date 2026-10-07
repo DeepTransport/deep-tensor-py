@@ -102,4 +102,6 @@ Functions used to remove the bias associated with the use of an approximation to
 | [run_importance_sampling](run_importance_sampling.qmd#deep_tensor.run_importance_sampling) | Computes the importance weights associated with a set of samples. |
 | [run_independence_sampler](run_independence_sampler.qmd#deep_tensor.run_independence_sampler) | Runs an independence Metropolis-Hastings sampler. |
 | [ImportanceSamplingResult](ImportanceSamplingResult.qmd#deep_tensor.ImportanceSamplingResult) | An object containing the results of importance sampling. |
+| [MCMC](MCMC.qmd#deep_tensor.MCMC) | An object used to run an MCMC sampler. |
+| [pCNKernel](pCNKernel.qmd#deep_tensor.pCNKernel) | The preconditioned Crank-Nicolson proposal. |
 | [MCMCResult](MCMCResult.qmd#deep_tensor.MCMCResult) | An object containing a constructed Markov chain. |

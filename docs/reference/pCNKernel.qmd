@@ -1,0 +1,49 @@
+# pCNKernel { #deep_tensor.pCNKernel }
+
+```python
+pCNKernel(
+    potential: Callable[[Tensor], Tensor],
+    dirt: DIRT,
+    ys: Tensor | None = None,
+    subset: str = 'first',
+    dt: float = 10.0,
+)
+```
+
+The preconditioned Crank-Nicolson proposal.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**potential**]{.parameter-name} [:]{.parameter-annotation-sep} [Callable\[\[Tensor\], Tensor\]]{.parameter-annotation}</code>
+
+:   A function that returns the negative logarithm of the (possibly  unnormalised) target density at a given sample.
+
+<code>[**dirt**]{.parameter-name} [:]{.parameter-annotation-sep} [DIRT]{.parameter-annotation}</code>
+
+:   A previously-constructed DIRT object.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'first\']{.parameter-default}</code>
+
+:   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$ variables  (`subset='first'`) or the last $k$ variables (`subset='last'`).
+
+<code>[**dt**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [10.0]{.parameter-default}</code>
+
+:   pCN stepsize, $\Delta t$. If this is not specified, a value of  $\Delta t = 2$ (independence sampler) will be used.
+
+## Notes {.doc-section .doc-section-notes}
+
+Note that the pCN proposal is only applicable to problems with a 
+standard Gaussian reference density (that is, 
+$\rho(\theta) = \mathcal{N}(0_{d}, I_{d})$). The pCN proposal 
+(given current state $\theta^{(i)}$) takes the form [@Cotter2013]
+$$
+    \theta' = \frac{2-\Delta t}{2+\Delta t} \theta^{(i)} 
+        + \frac{2\sqrt{2\Delta t}}{2 + \Delta t} \tilde{\theta},
+$$
+where $\tilde{\theta} \sim \rho(\,\cdot\,)$, and $\Delta t$ denotes 
+the step size. 
+
+When $\Delta t = 2$, the resulting sampler is an independence 
+sampler. When $\Delta t > 2$, the proposals are negatively 
+correlated, and when $\Delta t < 2$, the proposals are positively 
+correlated.

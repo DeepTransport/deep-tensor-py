@@ -201,4 +201,6 @@ quartodoc:
         - name: run_importance_sampling 
         - name: run_independence_sampler
         - name: ImportanceSamplingResult
+        - name: MCMC 
+        - name: pCNKernel
         - name: MCMCResult

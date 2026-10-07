@@ -133,18 +133,19 @@ class MCMC(object):
         num_steps: int,
         num_warmup: int = 0
     ):
-        """
-        TODO: finish this docstring...
+        r"""Runs the MCMC sampler.
         
+        Parameters
+        ----------
         r0s:
-            An n * d matrix (where n denotes the number of chains to 
-            run) containing the starting point for each chain (in the 
-            domain of the reference distribution).
+            An $n \times d$ matrix (where n denotes the number of 
+            chains to run) containing the starting point for each chain 
+            (in the domain of the reference distribution).
         num_steps:
             The number of steps to run each chain for (excluding 
             warm-up steps).
         num_warmup: 
-            The number of warmup (also referred to as burn in) steps to 
+            The number of warmup (also referred to as burn-in) steps to 
             take for each chain. These corresponding states are 
             discarded from the results.
         

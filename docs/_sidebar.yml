@@ -54,6 +54,8 @@ website:
       - reference/run_importance_sampling.qmd
       - reference/run_independence_sampler.qmd
       - reference/ImportanceSamplingResult.qmd
+      - reference/MCMC.qmd
+      - reference/pCNKernel.qmd
       - reference/MCMCResult.qmd
       section: Debiasing
     id: reference

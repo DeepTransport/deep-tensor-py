@@ -11,7 +11,7 @@ from ...references import GaussianReference
 
 
 class pCNKernel(Kernel):
-    r"""The preconditioned Crank-Nicolson proposal (Cotter *et al.*, 2013).
+    r"""The preconditioned Crank-Nicolson proposal.
 
     Parameters
     ----------
@@ -20,6 +20,8 @@ class pCNKernel(Kernel):
         unnormalised) target density at a given sample.
     dirt:
         A previously-constructed DIRT object.
+    ys:
+        TODO: finish this.
     subset:
         If the samples contain a subset of the variables, (*i.e.,* 
         $k < d$), whether they correspond to the first $k$ variables 
@@ -28,18 +30,12 @@ class pCNKernel(Kernel):
         pCN stepsize, $\Delta t$. If this is not specified, a value of 
         $\Delta t = 2$ (independence sampler) will be used.
 
-    Returns
-    -------
-    res:
-        An object containing the constructed Markov chain and some 
-        diagnostic information.
-
     Notes
     -----
     Note that the pCN proposal is only applicable to problems with a 
     standard Gaussian reference density (that is, 
     $\rho(\theta) = \mathcal{N}(0_{d}, I_{d})$). The pCN proposal 
-    (given current state $\theta^{(i)}$) takes the form
+    (given current state $\theta^{(i)}$) takes the form [@Cotter2013]
     $$
         \theta' = \frac{2-\Delta t}{2+\Delta t} \theta^{(i)} 
             + \frac{2\sqrt{2\Delta t}}{2 + \Delta t} \tilde{\theta},
@@ -51,13 +47,6 @@ class pCNKernel(Kernel):
     sampler. When $\Delta t > 2$, the proposals are negatively 
     correlated, and when $\Delta t < 2$, the proposals are positively 
     correlated.
-
-    References
-    ----------
-    Cotter, SL, Roberts, GO, Stuart, AM and White, D (2013). *[MCMC 
-    methods for functions: Modifying old algorithms to make them 
-    faster](https://doi.org/10.1214/13-STS421).* Statistical Science 
-    **28**, 424--446.
 
     """
 

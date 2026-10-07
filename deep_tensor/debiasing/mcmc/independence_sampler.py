@@ -34,11 +34,11 @@ def run_independence_sampler(
     
     """
 
-    num_steps, d = xs.shape
+    num_steps, dim = xs.shape
     num_chains = 1
     
     acceptances = torch.tensor([0], device=xs.device)
-    chain = MarkovChain(num_steps, num_chains, d, device=xs.device)
+    chain = MarkovChain(num_steps, num_chains, dim, device=xs.device)
     chain.add_state(xs[0], neglogfxs_exact[0], acceptances)
     i_cur = 0
 
