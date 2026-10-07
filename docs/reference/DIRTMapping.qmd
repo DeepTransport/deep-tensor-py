@@ -1,0 +1,13 @@
+# DIRTMapping { #deep_tensor.DIRTMapping }
+
+```python
+DIRTMapping(dirt: DIRT)
+```
+
+A mapping constructed using another DIRT object.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**dirt**]{.parameter-name} [:]{.parameter-annotation-sep} [DIRT]{.parameter-annotation}</code>
+
+:   A previously constructed DIRT object.

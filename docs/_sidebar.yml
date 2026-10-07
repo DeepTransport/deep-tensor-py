@@ -15,6 +15,7 @@ website:
       - reference/IdentityMapping.qmd
       - reference/UniformMapping.qmd
       - reference/GaussianMapping.qmd
+      - reference/DIRTMapping.qmd
       section: Preconditioners
     - contents:
       - reference/GaussianReference.qmd

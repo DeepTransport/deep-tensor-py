@@ -126,6 +126,8 @@ quartodoc:
           members: []
         - name: GaussianMapping
           members: []
+        - name: DIRTMapping
+          members: []
 
     - title: Reference Densities
       desc: Product-form reference densities used as part of DIRT construction.

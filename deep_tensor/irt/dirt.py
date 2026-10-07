@@ -1327,8 +1327,7 @@ class DIRT():
     
 
 class DIRTMapping(Preconditioner):
-    r"""A preconditioning mapping constructed using a previously 
-    constructed DIRT.
+    r"""A mapping constructed using another DIRT object.
 
     Parameters
     ----------

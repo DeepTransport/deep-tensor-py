@@ -28,6 +28,7 @@ Initial guesses for the mapping between the reference random variable and the ta
 | [IdentityMapping](IdentityMapping.qmd#deep_tensor.IdentityMapping) | An identity mapping. |
 | [UniformMapping](UniformMapping.qmd#deep_tensor.UniformMapping) | A mapping between the reference density and a uniform density. |
 | [GaussianMapping](GaussianMapping.qmd#deep_tensor.GaussianMapping) | A mapping between two Gaussian densities. |
+| [DIRTMapping](DIRTMapping.qmd#deep_tensor.DIRTMapping) | A mapping constructed using another DIRT object. |
 
 ## Reference Densities
 
