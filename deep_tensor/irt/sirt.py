@@ -131,7 +131,7 @@ class SIRT():
         """
         xs = self.domain.local2approx(ls)[0]
         neglogfxs = self.potential(xs)
-        neglogwxs = self._eval_measure_potential(xs)[0]
+        neglogwxs = self._eval_measure_potential(xs)
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
         return gs
     
