@@ -40,6 +40,10 @@ website:
       contents:
         - title: Examples
           href: examples/index.qmd
+        - section: Getting Started
+          contents: 
+          - title: Banana Density
+            href: examples/banana/example.ipynb
         - section: "Package Paper: Numerical Experiments"
           contents:
           - title: Shock Absorber
