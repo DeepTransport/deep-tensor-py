@@ -83,7 +83,7 @@ class Grid():
 
 
 class TT():
-    """A tensor train factorisation.
+    r"""A tensor train factorisation.
     
     This class computes and stores a tensor train factorisation of the 
     discretisation of an arbitrary function on a tensor-product grid, 
@@ -95,6 +95,13 @@ class TT():
     options:
         Parameters which control the construction of the tensor train 
         factorisation.
+    device:
+        The device to use when carrying out computations.
+
+    Attributes
+    ----------
+    ranks:
+        The core ranks $\{r_{k}\}_{k=1}^{d-1}$ (note that $r_{0}=r_{d}=1$).
 
     """
 

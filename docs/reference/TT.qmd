@@ -20,6 +20,16 @@ using the alternating cross approximation algorithm outlined in
 
 :   Parameters which control the construction of the tensor train  factorisation.
 
+<code>[**device**]{.parameter-name} [:]{.parameter-annotation-sep} [torch.device]{.parameter-annotation} [ = ]{.parameter-default-sep} [torch.get_default_device()]{.parameter-default}</code>
+
+:   The device to use when carrying out computations.
+
+## Attributes {.doc-section .doc-section-attributes}
+
+<code>[**ranks**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   The core ranks $\{r_{k}\}_{k=1}^{d-1}$ (note that $r_{0}=r_{d}=1$).
+
 ## Methods
 
 | Name | Description |
