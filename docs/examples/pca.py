@@ -18,7 +18,7 @@ def compute_pca(
     energies = torch.cumsum(vals, dim=0)
     energies /= energies.max()
 
-    num_components = energies[energies < (1.0-eps)].numel() #+ 1
+    num_components = energies[energies < (1.0-eps)].numel() + 1
     basis = vecs[:, -num_components:]
 
     return mean, basis
