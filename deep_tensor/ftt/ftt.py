@@ -421,8 +421,6 @@ class EFTT(FTT):
         n_k = grid.points[k].numel()
         sample_size = (self.options.num_snapshots, self.dim)
 
-        # if self.options.fibre_sampler is not None:
-        #     point_samples = self.options.fibre_sampler(sample_size)
         if reference is not None:
             point_samples = reference.random(*sample_size)
             point_samples = reference.domain.approx2local(point_samples)[0]
@@ -614,11 +612,6 @@ class EFTT(FTT):
                 fibre_matrix = self.compute_fibre_submatrix_random(grid, reference, k)
                 basis_k = tsvd(fibre_matrix, tol=self.options.tol_svd)[0]
                 inds_k, factor_k = deim(basis_k)
-                # if self.options.additional_inds is not None:
-                #     inds_k = torch.hstack((self.options.additional_inds[k], inds_k)).unique()
-                #     basis_k = torch.linalg.svd(fibre_matrix).U
-                #     basis_k = basis_k[:, :inds_k.numel()]
-                # factor_k = linalg.solve(basis_k[inds_k], basis_k, left=False)
 
             elif self.options.fibre_method == "aca":
                 fibre_matrix = self.compute_fibre_submatrix_aca(grid, k)

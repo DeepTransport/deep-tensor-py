@@ -27,8 +27,9 @@ class EFTTOptions():
     tol_svd: 
         The threshold to use when applying truncated SVD to compute an
         (approximate) orthogonal basis for the mode-$k$ fibres in each 
-        dimension. The minimum number of singular values such that 
-        their sum exceeds ($1-$ `tol_svd`) will be retained.
+        dimension (if sampled at random). The minimum number of 
+        singular values such that their sum exceeds ($1-$ `tol_svd`) 
+        will be retained.
     num_aca: 
         If `fibre_method="aca"`, the number of elements of the fibre 
         matrix to sample at each iteration when selecting a new pivot 
@@ -56,12 +57,6 @@ class EFTTOptions():
     num_snapshots:
         If `fibre_method="random"`, the number of snapshots to 
         sample.
-    # fibre_sampler: 
-    #     TODO: write this docstring. 
-    #     The sampler needs to return samples distributed on [-1,1]^d.
-    # additional_inds:
-    #     TODO: write this docstring.
-    #     Indices that will always be included in each dimension.
     
     """
         
@@ -72,8 +67,6 @@ class EFTTOptions():
     tol_aca: float = 1e-4
     max_fibres: int = 30
     num_snapshots: int = 30
-    # fibre_sampler: Callable[[Tuple[int, int]], Tensor] | None = None
-    # additional_inds: Tensor | None = None
     
     def __post_init__(self):
         verify_method(self.fibre_method, FIBRE_METHODS)

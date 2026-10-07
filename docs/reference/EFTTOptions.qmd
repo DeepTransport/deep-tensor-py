@@ -26,7 +26,7 @@ Options for configuring the construction of an EFTT object.
 
 <code>[**tol_svd**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.001]{.parameter-default}</code>
 
-:   The threshold to use when applying truncated SVD to compute an (approximate) orthogonal basis for the mode-$k$ fibres in each  dimension. The minimum number of singular values such that  their sum exceeds ($1-$ `tol_svd`) will be retained.
+:   The threshold to use when applying truncated SVD to compute an (approximate) orthogonal basis for the mode-$k$ fibres in each  dimension (if sampled at random). The minimum number of  singular values such that their sum exceeds ($1-$ `tol_svd`)  will be retained.
 
 <code>[**num_aca**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [50]{.parameter-default}</code>
 
