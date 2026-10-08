@@ -71,6 +71,7 @@ class Chebyshev2nd(Spectral):
     
     def sample_measure(self, n: int) -> Tensor:
         ls = Beta(1.5, 1.5).sample((n,)).to(self.device)
+        ls = 2.0 * ls - 1.0
         return ls
     
     def eval_measure(self, ls: Tensor) -> Tensor:
@@ -88,7 +89,7 @@ class Chebyshev2nd(Spectral):
     
     def eval_measure_deriv(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
-        ls[ls < EPS] = EPS
+        ls = ls.clamp(self.domain[0]+EPS, self.domain[1]-EPS)
         ts = 1.0 / (1.0 - ls.square())
         check_finite(ts)
         dwdls = -2.0 * ls * ts.sqrt() / torch.pi
