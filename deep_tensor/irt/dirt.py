@@ -211,7 +211,7 @@ class DIRT():
 
     @property
     def dhell_ratios_red(self) -> List:
-        return [self.sirts[k]._dhell for k in range(self.num_layers)]
+        return [self.sirts[k].dhell for k in range(self.num_layers)]
   
     def _grad_neglogbridge(self, rs: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """Evaluates the gradient of the negative logarithm of the 
@@ -470,8 +470,8 @@ class DIRT():
         us_red = self.subspaces[i].eval_red2coef(us)
         us_comp = self.subspaces[i].eval_comp2coef(us)
 
-        zs_red = self.sirts[i]._eval_rt(us_red, subset)
-        neglogfrs_red = self.sirts[i]._eval_potential(us_red, subset)
+        zs_red = self.sirts[i].eval_rt(us_red, subset)
+        neglogfrs_red = self.sirts[i].eval_potential(us_red, subset)
         rs_red = self.reference.invert_cdf(zs_red)
         rs_red = self.subspaces[i].eval_coef2red(rs_red)
 
@@ -548,7 +548,7 @@ class DIRT():
         rs_comp = self.reference._project_to_domain(rs_comp)
 
         zs_red = self.reference.eval_cdf(rs_red)[0]
-        ws_red, neglogfus_red = self.sirts[i]._eval_irt(zs_red, subset)
+        ws_red, neglogfus_red = self.sirts[i].eval_irt(zs_red, subset)
         us_red = self.subspaces[i].eval_coef2red(ws_red)
         
         us_comp = self.subspaces[i].eval_coef2comp(rs_comp)

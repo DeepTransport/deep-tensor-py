@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 
 from ..ftt import Direction, FTT
-from ..linalg import batch_mul, n_mode_prod, unfold_left, unfold_right
+from ..linalg import n_mode_prod, unfold_left, unfold_right
 from ..polynomials import construct_cdf
 from ..references import Reference
 from ..tools import estimate_dhell
@@ -21,7 +21,7 @@ class SIRT():
     
     Parameters
     ----------
-    potential:
+    eval_neglogtarget:
         A function that receives an n * d matrix of samples and 
         returns an n-dimensional vector containing the potential 
         function of the target density evaluated at each sample.
@@ -49,7 +49,7 @@ class SIRT():
 
     def __init__(
         self, 
-        target_func: Callable[[Tensor], Tensor], 
+        eval_neglogtarget: Callable[[Tensor], Tensor], 
         ftt: FTT,
         dim: int,
         reference: Reference,
@@ -59,7 +59,7 @@ class SIRT():
         device: torch.device = torch.get_default_device()
     ):
 
-        self.potential = target_func
+        self.eval_neglogtarget = eval_neglogtarget
         self.ftt = ftt
         self.basis = self.ftt.basis
         self.dim = dim
@@ -78,7 +78,8 @@ class SIRT():
         self._Rs_b: Dict[int, Tensor] = {}
         self._marginalise_forward()
         self._marginalise_backward()
-        self._dhell = self._estimate_dhell(num_error_samples)
+        
+        self.dhell = self._estimate_dhell(num_error_samples)
         return
     
     @property
@@ -103,20 +104,7 @@ class SIRT():
     
     def _eval_measure_potential(self, xs: Tensor) -> Tensor:
         """Computes the target potential function for a set of samples 
-        from the approximation domain.
-        
-        Parameters
-        ----------
-        xs:
-            An n * d matrix containing a set of samples from the 
-            approximation domain.
-        
-        Returns
-        -------
-        neglogwxs:
-            An n-dimensional vector containing the weighting function 
-            evaluated at each element of xs.
-        
+        from the approximation domain.        
         """
         ls, dldxs = self.domain.approx2local(xs)
         neglogwls = -self.basis.eval_log_measure(ls).sum(dim=1)
@@ -130,7 +118,7 @@ class SIRT():
         of coordinate).
         """
         xs = self.domain.local2approx(ls)[0]
-        neglogfxs = self.potential(xs)
+        neglogfxs = self.eval_neglogtarget(xs)
         neglogwxs = self._eval_measure_potential(xs)
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
         return gs
@@ -170,6 +158,18 @@ class SIRT():
 
         self.z_func = self._Rs_b[self.dim-1].square().sum()
         return
+
+    def _estimate_dhell(self, num_samples: int) -> float | None:
+        """Computes an estimate of the Hellinger distance between 
+        the ratio function and SIRT approximation.
+        """
+        if num_samples == 0:
+            return None
+        zs = torch.rand(num_samples, self.dim)
+        us, neglogfus = self.eval_irt(zs, subset="first")
+        neglogfus_exact = self.eval_neglogtarget(us)
+        dhell = estimate_dhell(neglogfus, neglogfus_exact)
+        return float(dhell)
 
     def _eval_rt_local_forward(self, ls: Tensor) -> Tensor:
 
@@ -366,408 +366,6 @@ class SIRT():
         neglogfls = self.z.log() + neglogpls + neglogwls
         return ls, neglogfls
 
-    def _eval_cirt_local_forward(
-        self, 
-        ls_x: Tensor, 
-        zs: Tensor
-    ) -> Tuple[Tensor, Tensor]:
-        
-        n_xs, d_xs = ls_x.shape
-        ls_y = torch.zeros_like(zs)
-
-        cores = self.ftt.cores
-        Bs = self._Bs_f
-        
-        Gs_prod = torch.ones((n_xs, 1, 1), device=self.device)
-
-        for k in range(d_xs-1):
-            Gs = FTT.eval_core(self.basis, cores[k], ls_x[:, k])
-            Gs_prod = batch_mul(Gs_prod, Gs)
-        
-        k = d_xs-1
-
-        Ps = FTT.eval_core(self.basis, Bs[k], ls_x[:, k])
-        gs_marg = batch_mul(Gs_prod, Ps)
-        ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.coef_defensive
-
-        Gs = FTT.eval_core(self.basis, cores[k], ls_x[:, k])
-        Gs_prod = batch_mul(Gs_prod, Gs)
-
-        # Generate conditional samples
-        for i, k in enumerate(range(d_xs, self.dim)):
-            
-            Ps = FTT.eval_core(self.basis, Bs[k], self.cdf.nodes)
-            gs = torch.einsum("mij, ljk -> lmk", Gs_prod, Ps)
-            ps = gs.square().sum(dim=2) + self.coef_defensive
-            ls_y[:, i] = self.cdf.invert_cdf(ps, zs[:, i])
-
-            Gs = FTT.eval_core(self.basis, cores[k], ls_y[:, i])
-            Gs_prod = batch_mul(Gs_prod, Gs)
-
-        ps = Gs_prod.flatten().square() + self.coef_defensive
-
-        neglogwls_y = -self.basis.eval_log_measure(ls_y).sum(dim=1)
-        neglogfls_y = ps_marg.log() - ps.log() + neglogwls_y
-
-        return ls_y, neglogfls_y
-    
-    def _eval_cirt_local_backward(
-        self, 
-        ls_x: Tensor, 
-        zs: Tensor
-    ) -> Tuple[Tensor, Tensor]:
-
-        n_zs, d_zs = zs.shape
-        ls_y = torch.zeros_like(zs)
-
-        cores = self.ftt.cores
-        Bs = self._Bs_b
-
-        Gs_prod = torch.ones((n_zs, 1, 1), device=zs.device)
-
-        for i, k in enumerate(range(self.dim-1, d_zs, -1), start=1):
-            Gs = FTT.eval_core(self.basis, cores[k], ls_x[:, -i])
-            Gs_prod = batch_mul(Gs, Gs_prod)
-
-        Ps = FTT.eval_core(self.basis, Bs[d_zs], ls_x[:, 0])
-        gs_marg = batch_mul(Ps, Gs_prod)
-        ps_marg = gs_marg.square().sum(dim=(1, 2)) + self.coef_defensive
-
-        Gs = FTT.eval_core(self.basis, cores[d_zs], ls_x[:, 0])
-        Gs_prod = batch_mul(Gs, Gs_prod)
-
-        # Generate conditional samples
-        for k in range(d_zs-1, -1, -1):
-
-            Ps = FTT.eval_core(self.basis, Bs[k], self.cdf.nodes)
-            gs = torch.einsum("lij, mjk -> lmi", Ps, Gs_prod)
-            ps = gs.square().sum(dim=2) + self.coef_defensive
-            ls_y[:, k] = self.cdf.invert_cdf(ps, zs[:, k])
-
-            Gs = FTT.eval_core(self.basis, cores[k], ls_y[:, k])
-            Gs_prod = batch_mul(Gs, Gs_prod)
-
-        ps = Gs_prod.flatten().square() + self.coef_defensive
-
-        neglogwls_y = -self.basis.eval_log_measure(ls_y).sum(dim=1)
-        neglogfls_y = ps_marg.log() - ps.log() + neglogwls_y
-
-        return ls_y, neglogfls_y
-
-    def _eval_cirt_local(
-        self, 
-        ls_x: Tensor, 
-        zs: Tensor,
-        direction: Direction
-    ) -> Tuple[Tensor, Tensor]:
-        """Evaluates the inverse of the conditional squared Rosenblatt 
-        transport.
-        
-        Parameters
-        ----------
-        ls_x:
-            An n * m matrix containing samples from the local domain.
-        zs:
-            An n * (d-m) matrix containing samples from [0, 1]^{d-m},
-            where m is the the dimension of the joint distribution of 
-            X and Y.
-        direction:
-            The direction in which to iterate over the tensor cores.
-        
-        Returns
-        -------
-        ys:
-            An n * (d-m) matrix containing the realisations of Y 
-            corresponding to the values of zs after applying the 
-            conditional inverse Rosenblatt transport.
-        neglogfys:
-            An n-dimensional vector containing the potential function 
-            of the approximation to the conditional density of Y|X 
-            evaluated at each sample in ys.
-    
-        """
-
-        if direction == Direction.FORWARD:
-            ls_y, neglogfls_y = self._eval_cirt_local_forward(ls_x, zs)
-        else:
-            ls_y, neglogfls_y = self._eval_cirt_local_backward(ls_x, zs)
-
-        return ls_y, neglogfls_y
-    
-    def _eval_potential_grad_local(self, ls: Tensor) -> Tensor:
-        """Evaluates the gradient of the potential function.
-        
-        Parameters
-        ----------
-        ls:
-            An n * d set of samples from the local domain.
-        
-        Returns 
-        -------
-        grads:
-            An n * d matrix containing the gradient of the potential 
-            function at each element in ls.
-        
-        """
-
-        cores = self.ftt.cores
-
-        zs = self._eval_rt_local_forward(ls)
-        ls, gs_sq = self._eval_irt_local_forward(zs)
-        n_ls = ls.shape[0]
-        ps = gs_sq + self.coef_defensive
-        neglogws = -self.basis.eval_log_measure(ls).sum(dim=1)
-        ws = torch.exp(-neglogws)
-        fs = ps * ws  # Don't need to normalise as derivative ends up being a ratio
-        
-        Gs_prod = torch.ones((n_ls, 1, 1), device=self.device)
-        
-        dwdls = {k: torch.ones((n_ls,), device=self.device) for k in range(self.dim)}
-        dGdls = {k: torch.ones((n_ls, 1, 1), device=self.device) for k in range(self.dim)}
-        
-        for k in range(self.dim):
-
-            ws_k = self.basis.eval_measure(ls[:, k])
-            dwdls_k = self.basis.eval_measure_deriv(ls[:, k])
-
-            Gs_k = FTT.eval_core(self.basis, cores[k], ls[:, k])
-            dGdls_k = FTT.eval_core_deriv(self.basis, cores[k], ls[:, k])
-            Gs_prod = batch_mul(Gs_prod, Gs_k)
-            
-            for j in range(self.dim):
-                if k == j:
-                    dwdls[j] *= dwdls_k
-                    dGdls[j] = batch_mul(dGdls[j], dGdls_k)
-                else:
-                    dwdls[j] *= ws_k
-                    dGdls[j] = batch_mul(dGdls[j], Gs_k)
-        
-        dfdls = torch.zeros_like(ls)
-        deriv = torch.zeros_like(ls)
-        gs = Gs_prod.sum(dim=(1, 2)) 
-
-        for k in range(self.dim):
-            dGdls_k = dGdls[k].sum(dim=(1, 2))
-            dfdls[:, k] = ps * dwdls[k] + 2.0 * gs * dGdls_k * ws
-            deriv[:, k] = -dfdls[:, k] / fs
-
-        return deriv
-
-    def _eval_rt_jac_local_forward(self, ls: Tensor) -> Tensor:
-
-        cores = self.ftt.cores
-        Bs = self._Bs_f
-
-        Gs: Dict[int, Tensor] = {}
-        Gs_deriv: Dict[int, Tensor] = {}
-        Ps: Dict[int, Tensor] = {}
-        Ps_deriv: Dict[int, Tensor] = {}
-        Ps_grid: Dict[int, Tensor] = {}
-
-        ps_marg: Dict[int, Tensor] = {}
-        ps_marg[-1] = self.z
-        ps_marg_deriv: Dict[int, Dict[int, Tensor]] = {}
-        ps_grid: Dict[int, Tensor] = {}
-        ps_grid_deriv: Dict[int, Dict[int, Tensor]] = {}
-        wls: Dict[int, Tensor] = {}
-
-        n_ls = ls.shape[0]
-        Jacs = torch.zeros((self.dim, n_ls, self.dim), device=self.device)
-
-        Gs_prod = {} 
-        Gs_prod[-1] = torch.ones((n_ls, 1, 1), device=self.device)
-
-        for k in range(self.dim):
-
-            # Evaluate weighting function
-            wls[k] = self.basis.eval_measure(ls[:, k])
-
-            # Evaluate kth tensor core and derivative
-            Gs[k] = FTT.eval_core(self.basis, cores[k], ls[:, k])
-            Gs_deriv[k] = FTT.eval_core_deriv(self.basis, cores[k], ls[:, k])
-            Gs_prod[k] = batch_mul(Gs_prod[k-1], Gs[k])
-
-            # Evaluate kth marginalisation core and derivative
-            Ps[k] = FTT.eval_core(self.basis, Bs[k], ls[:, k])
-            Ps_deriv[k] = FTT.eval_core_deriv(self.basis, Bs[k], ls[:, k])
-            Ps_grid[k] = FTT.eval_core(self.basis, Bs[k], self.cdf.nodes)
-
-            # Evaluate marginal probability for the first k elements of 
-            # each sample
-            gs = batch_mul(Gs_prod[k-1], Ps[k])
-            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.coef_defensive
-
-            # Compute (unnormalised) marginal PDF at CDF nodes for each sample
-            gs_grid = torch.einsum("mij, ljk -> lmik", Gs_prod[k-1], Ps_grid[k])
-            ps_grid[k] = gs_grid.square().sum(dim=(2, 3)) + self.coef_defensive
-
-        # Derivatives of marginal PDF
-        for k in range(self.dim-1):
-            ps_marg_deriv[k] = {}
-            
-            for j in range(k+1):
-
-                prod = batch_mul(Gs_prod[k-1], Ps[k])
-                prod_deriv = torch.ones((n_ls, 1, 1), device=self.device)
-
-                for k_i in range(k):
-                    core = Gs_deriv[k_i] if k_i == j else Gs[k_i]
-                    prod_deriv = batch_mul(prod_deriv, core)
-                core = Ps_deriv[k] if k == j else Ps[k]
-                prod_deriv = batch_mul(prod_deriv, core)
-
-                ps_marg_deriv[k][j] = 2 * (prod * prod_deriv).sum(dim=(1, 2))
-
-        for k in range(1, self.dim):
-            ps_grid_deriv[k] = {}
-
-            for j in range(k):
-
-                prod = torch.einsum("mij, ljk -> lmik", Gs_prod[k-1], Ps_grid[k])
-                prod_deriv = torch.ones((n_ls, 1, 1), device=self.device)
-
-                for k_i in range(k):
-                    core = Gs_deriv[k_i] if k_i == j else Gs[k_i]
-                    prod_deriv = batch_mul(prod_deriv, core)
-                prod_deriv = torch.einsum("mij, ljk -> lmik", prod_deriv, Ps_grid[k])
-                
-                ps_grid_deriv[k][j] = 2 * (prod * prod_deriv).sum(dim=(2, 3))
-
-        # Populate diagonal elements
-        for k in range(self.dim):
-            Jacs[k, :, k] = ps_marg[k] / ps_marg[k-1] * wls[k]
-
-        # Populate off-diagonal elements
-        for k in range(1, self.dim):
-            for j in range(k):
-                grad_cond = (ps_grid_deriv[k][j] * ps_marg[k-1] 
-                             - ps_grid[k] * ps_marg_deriv[k-1][j]) / ps_marg[k-1].square()
-                if self.basis.constant_weight:
-                    grad_cond *= wls[k]
-                Jacs[k, :, j] = self.cdf.eval_int_deriv(grad_cond, ls[:, k])
-
-        return Jacs
-    
-    def _eval_rt_jac_local_backward(self, ls: Tensor) -> Tensor:
-
-        cores = self.ftt.cores
-        Bs = self._Bs_b
-
-        Gs: dict[int, Tensor] = {}
-        Gs_deriv: dict[int, Tensor] = {}
-        Ps: dict[int, Tensor] = {}
-        Ps_deriv: dict[int, Tensor] = {}
-        Ps_grid: dict[int, Tensor] = {}
-
-        ps_marg: dict[int, Tensor] = {}
-        ps_marg[self.dim] = self.z
-        ps_marg_deriv: dict[int, Dict] = {}
-        ps_grid: dict[int, Tensor] = {}
-        ps_grid_deriv: dict[int, Dict] = {}
-        wls: dict[int, Tensor] = {}
-
-        n_ls = ls.shape[0]
-        Jacs = torch.zeros((self.dim, n_ls, self.dim), device=self.device)
-
-        Gs_prod = {} 
-        Gs_prod[self.dim] = torch.ones((n_ls, 1, 1), device=self.device)
-
-        for k in range(self.dim-1, -1, -1):
-
-            # Evaluate weighting function
-            wls[k] = self.basis.eval_measure(ls[:, k])
-
-            # Evaluate kth tensor core and derivative
-            Gs[k] = FTT.eval_core_rev(self.basis, cores[k], ls[:, k])
-            Gs_deriv[k] = FTT.eval_core_deriv_rev(self.basis, cores[k], ls[:, k])
-            Gs_prod[k] = batch_mul(Gs_prod[k+1], Gs[k])
-
-            # Evaluate kth marginalisation core and derivative
-            Ps[k] = FTT.eval_core_rev(self.basis, Bs[k], ls[:, k])
-            Ps_deriv[k] = FTT.eval_core_deriv_rev(self.basis, Bs[k], ls[:, k])
-            Ps_grid[k] = FTT.eval_core_rev(self.basis, Bs[k], self.cdf.nodes)
-
-            # Evaluate marginal probability for the first k elements of 
-            # each sample
-            gs = batch_mul(Gs_prod[k+1], Ps[k])
-            ps_marg[k] = gs.square().sum(dim=(1, 2)) + self.coef_defensive
-
-            # Compute (unnormalised) marginal PDF at CDF nodes for each sample
-            gs_grid = torch.einsum("mij, ljk -> lmik", Gs_prod[k+1], Ps_grid[k])
-            ps_grid[k] = gs_grid.square().sum(dim=(2, 3)) + self.coef_defensive
-
-        # Derivatives of marginal PDF
-        for k in range(1, self.dim):
-            ps_marg_deriv[k] = {}
-
-            for j in range(k, self.dim):
-
-                prod = batch_mul(Gs_prod[k+1], Ps[k])
-                prod_deriv = torch.ones((n_ls, 1, 1), device=self.device)
-
-                for k_i in range(self.dim-1, k, -1):
-                    core = Gs_deriv[k_i] if k_i == j else Gs[k_i]
-                    prod_deriv = batch_mul(prod_deriv, core)
-                core = Ps_deriv[k] if k == j else Ps[k] 
-                prod_deriv = batch_mul(prod_deriv, core)
-
-                ps_marg_deriv[k][j] = 2 * (prod * prod_deriv).sum(dim=(1, 2))
-
-        for k in range(self.dim-1):
-            ps_grid_deriv[k] = {}
-
-            for j in range(k+1, self.dim):
-
-                prod = torch.einsum("mij, ljk -> lmik", Gs_prod[k+1], Ps_grid[k])
-                prod_deriv = torch.ones((n_ls, 1, 1), device=self.device)
-
-                for k_i in range(self.dim-1, k, -1):
-                    core = Gs_deriv[k_i] if k_i == j else Gs[k_i]
-                    prod_deriv = batch_mul(prod_deriv, core)
-                prod_deriv = torch.einsum("mij, ljk -> lmik", prod_deriv, Ps_grid[k])
-                
-                ps_grid_deriv[k][j] = 2 * (prod * prod_deriv).sum(dim=(2, 3))
-
-        # Populate diagonal elements
-        for k in range(self.dim):
-            Jacs[k, :, k] = ps_marg[k] / ps_marg[k+1] * wls[k]
-
-        # Populate off-diagonal elements
-        for k in range(self.dim-1):
-            for j in range(k+1, self.dim):
-                grad_cond = (ps_grid_deriv[k][j] * ps_marg[k+1] 
-                             - ps_grid[k] * ps_marg_deriv[k+1][j]) / ps_marg[k+1].square()
-                if self.basis.constant_weight:
-                    grad_cond *= wls[k]
-                Jacs[k, :, j] = self.cdf.eval_int_deriv(grad_cond, ls[:, k])
-            
-        return Jacs
-
-    def _eval_rt_jac_local(self, ls: Tensor, direction: Direction) -> Tensor:
-        """Evaluates the Jacobian of the Rosenblatt transport.
-        
-        Parameters
-        ----------
-        zs: 
-            An n * d matrix corresponding to evaluations of the 
-            Rosenblatt transport at each sample in ls.
-        direction:
-            The direction in which to iterate over the tensor cores.
-        
-        Returns
-        -------
-        Js:
-            A d * (d*n) matrix, where each d * d block contains the 
-            Jacobian of the Rosenblatt transport evaluated at a given 
-            sample: that is, J_ij = dz_i / dl_i.
-
-        """
-        if direction == Direction.FORWARD:
-            J = self._eval_rt_jac_local_forward(ls)
-        else:
-            J = self._eval_rt_jac_local_backward(ls)
-        return J
-    
     def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
         """Evaluates the normalised (marginal) PDF represented by the 
         squared FTT.
@@ -802,29 +400,26 @@ class SIRT():
         neglogfls = self.z.log() - (gs_sq + self.coef_defensive).log() + neglogwls
         return neglogfls
     
-    def _eval_potential(self, xs: Tensor, subset: str) -> Tensor:
-        r"""Evaluates the potential function.
-
-        Returns the joint potential function, or the marginal potential 
-        function for the first $k$ variables or the last $k$ variables,
-        evaluated at a set of samples.
+    def eval_potential(self, xs: Tensor, subset: str) -> Tensor:
+        """Returns the joint potential function, or the marginal 
+        potential function for the first k variables or the last k 
+        variables, evaluated at a set of samples.
 
         Parameters
         ----------
         xs:
-            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
-            samples from the approximation domain.
+            An n * k matrix (where 1 < k < d) containing samples from 
+            the approximation domain.
         subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
+            If the samples contain a subset of the variables, (i.e.,  
+            k < d), whether they correspond to the first k variables 
+            (subset='first') or the last k variables (subset='last').
         
         Returns
         -------
         neglogfxs:
             The potential function of the approximation to the target 
-            density evaluated at each sample in `xs`.
+            density evaluated at each sample in xs.
 
         """
         direction = SUBSET2DIRECTION[subset]
@@ -833,30 +428,27 @@ class SIRT():
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
 
-    def _eval_rt(self, xs: Tensor, subset: str) -> Tensor:
-        r"""Evaluates the Rosenblatt transport.
-
-        Returns the joint Rosenblatt transport, or the marginal 
-        Rosenblatt transport for the first $k$ variables or the last 
-        $k$ variables, evaluated at a set of samples.
+    def eval_rt(self, xs: Tensor, subset: str) -> Tensor:
+        """Returns the joint Rosenblatt transport, or the marginal 
+        Rosenblatt transport for the first k variables or the last k 
+        variables, evaluated at a set of samples.
 
         Parameters
         ----------
         xs: 
-            An $n \times k$ matrix (where $1 \leq k \leq d$) containing 
-            samples from the approximation domain.
+            An n * k matrix (where 1 < k < d) containing samples from 
+            the approximation domain.
         subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
+            If the samples contain a subset of the variables, (i.e., 
+            k < d), whether they correspond to the first k variables 
+            (`subset='first'`) or the last k variables 
             (`subset='last'`).
         
         Returns
         -------
         zs:
-            An $n \times k$ matrix containing the corresponding 
-            samples, from the unit hypercube, after applying the 
-            Rosenblatt transport.
+            An n * k matrix containing the corresponding samples, from 
+            the unit hypercube, after applying the Rosenblatt transport.
 
         """
         direction = SUBSET2DIRECTION[subset]
@@ -864,32 +456,28 @@ class SIRT():
         zs = self._eval_rt_local(ls, direction)
         return zs
 
-    def _eval_irt(self, zs: Tensor, subset: str) -> Tuple[Tensor, Tensor]:
-        r"""Evaluates the inverse Rosenblatt transport.
-        
-        Returns the joint inverse Rosenblatt transport, or the marginal 
-        inverse Rosenblatt transport for the first $k$ variables or the 
-        last $k$ variables, evaluated at a set of samples.
+    def eval_irt(self, zs: Tensor, subset: str) -> Tuple[Tensor, Tensor]:
+        """Returns the joint inverse Rosenblatt transport, or the 
+        marginal inverse Rosenblatt transport for the first k variables 
+        or the last k variables, evaluated at a set of samples.
         
         Parameters
         ----------
         zs: 
-            An $n \times k$ matrix containing samples from the unit 
-            hypercube.
+            An n * k matrix containing samples from the unit hypercube.
         subset: 
-            If the samples contain a subset of the variables, (*i.e.,* 
-            $k < d$), whether they correspond to the first $k$ 
-            variables (`subset='first'`) or the last $k$ variables 
-            (`subset='last'`).
+            If the samples contain a subset of the variables, (i.e., 
+            k < d), whether they correspond to the first k variables 
+            (subset='first'`) or the last k variables (subset='last').
         
         Returns
         -------
         xs: 
-            An $n \times k$ matrix containing the corresponding samples 
-            from the approximation to the target density function.
+            An n * k matrix containing the corresponding samples from 
+            the approximation to the target density function.
         neglogfxs: 
-            An $n$-dimensional vector containing the approximation to 
-            the potential function evaluated at each sample in `xs`.
+            An n-dimensional vector containing the approximation to the 
+            potential function evaluated at each sample in xs.
         
         """
         direction = SUBSET2DIRECTION[subset]
@@ -897,15 +485,3 @@ class SIRT():
         xs, dxdls = self.domain.local2approx(ls)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs
-    
-    def _estimate_dhell(self, num_samples: int) -> float | None:
-        """Computes an estimate of the Hellinger distance between 
-        the ratio function and SIRT approximation.
-        """
-        if num_samples == 0:
-            return None
-        zs = torch.rand(num_samples, self.dim)
-        us, neglogfus = self._eval_irt(zs, subset="first")
-        neglogfus_exact = self.potential(us)
-        dhell = estimate_dhell(neglogfus, neglogfus_exact)
-        return float(dhell)
