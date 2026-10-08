@@ -41,11 +41,6 @@ class Basis1D(abc.ABC, object):
         pass 
 
     @property
-    def has_bounded_domain(self) -> bool:
-        """Whether the domain of the basis is bounded."""
-        return bool(self.domain.isinf().any())
-
-    @property
     def cardinality(self) -> int:
         """The number of basis functions associated with the basis."""
         return self.nodes.numel()
