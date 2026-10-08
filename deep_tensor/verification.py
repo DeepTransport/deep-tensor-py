@@ -7,7 +7,7 @@ def verify_method(method: str, accepted_methods: Sequence[str]) -> None:
         return 
     
     msg = (
-        f"Method '{method}' not recognised. Expected one of: " 
-        ", ".join(accepted_methods) + "."
+        f"Method '{method}' not recognised. Expected one of: '" 
+        + "', '".join(accepted_methods) + "'."
     )
     raise ValueError(msg)
