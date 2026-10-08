@@ -278,7 +278,7 @@ class DIRT():
         """
         us, neglogfus, dudrs = self._jac_irt_reference(rs)
         if self.ratio_type == "eratio":
-            grad_neglogfus = self._grad_potential_reference(rs)[0]
+            grad_neglogfus = self._grad_potential_reference(rs)[1]
         else:
             grad_neglogfus = None
         neglogratios, grad_neglogratios = self.bridge._grad_neglogratio(
@@ -1217,7 +1217,7 @@ class DIRT():
         def _eval_rt(xs: Tensor) -> Tuple[Tensor, Tensor]:
             xs = xs.reshape(num_xs, dim_xs)
             rs, _ = self.eval_rt(xs, subset, num_layers)
-            rs_summed = rs.sum(dim=1)
+            rs_summed = rs.sum(dim=0)
             return rs_summed, rs
         
         jac = torch.func.jacrev(_eval_rt, has_aux=True)
@@ -1278,6 +1278,7 @@ class DIRT():
             xs, _ = self.eval_irt(rs, subset, num_layers)
             xs_summed = xs.sum(dim=0)
             return xs_summed, xs
+        
         jac = torch.func.jacrev(_eval_irt, has_aux=True)
         dxdrs, xs = jac(rs_flat)
         dxdrs = dxdrs.reshape(dim_rs, num_rs, dim_rs)
