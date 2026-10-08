@@ -251,6 +251,7 @@ class LikelihoodInformedSubspace(Subspace):
             num_samples_gram=self.num_samples_gram, 
             eps=self.eps, 
             initial_basis=self.basis_red,
+            verbose=self.verbose,
             device=self.device
         )
         return subspace
