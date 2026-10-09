@@ -32,7 +32,7 @@ $$
 $$
 In the above, $\theta$ denotes a set of parameters with density 
 $\pi(\cdot)$, $F(\cdot)$ denotes the system response function, and 
-$z$ denotes a (scalar--valued) rare event threshold.
+$z$ denotes a (scalar-valued) rare event threshold.
 
 The intermediate densities generated using this approach take the 
 form [@Cui2023]
@@ -46,7 +46,7 @@ $Q(\cdot)$, and $g_{\gamma_{k}}(\cdot)$ denotes the sigmoid
 function, which is defined as
 $$
     g_{\gamma_{k}}(\theta) := 
-        (1 + \exp(\gamma_{k}(F(\theta) - z)))^{-1}.
+        (1 + \exp(-\gamma_{k}(F(\theta) - z)))^{-1}.
 $$
 The sequences $\{\beta_{k}\}_{k=1}^{N}$ and 
 $\{\gamma_{k}\}_{k=1}^{N}$ must satisfy 

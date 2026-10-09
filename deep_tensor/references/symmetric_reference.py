@@ -79,7 +79,7 @@ class SymmetricReference(Reference, abc.ABC):
         Parameters
         ----------
         zs:
-            A matrix or vector containg values at which to evaluate the 
+            A matrix or vector containing values at which to evaluate the 
             inverse of the CDF of the unit reference distribution.
 
         Returns
@@ -107,12 +107,13 @@ class SymmetricReference(Reference, abc.ABC):
         Returns
         -------
         neglogps:
-            A d-dimensional vector containing the PDF of the joint unit 
-            reference distribution evaluated at each sample in us.
-        grad_neglogps:
-            An n * d matrix containing the gradient of the logarithm of 
-            the joint unit reference density evaluated at each sample 
+            An n-dimensional vector containing the potential of the 
+            joint unit reference distribution evaluated at each sample 
             in us.
+        grad_neglogps:
+            An n * d matrix containing the gradient of the negative 
+            logarithm of the joint unit reference density evaluated at 
+            each sample in us.
         
         """
         pass
@@ -132,12 +133,13 @@ class SymmetricReference(Reference, abc.ABC):
         Returns
         -------
         neglogps:
-            A d-dimensional vector containing the PDF of the joint unit 
-            reference distribution evaluated at each sample in us.
-        grad_neglogps:
-            An n * d matrix containing the gradient of the logarithm of 
-            the joint unit reference density evaluated at each sample 
+            An n-dimensional vector containing the potential of the 
+            joint unit reference distribution evaluated at each sample 
             in us.
+        grad_neglogps:
+            An n * d matrix containing the gradient of the negative 
+            logarithm of the joint unit reference density evaluated at 
+            each sample in us.
         
         """
         pass

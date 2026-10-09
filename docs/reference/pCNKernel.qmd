@@ -22,6 +22,10 @@ The preconditioned Crank-Nicolson proposal.
 
 :   A previously-constructed DIRT object.
 
+<code>[**ys**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   TODO: finish this.
+
 <code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str]{.parameter-annotation} [ = ]{.parameter-default-sep} [\'first\']{.parameter-default}</code>
 
 :   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$ variables  (`subset='first'`) or the last $k$ variables (`subset='last'`).

@@ -18,13 +18,13 @@ def integrate(
     ----------
     func:
         A function that takes in a vector of inputs and returns a 
-        vector of the correpsonding values of the function.
+        vector of the corresponding values of the function.
     x0:
         Left-hand end of the integration interval.
     x1: 
         Right-hand end of the integration interval.
     n:
-        The number of intervals to use to when applying the trapezoidal 
+        The number of intervals to use when applying the trapezoidal 
         rule.
 
     """

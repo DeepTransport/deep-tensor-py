@@ -42,7 +42,7 @@ class Domain(abc.ABC):
         dxdls:
             An n-dimensional vector containing the gradient of the 
             mapping from the local domain to the approximation 
-            domain evaluated at each point in xs.
+            domain evaluated at each point in ls.
             
         """
         pass
@@ -66,7 +66,7 @@ class Domain(abc.ABC):
         dldxs:
             An n-dimensional vector containing the gradient of the 
             mapping from the approximation domain to the local 
-            domain evaluated at each point in rs.
+            domain evaluated at each point in xs.
 
         """
         pass
@@ -90,8 +90,8 @@ class Domain(abc.ABC):
             gradient of the mapping from the local domain to the 
             approximation domain.
         logdxdl2s:
-            An n-dimensional vector containing the logarithm of the 
-            second derivative of the mapping from the local domain to 
+            An n-dimensional vector containing the derivate of the 
+            log-gradient of the mapping from the local domain to 
             the approximation domain.
         
         """

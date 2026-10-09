@@ -45,7 +45,7 @@ Options for configuring the construction of a TT object.
 
 <code>[**tol_svd**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
 
-:   The threshold to use when applying truncated SVD to the tensor  cores when building the TT. The minimum number of singular  values such that the sum of their squares exceeds ($1-$ `tol_svd`)  will be retained.
+:   The threshold to use when applying truncated SVD to the tensor  cores when building the TT. The minimum number of singular  values such that the sum exceeds ($1-$ `tol_svd`) will be  retained.
 
 <code>[**tol_max_core_error**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0]{.parameter-default}</code>
 
@@ -57,4 +57,4 @@ Options for configuring the construction of a TT object.
 
 <code>[**verbose**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1]{.parameter-default}</code>
 
-:   If `verbose=0`, no information about the construction of the  FTT will be printed. If `verbose=1`, diagnostic information  will be prined at the end of each ALS iteration. If `verbose=2`,  the tensor core currently being constructed during each ALS  iteration will also be displayed.
+:   If `verbose=0`, no information about the construction of the  FTT will be printed. If `verbose=1`, diagnostic information  will be printed at the end of each ALS iteration. If  `verbose=2`, the tensor core currently being constructed during  each ALS iteration will also be displayed.

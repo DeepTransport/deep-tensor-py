@@ -12,7 +12,7 @@ GaussianMapping(
 A mapping between two Gaussian densities.
 
 This preconditioner provides a mapping between the standard 
-Gaussian density and an Gaussian density with an arbitrary mean and 
+Gaussian density and a Gaussian density with an arbitrary mean and 
 covariance.
 
 ## Parameters {.doc-section .doc-section-parameters}

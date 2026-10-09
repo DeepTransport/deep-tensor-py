@@ -154,8 +154,9 @@ class SmoothedIndicator(Bridge, abc.ABC):
         Fs: Tensor,
         neglogfus_dirt: Tensor
     ) -> Tensor:
-        """Computes the ratio between the current bridging density and 
-        the previous bridging density for each particle.
+        """Computes the negative logarithm of the ratio between the 
+        current bridging density and the previous bridging density for 
+        each sample.
         """
         
         k = self.num_layers
@@ -466,7 +467,7 @@ class SigmoidSmoothing(SmoothedIndicator):
     $$
     In the above, $\theta$ denotes a set of parameters with density 
     $\pi(\cdot)$, $F(\cdot)$ denotes the system response function, and 
-    $z$ denotes a (scalar--valued) rare event threshold.
+    $z$ denotes a (scalar-valued) rare event threshold.
     
     The intermediate densities generated using this approach take the 
     form [@Cui2023]
@@ -480,7 +481,7 @@ class SigmoidSmoothing(SmoothedIndicator):
     function, which is defined as
     $$
         g_{\gamma_{k}}(\theta) := 
-            (1 + \exp(\gamma_{k}(F(\theta) - z)))^{-1}.
+            (1 + \exp(-\gamma_{k}(F(\theta) - z)))^{-1}.
     $$
     The sequences $\{\beta_{k}\}_{k=1}^{N}$ and 
     $\{\gamma_{k}\}_{k=1}^{N}$ must satisfy 
@@ -545,7 +546,7 @@ class GaussianSmoothing(SmoothedIndicator):
     $Q(\cdot)$, and $g_{\gamma_{k}}(\cdot)$ is defined as 
     $$
         g_{\gamma_{k}}(\theta) := 
-            \frac{1}{2}\left(1 + \erf(\gamma_{k}(F(\theta) - z))\right).
+            \frac{1}{2}\left(1 + \operatorname{erf}(\gamma_{k}(F(\theta) - z))\right).
     $$
     The sequences $\{\beta_{k}\}_{k=1}^{N}$ and 
     $\{\gamma_{k}\}_{k=1}^{N}$ must satisfy 

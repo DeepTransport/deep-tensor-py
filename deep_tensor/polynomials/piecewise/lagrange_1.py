@@ -18,8 +18,8 @@ class Lagrange1(Piecewise):
 
     Notes
     -----
-    To construct a piecewise linear basis, we divide the interval 
-    $[0, 1]$ into `num_elems` equisized elements. Then, within each 
+    To construct a piecewise linear basis, we divide the approximation 
+    interval into `num_elems` equisized elements. Then, within each 
     element a given function can be represented by
     $$
         f(x) \approx f(x_{0}) 

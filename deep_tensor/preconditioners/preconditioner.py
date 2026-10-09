@@ -39,8 +39,8 @@ class Preconditioner(abc.ABC):
     Notes
     -----
     To construct a custom preconditioning mapping, the user must 
-    construct a class derived from this class with methods `Q()`, 
-    `Q_inv()`, `neglogdet_Q()`, and `neglogdet_Q_inv()`.
+    construct a class derived from this class with methods `Q()` and 
+    `Q_inv()`.
 
     """
 
@@ -70,7 +70,8 @@ class Preconditioner(abc.ABC):
             to each sample.
         neglogdets:
             An $n$-dimensional vector containing the negative 
-            log-determinant of $Q(\cdot)$ evaluated at each sample.
+            log-determinant of of the Jacobian of $Q(\cdot)$ evaluated 
+            at each sample.
         
         """
         pass
@@ -96,7 +97,8 @@ class Preconditioner(abc.ABC):
             to each sample.
         neglogdets:
             An $n$-dimensional vector containing the negative 
-            log-determinant of $Q^{-1}(\cdot)$ evaluated at each sample.
+            log-determinant of the Jacobian of $Q^{-1}(\cdot)$ 
+            evaluated at each sample.
         
         """
         pass
@@ -125,10 +127,11 @@ class Preconditioner(abc.ABC):
             to each sample.
         neglogdets:
             An $n$-dimensional vector containing the negative 
-            log-determinant of $Q(\cdot)$ evaluated at each sample.
+            log-determinant of the Jacobian of $Q(\cdot)$ evaluated at 
+            each sample.
         dxdus:
             A $k \times n \times k$ tensor, where `dxdus[:, i, :]` 
-            contains the Jacobian of $Q(\cdot)$ evaluated at `xs[i, :]`.
+            contains the Jacobian of $Q(\cdot)$ evaluated at `us[i, :]`.
         
         """
         # Fall back to autodiff if no implementation for the child 

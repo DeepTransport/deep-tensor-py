@@ -127,7 +127,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
 
     def eval_int_elem_diff(
         self, 
-        data: CDFData,
+        cdf_data: CDFData,
         inds_left: Tensor, 
         zs_cdf: Tensor, 
         ls: Tensor 
@@ -160,7 +160,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
             the values of zs_cdf.
 
         """
-        dzs = self.eval_int_elem(data, inds_left, ls) - zs_cdf
+        dzs = self.eval_int_elem(cdf_data, inds_left, ls) - zs_cdf
         return dzs
     
     def eval_int_elem_newton(
@@ -232,7 +232,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         inds_left:
             An n-dimensional vector containing the indices of the 
             points of the grid on which the target PDF is discretised 
-            that are immediately to the left of each value in ls.
+            that are immediately to the left of each value in zs_cdf.
         zs_cdf:
             An n-dimensional vector containing a set of values in the 
             range [0, Z], where Z is the normalising constant 
@@ -287,7 +287,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         inds_left:
             An n-dimensional vector containing the indices of the 
             points of the grid on which the target PDF is discretised 
-            that are immediately to the left of each value in ls.
+            that are immediately to the left of each value in zs_cdf.
         zs_cdf:
             An n-dimensional vector containing a set of values in the 
             range [0, Z], where Z is the normalising constant 
@@ -357,7 +357,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         inds_left:
             An n-dimensional vector containing the indices of the 
             points of the grid on which the target PDF is discretised 
-            that are immediately to the left of each value in ls.
+            that are immediately to the left of each value in zs_cdf.
         zs_cdf:
             An n-dimensional vector of values in the range [0, Z], 
             where Z is the normalising constant associated with the 

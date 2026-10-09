@@ -10,7 +10,7 @@ An object containing the results of importance sampling.
 
 <code>[**log_weights**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
-:   An $n$-dimensional vector containing the unnormalised  importance weights associated with a set of samples.
+:   An $n$-dimensional vector containing the logarithm of the  unnormalised importance weights associated with a set of  samples.
 
 <code>[**log_norm**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 

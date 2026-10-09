@@ -169,12 +169,12 @@ class Subspace(abc.ABC):
         eval_neglogtarget: Callable[[Tensor], Tensor],
         vs_red: Tensor
     ) -> Tensor:
-        r"""Evalutes the negative logarithm of the profile function at a 
-        set of points in the reduced subspace.
+        r"""Evaluates the negative logarithm of the profile function at 
+        a set of points in the reduced subspace.
         
         Parameters
         ----------
-        target_func:
+        eval_neglogtarget:
             A function that accepts an $n \times d$ matrix containing a 
             set of samples in the reference domain, and returns an 
             $n$-dimensional vector containing the negative logarithm of 

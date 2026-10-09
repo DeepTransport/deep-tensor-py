@@ -147,8 +147,8 @@ def tsvd(
         An m * n matrix to compute the truncated SVD of.
     tol:
         The tolerance used when truncating the singular values. The 
-        minimum number of singular values such that their sum exceeds 
-        (1 - tol) will be retained.
+        minimum number of singular values such that their normalised 
+        sum exceeds (1 - tol) will be retained.
     max_rank:
         An optional hard upper limit on the number of singular values, 
         r, to retain.
@@ -162,6 +162,8 @@ def tsvd(
     Vhr: 
         An r * n matrix containing the transpose of the retained right 
         singular vectors.
+    rank:
+        The number of retained singular vectors, r.
     
     """
 

@@ -96,11 +96,11 @@ def maxvol(
     Parameters
     ----------
     H:
-        n*r matrix, where n > r.
+        n*r matrix, where n >= r.
     tol:
         Convergence tolerance. The algorithm is considered converged if
-        the absolute value of the largest element in H^{-1} @ B (where 
-        B is the submatrix identified) is no greater than 1 + tol.
+        the absolute value of the largest element in H @ B^{-1} (where 
+        B is the submatrix identified) is less than 1 + tol.
     max_iter:
         The maximum number of iterations to carry out.
 

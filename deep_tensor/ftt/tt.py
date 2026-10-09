@@ -438,11 +438,13 @@ class TT():
         tol:
             The error tolerance used when truncating the singular 
             values.
+        max_rank:
+            The maximum allowable rank of the resulting tensor core.
         
         Returns
         -------
         Ur:
-            Matrix containing the left singular vectors of F after 
+            Matrix containing the left singular vectors of H after 
             truncation.
         sVhr: 
             Matrix containing the transpose of the product of the 
@@ -479,10 +481,10 @@ class TT():
             being constructed.
         tol:
             The tolerance to use when applying truncated SVD to the 
-            unfolding matrix of H.
+            unfolding matrix of T.
         max_rank:
             The maximum number of singular values to retain when 
-            applying truncated SVD to the unfolding matrix of H.
+            applying truncated SVD to the unfolding matrix of T.
 
         Returns
         -------
@@ -632,7 +634,9 @@ class TT():
         tol:
             The tolerance to use when applying truncated SVD to round 
             each core.
-        
+        max_rank:
+            The maximum allowable rank of each tensor core.
+            
         """
 
         if tol is None:

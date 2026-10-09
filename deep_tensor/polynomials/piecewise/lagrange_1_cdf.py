@@ -27,8 +27,8 @@ class Lagrange1CDF(PiecewiseCDF):
         ----------
         poly:
             The interpolating polynomial for the corresponding PDF.
-        **kwargs:
-            Arguments to pass into PiecewiseCDF.__init__.
+        error_tol:
+            The numerical tolerance to use when inverting the CDF.
             
         """
 

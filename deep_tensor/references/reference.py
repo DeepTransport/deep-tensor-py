@@ -52,7 +52,7 @@ class Reference(abc.ABC):
         Parameters
         ----------
         rs:
-            A matrix or vector containing a samples from the reference 
+            A matrix or vector containing samples from the reference 
             density.
             
         Returns

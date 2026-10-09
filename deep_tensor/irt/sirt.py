@@ -23,23 +23,24 @@ class SIRT():
     ----------
     eval_neglogtarget:
         A function that receives an n * d matrix of samples and 
-        returns an n-dimensional vector containing the potential 
-        function of the target density evaluated at each sample.
+        returns an n-dimensional vector containing the negative 
+        logarithm of the (unnormalised) target density evaluated at 
+        each sample.
     ftt:
         The functional tensor train to use to approximate the 
         square root of the ratio between the target density and 
         weighting function.
+    dim: 
+        The dimension of the target random variable.
     reference:
         The reference density.
-    domain: 
-        The domain of the reference.
     defensive:
         The defensive parameter.
     cdf_tol:
         The tolerance used when solving the rootfinding problem to 
         evaluate the inverse of each conditional CDF.
     num_error_samples:
-        The number of samples to use to compute and importance sampling 
+        The number of samples to use to compute an importance sampling 
         estimate of the Hellinger distance between the target function 
         and the SIRT approximation.
     device:
@@ -238,7 +239,7 @@ class SIRT():
         -------
         zs:
             An n * d matrix containing the result of applying the 
-            inverse Rosenblatt transport to each sample in ls.
+            Rosenblatt transport to each sample in ls.
         
         """
         if direction == Direction.FORWARD:
@@ -367,8 +368,8 @@ class SIRT():
         return ls, neglogfls
 
     def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
-        """Evaluates the normalised (marginal) PDF represented by the 
-        squared FTT.
+        """Evaluates the potential function of the normalised 
+        (marginal) PDF represented by the squared FTT.
         
         Parameters
         ----------
@@ -468,7 +469,7 @@ class SIRT():
         subset: 
             If the samples contain a subset of the variables, (i.e., 
             k < d), whether they correspond to the first k variables 
-            (subset='first'`) or the last k variables (subset='last').
+            (subset='first') or the last k variables (subset='last').
         
         Returns
         -------

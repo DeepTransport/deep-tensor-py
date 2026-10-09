@@ -4,9 +4,8 @@
 Tempering(
     betas: List | Tensor | None = None,
     ess_tol: float = 0.5,
-    ess_tol_init: float = 0.5,
     beta_factor: float = 1.05,
-    min_beta: float = 0.0001,
+    init_beta: float = 0.0001,
     max_layers: int = 20,
 )
 ```
@@ -40,17 +39,13 @@ bridging density does not fall below a given value.
 
 :   If selecting the $\beta$ values adaptively, the minimum  allowable ESS of the samples (distributed according to an  approximation of the previous bridging density) when selecting  the next bridging density.
 
-<code>[**ess_tol_init**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.5]{.parameter-default}</code>
-
-:   If selecting the $\beta$ values adaptively, the minimum  allowable ESS of the samples when selecting the initial  bridging density.
-
 <code>[**beta_factor**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [1.05]{.parameter-default}</code>
 
-:   If selecting the $\beta$ values adaptively, the factor by which  to increase the current $\beta$ value by prior to checking  whether the ESS of the reweighted samples is sufficiently high.
+:   If selecting the $\beta$ values adaptively, the factor by which  to increase the current $\beta$ value prior to checking  whether the ESS of the reweighted samples is sufficiently high.
 
-<code>[**min_beta**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0001]{.parameter-default}</code>
+<code>[**init_beta**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation} [ = ]{.parameter-default-sep} [0.0001]{.parameter-default}</code>
 
-:   If selecting the $\beta$ values adaptively, the minimum  allowable $\beta$ value.
+:   If selecting the $\beta$ values adaptively, the initial $\beta$  value to use.
 
 <code>[**max_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [20]{.parameter-default}</code>
 

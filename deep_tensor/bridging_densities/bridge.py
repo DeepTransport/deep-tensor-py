@@ -77,14 +77,15 @@ class Bridge(abc.ABC):
             density under the IRT mapping, evaluated at each element in 
             'us'.
         dudrs:
-            An n * d * n tensor, where `dudrs[:, i, :]` contains the 
+            An d * n * d tensor, where `dudrs[:, i, :]` contains the 
             Jacobian of the DIRT mapping evaluated for `us[i, :]`.
         
         Returns
         -------
         neglogratios:
-            An n-dimensional vector containing the current ratio 
-            function evaluated at each element in `us`.
+            An n-dimensional vector containing the negative logarithm 
+            of the current ratio function evaluated at each element in 
+            `us`.
         grad_neglogratios:
             An n * d matrix containing the gradient of the composition 
             of the current IRT and ratio function evaluated at each 
@@ -109,7 +110,7 @@ class Bridge(abc.ABC):
             reference domain after applying the IRT (without the 
             preconditioning mapping).
         dudrs:
-            An n * d * n matrix. `dudrs[:, i, :]` contains the gradient 
+            An d * n * d matrix. `dudrs[:, i, :]` contains the gradient 
             of the IRT mapping evaluated at `us[i, :]`.
 
         Returns
@@ -119,13 +120,10 @@ class Bridge(abc.ABC):
             of the current bridging density (pulled back under the 
             preconditioner) evaluated at each sample in `us`.
         grad_neglogbridges:
-            An n-dimensional vector containing the negative logarithm 
-            of the composition of the IRT and the current bridging 
-            density.
-
-        TODO: the returns section needs work I think. For clarity maybe it 
-        even makes sense to pass in rs here (to be consistent with 
-        _eval_neglogratio). Probably not though.
+            An n * d matrix, where the rows contain evaluations of the 
+            gradient of the negative logarithm of the composition of 
+            the IRT and the current bridging density evaluated at each 
+            sample in `us`.
         
         """
         pass
@@ -148,12 +146,12 @@ class Bridge(abc.ABC):
         Returns
         -------
         log_weights:
-            An n-dimensional vector containing the ratio between 
-            the current and new bridging densities evaluated at each 
-            sample.
+            An n-dimensional vector containing the logarithm of the 
+            ratio between the current and new bridging densities 
+            evaluated at each sample.
         neglogbridges:
-            An n-dimensional vector containing the current bridging 
-            density evaluated at each sample.
+            An n-dimensional vector containing the negative logarithm 
+            of the current bridging density evaluated at each sample.
         
         """
         pass
@@ -222,9 +220,6 @@ class Bridge(abc.ABC):
         preconditioning mapping, and its gradient.
         """
         xs, neglogdets, dxdus = self.preconditioner.grad_Q(us)
-        # NOTE: this may not work with a RareEventFunc currently. maybe 
-        # it should. could also have a slightly different implementation 
-        # of this in the RareEventFunc class.
         neglogfxs, grad_neglogfxs = self.target_func.grad_func(xs)
         neglogfus = neglogfxs + neglogdets
         grad_neglogfus = self._grad_chain(grad_neglogfxs, dxdus)
@@ -236,11 +231,11 @@ class Bridge(abc.ABC):
         neglogratios: Tensor,
         log_weights: Tensor
     ) -> Tuple[Tensor, Tensor]:
-        """Returns a reordered set of indices based on the importance
-        weights between the current bridging density and the density 
-        of the approximation to the previous target density evaluated
-        at a set of samples from the approximation to the previous 
-        target density.
+        """Reorders a set of samples based on the importance weights 
+        between the current bridging density and the density of the 
+        approximation to the previous target density evaluated at a set 
+        of samples from the approximation to the previous target 
+        density.
 
         Parameters
         ----------
@@ -291,8 +286,8 @@ class Bridge(abc.ABC):
             of the current bridging density evaluated at a set of 
             samples from the DIRT approximation.
         neglogfus_dirt:
-            An-dimensional vector containin the negative logarithm of 
-            the DIRT approximation to the current bridging density 
+            An n-dimensional vector containing the negative logarithm 
+            of the DIRT approximation to the current bridging density 
             evaluated at the same set of samples as above. 
 
         """

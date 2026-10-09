@@ -116,9 +116,10 @@ class LagrangeP(Piecewise):
 
     Notes
     -----
-    To construct a higher-order Lagrange basis, we divide the interval 
-    $[0, 1]$ into `num_elems` equisized elements, and use a set of 
-    Lagrange polynomials of degree $n=\,$`order` within each element.
+    To construct a higher-order Lagrange basis, we divide the 
+    approximation interval into `num_elems` equisized elements, and use 
+    a set of Lagrange polynomials of degree $n=\,$`order` within each 
+    element.
      
     Within a given element, we choose a set of interpolation points, 
     $\{x_{j}\}_{j=0}^{n}$, which consist of the endpoints of the 
@@ -135,8 +136,8 @@ class LagrangeP(Piecewise):
             {\prod_{k = 0, k \neq j}^{n}(x_{j}-x_{k})}.
     $$
     To evaluate the interpolant, we use the second (true) form of the 
-    Barycentric formula [@Berrut2004], which is more efficient and stable than the 
-    above formula.
+    Barycentric formula [@Berrut2004], which is more efficient and 
+    stable than the above formula.
 
     We use piecewise Chebyshev polynomials of the second kind to 
     represent the (conditional) CDFs corresponding to the higher-order 

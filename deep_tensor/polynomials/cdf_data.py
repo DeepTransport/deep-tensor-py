@@ -63,7 +63,7 @@ class CDFDataPiecewiseCheby(CDFData):
         of the Chebyshev polynomials used to parametrise it.
     poly_base:
         A matrix containing the values of each Chebyshev polynomial at 
-        left-hand edge of the element it correpsonds to.
+        left-hand edge of the element it corresponds to.
     
     """
     n_cdfs: int

@@ -41,17 +41,13 @@ class Tempering(Bridge):
         allowable ESS of the samples (distributed according to an 
         approximation of the previous bridging density) when selecting 
         the next bridging density. 
-    ess_tol_init:
-        If selecting the $\beta$ values adaptively, the minimum 
-        allowable ESS of the samples when selecting the initial 
-        bridging density.
     beta_factor:
         If selecting the $\beta$ values adaptively, the factor by which 
-        to increase the current $\beta$ value by prior to checking 
+        to increase the current $\beta$ value prior to checking 
         whether the ESS of the reweighted samples is sufficiently high.
-    min_beta:
-        If selecting the $\beta$ values adaptively, the minimum 
-        allowable $\beta$ value.
+    init_beta:
+        If selecting the $\beta$ values adaptively, the initial $\beta$ 
+        value to use.
     max_layers:
         If selecting the $\beta$ values adaptively, the maximum number 
         of layers to construct. Note that, if the maximum number of
@@ -64,9 +60,8 @@ class Tempering(Bridge):
         self, 
         betas: List | Tensor | None = None, 
         ess_tol: float = 0.5, 
-        ess_tol_init: float = 0.5,
         beta_factor: float = 1.05,
-        min_beta: float = 1e-04,
+        init_beta: float = 1e-04,
         max_layers: int = 20
     ):
         
@@ -82,10 +77,8 @@ class Tempering(Bridge):
         
         self.betas[-1] = 0.0
         self.ess_tol = ess_tol
-        self.ess_tol_init = ess_tol_init
         self.beta_factor = beta_factor
-        self.min_beta = min_beta
-        self.init_beta = min_beta
+        self.init_beta = init_beta
         self.max_layers = max_layers
         self.is_adaptive = len(self.betas) == 1
         self.num_layers = 0
@@ -131,8 +124,9 @@ class Tempering(Bridge):
         neglogfus: Tensor, 
         neglogfus_dirt: Tensor
     ) -> Tensor:
-        """Computes the ratio between the current bridging density and 
-        the previous bridging density for each particle.
+        """Computes the negative logarithm of the ratio between the 
+        current bridging density and the previous bridging density for 
+        each particle.
         """
         k = self.num_layers
         neglogweights = (

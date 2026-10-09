@@ -37,8 +37,8 @@ or upper triangular (or both):
 ## Notes {.doc-section .doc-section-notes}
 
 To construct a custom preconditioning mapping, the user must 
-construct a class derived from this class with methods `Q()`, 
-`Q_inv()`, `neglogdet_Q()`, and `neglogdet_Q_inv()`.
+construct a class derived from this class with methods `Q()` and 
+`Q_inv()`.
 
 ## Methods
 
@@ -74,7 +74,7 @@ Applies the mapping $Q(\cdot)$ to a set of samples.
 
 <code>[**neglogdets**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
-:   An $n$-dimensional vector containing the negative  log-determinant of $Q(\cdot)$ evaluated at each sample.
+:   An $n$-dimensional vector containing the negative  log-determinant of of the Jacobian of $Q(\cdot)$ evaluated  at each sample.
 
 ### Q_inv { #deep_tensor.Preconditioner.Q_inv }
 
@@ -102,7 +102,7 @@ Applies the mapping $Q^{-1}(\cdot)$ to a set of samples.
 
 <code>[**neglogdets**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
-:   An $n$-dimensional vector containing the negative  log-determinant of $Q^{-1}(\cdot)$ evaluated at each sample.
+:   An $n$-dimensional vector containing the negative  log-determinant of the Jacobian of $Q^{-1}(\cdot)$  evaluated at each sample.
 
 ### grad_Q { #deep_tensor.Preconditioner.grad_Q }
 
@@ -130,8 +130,8 @@ Evaluates the mapping $Q(\cdot)$ and its gradient.
 
 <code>[**neglogdets**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
-:   An $n$-dimensional vector containing the negative  log-determinant of $Q(\cdot)$ evaluated at each sample.
+:   An $n$-dimensional vector containing the negative  log-determinant of the Jacobian of $Q(\cdot)$ evaluated at  each sample.
 
 <code>[**dxdus**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
-:   A $k \times n \times k$ tensor, where `dxdus[:, i, :]`  contains the Jacobian of $Q(\cdot)$ evaluated at `xs[i, :]`.
+:   A $k \times n \times k$ tensor, where `dxdus[:, i, :]`  contains the Jacobian of $Q(\cdot)$ evaluated at `us[i, :]`.

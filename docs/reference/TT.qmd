@@ -83,3 +83,7 @@ Applies double rounding to get back to the starting direction.
 <code>[**tol**]{.parameter-name} [:]{.parameter-annotation-sep} [float \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
 
 :   The tolerance to use when applying truncated SVD to round  each core.
+
+<code>[**max_rank**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The maximum allowable rank of each tensor core.

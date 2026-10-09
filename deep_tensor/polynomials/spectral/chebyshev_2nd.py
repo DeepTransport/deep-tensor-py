@@ -25,7 +25,7 @@ class Chebyshev2nd(Spectral):
         p_{k}(x) = \frac{\sin((k+1)\arccos(x))}{\sin{(\arccos(x))}}, 
             \qquad k = 0, 1, \dots, n.
     $$
-    The polynomials are orthogonal with respect to the (normalised) 
+    The polynomials are orthonormal with respect to the (normalised) 
     weighting function given by
     $$
         \lambda(x) = \frac{2\sqrt{1-x^{2}}}{\pi}.

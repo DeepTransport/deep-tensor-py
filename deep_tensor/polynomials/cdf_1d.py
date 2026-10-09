@@ -43,7 +43,7 @@ class CDF1D(abc.ABC):
     @abc.abstractmethod
     def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
         """Evaluates the inverse of the CDF of the target PDF at a 
-        given set of values, by solving a set of root-finding problem 
+        given set of values, by solving a set of root-finding problems 
         using Newton's method. If Newton's method does not converge, 
         the Regula Falsi method is applied.
         

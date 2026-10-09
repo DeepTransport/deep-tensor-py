@@ -23,7 +23,9 @@ class DIRT():
     Parameters
     ----------
     target_func:
-        The density function to be approximated.
+        The target function. In most cases, this should be a TargetFunc 
+        object which returns the negative logarithm of the 
+        (unnormalised) target density.
     preconditioner:
         An initial guess as to the mappings between the reference 
         random variable and the target random variable.
@@ -33,6 +35,9 @@ class DIRT():
     bridge: 
         An object used to generate the ratio functions to approximate 
         at each layer of the DIRT construction.
+    subspace:
+        A (low-dimensional) subpace within which to construct each 
+        layer of the DIRT.
     options: 
         Options which control the DIRT construction process.
     device:
@@ -227,8 +232,8 @@ class DIRT():
         Returns
         -------
         neglogref_rs:
-            An n-dimensional vector containing the reference density 
-            evaluated at each sample in `rs`.
+            An n-dimensional vector containing the negative logarithm 
+            of the reference density evaluated at each sample in `rs`.
         neglogbridges:
             An n-dimensional vector containing the current bridging 
             density evaluated at each sample in `rs` after the current 
@@ -439,7 +444,7 @@ class DIRT():
         i: int,
         subset: str
     ) -> Tuple[Tensor, Tensor]:
-        """Evaluates the k-th reduced Rosenblatt transport mapping 
+        """Evaluates the i-th reduced Rosenblatt transport mapping 
         embedded into a larger linear mapping.
         
         Parameters
@@ -459,7 +464,7 @@ class DIRT():
         -------
         rs:
             An n * d matrix containing the corresponding samples after 
-            applying the inverse Rosenblatt transport.
+            applying the Rosenblatt transport.
         neglogfrs:
             An n-dimensional vector containing the pullback of the 
             reference density under the Rosenblatt transport evaluated 
@@ -512,7 +517,7 @@ class DIRT():
         i: int, 
         subset: str
     ) -> Tuple[Tensor, Tensor]:
-        """Evaluates the k-th reduced inverse Rosenblatt transport 
+        """Evaluates the i-th reduced inverse Rosenblatt transport 
         mapping embedded into a larger linear mapping.
         
         Parameters
@@ -612,7 +617,7 @@ class DIRT():
             reference density under the IRT (without the preconditioner) 
             evaluated at each sample in `us`. 
         dudrs:
-            An n * d * n tensor. `dudrs[:, i, :]` contains the Jacobian 
+            A d * n * d tensor. `dudrs[:, i, :]` contains the Jacobian 
             of the IRT evaluated at `us[i, :]`.
         
         """
@@ -811,7 +816,7 @@ class DIRT():
             The matrix should have dimensions $1 \times k$ (if the same 
             realisation of $Y$ is to be used for all samples in `rs`) 
             or $n \times k$ (if a different realisation of $Y$ is to be 
-            used for each samples in `rs`).
+            used for each sample in `rs`).
         rs:
             An $n \times (d-k)$ matrix containing samples from the 
             reference domain.
@@ -833,7 +838,7 @@ class DIRT():
         neglogfxs:
             An $n$-dimensional vector containing the potential function 
             of the approximation to the conditional density of 
-            $X \textbar Y$ evaluated at each sample in `xs`.
+            $X \mid Y$ evaluated at each sample in `xs`.
     
         """
 
@@ -927,7 +932,7 @@ class DIRT():
         Returns
         -------
         xs:
-            An $n \times d$ matrix containing the inverse Rosenblatt 
+            An $n \times k$ matrix containing the inverse Rosenblatt 
             transport evaluated at each element in `rs`.
         neglogTfrs:
             An $n$-dimensional vector containing the potential of the 
@@ -957,9 +962,9 @@ class DIRT():
     ) -> Tuple[Tensor, Tensor, Tensor]:
         r"""Evaluates the pullback of a conditional density function.
 
-        This function evaluates $\mathcal{T}^{\sharp}f(r\|y)$, where 
+        This function evaluates $\mathcal{T}^{\sharp}f(r \mid y)$, where 
         $\mathcal{T}(\cdot)$ denotes the inverse Rosenblatt transport 
-        and $f(\cdot\|y)$ denotes an arbitrary conditional density 
+        and $f(\cdot \mid y)$ denotes an arbitrary conditional density 
         function.
 
         Parameters
@@ -968,13 +973,13 @@ class DIRT():
             A function that takes an $n \times (d-k)$ matrix of samples 
             from the approximation domain, and returns an 
             $n$-dimensional vector containing the potential function 
-            associated with $f(\cdot\|y)$ evaluated at each sample.
+            associated with $f(\cdot \mid y)$ evaluated at each sample.
         ys:
             A matrix containing samples from the approximation domain.
             The matrix should have dimensions $1 \times k$ (if the same 
             realisation of $Y$ is to be used for all samples in `rs`) 
             or $n \times k$ (if a different realisation of $Y$ is to be 
-            used for each samples in `rs`).
+            used for each sample in `rs`).
         rs:
             An $n \times (d-k)$ matrix containing a set of samples from 
             the reference domain.
@@ -990,16 +995,16 @@ class DIRT():
         Returns
         -------
         xs:
-            An $n \times d$ matrix containing the inverse Rosenblatt 
+            An $n \times (d-k)$ matrix containing the inverse Rosenblatt 
             transport evaluated at each element in `rs`.
         neglogTfrs:
             An $n$-dimensional vector containing the potential of the 
             pullback function evaluated at each element in `rs`; that 
-            is, $-\log(\mathcal{T}^{\sharp}f(r\|y))$.
+            is, $-\log(\mathcal{T}^{\sharp}f(r \mid y))$.
         neglogfxs:
             An $n$-dimensional vector containing the potential of the 
             target function evaluated at each element in `rs`, pushed 
-            forward under the IRT; that is, $-\log(f(\mathcal{T}(r)\|y))$.
+            forward under the IRT; that is, $-\log(f(\mathcal{T}(r) \mid y))$.
         
         """
         ys = ys.to(self.device)
@@ -1123,8 +1128,8 @@ class DIRT():
         -------
         neglogfxs:
             An $n$-dimensional vector containing the potential function 
-            of the approximation to the conditional density of 
-            $X \textbar Y$ evaluated at each sample in `xs`.
+            of the approximation to the density of $X \textbar Y$ 
+            evaluated at each sample in `xs`.
     
         """
 

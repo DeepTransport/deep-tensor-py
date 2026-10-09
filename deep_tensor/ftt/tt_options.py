@@ -35,8 +35,8 @@ class TTOptions():
     tol_svd:
         The threshold to use when applying truncated SVD to the tensor 
         cores when building the TT. The minimum number of singular 
-        values such that the sum of their squares exceeds ($1-$ `tol_svd`) 
-        will be retained.
+        values such that the sum exceeds ($1-$ `tol_svd`) will be 
+        retained.
     tol_max_core_error: 
         A stopping tolerance, $\epsilon$, based on the tensor cores. 
         More concretely, if $\boldsymbol{H}^{(\ell)}_{k}$ denotes the 
@@ -53,9 +53,9 @@ class TTOptions():
     verbose:
         If `verbose=0`, no information about the construction of the 
         FTT will be printed. If `verbose=1`, diagnostic information 
-        will be prined at the end of each ALS iteration. If `verbose=2`, 
-        the tensor core currently being constructed during each ALS 
-        iteration will also be displayed.
+        will be printed at the end of each ALS iteration. If 
+        `verbose=2`, the tensor core currently being constructed during 
+        each ALS iteration will also be displayed.
     
     """
     

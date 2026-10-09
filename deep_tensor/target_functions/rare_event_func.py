@@ -74,7 +74,7 @@ class RareEventFunc(TargetFunc):
         event indicator function.
         """
         neglogfxs, responses = self.func(xs)
-        rare_event_indicator = responses > self.threshold
+        rare_event_indicator = responses >= self.threshold
         neglogfxs[~rare_event_indicator] = torch.inf
         return neglogfxs
     
@@ -82,8 +82,8 @@ class RareEventFunc(TargetFunc):
         if self._is_vectorised:
             return self._func(xs)
         num_xs = xs.shape[0]
-        neglogfxs = torch.zeros((num_xs,), device=xs.device)
-        responses = torch.zeros((num_xs,), device=xs.device)
+        neglogfxs = torch.zeros(num_xs, device=xs.device)
+        responses = torch.zeros(num_xs, device=xs.device)
         for i, x in enumerate(xs):
             neglogfxs[i], responses[i] = self._func(x)
         return neglogfxs, responses
@@ -101,9 +101,9 @@ class RareEventFunc(TargetFunc):
             return self._grad_func(xs)
         
         num_xs = xs.shape[0]
-        neglogfxs = torch.zeros((num_xs,), device=xs.device)
+        neglogfxs = torch.zeros(num_xs, device=xs.device)
         grad_neglogfxs = torch.zeros_like(xs)
-        responses = torch.zeros((num_xs,), device=xs.device)
+        responses = torch.zeros(num_xs, device=xs.device)
         grad_responses = torch.zeros_like(xs)
         
         for i, x in enumerate(xs):

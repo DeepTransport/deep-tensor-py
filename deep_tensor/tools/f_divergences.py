@@ -10,7 +10,7 @@ def estimate_dhell(
     negloggxs: Tensor,
     negloghxs: Tensor | None = None
 ) -> Tensor:
-    """Estimates the Hellinger divergence between two (unnormalised)
+    """Estimates the Hellinger distance between two (unnormalised)
     probability densities using an importance sampling estimate.
 
     Parameters
@@ -21,16 +21,16 @@ def estimate_dhell(
     negloggxs:
         An n-dimensional vector containing evaluations of the negative 
         logarithm of the second (possibly unnormalised) density.
-    negloghs:
+    negloghxs:
         An n-dimensional vector containing evaluations of the negative 
-        logarithm of the proposal density. If this is not supplied, 
-        neglogfxs will be assumed to be draws from the (normalised) 
-        importance density.
+        logarithm of the (normalised) importance density. If this is 
+        not supplied, instead neglogfxs will be assumed to be draws 
+        from the (normalised) importance density.
     
     Returns
     -------
     dhell:
-        An importance sampling estimate of the Hellinger divergence.
+        An importance sampling estimate of the Hellinger distance.
     
     """
 
@@ -56,7 +56,7 @@ DIVERGENCES = ("h2", "kl", "tv")
 
 
 def compute_log_norm(log_ratios: Tensor) -> Tensor:
-    """Estimates the normalising constant of a given target density.
+    """Estimates the log-normalising constant of a given target density.
     
     Parameters
     ----------

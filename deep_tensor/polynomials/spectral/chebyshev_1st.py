@@ -27,7 +27,7 @@ class Chebyshev1st(Spectral):
             \qquad k = 1, 2, \dots, n.
     \end{align}
     $$
-    The polynomials are orthogonal with respect to the (normalised) 
+    The polynomials are orthonormal with respect to the (normalised) 
     weighting function given by
     $$
         \lambda(x) = \frac{1}{\pi\sqrt{1-x^{2}}}.

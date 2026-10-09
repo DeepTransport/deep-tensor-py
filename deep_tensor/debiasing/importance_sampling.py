@@ -12,8 +12,9 @@ class ImportanceSamplingResult(object):
     Attributes
     ----------
     log_weights: Tensor
-        An $n$-dimensional vector containing the unnormalised 
-        importance weights associated with a set of samples.
+        An $n$-dimensional vector containing the logarithm of the 
+        unnormalised importance weights associated with a set of 
+        samples.
     log_norm: Tensor
         An estimate of the logarithm of the normalising constant 
         associated with the target density.

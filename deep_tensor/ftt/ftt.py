@@ -251,7 +251,7 @@ class FTT():
         Parameters
         ----------
         ls:
-            An $n \times d$ matrix containing a set of samples mapped 
+            An $n \times k$ matrix containing a set of samples mapped 
             to the domain of the FTT basis functions.
         direction:
             The direction in which to iterate over the cores.
@@ -259,9 +259,9 @@ class FTT():
         Returns
         -------
         Gs_prod:
-            An $n \times n_{k}$ matrix, where each row contains the 
-            product of the first or last (depending on direction) $k$ 
-            tensor cores evaluated at the corresponding sample in `ls`.
+            An $n \times r$ matrix, where each row contains the product 
+            of the first or last (depending on direction) $k$ tensor 
+            cores evaluated at the corresponding sample in `ls`.
             
         """
         self._check_sample_dim(ls, self.dim)
@@ -322,12 +322,14 @@ class FTT():
         dim: int,
         reference: Reference | None = None
     ) -> None:
-        r"""Constructs a FTT approximation to a target function.
+        r"""Constructs an FTT approximation to a target function.
 
         Parameters
         ----------
         target_func: 
             The target function, $f : [-1, 1]^{d} \rightarrow \mathbb{R}$.
+        dim:
+            The dimension of the target function.
         reference:
             The reference measure. If provided, this will be used to 
             generate the initial index sets for the underlying TT. 
@@ -443,8 +445,8 @@ class EFTT(FTT):
         inds_eval: Tensor,
         vals_eval: Tensor
     ) -> Tuple[Tensor, Tensor]:
-        """Returns a mask elements of a set of indices that have been 
-        computed previously, as well as the computed values.
+        """Returns a mask of elements of a set of indices that have 
+        been computed previously, as well as the computed values.
         """
         diffs = (new_inds[:, None, :] - inds_eval[None, ...]).abs().sum(dim=2)
         inds_prev = diffs.argmin(dim=1)
@@ -647,12 +649,14 @@ class EFTT(FTT):
         dim: int,
         reference: Reference | None = None
     ) -> None:
-        r"""Constructs a FTT approximation to a target function.
+        r"""Constructs an FTT approximation to a target function.
 
         Parameters
         ----------
         target_func: 
             The target function, $f : [-1, 1]^{d} \rightarrow \mathbb{R}$. 
+        dim:
+            The dimension of the target function.
         reference:
             The reference measure. If provided, this will be used to 
             generate the samples to build the fibre matrix bases and 
