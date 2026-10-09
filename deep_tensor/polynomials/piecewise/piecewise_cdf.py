@@ -9,24 +9,16 @@ from ..cdf_data import CDFData
 
 
 class PiecewiseCDF(CDF1D, abc.ABC):
-    
+    _grid: Tensor
+    _num_elems: int
+
     def __init__(self, error_tol: float, device: torch.device):
-        self.device = device
+        self._device = device
         CDF1D.__init__(self, error_tol)
         return
     
-    @property
     @abc.abstractmethod
-    def grid(self) -> Tensor:
-        pass 
-
-    @property
-    @abc.abstractmethod
-    def num_elems(self) -> int:
-        pass 
-
-    @abc.abstractmethod
-    def eval_int_elem(
+    def _eval_int_elem(
         self, 
         cdf_data: CDFData,
         inds_left: Tensor,
@@ -57,7 +49,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def eval_int_elem_deriv(
+    def _eval_int_elem_deriv(
         self, 
         cdf_data: CDFData,
         inds_left: Tensor,
@@ -92,7 +84,7 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         pass
         
     @abc.abstractmethod
-    def pdf2cdf(self, ps: Tensor) -> CDFData:
+    def _pdf2cdf(self, ps: Tensor) -> CDFData:
         """Given evaluations of an (unnormalised) PDF (or set of 
         unnormalised PDFs), generates data on the corresponding CDF.
 
@@ -114,18 +106,18 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         """
         pass
         
-    def eval_int(self, cdf_data: CDFData, ls: Tensor) -> Tensor:
+    def _eval_int(self, cdf_data: CDFData, ls: Tensor) -> Tensor:
 
         if cdf_data.n_cdfs > 1 and cdf_data.n_cdfs != ls.numel():
             raise Exception("Data mismatch.")
 
-        inds_left = torch.sum(self.grid < ls[:, None], dim=1) - 1
-        inds_left = torch.clamp(inds_left, 0, self.num_elems-1)
+        inds_left = torch.sum(self._grid < ls[:, None], dim=1) - 1
+        inds_left = torch.clamp(inds_left, 0, self._num_elems-1)
         
-        zs = self.eval_int_elem(cdf_data, inds_left, ls)
+        zs = self._eval_int_elem(cdf_data, inds_left, ls)
         return zs
 
-    def eval_int_elem_diff(
+    def _eval_int_elem_diff(
         self, 
         cdf_data: CDFData,
         inds_left: Tensor, 
@@ -160,10 +152,10 @@ class PiecewiseCDF(CDF1D, abc.ABC):
             the values of zs_cdf.
 
         """
-        dzs = self.eval_int_elem(cdf_data, inds_left, ls) - zs_cdf
+        dzs = self._eval_int_elem(cdf_data, inds_left, ls) - zs_cdf
         return dzs
     
-    def eval_int_elem_newton(
+    def _eval_int_elem_newton(
         self, 
         cdf_data: CDFData,
         inds_left: Tensor, 
@@ -202,20 +194,20 @@ class PiecewiseCDF(CDF1D, abc.ABC):
             unnormalised CDF evaluated at each element in ls.
 
         """
-        zs, gradzs = self.eval_int_elem_deriv(cdf_data, inds_left, ls)
+        zs, gradzs = self._eval_int_elem_deriv(cdf_data, inds_left, ls)
         dzs = zs - zs_cdf
         return dzs, gradzs
 
-    def eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
+    def _eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
 
-        self.check_pdf_positive(ps)
-        cdf_data = self.pdf2cdf(ps)
+        self._check_pdf_positive(ps)
+        cdf_data = self._pdf2cdf(ps)
 
-        zs = self.eval_int(cdf_data, ls) / cdf_data.poly_norm
+        zs = self._eval_int(cdf_data, ls) / cdf_data.poly_norm
         zs = torch.clamp(zs, 0.0, 1.0)
         return zs
     
-    def newton(
+    def _newton(
         self, 
         cdf_data: CDFData, 
         inds_left: Tensor, 
@@ -255,22 +247,22 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         
         """
 
-        z0s = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l0s)
-        z1s = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l1s)
-        self.check_initial_intervals(z0s, z1s)
+        z0s = self._eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l0s)
+        z1s = self._eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l1s)
+        self._check_initial_intervals(z0s, z1s)
 
         ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
 
-        for _ in range(self.n_newton):
-            zs, dzs = self.eval_int_elem_newton(cdf_data, inds_left, zs_cdf, ls)
+        for _ in range(self._n_newton):
+            zs, dzs = self._eval_int_elem_newton(cdf_data, inds_left, zs_cdf, ls)
             ls, dls = self._newton_step(ls, zs, dzs, l0s, l1s)
-            if self.converged(zs, dls):
+            if self._converged(zs, dls):
                 return ls
         
-        # self.print_unconverged(zs, dls, "Newton's method")
-        return self.regula_falsi(cdf_data, inds_left, zs_cdf, l0s, l1s)
+        # self._print_unconverged(zs, dls, "Newton's method")
+        return self._regula_falsi(cdf_data, inds_left, zs_cdf, l0s, l1s)
     
-    def regula_falsi(
+    def _regula_falsi(
         self, 
         cdf_data: CDFData, 
         inds_left: Tensor,
@@ -310,15 +302,15 @@ class PiecewiseCDF(CDF1D, abc.ABC):
         
         """
         
-        z0s = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l0s)
-        z1s = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l1s)
-        self.check_initial_intervals(z0s, z1s)
+        z0s = self._eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l0s)
+        z1s = self._eval_int_elem_diff(cdf_data, inds_left, zs_cdf, l1s)
+        self._check_initial_intervals(z0s, z1s)
 
-        for _ in range(self.n_regula_falsi):
+        for _ in range(self._n_regula_falsi):
 
             ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
-            zs = self.eval_int_elem_diff(cdf_data, inds_left, zs_cdf, ls)
-            if self.converged(zs / cdf_data.poly_norm, dls / cdf_data.poly_norm):
+            zs = self._eval_int_elem_diff(cdf_data, inds_left, zs_cdf, ls)
+            if self._converged(zs / cdf_data.poly_norm, dls / cdf_data.poly_norm):
                 return ls 
 
             # Note that the CDF is monotone increasing
@@ -327,20 +319,20 @@ class PiecewiseCDF(CDF1D, abc.ABC):
             z0s[zs < 0] = zs[zs < 0]
             z1s[zs > 0] = zs[zs > 0]
             
-        self.print_unconverged(zs / cdf_data.poly_norm, dls / cdf_data.poly_norm, "Regula falsi")
+        self._print_unconverged(zs / cdf_data.poly_norm, dls / cdf_data.poly_norm, "Regula falsi")
         return ls
     
-    def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
+    def _eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
         
         if ps.ndim == 1:
             ps = ps[:, None]
-        self.check_pdf_dims(ps, ls)
+        self._check_pdf_dims(ps, ls)
         
-        cdf_data = self.pdf2cdf(ps)
-        zs = self.eval_int(cdf_data, ls)
+        cdf_data = self._pdf2cdf(ps)
+        zs = self._eval_int(cdf_data, ls)
         return zs
     
-    def invert_cdf_elem(
+    def _invert_cdf_elem(
         self, 
         cdf_data: CDFData, 
         inds_left: Tensor,
@@ -370,19 +362,19 @@ class PiecewiseCDF(CDF1D, abc.ABC):
             evaluated at each element in zs_cdf.
         
         """
-        l0s, l1s = self.grid[inds_left], self.grid[inds_left+1]
-        ls = self.newton(cdf_data, inds_left, zs_cdf, l0s, l1s)
+        l0s, l1s = self._grid[inds_left], self._grid[inds_left+1]
+        ls = self._newton(cdf_data, inds_left, zs_cdf, l0s, l1s)
         return ls
 
-    def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
+    def _invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
 
-        self.check_pdf_positive(ps)
-        cdf_data = self.pdf2cdf(ps)
+        self._check_pdf_positive(ps)
+        cdf_data = self._pdf2cdf(ps)
         ls = torch.zeros_like(zs)
 
         zs_cdf = zs * cdf_data.poly_norm
         inds_left = (cdf_data.cdf_poly_grid <= zs_cdf).sum(dim=0) - 1
-        inds_left = torch.clamp(inds_left, 0, self.num_elems-1)
+        inds_left = torch.clamp(inds_left, 0, self._num_elems-1)
 
-        ls = self.invert_cdf_elem(cdf_data, inds_left, zs_cdf)
+        ls = self._invert_cdf_elem(cdf_data, inds_left, zs_cdf)
         return ls

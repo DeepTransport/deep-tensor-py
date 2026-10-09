@@ -10,95 +10,31 @@ from ..references import Reference
 
 
 class Subspace(abc.ABC):
+    _basis_red: Tensor
+    _basis_comp: Tensor
+    _P_red: Tensor
+    _P_comp: Tensor
+    _num_comp: int
+    _num_eval: int
+    _num_eval_grad: int
+    _device: torch.device
 
     @property 
     @abc.abstractmethod 
-    def is_fixed(self) -> bool:
+    def _is_fixed(self) -> bool:
         pass
     
     @property 
-    def basis_red(self) -> Tensor:
-        return self._basis_red 
-    
-    @basis_red.setter
-    def basis_red(self, val: Tensor) -> None:
-        self._basis_red = val 
-        return
-    
-    @property 
-    def basis_comp(self) -> Tensor:
-        return self._basis_comp
-    
-    @basis_comp.setter
-    def basis_comp(self, val: Tensor) -> None:
-        self._basis_comp = val 
-        return
-    
-    @property 
-    def num_eval(self) -> int:
-        return self._num_eval
-    
-    @num_eval.setter
-    def num_eval(self, val: int) -> None:
-        self._num_eval = val 
-        return
-    
-    @property 
-    def num_eval_grad(self) -> int:
-        return self._num_eval_grad
-    
-    @num_eval_grad.setter
-    def num_eval_grad(self, val: int) -> None:
-        self._num_eval_grad = val 
-        return
-    
-    @property 
-    def num_comp(self) -> int:
-        return self._num_comp
-    
-    @num_comp.setter
-    def num_comp(self, val: int) -> None:
-        self._num_comp = val 
-        return
-    
-    @property 
-    def dim(self) -> int:
-        return self.dim_red + self.dim_comp
+    def _dim(self) -> int:
+        return self._dim_red + self._dim_comp
 
     @property
-    def dim_red(self) -> int:
-        return self.basis_red.shape[1]
+    def _dim_red(self) -> int:
+        return self._basis_red.shape[1]
 
     @property 
-    def dim_comp(self) -> int:
-        return self.basis_comp.shape[1]
-    
-    @property 
-    def P_red(self) -> Tensor:
-        return self._P_red
-    
-    @P_red.setter
-    def P_red(self, val: Tensor) -> None:
-        self._P_red = val 
-        return
-    
-    @property 
-    def P_comp(self) -> Tensor:
-        return self._P_comp
-    
-    @P_comp.setter
-    def P_comp(self, val: Tensor) -> None:
-        self._P_comp = val 
-        return
-    
-    @property
-    def device(self) -> torch.device:
-        return self._device
-    
-    @device.setter 
-    def device(self, val: torch.device) -> None:
-        self._device = val 
-        return
+    def _dim_comp(self) -> int:
+        return self._basis_comp.shape[1]
     
     def _compute_basis_comp(self, basis_red: Tensor) -> Tensor:
         """Given a basis for the reduced subspace, computes a basis for 
@@ -106,65 +42,65 @@ class Subspace(abc.ABC):
         """
         P_comp = torch.eye(basis_red.shape[0]) - basis_red @ basis_red.T
         _, eigvecs = torch.linalg.eigh(P_comp)
-        basis_comp = eigvecs[:, self.dim_red:]
+        basis_comp = eigvecs[:, self._dim_red:]
         return basis_comp
     
     def _compute_samples_comp(self, num_comp: int) -> None:
         """Computes a (fixed) set of samples in the complement subspace."""
-        shape_vs_comp = (num_comp, self.dim_comp)
-        self.vs_comp = torch.randn(shape_vs_comp, device=self.device)
-        self.xs_comp = self.eval_coef2comp(self.vs_comp)
+        shape_vs_comp = (num_comp, self._dim_comp)
+        self._vs_comp = torch.randn(shape_vs_comp, device=self._device)
+        self._xs_comp = self._eval_coef2comp(self._vs_comp)
         return
     
     def _generate_xs_comp(self, num_samples: int) -> Tensor:
         """Generates a set of samples in the complement subspace with 
         the appropriate dimension.
         """
-        shape_comp = (num_samples, self.dim_comp)
-        vs_comp = torch.randn(shape_comp, device=self.device)
-        xs_comp = self.eval_coef2comp(vs_comp)
+        shape_comp = (num_samples, self._dim_comp)
+        vs_comp = torch.randn(shape_comp, device=self._device)
+        xs_comp = self._eval_coef2comp(vs_comp)
         return xs_comp
 
-    def eval_coef2red(self, vs: Tensor) -> Tensor:
+    def _eval_coef2red(self, vs: Tensor) -> Tensor:
         """Computes the reduced subspace vectors associated with a 
         set of coefficients.
         """
         vs = torch.atleast_2d(vs)
-        return vs @ self.basis_red.T 
+        return vs @ self._basis_red.T 
     
-    def eval_red2coef(self, xs: Tensor) -> Tensor:
+    def _eval_red2coef(self, xs: Tensor) -> Tensor:
         """Computes the reduced subspace coefficients associated with a 
         set of vectors.
         """
         xs = torch.atleast_2d(xs)
-        return xs @ self.basis_red
+        return xs @ self._basis_red
     
-    def eval_coef2comp(self, ws: Tensor) -> Tensor:
+    def _eval_coef2comp(self, ws: Tensor) -> Tensor:
         """Computes the complement subspace vectors associated with a 
         set of coefficients.
         """
         ws = torch.atleast_2d(ws)
-        return ws @ self.basis_comp.T
+        return ws @ self._basis_comp.T
     
-    def eval_comp2coef(self, xs: Tensor) -> Tensor:
+    def _eval_comp2coef(self, xs: Tensor) -> Tensor:
         """Computes the complement subspace coefficients associated 
         with a set of vectors.
         """
         xs = torch.atleast_2d(xs)
-        return xs @ self.basis_comp
+        return xs @ self._basis_comp
     
-    def project_red(self, xs: Tensor) -> Tensor:
+    def _project_red(self, xs: Tensor) -> Tensor:
         """Projects a set of vectors onto the LDT subspace."""
         xs = torch.atleast_2d(xs)
-        return xs @ self.P_red
+        return xs @ self._P_red
     
-    def project_comp(self, xs: Tensor) -> Tensor:
+    def _project_comp(self, xs: Tensor) -> Tensor:
         """Projects a set of vectors onto the complement subspace."""
         xs = torch.atleast_2d(xs)
-        return xs @ self.P_comp
+        return xs @ self._P_comp
 
     @abc.abstractmethod 
-    def eval_neglogprofile(
+    def _eval_neglogprofile(
         self, 
         eval_neglogtarget: Callable[[Tensor], Tensor],
         vs_red: Tensor
@@ -195,7 +131,7 @@ class Subspace(abc.ABC):
         pass
 
     @abc.abstractmethod 
-    def update(
+    def _update(
         self,
         grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]],
         reference: Reference
@@ -206,6 +142,6 @@ class Subspace(abc.ABC):
         pass
 
     @abc.abstractmethod 
-    def clone(self) -> Subspace:
+    def _clone(self) -> Subspace:
         """Returns a copy of the subspace."""
         pass

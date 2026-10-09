@@ -3,6 +3,7 @@ import unittest
 import torch
 
 import deep_tensor as dt
+from deep_tensor.polynomials import Spectral
 
 
 torch.manual_seed(0)
@@ -16,7 +17,7 @@ class TestSpectralPolynomials(unittest.TestCase):
         Appendix A).
         """
 
-        polynomials: list[dt.Spectral] = [
+        polynomials: list[Spectral] = [
             dt.Chebyshev1st(order=20),
             dt.Chebyshev2nd(order=20),
             dt.Fourier(order=20),
@@ -25,8 +26,8 @@ class TestSpectralPolynomials(unittest.TestCase):
 
         for poly in polynomials:
             with self.subTest(poly=poly):
-                Id = poly.node2basis @ poly.basis2node
-                Id_true = torch.eye(poly.cardinality)
+                Id = poly._node2basis @ poly._basis2node
+                Id_true = torch.eye(poly._cardinality)
                 self.assertTrue((Id_true - Id).abs().max() < 1e-4)
 
         return

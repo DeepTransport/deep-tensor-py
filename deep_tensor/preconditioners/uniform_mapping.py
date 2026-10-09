@@ -41,8 +41,8 @@ class UniformMapping(Preconditioner):
         if reference is None:
             reference = GaussianReference()
         
-        self.lbs, self.ubs = bounds.T
-        self.dxs = self.ubs - self.lbs
+        self._lbs, self._ubs = bounds.T
+        self._dxs = self._ubs - self._lbs
         self.reference = reference
         self.dim = bounds.shape[0]
         return
@@ -52,9 +52,9 @@ class UniformMapping(Preconditioner):
         num_us, dim_us = us.shape
         zs = self.reference.eval_cdf(us)[0]
         if subset == "first":
-            lbs, dxs = self.lbs[:dim_us], self.dxs[:dim_us]
+            lbs, dxs = self._lbs[:dim_us], self._dxs[:dim_us]
         elif subset == "last":
-            lbs, dxs = self.lbs[-dim_us:], self.dxs[-dim_us:]
+            lbs, dxs = self._lbs[-dim_us:], self._dxs[-dim_us:]
         xs = lbs + dxs * zs 
         neglogfx = dxs.log().sum().item()
         neglogfxs = torch.full((num_us,), neglogfx, device=us.device)
@@ -65,9 +65,9 @@ class UniformMapping(Preconditioner):
         # Uniform to reference
         num_xs, dim_xs = xs.shape
         if subset == "first":
-            lbs, dxs = self.lbs[:dim_xs], self.dxs[:dim_xs]
+            lbs, dxs = self._lbs[:dim_xs], self._dxs[:dim_xs]
         elif subset == "last":
-            lbs, dxs = self.lbs[-dim_xs:], self.dxs[-dim_xs:]
+            lbs, dxs = self._lbs[-dim_xs:], self._dxs[-dim_xs:]
         zs = (xs - lbs) / dxs
         neglogfx = dxs.log().sum().item()
         us = self.reference.invert_cdf(zs)
@@ -83,9 +83,9 @@ class UniformMapping(Preconditioner):
         num_us, dim_us = us.shape
         zs = self.reference.eval_cdf(us)[0]
         if subset == "first":
-            lbs, dxs = self.lbs[:dim_us], self.dxs[:dim_us]
+            lbs, dxs = self._lbs[:dim_us], self._dxs[:dim_us]
         elif subset == "last":
-            lbs, dxs = self.lbs[-dim_us:], self.dxs[-dim_us:]
+            lbs, dxs = self._lbs[-dim_us:], self._dxs[-dim_us:]
         xs = lbs + dxs * zs
         neglogfx = dxs.log().sum().item()
         neglogfxs = torch.full((num_us,), neglogfx, device=us.device)

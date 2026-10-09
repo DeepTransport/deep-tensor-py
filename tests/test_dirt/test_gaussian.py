@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 
 import deep_tensor as dt
+from deep_tensor.polynomials import Basis1D
 
 torch.manual_seed(0)
 torch.set_default_dtype(torch.float64)
@@ -21,7 +22,7 @@ class TestDIRTStandardGaussian(unittest.TestCase):
     def build_dirt(
         self, 
         dim: int = 5, 
-        basis: dt.Basis1D | None = None
+        basis: Basis1D | None = None
     ):
         
         if basis is None:

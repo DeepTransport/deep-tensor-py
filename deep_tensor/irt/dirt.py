@@ -10,7 +10,7 @@ from .sirt import SIRT, SUBSET2DIRECTION
 from ..bridging_densities import Bridge, Tempering
 from ..ftt import Direction, FTT
 from ..preconditioners import Preconditioner
-from ..references import GaussianReference
+from ..references import GaussianReference, Reference
 from ..subspaces import Subspace, FullSpace
 from ..target_functions import TargetFunc
 from ..tools.printing import dirt_info, format_time
@@ -45,6 +45,10 @@ class DIRT():
 
     Attributes
     ----------
+    dim:
+        The dimension of the target density.
+    reference:
+        The reference density.
     num_layers:
         The number of layers of the approximation.
     log_z:
@@ -94,30 +98,30 @@ class DIRT():
             bridge = Tempering()
         if options is None:
             options = DIRTOptions()
-        
-        self.target_func = target_func
-        self.preconditioner = preconditioner
-        self.dim = preconditioner.dim
-        self.reference = preconditioner.reference
-        self.domain = self.reference.domain
-        self.ftt = ftt
-        self.bridge = bridge
-        self.bridge.initialise(preconditioner, target_func)
-        self.subspace = subspace
-        self.subspaces: Dict[int, Subspace] = {-1: subspace}
-        self.ratio_type = options.ratio_type 
-        self.num_error_samples = options.num_error_samples
-        self.num_error_samples_ratio = options.num_error_samples_ratio
-        self.num_error_samples_ratio_red = options.num_error_samples_ratio_red
-        self.defensive = options.defensive
-        self.cdf_tol = options.cdf_tol
-        self.verbose = options.verbose
-        self.sirts: Dict[int, SIRT] = {}
-        self.device = device
+
+        self.dim: int = preconditioner.dim
+        self.reference: Reference = preconditioner.reference
+        self._target_func = target_func
+        self._preconditioner = preconditioner
+        self._domain = self.reference._domain
+        self._ftt = ftt
+        self._bridge = bridge
+        self._bridge._initialise(preconditioner, target_func)
+        self._subspace = subspace
+        self._subspaces: Dict[int, Subspace] = {-1: subspace}
+        self._ratio_type = options.ratio_type 
+        self._num_error_samples = options.num_error_samples
+        self._num_error_samples_ratio = options.num_error_samples_ratio
+        self._num_error_samples_ratio_red = options.num_error_samples_ratio_red
+        self._defensive = options.defensive
+        self._cdf_tol = options.cdf_tol
+        self._verbose = options.verbose
+        self._sirts: Dict[int, SIRT] = {}
+        self._device = device
         self._dhell_ratios: Dict[int, float | None] = {}
         self._dhells: Dict[int, float | None] = {}
 
-        if self.bridge.is_adaptive and self.num_error_samples == 0:
+        if self._bridge._is_adaptive and self._num_error_samples == 0:
             msg = (
                 "The bridging densities are being chosen adaptively, "
                 "which requires a non-zero number of error samples. "
@@ -127,7 +131,7 @@ class DIRT():
             )
             raise Exception(msg)
 
-        reduced_space = not isinstance(self.subspace, FullSpace) 
+        reduced_space = not isinstance(self._subspace, FullSpace) 
         gaussian_ref = isinstance(self.reference, GaussianReference)
         if reduced_space and not gaussian_ref:
             msg = (
@@ -142,53 +146,53 @@ class DIRT():
     @property 
     def _num_eval_sirt(self) -> int:
         sirt_evals = [
-            self.sirts[k].num_eval * max(self.subspaces[k].num_comp, 1) 
-            for k in self.sirts
+            self._sirts[k]._num_eval * max(self._subspaces[k]._num_comp, 1) 
+            for k in self._sirts
         ]
         return sum(sirt_evals)
     
     @property 
     def _num_eval_subspace(self) -> int:
-        return sum([self.subspaces[k].num_eval for k in self.subspaces])
+        return sum([self._subspaces[k]._num_eval for k in self._subspaces])
     
     @property 
     def _num_eval_diagnostic(self) -> int:
         num_eval = (
-            self.num_error_samples * (self.num_layers + 1)
-            + self.num_error_samples_ratio * self.num_layers
-            + self.num_error_samples_ratio_red * self.num_layers
+            self._num_error_samples * (self.num_layers + 1)
+            + self._num_error_samples_ratio * self.num_layers
+            + self._num_error_samples_ratio_red * self.num_layers
         )
         return num_eval
     
     @property 
     def _num_grad_subspace(self) -> int:
-        return sum([self.subspaces[k].num_eval_grad for k in self.subspaces])
+        return sum([self._subspaces[k]._num_eval_grad for k in self._subspaces])
     
     @property 
     def num_layers(self) -> int:
-        return self.bridge.num_layers
+        return self._bridge._num_layers
 
     @num_layers.setter
     def num_layers(self, value: int) -> None:
-        self.bridge.num_layers = value 
+        self._bridge._num_layers = value 
         return
 
     @property
     def log_z(self) -> float:
-        if not self.sirts.keys():
+        if not self._sirts.keys():
             return 0.0
-        return sum([math.log(self.sirts[k].z) for k in self.sirts])
+        return sum([math.log(self._sirts[k]._z) for k in self._sirts])
 
     @property 
     def subspace_dims(self) -> List:
-        return [self.subspaces[k].dim_red for k in range(self.num_layers)]
+        return [self._subspaces[k]._dim_red for k in range(self.num_layers)]
 
     @property 
     def num_eval_construction(self) -> int:
         sirt_evals = [
-            self.sirts[k].num_eval_construction 
-            * max(self.subspaces[k].num_comp, 1) 
-            for k in self.sirts
+            self._sirts[k]._num_eval_construction 
+            * max(self._subspaces[k]._num_comp, 1) 
+            for k in self._sirts
         ]
         num_eval_sirt = sum(sirt_evals) 
         return num_eval_sirt + self._num_eval_subspace
@@ -216,7 +220,7 @@ class DIRT():
 
     @property
     def dhell_ratios_red(self) -> List:
-        return [self.sirts[k].dhell for k in range(self.num_layers)]
+        return [self._sirts[k]._dhell for k in range(self.num_layers)]
   
     def _grad_neglogbridge(self, rs: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
         """Evaluates the gradient of the negative logarithm of the 
@@ -247,7 +251,7 @@ class DIRT():
         """
         neglogref_rs = self.reference.eval_potential(rs)[0]
         us, neglogfus, dudrs = self._jac_irt_reference(rs)        
-        neglogbridges, grad_neglogbridges = self.bridge._grad_neglogbridge(us, dudrs)
+        neglogbridges, grad_neglogbridges = self._bridge._grad_neglogbridge(us, dudrs)
         return neglogref_rs, neglogbridges, grad_neglogbridges
 
     def _eval_neglogratio(self, rs: Tensor) -> Tensor:
@@ -269,8 +273,8 @@ class DIRT():
         
         """
         us, neglogfus_dirt = self._eval_irt_reference(rs)
-        neglogratios = self.bridge._eval_neglogratio(
-            self.ratio_type, 
+        neglogratios = self._bridge._eval_neglogratio(
+            self._ratio_type, 
             rs, us, 
             neglogfus_dirt
         )
@@ -282,12 +286,12 @@ class DIRT():
         variable.
         """
         us, neglogfus, dudrs = self._jac_irt_reference(rs)
-        if self.ratio_type == "eratio":
+        if self._ratio_type == "eratio":
             grad_neglogfus = self._grad_potential_reference(rs)[1]
         else:
             grad_neglogfus = None
-        neglogratios, grad_neglogratios = self.bridge._grad_neglogratio(
-            self.ratio_type,
+        neglogratios, grad_neglogratios = self._bridge._grad_neglogratio(
+            self._ratio_type,
             rs, us, 
             neglogfus, 
             grad_neglogfus,
@@ -311,8 +315,8 @@ class DIRT():
             of the profile function evaluated at each sample in rs.
             
         """
-        subspace = self.subspaces[self.num_layers]
-        neglogprofiles = subspace.eval_neglogprofile(self._eval_neglogratio, rs)
+        subspace = self._subspaces[self.num_layers]
+        neglogprofiles = subspace._eval_neglogprofile(self._eval_neglogratio, rs)
         return neglogprofiles
 
     def _get_new_layer(self) -> None:
@@ -320,25 +324,25 @@ class DIRT():
         SIRTs.
         """
         k = self.num_layers
-        if self.subspace.is_fixed and k > 0:
-            ftt = self.sirts[k-1].ftt.clone()
+        if self._subspace._is_fixed and k > 0:
+            ftt = self._sirts[k-1]._ftt._clone()
         else:
             # If the subspace has changed, it is nontrivial to use 
             # information from the previous FTT
-            ftt = self.ftt.clone() 
-        self.subspaces[k] = self.subspaces[k-1].clone()
-        self.subspaces[k].update(self._grad_neglogratio, self.reference)
-        self.sirts[k] = SIRT(
+            ftt = self._ftt._clone() 
+        self._subspaces[k] = self._subspaces[k-1]._clone()
+        self._subspaces[k]._update(self._grad_neglogratio, self.reference)
+        self._sirts[k] = SIRT(
             self._eval_neglogprofile, 
             ftt, 
-            self.subspaces[k].dim_red,
+            self._subspaces[k]._dim_red,
             self.reference, 
-            self.defensive, 
-            self.cdf_tol,
-            self.num_error_samples_ratio_red,
-            device=self.device
+            self._defensive, 
+            self._cdf_tol,
+            self._num_error_samples_ratio_red,
+            device=self._device
         )
-        dhell_ratio = self._estimate_dhell_ratio(self.num_error_samples_ratio)
+        dhell_ratio = self._estimate_dhell_ratio(self._num_error_samples_ratio)
         self._dhell_ratios[k] = dhell_ratio
         return
 
@@ -363,7 +367,7 @@ class DIRT():
             f"Cum. Fevals: {self.num_eval:=.2e}",
             f"Cum. Time: {cum_time:=.2e} s"
         ]
-        msg += self.bridge._get_diagnostics(
+        msg += self._bridge._get_diagnostics(
             log_weights, 
             neglogfus, 
             neglogfus_dirt
@@ -378,13 +382,13 @@ class DIRT():
 
         while True:
             
-            if self.num_error_samples > 0:
+            if self._num_error_samples > 0:
                 rs = self.reference.random(
-                    self.num_error_samples, self.dim, 
-                    device=self.device
+                    self._num_error_samples, self.dim, 
+                    device=self._device
                 )
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
-                log_weights, neglogbridges = self.bridge.update(us, neglogfus_dirt)
+                log_weights, neglogbridges = self._bridge._update(us, neglogfus_dirt)
                 dhell = float(estimate_dhell(neglogfus_dirt, neglogbridges))
             else:
                 log_weights = None
@@ -395,7 +399,7 @@ class DIRT():
             if self.num_layers > 0:
                 self._dhells[self.num_layers-1] = dhell
 
-            if self.verbose > 0:
+            if self._verbose > 0:
                 cum_time = time.time() - t0
                 self._print_progress(
                     log_weights, 
@@ -406,10 +410,10 @@ class DIRT():
 
             self._get_new_layer()
             self.num_layers += 1
-            if self.bridge.is_last:
+            if self._bridge._is_last:
                 break
 
-        if self.verbose:
+        if self._verbose:
 
             info_msgs = [
                 "DIRT construction complete.",
@@ -417,13 +421,13 @@ class DIRT():
                 f"Total function evaluations: {self.num_eval:,}."
             ]
 
-            if self.num_error_samples > 0:
+            if self._num_error_samples > 0:
                 rs = self.reference.random(
-                    self.num_error_samples, self.dim, 
-                    device=self.device
+                    self._num_error_samples, self.dim, 
+                    device=self._device
                 )
                 us, neglogfus_dirt = self._eval_irt_reference(rs)
-                neglogfus = self.bridge._eval_pullback(us)
+                neglogfus = self._bridge._eval_pullback(us)
                 dhell = estimate_dhell(neglogfus_dirt, neglogfus)
                 self._dhells[self.num_layers-1] = float(dhell)
                 info_msgs += [f"DHell: {dhell:.4f}."]
@@ -472,15 +476,15 @@ class DIRT():
 
         """
 
-        us_red = self.subspaces[i].eval_red2coef(us)
-        us_comp = self.subspaces[i].eval_comp2coef(us)
+        us_red = self._subspaces[i]._eval_red2coef(us)
+        us_comp = self._subspaces[i]._eval_comp2coef(us)
 
-        zs_red = self.sirts[i].eval_rt(us_red, subset)
-        neglogfrs_red = self.sirts[i].eval_potential(us_red, subset)
+        zs_red = self._sirts[i]._eval_rt(us_red, subset)
+        neglogfrs_red = self._sirts[i]._eval_potential(us_red, subset)
         rs_red = self.reference.invert_cdf(zs_red)
-        rs_red = self.subspaces[i].eval_coef2red(rs_red)
+        rs_red = self._subspaces[i]._eval_coef2red(rs_red)
 
-        rs_comp = self.subspaces[i].eval_coef2comp(us_comp)
+        rs_comp = self._subspaces[i]._eval_coef2comp(us_comp)
         # TODO: check what happens here when there is no reduced subspace.
         # TODO: figure out whether this should be the (normalised) reference density..
         neglogfrs_comp = self.reference.eval_potential(us_comp)[0]
@@ -502,7 +506,7 @@ class DIRT():
         if num_layers is None:
             num_layers = self.num_layers
         rs = us.clone()
-        neglogfus = torch.zeros(rs.shape[0], device=self.device)
+        neglogfus = torch.zeros(rs.shape[0], device=self._device)
         for i in range(num_layers):
             rs, neglogsirts = self._eval_rt_reference_i(rs, i, subset)
             neglogrefs = self.reference.eval_potential(rs)[0]
@@ -545,18 +549,18 @@ class DIRT():
 
         """
         
-        rs_red = self.subspaces[i].eval_red2coef(rs)
-        rs_comp = self.subspaces[i].eval_comp2coef(rs)
+        rs_red = self._subspaces[i]._eval_red2coef(rs)
+        rs_comp = self._subspaces[i]._eval_comp2coef(rs)
 
         # TEMP
         rs_red = self.reference._project_to_domain(rs_red)
         rs_comp = self.reference._project_to_domain(rs_comp)
 
         zs_red = self.reference.eval_cdf(rs_red)[0]
-        ws_red, neglogfus_red = self.sirts[i].eval_irt(zs_red, subset)
-        us_red = self.subspaces[i].eval_coef2red(ws_red)
+        ws_red, neglogfus_red = self._sirts[i]._eval_irt(zs_red, subset)
+        us_red = self._subspaces[i]._eval_coef2red(ws_red)
         
-        us_comp = self.subspaces[i].eval_coef2comp(rs_comp)
+        us_comp = self._subspaces[i]._eval_coef2comp(rs_comp)
         neglogfus_comp = self.reference.eval_potential(rs_comp)[0]
 
         us = us_red + us_comp
@@ -692,7 +696,7 @@ class DIRT():
         evaluated, only a FullSpace can be used).
         """
         evaluating_marginal = xs.shape[1] != self.dim
-        full_space = isinstance(self.subspace, FullSpace)
+        full_space = isinstance(self._subspace, FullSpace)
         if evaluating_marginal and not full_space:
             msg = (
                 "If a reduced subspace is used for the construction of " 
@@ -737,13 +741,13 @@ class DIRT():
 
         """
         
-        xs = xs.to(self.device)
+        xs = xs.to(self._device)
         if num_layers is None:
             num_layers = self.num_layers
         subset = self._parse_subset(subset)
         self._check_dimension(xs)
 
-        us, neglogdet_xs = self.preconditioner.Q_inv(xs, subset)
+        us, neglogdet_xs = self._preconditioner.Q_inv(xs, subset)
         rs, neglogfus = self._eval_rt_reference(us, subset, num_layers)
         neglogfxs = neglogfus + neglogdet_xs
         return rs, neglogfxs
@@ -784,7 +788,7 @@ class DIRT():
 
         """
         
-        rs = rs.to(self.device)
+        rs = rs.to(self._device)
         rs = self.reference._project_to_domain(rs)
         if num_layers is None:
             num_layers = self.num_layers
@@ -792,8 +796,8 @@ class DIRT():
         self._check_dimension(rs)
         
         us, neglogfus = self._eval_irt_reference(rs, subset, num_layers)
-        xs = self.preconditioner.Q(us, subset)[0]
-        neglogdet_xs = self.preconditioner.Q_inv(xs, subset)[1]
+        xs = self._preconditioner.Q(us, subset)[0]
+        neglogdet_xs = self._preconditioner.Q_inv(xs, subset)[1]
         neglogfxs = neglogfus + neglogdet_xs
         return xs, neglogfxs
     
@@ -842,15 +846,15 @@ class DIRT():
     
         """
 
-        ys = ys.to(self.device)
-        rs = rs.to(self.device)
+        ys = ys.to(self._device)
+        rs = rs.to(self._device)
         ys = torch.atleast_2d(ys)
         rs = torch.atleast_2d(rs)
         n_rs, d_rs = rs.shape
         n_ys, d_ys = ys.shape
         rs = self.reference._project_to_domain(rs)
 
-        if not isinstance(self.subspace, FullSpace):
+        if not isinstance(self._subspace, FullSpace):
             msg = (
                 "To evaluate conditions of the inverse Rosenblatt "
                 "transport, a FullSpace must be used."
@@ -877,17 +881,17 @@ class DIRT():
         subset = self._parse_subset(subset)
         direction = SUBSET2DIRECTION[subset]
         if direction == Direction.FORWARD:
-            inds_y = torch.arange(d_ys, device=self.device)
-            inds_x = torch.arange(d_ys, self.dim, device=self.device)
+            inds_y = torch.arange(d_ys, device=self._device)
+            inds_x = torch.arange(d_ys, self.dim, device=self._device)
         else:
-            inds_y = torch.arange(d_rs, self.dim, device=self.device)
-            inds_x = torch.arange(d_rs, device=self.device)
+            inds_y = torch.arange(d_rs, self.dim, device=self._device)
+            inds_x = torch.arange(d_rs, device=self._device)
         
         # Evaluate marginal RT
         rs_y, neglogfys = self.eval_rt(ys, subset, num_layers)
 
         # Evaluate joint RT
-        rs_yx = torch.empty((n_rs, self.dim), device=self.device)
+        rs_yx = torch.empty((n_rs, self.dim), device=self._device)
         rs_yx[:, inds_y] = rs_y 
         rs_yx[:, inds_x] = rs
         yxs, neglogfyxs = self.eval_irt(rs_yx, subset, num_layers)
@@ -944,7 +948,7 @@ class DIRT():
             forward under the IRT; that is, $-\log(f(\mathcal{T}(r)))$.
         
         """
-        rs = rs.to(self.device)
+        rs = rs.to(self._device)
         rs = self.reference._project_to_domain(rs)
         neglogrefs = self.reference.eval_potential(rs)[0]
         xs, neglogfxs_irt = self.eval_irt(rs, subset, num_layers)
@@ -1007,8 +1011,8 @@ class DIRT():
             forward under the IRT; that is, $-\log(f(\mathcal{T}(r) \mid y))$.
         
         """
-        ys = ys.to(self.device)
-        rs = rs.to(self.device)
+        ys = ys.to(self._device)
+        rs = rs.to(self._device)
         rs = self.reference._project_to_domain(rs)
         neglogrefs = self.reference.eval_potential(rs)[0]
         xs, neglogfxs_cirt = self.eval_cirt(ys, rs, subset, num_layers)
@@ -1133,8 +1137,8 @@ class DIRT():
     
         """
 
-        ys = ys.to(self.device)
-        xs = xs.to(self.device)
+        ys = ys.to(self._device)
+        xs = xs.to(self._device)
         
         ys = torch.atleast_2d(ys)
         xs = torch.atleast_2d(xs)
@@ -1215,7 +1219,7 @@ class DIRT():
 
         """
 
-        xs = xs.to(self.device)
+        xs = xs.to(self._device)
         num_xs, dim_xs = xs.shape
         xs_flat = xs.flatten()
 
@@ -1274,7 +1278,7 @@ class DIRT():
 
         """
 
-        rs = rs.to(self.device)
+        rs = rs.to(self._device)
         num_rs, dim_rs = rs.shape
         rs_flat = rs.flatten()
 
@@ -1306,7 +1310,7 @@ class DIRT():
             An $n \times d$ matrix containing the generated samples.
         
         """
-        rs = self.reference.random(n, self.dim, device=self.device)
+        rs = self.reference.random(n, self.dim, device=self._device)
         xs = self.eval_irt(rs)[0]
         return xs
     
@@ -1327,7 +1331,7 @@ class DIRT():
             An $n \times d$ matrix containing the generated samples.
 
         """
-        rs = self.reference.sobol(n, self.dim, device=self.device)
+        rs = self.reference.sobol(n, self.dim, device=self._device)
         xs = self.eval_irt(rs)[0]
         return xs
     
@@ -1343,19 +1347,19 @@ class DIRTMapping(Preconditioner):
     """
 
     def __init__(self, dirt: DIRT):
-        self.dirt = dirt
+        self._dirt = dirt
         self.reference = dirt.reference
         self.dim = dirt.dim
         return
 
     def Q(self, us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
-        xs, neglogfxs = self.dirt.eval_irt(us, subset)
+        xs, neglogfxs = self._dirt.eval_irt(us, subset)
         neglogrefs = self.reference.eval_potential(us)[0]
         neglogdets = neglogrefs - neglogfxs
         return xs, neglogdets
     
     def Q_inv(self, xs: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
-        us, neglogfxs = self.dirt.eval_rt(xs, subset)
+        us, neglogfxs = self._dirt.eval_rt(xs, subset)
         neglogrefs = self.reference.eval_potential(us)[0]
         neglogdets = neglogfxs - neglogrefs
         return us, neglogdets

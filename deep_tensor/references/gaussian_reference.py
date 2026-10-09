@@ -20,29 +20,29 @@ class GaussianReference(SymmetricReference):
     
     """
     
-    def eval_unit_cdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_unit_cdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         zs = 0.5 * (1.0 + torch.erf(us / (2.0 ** 0.5)))
         dzdus = torch.exp(-0.5 * us ** 2) / ((2.0 * torch.pi) ** 0.5)
         return zs, dzdus
     
-    def eval_unit_pdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_unit_pdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         ps = torch.exp(-0.5 * us ** 2) / ((2.0 * torch.pi) ** 0.5)
         grad_ps = -us * ps
         return ps, grad_ps
     
-    def invert_unit_cdf(self, zs: Tensor) -> Tensor:
+    def _invert_unit_cdf(self, zs: Tensor) -> Tensor:
         zs = zs.clamp(EPS, 1.0-EPS)
         us = 2.0 ** 0.5 * torch.erfinv(2.0*zs-1.0)
         return us
 
-    def eval_unit_potential(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_unit_potential(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         dim_us = us.shape[1]
         neglogps = (0.5 * dim_us * math.log(2.0*torch.pi) 
                     + 0.5 * us.square().sum(dim=1))
         grad_neglogps = us.clone()  # gradient of negative log
         return neglogps, grad_neglogps
     
-    def eval_unit_potential_unnormalised(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_unit_potential_unnormalised(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         neglogps = 0.5 * us.square().sum(dim=1)
         grad_neglogps = us.clone()
         return neglogps, grad_neglogps

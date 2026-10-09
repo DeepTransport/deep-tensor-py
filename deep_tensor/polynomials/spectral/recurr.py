@@ -44,13 +44,13 @@ class Recurr(Spectral, abc.ABC):
         polynomials of degree 2).
 
         """
-        self.order = order
-        self.a = a
-        self.b = b
-        self.c = c
-        self.norm = norm
+        self._order = order
+        self._a = a
+        self._b = b
+        self._c = c
+        self._norm = norm
         self._nodes, self._weights = self._compute_nodes_weights(a, b, c)
-        self.device = device
+        self._device = device
         self.__post_init__(device)
         return
 
@@ -95,39 +95,39 @@ class Recurr(Spectral, abc.ABC):
         weights = eigvecs[0] ** 2
         return eigvals, weights
 
-    def eval_basis(self, ls: Tensor) -> Tensor:
+    def _eval_basis(self, ls: Tensor) -> Tensor:
 
         self._check_in_domain(ls)
         
-        ps = torch.zeros((ls.numel(), self.order+1), device=self.device)
+        ps = torch.zeros((ls.numel(), self._order+1), device=self._device)
         ps[:, 0] = 1.0
-        if self.order == 0:
+        if self._order == 0:
             return ps
         
-        ps[:, 1] = self.a[0] * ls + self.b[0]
-        for j in range(1, self.order):
+        ps[:, 1] = self._a[0] * ls + self._b[0]
+        for j in range(1, self._order):
             ps_jm = ps[:, j-1].clone()
             ps_j = ps[:, j].clone()
-            ps[:, j+1] = (self.a[j] * ls + self.b[j]) * ps_j - self.c[j] * ps_jm
+            ps[:, j+1] = (self._a[j] * ls + self._b[j]) * ps_j - self._c[j] * ps_jm
         
-        return ps * self.norm
+        return ps * self._norm
     
-    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_basis_deriv(self, ls: Tensor) -> Tensor:
 
         self._check_in_domain(ls)
         
-        dpdls = torch.zeros((ls.numel(), self.order+1), device=self.device)
-        if self.order == 0:
+        dpdls = torch.zeros((ls.numel(), self._order+1), device=self._device)
+        if self._order == 0:
             return dpdls
         
-        ps = self.eval_basis(ls) / self.norm
+        ps = self._eval_basis(ls) / self._norm
         
-        dpdls[:, 1] = self.a[0] * ps[:, 0]
-        for j in range(1, self.order):
+        dpdls[:, 1] = self._a[0] * ps[:, 0]
+        for j in range(1, self._order):
             dpdls_jm = dpdls[:, j-1].clone()
             dpdls_j = dpdls[:, j].clone()
-            dpdls[:, j+1] = (self.a[j] * ps[:, j] 
-                             + (self.a[j] * ls + self.b[j]) * dpdls_j
-                             - self.c[j] * dpdls_jm)
+            dpdls[:, j+1] = (self._a[j] * ps[:, j] 
+                             + (self._a[j] * ls + self._b[j]) * dpdls_j
+                             - self._c[j] * dpdls_jm)
 
-        return dpdls * self.norm
+        return dpdls * self._norm

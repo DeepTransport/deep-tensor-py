@@ -19,44 +19,40 @@ class Jacobi11(Recurr):
         b = torch.zeros_like(k)
         c = (k+2)/(k+3)
         norm = ((2.0*k+3.0) * (k+2.0) / (8.0 * (k+1.0)) * (4/3)).sqrt()
-        self.device = device
-        Recurr.__init__(self, order, a, b, c, norm, self.device)
+        self._device = device
+        Recurr.__init__(self, order, a, b, c, norm, self._device)
         return
     
-    @property
-    def weights(self) -> Tensor:
-        return self._weights
-
     @property 
-    def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0], device=self.device)
+    def _domain(self) -> Tensor:
+        return torch.tensor([-1.0, 1.0], device=self._device)
     
     @property
-    def constant_weight(self) -> bool:
+    def _constant_weight(self) -> bool:
         return False
     
-    def sample_measure(self, n: int) -> Tensor:
-        ls = Beta(2.0, 2.0).sample((n,)).to(self.device)
+    def _sample_measure(self, n: int) -> Tensor:
+        ls = Beta(2.0, 2.0).sample((n,)).to(self._device)
         ls = (2.0 * ls) - 1.0
         return ls
     
-    def sample_measure_skip(self, n: int) -> Tensor:
-        l0 = 0.5 * (self.nodes.min() - 1.0)
-        l1 = 0.5 * (self.nodes.max() + 1.0)
-        ls = torch.rand(n, device=self.device) * (l1-l0) + l0
+    def _sample_measure_skip(self, n: int) -> Tensor:
+        l0 = 0.5 * (self._nodes.min() - 1.0)
+        l1 = 0.5 * (self._nodes.max() + 1.0)
+        ls = torch.rand(n, device=self._device) * (l1-l0) + l0
         return ls
     
-    def eval_measure(self, ls: Tensor) -> Tensor:
+    def _eval_measure(self, ls: Tensor) -> Tensor:
         ws = 0.75 * (1.0 - ls.square())
         return ws
     
-    def eval_log_measure(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure(self, ls: Tensor) -> Tensor:
         ws = (1.0 - ls.square()).log() + math.log(0.75)
         return ws
     
-    def eval_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_measure_deriv(self, ls: Tensor) -> Tensor:
         ws = -1.5 * ls
         return ws
     
-    def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         raise NotImplementedError()

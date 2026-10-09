@@ -5,6 +5,7 @@ from torch import Tensor
 from torch.linalg import norm
 
 import deep_tensor as dt
+from deep_tensor.polynomials import construct_cdf
 
 
 torch.manual_seed(0)
@@ -35,14 +36,14 @@ class TestCDF(unittest.TestCase):
         for poly in polys:
             with self.subTest(poly=poly):
             
-                cdf = dt.construct_cdf(polys[poly], error_tol=1e-10)
+                cdf = construct_cdf(polys[poly], error_tol=1e-10)
 
                 ls = torch.linspace(-1.0, 1.0, n_ls)
-                ps = dummy_pdf(cdf.nodes) + 1e-2
+                ps = dummy_pdf(cdf._nodes) + 1e-2
                 ps = ps.tile(n_ls, 1).T
 
-                zs = cdf.eval_cdf(ps, ls)
-                ls_0 = cdf.invert_cdf(ps, zs)
+                zs = cdf._eval_cdf(ps, ls)
+                ls_0 = cdf._invert_cdf(ps, zs)
                 
                 self.assertTrue((ls-ls_0).abs().max() < 1e-10)
 

@@ -39,7 +39,7 @@ def run_independence_sampler(
     
     acceptances = torch.tensor([0], device=xs.device)
     chain = MarkovChain(num_steps, num_chains, dim, device=xs.device)
-    chain.add_state(xs[0], neglogfxs_exact[0], acceptances)
+    chain._add_state(xs[0], neglogfxs_exact[0], acceptances)
     i_cur = 0
 
     for i in range(num_steps-1):
@@ -49,9 +49,9 @@ def run_independence_sampler(
         
         acceptances = alpha.exp() > torch.rand(num_chains, device=xs.device)
         if acceptances:
-            chain.add_state(xs[i+1], neglogfxs_exact[i+1], acceptances)
+            chain._add_state(xs[i+1], neglogfxs_exact[i+1], acceptances)
             i_cur = i+1
         else:
-            chain.add_state(xs[i_cur], neglogfxs_exact[i_cur], acceptances)
+            chain._add_state(xs[i_cur], neglogfxs_exact[i_cur], acceptances)
     
     return MCMCResult(chain)

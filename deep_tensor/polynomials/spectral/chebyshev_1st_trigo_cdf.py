@@ -11,58 +11,31 @@ from .trigo_cdf import TrigoCDF
 class Chebyshev1stTrigoCDF(TrigoCDF, Chebyshev1st):
 
     def __init__(self, poly: Chebyshev1st, error_tol: float):
-        order = 2 * poly.order
-        Chebyshev1st.__init__(self, order=order, device=poly.device)
-        TrigoCDF.__init__(self, error_tol=error_tol, device=poly.device)
+        order = 2 * poly._order
+        Chebyshev1st.__init__(self, order=order, device=poly._device)
+        TrigoCDF.__init__(self, error_tol=error_tol, device=poly._device)
         return
 
     @property
-    def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0], device=self.device)
+    def _domain(self) -> Tensor:
+        return torch.tensor([-1.0, 1.0], device=self._device)
 
     @property
-    def node2basis(self) -> Tensor:
-        return self._node2basis
+    def _cardinality(self) -> int:
+        return self._nodes.numel()
 
-    @node2basis.setter
-    def node2basis(self, value: Tensor) -> None:
-        self._node2basis = value
-        return
-
-    @property
-    def basis2node(self) -> Tensor:
-        return self._basis2node
-
-    @basis2node.setter
-    def basis2node(self, value: Tensor) -> None:
-        self._basis2node = value 
-        return
-
-    @property
-    def nodes(self) -> Tensor:
-        return self._nodes
-
-    @nodes.setter 
-    def nodes(self, value: Tensor) -> None:
-        self._nodes = value 
-        return
-
-    @property
-    def cardinality(self) -> int:
-        return self.nodes.numel()
-
-    def eval_int_basis(self, thetas: Tensor) -> Tensor:
+    def _eval_int_basis(self, thetas: Tensor) -> Tensor:
         thetas = thetas[:, None]
         # Cui et al, 2023
         int_pws = torch.hstack((
             thetas / torch.pi,
-            math.sqrt(2.0) / (torch.pi * self.n[1:])
-                * torch.sin(thetas * self.n[1:]),
+            math.sqrt(2.0) / (torch.pi * self._n[1:])
+                * torch.sin(thetas * self._n[1:]),
         ))
         return int_pws
 
-    def eval_int_basis_newton(self, thetas: Tensor) -> Tuple[Tensor, Tensor]:
-        int_pws = self.eval_int_basis(thetas)
+    def _eval_int_basis_newton(self, thetas: Tensor) -> Tuple[Tensor, Tensor]:
+        int_pws = self._eval_int_basis(thetas)
         thetas = thetas[:, None]
-        derivs = self.norm * torch.cos(thetas * self.n) / torch.pi
+        derivs = self._norm * torch.cos(thetas * self._n) / torch.pi
         return int_pws, derivs

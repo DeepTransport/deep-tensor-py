@@ -40,53 +40,44 @@ class Fourier(Spectral):
         device: torch.device = torch.get_default_device()
     ):
 
-        self.order = order 
-        self.device = device
+        self._order = order 
+        self._device = device
 
         num_nodes = 2 * order + 2
-        n = torch.arange(num_nodes, device=self.device)
+        n = torch.arange(num_nodes, device=self._device)
         self._m = order + 1
-        self._c = torch.pi * (torch.arange(order, device=self.device) + 1.0)
-        self.nodes = 2.0 * (n + 1.0) / num_nodes - 1.0
-        self.weights = torch.ones_like(self.nodes) / num_nodes
+        self._c = torch.pi * (torch.arange(order, device=self._device) + 1.0)
+        self._nodes = 2.0 * (n + 1.0) / num_nodes - 1.0
+        self._weights = torch.ones_like(self._nodes) / num_nodes
 
-        self.__post_init__(self.device)
-        self.node2basis[-1] *= 0.5
+        self.__post_init__(self._device)
+        self._node2basis[-1] *= 0.5
         return
 
     @property
-    def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0], device=self.device)
+    def _domain(self) -> Tensor:
+        return torch.tensor([-1.0, 1.0], device=self._device)
     
     @property
-    def constant_weight(self) -> bool:
+    def _constant_weight(self) -> bool:
         return True
     
-    @property
-    def weights(self) -> Tensor:
-        return self._weights
+    def _sample_measure(self, n: int) -> Tensor:
+        return 2.0 * torch.rand(n, device=self._device) - 1.0
     
-    @weights.setter 
-    def weights(self, value: Tensor) -> None:
-        self._weights = value 
-        return
-
-    def sample_measure(self, n: int) -> Tensor:
-        return 2.0 * torch.rand(n, device=self.device) - 1.0
-    
-    def eval_measure(self, ls: Tensor):
+    def _eval_measure(self, ls: Tensor):
         return torch.full_like(ls, 0.5)
     
-    def eval_log_measure(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure(self, ls: Tensor) -> Tensor:
         return torch.full_like(ls, math.log(0.5))
     
-    def eval_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)
     
-    def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)
     
-    def eval_basis(self, ls: Tensor) -> Tensor:
+    def _eval_basis(self, ls: Tensor) -> Tensor:
 
         self._check_in_domain(ls)
         
@@ -99,7 +90,7 @@ class Fourier(Spectral):
         ))
         return ps
     
-    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_basis_deriv(self, ls: Tensor) -> Tensor:
         
         self._check_in_domain(ls)
 

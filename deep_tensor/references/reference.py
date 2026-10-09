@@ -16,7 +16,7 @@ class Reference(abc.ABC):
     """Parent class for all one-dimensional reference distributions."""
 
     def __init__(self, domain: Domain):
-        self.domain = domain
+        self._domain = domain
         return
 
     @abc.abstractmethod
@@ -116,7 +116,7 @@ class Reference(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def eval_potential_unnormalised(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_potential_unnormalised(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         """Evaluates the unnormalised potential function and the 
         gradient of the potential function of the reference at 
         a set of points. This can be useful for numerical stability.
@@ -141,7 +141,7 @@ class Reference(abc.ABC):
         pass
 
     def _out_domain(self, rs: Tensor) -> Tensor:
-        outside = (rs < self.domain.left) | (self.domain.right < rs)
+        outside = (rs < self._domain._left) | (self._domain._right < rs)
         return outside
     
     def _check_samples_in_domain(self, rs: Tensor) -> None:
@@ -172,7 +172,7 @@ class Reference(abc.ABC):
                 "distribution."
             )
             logger.debug(msg)
-            rs = torch.clamp(rs, min=self.domain.left, max=self.domain.right)
+            rs = torch.clamp(rs, min=self._domain._left, max=self._domain._right)
         return rs
     
     def random(

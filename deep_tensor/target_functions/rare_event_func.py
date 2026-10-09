@@ -61,11 +61,11 @@ class RareEventFunc(TargetFunc):
         grad_func: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor, Tensor]] | None = None,
         vectorised: bool = True
     ):
-        self._func = func
-        self._grad_func = grad_func
-        self.threshold = threshold
+        self._user_func = func
+        self._user_grad_func = grad_func
+        self._threshold = threshold
         self._is_vectorised = vectorised
-        self._has_grad = self._grad_func is not None
+        self._has_grad = self._user_grad_func is not None
         return
     
     def __call__(self, xs: Tensor) -> Tensor:
@@ -73,19 +73,19 @@ class RareEventFunc(TargetFunc):
         proportional to) the density of the parameters and the rare 
         event indicator function.
         """
-        neglogfxs, responses = self.func(xs)
-        rare_event_indicator = responses >= self.threshold
+        neglogfxs, responses = self._func(xs)
+        rare_event_indicator = responses >= self._threshold
         neglogfxs[~rare_event_indicator] = torch.inf
         return neglogfxs
     
     def _func_vectorised(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         if self._is_vectorised:
-            return self._func(xs)
+            return self._user_func(xs)
         num_xs = xs.shape[0]
         neglogfxs = torch.zeros(num_xs, device=xs.device)
         responses = torch.zeros(num_xs, device=xs.device)
         for i, x in enumerate(xs):
-            neglogfxs[i], responses[i] = self._func(x)
+            neglogfxs[i], responses[i] = self._user_func(x)
         return neglogfxs, responses
     
     def _grad_func_vectorised(
@@ -93,12 +93,12 @@ class RareEventFunc(TargetFunc):
         xs: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         
-        if self._grad_func is None:
+        if self._user_grad_func is None:
             msg = "No gradients of the biasing density have been provided."
             raise Exception(msg)
 
         if self._is_vectorised:
-            return self._grad_func(xs)
+            return self._user_grad_func(xs)
         
         num_xs = xs.shape[0]
         neglogfxs = torch.zeros(num_xs, device=xs.device)
@@ -107,16 +107,16 @@ class RareEventFunc(TargetFunc):
         grad_responses = torch.zeros_like(xs)
         
         for i, x in enumerate(xs):
-            neglogfxs[i], grad_neglogfxs[i], responses[i], grad_responses[i] = self._grad_func(x)
+            neglogfxs[i], grad_neglogfxs[i], responses[i], grad_responses[i] = self._user_grad_func(x)
         
         return neglogfxs, grad_neglogfxs, responses, grad_responses
     
-    def func(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
+    def _func(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         neglogfxs, responses = self._func_vectorised(xs)
         self._check_neglogfxs(neglogfxs)
         return neglogfxs, responses
     
-    def grad_func(
+    def _grad_func(
         self, 
         xs: Tensor
     ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:

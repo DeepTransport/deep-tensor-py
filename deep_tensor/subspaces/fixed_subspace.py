@@ -34,61 +34,61 @@ class FixedSubspace(Subspace):
         fixed_comp: bool = True, 
         device: torch.device = torch.get_default_device()
     ):
-        self.basis_red = basis
-        self.basis_comp = self._compute_basis_comp(self.basis_red)
-        self.num_comp = num_comp
-        self.fixed_comp = fixed_comp
-        self.device = device
-        self.num_eval = 0
-        self.num_eval_grad = 0
-        if self.fixed_comp and self.num_comp > 0:
-            self._compute_samples_comp(self.num_comp)
+        self._basis_red = basis
+        self._basis_comp = self._compute_basis_comp(self._basis_red)
+        self._num_comp = num_comp
+        self._fixed_comp = fixed_comp
+        self._device = device
+        self._num_eval = 0
+        self._num_eval_grad = 0
+        if self._fixed_comp and self._num_comp > 0:
+            self._compute_samples_comp(self._num_comp)
         return
     
     @property
-    def is_fixed(self) -> bool:
+    def _is_fixed(self) -> bool:
         return True
 
-    def eval_neglogprofile(
+    def _eval_neglogprofile(
         self,
         eval_neglogratio: Callable[[Tensor], Tensor],
         vs_red: Tensor
     ) -> Tensor:
         
-        xs_red = self.eval_coef2red(vs_red)
+        xs_red = self._eval_coef2red(vs_red)
 
-        if self.num_comp == 0:
+        if self._num_comp == 0:
             return eval_neglogratio(xs_red)
         
         num_red = xs_red.shape[0]
-        if self.fixed_comp:
-            xs_comp = self.xs_comp[None, :, :]
+        if self._fixed_comp:
+            xs_comp = self._xs_comp[None, :, :]
         else: 
-            xs_comp = self._generate_xs_comp(self.num_comp * num_red)
-            xs_comp = xs_comp.reshape(num_red, self.num_comp, self.dim)
+            xs_comp = self._generate_xs_comp(self._num_comp * num_red)
+            xs_comp = xs_comp.reshape(num_red, self._num_comp, self._dim)
         
         xs = xs_red[:, None, :] + xs_comp
-        xs = xs.reshape(-1, self.dim)
+        xs = xs.reshape(-1, self._dim)
         neglogfxs = eval_neglogratio(xs)
-        neglogfxs = neglogfxs.reshape(num_red, self.num_comp)
+        neglogfxs = neglogfxs.reshape(num_red, self._num_comp)
         neglogfxs_mean = (
             - torch.logsumexp(-neglogfxs, dim=1)
-            + math.log(self.num_comp)
+            + math.log(self._num_comp)
         )
         return neglogfxs_mean 
     
-    def update(
+    def _update(
         self, 
         grad_neglogratio: Callable[[Tensor], Tuple[Tensor, Tensor, Tensor]],
         reference: GaussianReference
     ) -> None:
         return
     
-    def clone(self) -> FixedSubspace:
+    def _clone(self) -> FixedSubspace:
         subspace = FixedSubspace(
-            self.basis_red, 
-            self.num_comp, 
-            self.fixed_comp, 
-            self.device
+            self._basis_red, 
+            self._num_comp, 
+            self._fixed_comp, 
+            self._device
         )
         return subspace

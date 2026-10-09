@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 
 import deep_tensor as dt
+from deep_tensor.preconditioners import AffineMapping
 
 
 EPS = 1e-8
@@ -14,7 +15,7 @@ class TestAffineMapping(unittest.TestCase):
 
     @staticmethod
     def generate_mapping(A: Tensor, b: Tensor | None = None):
-        preconditioner = dt.AffineMapping(A, b)
+        preconditioner = AffineMapping(A, b)
         return preconditioner
 
     def test_Q_identity(self):

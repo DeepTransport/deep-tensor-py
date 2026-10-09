@@ -23,37 +23,37 @@ class Kernel(abc.ABC):
         else:
             dim = dirt.dim
 
-        self.potential = potential
-        self.dirt = dirt
-        self.ys = ys
-        self.subset = subset
-        self.reference = dirt.reference
-        self.dim = dim
-        self.initialised = False
-        self.num_steps = 0
+        self._potential = potential
+        self._dirt = dirt
+        self._ys = ys
+        self._subset = subset
+        self._reference = dirt.reference
+        self._dim = dim
+        self._initialised = False
+        self._num_steps = 0
         return
     
     @property
-    def acceptance_rates(self) -> Tensor:
-        return self.num_accepts / self.num_steps
+    def _acceptance_rates(self) -> Tensor:
+        return self._num_accepts / self._num_steps
     
     def _out_domain(self, rs: Tensor) -> Tensor:
         """Returns True if a point is outside the support of the 
         reference density, and False otherwise.
         """
         rs = torch.atleast_2d(rs)
-        out_domain = self.reference._out_domain(rs).any(dim=1).bool()
+        out_domain = self._reference._out_domain(rs).any(dim=1).bool()
         return out_domain
     
     def _initialise(self, r0s: Tensor) -> None:
 
         r0s = torch.atleast_2d(r0s)
-        self.num_chains = r0s.shape[0]
-        self.num_accepts = torch.zeros((self.num_chains,))
+        self._num_chains = r0s.shape[0]
+        self._num_accepts = torch.zeros((self._num_chains,))
 
         self._rs = r0s
         self._xs, self._neglogfrs, self._neglogfxs = self._potential_pull(r0s)
-        self.initialised = True
+        self._initialised = True
         return
  
     def _potential_pull(self, rs: Tensor) -> Tuple[Tensor, Tensor, Tensor]:
@@ -61,22 +61,22 @@ class Kernel(abc.ABC):
         mapping.
         """
 
-        if self.ys is None:
+        if self._ys is None:
             rs = torch.atleast_2d(rs)
-            return self.dirt.eval_irt_pullback(self.potential, rs, subset=self.subset)
+            return self._dirt.eval_irt_pullback(self._potential, rs, subset=self._subset)
         else:
             rs = torch.atleast_2d(rs)
-            return self.dirt.eval_cirt_pullback(self.potential, self.ys, rs, subset=self.subset)
+            return self._dirt.eval_cirt_pullback(self._potential, self._ys, rs, subset=self._subset)
 
     def _irt_func(self, rs) -> Tensor:
         
-        if self.ys is None:
+        if self._ys is None:
             rs = torch.atleast_2d(rs)
-            xs = self.dirt.eval_irt(rs, subset=self.subset)[0]
+            xs = self._dirt.eval_irt(rs, subset=self._subset)[0]
             return xs
         else:
             rs = torch.atleast_2d(rs)
-            xs = self.dirt.eval_cirt(self.ys, rs, subset=self.subset)[0]
+            xs = self._dirt.eval_cirt(self._ys, rs, subset=self._subset)[0]
             return xs
 
     @abc.abstractmethod
@@ -115,7 +115,7 @@ class Kernel(abc.ABC):
 
         """
 
-        if not self.initialised:
+        if not self._initialised:
             msg = "Kernel not initialised."
             raise Exception(msg)
         
@@ -153,7 +153,7 @@ class Kernel(abc.ABC):
             self._neglogfrs[accepted] = neglogfrs_prop[accepted]
             self._neglogfxs[accepted] = neglogfxs_prop[accepted]
 
-        self.num_accepts += accepted.int()
-        self.num_steps += 1
+        self._num_accepts += accepted.int()
+        self._num_steps += 1
 
         return self._xs, self._neglogfxs, accepted

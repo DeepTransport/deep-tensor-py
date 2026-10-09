@@ -41,61 +41,52 @@ class Chebyshev2nd(Spectral):
 
         n = order + 1
 
-        self.order = order 
-        self.device = device
-        self.nodes = torch.cos(torch.pi * torch.arange(1, n+1, device=self.device) / (n+1)).sort().values
-        self.weights = torch.sin(torch.pi * torch.arange(1, n+1, device=self.device) / (n+1)).square() * 2 / (n+1)
+        self._order = order 
+        self._device = device
+        self._nodes = torch.cos(torch.pi * torch.arange(1, n+1, device=self._device) / (n+1)).sort().values
+        self._weights = torch.sin(torch.pi * torch.arange(1, n+1, device=self._device) / (n+1)).square() * 2 / (n+1)
         
-        self.n = torch.arange(self.order+1, device=self.device)
-        self.norm = 1.0
+        self._n = torch.arange(self._order+1, device=self._device)
+        self._norm = 1.0
 
-        self.__post_init__(self.device)
+        self.__post_init__(self._device)
         return
     
     @property 
-    def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0], device=self.device)
+    def _domain(self) -> Tensor:
+        return torch.tensor([-1.0, 1.0], device=self._device)
     
-    @property 
-    def weights(self) -> Tensor:
-        return self._weights
-    
-    @weights.setter 
-    def weights(self, value: Tensor) -> None:
-        self._weights = value 
-        return
-
     @property
-    def constant_weight(self) -> bool: 
+    def _constant_weight(self) -> bool: 
         return False
     
-    def sample_measure(self, n: int) -> Tensor:
-        ls = Beta(1.5, 1.5).sample((n,)).to(self.device)
+    def _sample_measure(self, n: int) -> Tensor:
+        ls = Beta(1.5, 1.5).sample((n,)).to(self._device)
         ls = 2.0 * ls - 1.0
         return ls
     
-    def eval_measure(self, ls: Tensor) -> Tensor:
+    def _eval_measure(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
         ts = 1.0 - ls.square()
         ws = 2.0 * ts.sqrt() / torch.pi 
         return ws
     
-    def eval_log_measure(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
-        ls = ls.clamp(self.domain[0]+EPS, self.domain[1]-EPS)
+        ls = ls.clamp(self._domain[0]+EPS, self._domain[1]-EPS)
         ts = 1.0 - ls.square()
         logws = 0.5 * ts.log() + math.log(2.0/torch.pi)
         return logws
     
-    def eval_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_measure_deriv(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
-        ls = ls.clamp(self.domain[0]+EPS, self.domain[1]-EPS)
+        ls = ls.clamp(self._domain[0]+EPS, self._domain[1]-EPS)
         ts = 1.0 / (1.0 - ls.square())
         check_finite(ts)
         dwdls = -2.0 * ls * ts.sqrt() / torch.pi
         return dwdls
     
-    def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
@@ -103,29 +94,29 @@ class Chebyshev2nd(Spectral):
         check_finite(ws)
         return ws
     
-    def eval_basis(self, ls: Tensor) -> Tensor:
+    def _eval_basis(self, ls: Tensor) -> Tensor:
 
         self._check_in_domain(ls)
         
-        thetas = self.l2theta(ls)[:, None]
+        thetas = self._l2theta(ls)[:, None]
         sin_thetas = thetas.sin()
         sin_thetas[sin_thetas.abs() < EPS] = EPS
 
-        ps = self.norm * torch.sin(thetas * (self.n+1)) / sin_thetas
+        ps = self._norm * torch.sin(thetas * (self._n+1)) / sin_thetas
 
         # Deal with endpoints
         mask_lhs = (ls + 1.0).abs() < EPS
         mask_rhs = (ls - 1.0).abs() < EPS
-        ps[mask_lhs] = self.norm * (self.n+1) * torch.tensor(-1.0, device=self.device).pow(self.n)
-        ps[mask_rhs] = self.norm * (self.n+1)
+        ps[mask_lhs] = self._norm * (self._n+1) * torch.tensor(-1.0, device=self._device).pow(self._n)
+        ps[mask_rhs] = self._norm * (self._n+1)
         check_finite(ps)
         return ps
     
-    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_basis_deriv(self, ls: Tensor) -> Tensor:
 
         self._check_in_domain(ls)
 
-        thetas = self.l2theta(ls)[:, None]
+        thetas = self._l2theta(ls)[:, None]
         sin_thetas = thetas.sin()
         sin_thetas[sin_thetas.abs() < EPS] = EPS
         ls = ls[:, None]
@@ -133,7 +124,7 @@ class Chebyshev2nd(Spectral):
         ts = ls.square() - 1.0
         ts[ts > -EPS] = -EPS
 
-        dpdls = self.norm * ((torch.cos(thetas * (self.n+1)) * (self.n+1)
-                              - torch.sin(thetas * (self.n+1)) * (ls / sin_thetas)) / ts)
+        dpdls = self._norm * ((torch.cos(thetas * (self._n+1)) * (self._n+1)
+                              - torch.sin(thetas * (self._n+1)) * (ls / sin_thetas)) / ts)
         check_finite(dpdls)
         return dpdls

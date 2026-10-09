@@ -75,23 +75,23 @@ class pCNKernel(Kernel):
             )
             warnings.warn(msg)
 
-        self.a = 2.0 * math.sqrt(2.0*dt) / (2.0+dt)
-        self.b = (2.0-dt) / (2.0+dt)
+        self._a = 2.0 * math.sqrt(2.0*dt) / (2.0+dt)
+        self._b = (2.0-dt) / (2.0+dt)
 
         Kernel.__init__(self, potential, dirt, ys, subset)
         return
     
     def _propose(self) -> Tensor:
-        xis = torch.randn((self.num_chains, self.dim))
-        rs_prop = self.b * self._rs + self.a * xis
+        xis = torch.randn((self._num_chains, self._dim))
+        rs_prop = self._b * self._rs + self._a * xis
         return rs_prop
     
     def _eval_neglogproposal(self, rs: Tensor, rs_prop: Tensor) -> Tensor:
         # TODO: could test this function
-        mus = self.b * rs
+        mus = self._b * rs
         neglogproposals = (
-            0.5 * self.dim * math.log(2.0*math.pi)
-            + self.dim * self.a
-            + (1.0 / (2.0*self.a**2)) * (rs_prop - mus).square().sum(dim=1)
+            0.5 * self._dim * math.log(2.0*math.pi)
+            + self._dim * self._a
+            + (1.0 / (2.0*self._a**2)) * (rs_prop - mus).square().sum(dim=1)
         )
         return neglogproposals

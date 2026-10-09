@@ -8,65 +8,21 @@ from ...tools import check_finite
 
 
 class Spectral(Basis1D, abc.ABC):
+    _weights: Tensor
 
     def __post_init__(self, device: torch.device) -> None:
         """Forms the basis2node and node2basis operators, the 
         quadrature weights and the mass matrix for a given basis.
         """
-        self.device = device
-        self.basis2node = self.eval_basis(self.nodes)
-        self.node2basis = self.basis2node.T * self.weights
-        self.omegas = self.eval_measure(self.nodes)
-        self.mass_R = torch.eye(self.cardinality, device=self.device)
+        self._device = device
+        self._basis2node = self._eval_basis(self._nodes)
+        self._node2basis = self._basis2node.T * self._weights
+        self._omegas = self._eval_measure(self._nodes)
+        self._mass_R = torch.eye(self._cardinality, device=self._device)
         return
 
-    @property
-    @abc.abstractmethod
-    def weights(self) -> Tensor:
-        """The collocation weights."""
-        pass
-
-    @property 
-    def basis2node(self) -> Tensor:
-        """The values of each basis function evaluated at each 
-        collocation point. Given a set of coefficients for each basis 
-        function, returns the value of the function of interest at 
-        each collocation point.
-        """
-        return self._basis2node
-    
-    @basis2node.setter
-    def basis2node(self, value: Tensor) -> None:
-        self._basis2node = value 
-        return
-
-    @property 
-    def node2basis(self) -> Tensor:
-        """The inverse of basis2node. Given the values of the function 
-        of interest at each collocation point, returns the 
-        corresponding coefficients of each basis function.
-        """
-        return self._node2basis
-    
-    @node2basis.setter 
-    def node2basis(self, value: Tensor) -> None:
-        self._node2basis = value 
-        return
-    
-    @property 
-    def mass_R(self) -> Tensor:
-        """A matrix containing the inner products of each pair of basis 
-        functions, weighted by the weighting function.
-        """
-        return self._mass_R 
-    
-    @mass_R.setter
-    def mass_R(self, value: Tensor) -> None: 
-        self._mass_R = value
-        return
-    
     @staticmethod
-    def l2theta(ls: Tensor) -> Tensor:
+    def _l2theta(ls: Tensor) -> Tensor:
         """Applies the mapping l -> arccos(l) to a vector of values on
         [-1, 1].
         """

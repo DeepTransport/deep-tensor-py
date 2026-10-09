@@ -60,15 +60,15 @@ class SIRT():
         device: torch.device = torch.get_default_device()
     ):
 
-        self.eval_neglogtarget = eval_neglogtarget
-        self.ftt = ftt
-        self.basis = self.ftt.basis
-        self.dim = dim
-        self.domain = reference.domain
-        self.defensive = defensive
-        self.cdf = construct_cdf(self.basis, error_tol=cdf_tol) 
-        self.ftt.approximate(self._target_func, dim, reference)
-        self.device = device
+        self._eval_neglogtarget = eval_neglogtarget
+        self._ftt = ftt
+        self._basis = self._ftt._basis
+        self._dim = dim
+        self._domain = reference._domain
+        self._defensive = defensive
+        self._cdf = construct_cdf(self._basis, error_tol=cdf_tol) 
+        self._ftt.approximate(self._target_func, dim, reference)
+        self._device = device
 
         # Precompute coefficient tensors and marginalisation 
         # coefficents, from the first core to the last and the last 
@@ -80,35 +80,35 @@ class SIRT():
         self._marginalise_forward()
         self._marginalise_backward()
         
-        self.dhell = self._estimate_dhell(num_error_samples)
+        self._dhell = self._estimate_dhell(num_error_samples)
         return
     
     @property
-    def z(self) -> Tensor:
-        return (1.0 + self.defensive) * self.z_func
+    def _z(self) -> Tensor:
+        return (1.0 + self._defensive) * self._z_func
 
     @property 
-    def coef_defensive(self) -> Tensor:
+    def _coef_defensive(self) -> Tensor:
         # Note: this is a slight change from the defensive parameter 
         # defined in @CuiDolgov2022. The defensive parameter now scales 
         # according to the normalising constant of the FTT approximation 
         # to the target density.
-        return self.defensive * self.z_func
+        return self._defensive * self._z_func
     
     @property 
-    def num_eval(self) -> int:
-        return self.ftt.num_eval
+    def _num_eval(self) -> int:
+        return self._ftt.num_eval
     
     @property 
-    def num_eval_construction(self) -> int:
-        return self.ftt.num_eval_construction
+    def _num_eval_construction(self) -> int:
+        return self._ftt._num_eval_construction
     
     def _eval_measure_potential(self, xs: Tensor) -> Tensor:
         """Computes the target potential function for a set of samples 
         from the approximation domain.        
         """
-        ls, dldxs = self.domain.approx2local(xs)
-        neglogwls = -self.basis.eval_log_measure(ls).sum(dim=1)
+        ls, dldxs = self._domain._approx2local(xs)
+        neglogwls = -self._basis._eval_log_measure(ls).sum(dim=1)
         neglogwxs = neglogwls - dldxs.log().sum(dim=1)        
         return neglogwxs
 
@@ -118,8 +118,8 @@ class SIRT():
         in the local domain (note: this ratio is invariant to changes 
         of coordinate).
         """
-        xs = self.domain.local2approx(ls)[0]
-        neglogfxs = self.eval_neglogtarget(xs)
+        xs = self._domain._local2approx(ls)[0]
+        neglogfxs = self._eval_neglogtarget(xs)
         neglogwxs = self._eval_measure_potential(xs)
         gs = torch.exp(-0.5 * (neglogfxs - neglogwxs))
         return gs
@@ -130,16 +130,16 @@ class SIRT():
         dimensions of the approximation from last to first.
         """
 
-        self._Rs_f[self.dim] = torch.tensor([[1.0]], device=self.device)
-        cores = self.ftt.cores
+        self._Rs_f[self._dim] = torch.tensor([[1.0]], device=self._device)
+        cores = self._ftt._cores
 
-        for k in range(self.dim-1, -1, -1):
+        for k in range(self._dim-1, -1, -1):
             self._Bs_f[k] = n_mode_prod(cores[k], self._Rs_f[k+1].T, n=2)
-            C_k = n_mode_prod(self._Bs_f[k], self.basis.mass_R.T, n=1)
+            C_k = n_mode_prod(self._Bs_f[k], self._basis._mass_R.T, n=1)
             C_k = unfold_right(C_k)
             self._Rs_f[k] = torch.linalg.qr(C_k, mode="reduced")[1].T
 
-        self.z_func = self._Rs_f[0].square().sum()
+        self._z_func = self._Rs_f[0].square().sum()
         return 
     
     def _marginalise_backward(self) -> None:
@@ -148,16 +148,16 @@ class SIRT():
         dimensions of the approximation from first to last.
         """
         
-        self._Rs_b[-1] = torch.tensor([[1.0]], device=self.device)
-        cores = self.ftt.cores
+        self._Rs_b[-1] = torch.tensor([[1.0]], device=self._device)
+        cores = self._ftt._cores
 
-        for k in range(self.dim):
+        for k in range(self._dim):
             self._Bs_b[k] = n_mode_prod(cores[k], self._Rs_b[k-1], n=0)
-            C_k = n_mode_prod(self._Bs_b[k], self.basis.mass_R, n=1)
+            C_k = n_mode_prod(self._Bs_b[k], self._basis._mass_R, n=1)
             C_k = unfold_left(C_k)
             self._Rs_b[k] = torch.linalg.qr(C_k, mode="reduced")[1]
 
-        self.z_func = self._Rs_b[self.dim-1].square().sum()
+        self._z_func = self._Rs_b[self._dim-1].square().sum()
         return
 
     def _estimate_dhell(self, num_samples: int) -> float | None:
@@ -166,9 +166,9 @@ class SIRT():
         """
         if num_samples == 0:
             return None
-        zs = torch.rand(num_samples, self.dim)
-        us, neglogfus = self.eval_irt(zs, subset="first")
-        neglogfus_exact = self.eval_neglogtarget(us)
+        zs = torch.rand(num_samples, self._dim)
+        us, neglogfus = self._eval_irt(zs, subset="first")
+        neglogfus_exact = self._eval_neglogtarget(us)
         dhell = estimate_dhell(neglogfus, neglogfus_exact)
         return float(dhell)
 
@@ -178,21 +178,21 @@ class SIRT():
         zs = torch.zeros_like(ls)
         Gs_prod = torch.ones((num_ls, 1), device=ls.device)
 
-        cores = self.ftt.cores
+        cores = self._ftt._cores
         Bs = self._Bs_f 
             
         for k in range(dim_ls):
             
             # Compute (unnormalised) conditional PDF for each sample
-            Ps = FTT.eval_core(self.basis, Bs[k], self.cdf.nodes)
+            Ps = FTT._eval_core(self._basis, Bs[k], self._cdf._nodes)
             gs = torch.einsum("jl, ilk -> ijk", Gs_prod, Ps)
-            ps = gs.square().sum(dim=2) + self.coef_defensive
+            ps = gs.square().sum(dim=2) + self._coef_defensive
 
             # Evaluate CDF to obtain corresponding uniform variates
-            zs[:, k] = self.cdf.eval_cdf(ps, ls[:, k])
+            zs[:, k] = self._cdf._eval_cdf(ps, ls[:, k])
 
             # Compute incremental product of tensor cores for each sample
-            Gs = FTT.eval_core(self.basis, cores[k], ls[:, k])
+            Gs = FTT._eval_core(self._basis, cores[k], ls[:, k])
             Gs_prod = torch.einsum("il, ilk -> ik", Gs_prod, Gs)
 
         return zs
@@ -201,24 +201,24 @@ class SIRT():
 
         num_ls, dim_ls = ls.shape
         zs = torch.zeros_like(ls)
-        d_min = self.dim - dim_ls
+        d_min = self._dim - dim_ls
         Gs_prod = torch.ones((1, num_ls), device=ls.device)
 
-        cores = self.ftt.cores
+        cores = self._ftt._cores
         Bs = self._Bs_b 
 
-        for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
+        for i, k in enumerate(range(self._dim-1, d_min-1, -1), start=1):
 
             # Compute (unnormalised) conditional PDF for each sample
-            Ps = FTT.eval_core(self.basis, Bs[k], self.cdf.nodes)
+            Ps = FTT._eval_core(self._basis, Bs[k], self._cdf._nodes)
             gs = torch.einsum("ijl, lk -> ijk", Ps, Gs_prod)
-            ps = gs.square().sum(dim=1) + self.coef_defensive
+            ps = gs.square().sum(dim=1) + self._coef_defensive
 
             # Evaluate CDF to obtain corresponding uniform variates
-            zs[:, -i] = self.cdf.eval_cdf(ps, ls[:, -i])
+            zs[:, -i] = self._cdf._eval_cdf(ps, ls[:, -i])
             
             # Compute incremental product of tensor cores for each sample
-            Gs = FTT.eval_core(self.basis, cores[k], ls[:, -i])
+            Gs = FTT._eval_core(self._basis, cores[k], ls[:, -i])
             Gs_prod = torch.einsum("ijl, li -> ji", Gs, Gs_prod)
 
         return zs
@@ -277,12 +277,12 @@ class SIRT():
 
         for k in range(d_zs):
             
-            Ps = FTT.eval_core(self.basis, Bs[k], self.cdf.nodes)
+            Ps = FTT._eval_core(self._basis, Bs[k], self._cdf._nodes)
             gls = n_mode_prod(Ps, gs, n=1)
-            ps = gls.square().sum(dim=2) + self.coef_defensive
-            ls[:, k] = self.cdf.invert_cdf(ps, zs[:, k])
+            ps = gls.square().sum(dim=2) + self._coef_defensive
+            ls[:, k] = self._cdf._invert_cdf(ps, zs[:, k])
 
-            Gs = FTT.eval_core(self.basis, self.ftt.cores[k], ls[:, k])
+            Gs = FTT._eval_core(self._basis, self._ftt._cores[k], ls[:, k])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
         
         gs_sq = (gs @ self._Rs_f[d_zs]).square().sum(dim=1)
@@ -312,19 +312,19 @@ class SIRT():
         n_zs, d_zs = zs.shape
         ls = torch.zeros_like(zs)
         gs = torch.ones((n_zs, 1), device=zs.device)
-        d_min = self.dim - d_zs
+        d_min = self._dim - d_zs
 
-        cores = self.ftt.cores
+        cores = self._ftt._cores
         Bs = self._Bs_b
 
-        for i, k in enumerate(range(self.dim-1, d_min-1, -1), start=1):
+        for i, k in enumerate(range(self._dim-1, d_min-1, -1), start=1):
 
-            Ps = FTT.eval_core_rev(self.basis, Bs[k], self.cdf.nodes)
+            Ps = FTT._eval_core_rev(self._basis, Bs[k], self._cdf._nodes)
             gls = n_mode_prod(Ps, gs, n=1)
-            ps = gls.square().sum(dim=2) + self.coef_defensive
-            ls[:, -i] = self.cdf.invert_cdf(ps, zs[:, -i])
+            ps = gls.square().sum(dim=2) + self._coef_defensive
+            ls[:, -i] = self._cdf._invert_cdf(ps, zs[:, -i])
 
-            Gs = FTT.eval_core_rev(self.basis, cores[k], ls[:, -i])
+            Gs = FTT._eval_core_rev(self._basis, cores[k], ls[:, -i])
             gs = torch.einsum("il, ilk -> ik", gs, Gs)
 
         gs_sq = (self._Rs_b[d_min-1] @ gs.T).square().sum(dim=0)
@@ -362,9 +362,9 @@ class SIRT():
             ls, gs_sq = self._eval_irt_local_forward(zs)
         else:
             ls, gs_sq = self._eval_irt_local_backward(zs)
-        neglogpls = -(gs_sq + self.coef_defensive).log()
-        neglogwls = -self.basis.eval_log_measure(ls).sum(dim=1)
-        neglogfls = self.z.log() + neglogpls + neglogwls
+        neglogpls = -(gs_sq + self._coef_defensive).log()
+        neglogwls = -self._basis._eval_log_measure(ls).sum(dim=1)
+        neglogfls = self._z.log() + neglogpls + neglogwls
         return ls, neglogfls
 
     def _eval_potential_local(self, ls: Tensor, direction: Direction) -> Tensor:
@@ -391,17 +391,17 @@ class SIRT():
         dim_l = ls.shape[1]
 
         if direction == Direction.FORWARD:
-            gs = self.ftt(ls, direction=direction)
+            gs = self._ftt(ls, direction=direction)
             gs_sq = (gs @ self._Rs_f[dim_l]).square().sum(dim=1)
         else:
-            gs = self.ftt(ls, direction=direction)
-            gs_sq = (self._Rs_b[self.dim-dim_l-1] @ gs.T).square().sum(dim=0)
+            gs = self._ftt(ls, direction=direction)
+            gs_sq = (self._Rs_b[self._dim-dim_l-1] @ gs.T).square().sum(dim=0)
         
-        neglogwls = -self.basis.eval_log_measure(ls).sum(dim=1)
-        neglogfls = self.z.log() - (gs_sq + self.coef_defensive).log() + neglogwls
+        neglogwls = -self._basis._eval_log_measure(ls).sum(dim=1)
+        neglogfls = self._z.log() - (gs_sq + self._coef_defensive).log() + neglogwls
         return neglogfls
     
-    def eval_potential(self, xs: Tensor, subset: str) -> Tensor:
+    def _eval_potential(self, xs: Tensor, subset: str) -> Tensor:
         """Returns the joint potential function, or the marginal 
         potential function for the first k variables or the last k 
         variables, evaluated at a set of samples.
@@ -424,12 +424,12 @@ class SIRT():
 
         """
         direction = SUBSET2DIRECTION[subset]
-        ls, dldxs = self.domain.approx2local(xs)
+        ls, dldxs = self._domain._approx2local(xs)
         neglogfls = self._eval_potential_local(ls, direction)
         neglogfxs = neglogfls - dldxs.log().sum(dim=1)
         return neglogfxs
 
-    def eval_rt(self, xs: Tensor, subset: str) -> Tensor:
+    def _eval_rt(self, xs: Tensor, subset: str) -> Tensor:
         """Returns the joint Rosenblatt transport, or the marginal 
         Rosenblatt transport for the first k variables or the last k 
         variables, evaluated at a set of samples.
@@ -453,11 +453,11 @@ class SIRT():
 
         """
         direction = SUBSET2DIRECTION[subset]
-        ls = self.domain.approx2local(xs)[0]
+        ls = self._domain._approx2local(xs)[0]
         zs = self._eval_rt_local(ls, direction)
         return zs
 
-    def eval_irt(self, zs: Tensor, subset: str) -> Tuple[Tensor, Tensor]:
+    def _eval_irt(self, zs: Tensor, subset: str) -> Tuple[Tensor, Tensor]:
         """Returns the joint inverse Rosenblatt transport, or the 
         marginal inverse Rosenblatt transport for the first k variables 
         or the last k variables, evaluated at a set of samples.
@@ -483,6 +483,6 @@ class SIRT():
         """
         direction = SUBSET2DIRECTION[subset]
         ls, neglogfls = self._eval_irt_local(zs, direction)
-        xs, dxdls = self.domain.local2approx(ls)
+        xs, dxdls = self._domain._local2approx(ls)
         neglogfxs = neglogfls + dxdls.log().sum(dim=1)
         return xs, neglogfxs

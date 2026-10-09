@@ -15,13 +15,13 @@ class SymmetricReference(Reference, abc.ABC):
     def __init__(self, domain: Domain | None = None):
         if domain is None:
             domain = BoundedDomain([-4.0, 4.0])
-        self.domain = domain
-        self.is_truncated = isinstance(domain, BoundedDomain)
-        self.set_cdf_bounds()
+        self._domain = domain
+        self._is_truncated = isinstance(domain, BoundedDomain)
+        self._set_cdf_bounds()
         return
 
     @abc.abstractmethod
-    def eval_unit_cdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_unit_cdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         """Returns the values of the CDF and PDF of the unit reference
         distribution evaluated at each value of us.
         
@@ -46,7 +46,7 @@ class SymmetricReference(Reference, abc.ABC):
         pass
     
     @abc.abstractmethod
-    def eval_unit_pdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_unit_pdf(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         """Returns the values of the PDF and gradient of the PDF of the 
         unit reference distribution evaluated at each value of us.
         
@@ -72,7 +72,7 @@ class SymmetricReference(Reference, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def invert_unit_cdf(self, zs: Tensor) -> Tensor:
+    def _invert_unit_cdf(self, zs: Tensor) -> Tensor:
         """Returns the inverse of the CDF of the unit reference 
         distribution evaluated at each element of zs.
         
@@ -93,7 +93,7 @@ class SymmetricReference(Reference, abc.ABC):
         pass
     
     @abc.abstractmethod
-    def eval_unit_potential(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_unit_potential(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         """Returns the negative log-PDF and gradient of the negative 
         log-PDF of the reference distribution evaluated at each element 
         of us.
@@ -119,7 +119,7 @@ class SymmetricReference(Reference, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def eval_unit_potential_unnormalised(self, us: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_unit_potential_unnormalised(self, us: Tensor) -> Tuple[Tensor, Tensor]:
         """Returns the negative log-PDF and gradient of the negative 
         log-PDF of the reference distribution evaluated at each element 
         of us.
@@ -144,52 +144,52 @@ class SymmetricReference(Reference, abc.ABC):
         """
         pass
     
-    def set_cdf_bounds(self) -> None:
+    def _set_cdf_bounds(self) -> None:
         """Sets the minimum and maximum possible values of the CDF 
         based on the bounds of the domain.
         """
         
-        if self.is_truncated:
-            left = torch.tensor(self.domain.left)
-            right = torch.tensor(self.domain.right)
-            self.cdf_left = self.eval_unit_cdf(left)[0].item()
-            self.cdf_right = self.eval_unit_cdf(right)[0].item()
+        if self._is_truncated:
+            left = torch.tensor(self._domain._left)
+            right = torch.tensor(self._domain._right)
+            self._cdf_left = self._eval_unit_cdf(left)[0].item()
+            self._cdf_right = self._eval_unit_cdf(right)[0].item()
         else:
-            self.cdf_left = 0.0
-            self.cdf_right = 1.0
+            self._cdf_left = 0.0
+            self._cdf_right = 1.0
 
         # Normalising constant for PDF
-        self.norm = self.cdf_right - self.cdf_left
+        self._norm = self._cdf_right - self._cdf_left
         return
 
     def eval_cdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         rs = self._project_to_domain(rs)
-        zs, dzdrs = self.eval_unit_cdf(rs)
-        zs = (zs - self.cdf_left) / self.norm
-        dzdrs = dzdrs / self.norm
+        zs, dzdrs = self._eval_unit_cdf(rs)
+        zs = (zs - self._cdf_left) / self._norm
+        dzdrs = dzdrs / self._norm
         return zs, dzdrs
     
     def eval_pdf(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         rs = self._project_to_domain(rs)
-        ps, dpdrs = self.eval_unit_pdf(rs)
-        ps = ps / self.norm
-        dpdrs = dpdrs / self.norm
+        ps, dpdrs = self._eval_unit_pdf(rs)
+        ps = ps / self._norm
+        dpdrs = dpdrs / self._norm
         return ps, dpdrs
 
     def invert_cdf(self, zs: Tensor) -> Tensor:
         check_finite(zs)
-        zs = self.cdf_left + zs * self.norm
-        us = self.invert_unit_cdf(zs)
+        zs = self._cdf_left + zs * self._norm
+        us = self._invert_unit_cdf(zs)
         return us
         
     def eval_potential(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         rs = self._project_to_domain(rs)
         dim_rs = rs.shape[1]
-        neglogprs, grad_neglogprs = self.eval_unit_potential(rs)
+        neglogprs, grad_neglogprs = self._eval_unit_potential(rs)
         # Normalise to account for the truncated sections of the reference
-        neglogprs = neglogprs + dim_rs * math.log(self.norm)
+        neglogprs = neglogprs + dim_rs * math.log(self._norm)
         return neglogprs, grad_neglogprs
     
-    def eval_potential_unnormalised(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_potential_unnormalised(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         rs = self._project_to_domain(rs)
-        return self.eval_unit_potential_unnormalised(rs)
+        return self._eval_unit_potential_unnormalised(rs)

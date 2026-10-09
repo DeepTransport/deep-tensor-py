@@ -8,45 +8,30 @@ class Basis1D(abc.ABC, object):
     """The parent class for all one-dimensional bases.
     """
 
+    _nodes: Tensor
+    _mass_R: Tensor
+
     @property
     @abc.abstractmethod
-    def domain(self) -> Tensor:
+    def _domain(self) -> Tensor:
         """The (local) domain of the basis."""
         pass
 
-    @property 
-    def nodes(self) -> Tensor:
-        return self._nodes 
-
-    @nodes.setter 
-    def nodes(self, value: Tensor) -> None:
-        self._nodes = value 
-        return
-
     @property
     @abc.abstractmethod
-    def constant_weight(self) -> bool:
+    def _constant_weight(self) -> bool:
         """Returns whether the weighting function of the basis is 
         constant for all values of l.
         """
         pass
 
-    @property 
-    @abc.abstractmethod
-    def mass_R(self) -> Tensor:
-        """Cholesky factor of the matrix containing the (weighted) 
-        inner products of each pair of basis functions over the 
-        local domain.
-        """
-        pass 
-
     @property
-    def cardinality(self) -> int:
+    def _cardinality(self) -> int:
         """The number of basis functions associated with the basis."""
-        return self.nodes.numel()
+        return self._nodes.numel()
     
     @abc.abstractmethod
-    def eval_basis(self, ls: Tensor) -> Tensor:
+    def _eval_basis(self, ls: Tensor) -> Tensor:
         """Evaluates the (normalised) one-dimensional basis at a given 
         set of points.
         
@@ -68,7 +53,7 @@ class Basis1D(abc.ABC, object):
         pass
     
     @abc.abstractmethod
-    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_basis_deriv(self, ls: Tensor) -> Tensor:
         """Evaluates the derivative of each (normalised) basis function
         at a given set of points.
         
@@ -90,7 +75,7 @@ class Basis1D(abc.ABC, object):
         pass 
     
     @abc.abstractmethod
-    def eval_measure(self, ls: Tensor) -> Tensor:
+    def _eval_measure(self, ls: Tensor) -> Tensor:
         """Evaluates the (normalised) weighting function at a given set
         of points.
         
@@ -110,7 +95,7 @@ class Basis1D(abc.ABC, object):
         pass
     
     @abc.abstractmethod
-    def eval_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_measure_deriv(self, ls: Tensor) -> Tensor:
         """Evaluates the gradient of the (normalised) weighting 
         function at a given set of points.
         
@@ -131,7 +116,7 @@ class Basis1D(abc.ABC, object):
         pass
     
     @abc.abstractmethod 
-    def eval_log_measure(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure(self, ls: Tensor) -> Tensor:
         """Evaluates the logarithm of the (normalised) weighting 
         function at a given set of points.
         
@@ -152,7 +137,7 @@ class Basis1D(abc.ABC, object):
         pass 
 
     @abc.abstractmethod
-    def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         """Evaluates the gradient of the logarithm of the (normalised) 
         weighting function at a given set of points.
         
@@ -174,7 +159,7 @@ class Basis1D(abc.ABC, object):
         pass
 
     @abc.abstractmethod
-    def sample_measure(self, n: int) -> Tensor:
+    def _sample_measure(self, n: int) -> Tensor:
         """Generates a set of samples from the weighting measure
         corresponding to the one-dimensional basis.
         
@@ -195,7 +180,7 @@ class Basis1D(abc.ABC, object):
         """Returns a boolean mask that indicates whether each of a set
         of points is outside the local domain of the basis.        
         """
-        return (ls < self.domain[0]) | (ls > self.domain[1])
+        return (ls < self._domain[0]) | (ls > self._domain[1])
     
     def _check_in_domain(self, ls: Tensor) -> None:
         """Checks whether a set of points are inside the domain, and 
@@ -214,13 +199,13 @@ class Basis1D(abc.ABC, object):
         if ls.ndim != 1:
             msg = "'ls' must be a vector."
             raise Exception(msg)
-        if coeffs.shape[0] != self.cardinality:
+        if coeffs.shape[0] != self._cardinality:
             msg = ("Coefficient vector must have the same cardinality "
                    + "as the basis.")
             raise Exception(msg)
         return
     
-    def eval_radon(self, coeffs: Tensor, ls: Tensor) -> Tensor:
+    def _eval_radon(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the approximated function at a given vector of 
         points.
         
@@ -247,11 +232,11 @@ class Basis1D(abc.ABC, object):
         
         """
         self._check_eval_dims(coeffs, ls)
-        basis_vals = self.eval_basis(ls)
+        basis_vals = self._eval_basis(ls)
         fls = basis_vals @ coeffs
         return fls
         
-    def eval_radon_deriv(self, coeffs: Tensor, ls: Tensor) -> Tensor:
+    def _eval_radon_deriv(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the derivative of the approximated function at
         a set of points.
 
@@ -274,11 +259,11 @@ class Basis1D(abc.ABC, object):
         
         """
         self._check_eval_dims(coeffs, ls)
-        deriv_vals = self.eval_basis_deriv(ls)
+        deriv_vals = self._eval_basis_deriv(ls)
         gradfls = deriv_vals @ coeffs
         return gradfls
 
-    def eval(self, coeffs: Tensor, ls: Tensor) -> Tensor:
+    def _eval(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the product of approximated function and the 
         weighting function at a given vector of points.
         
@@ -306,11 +291,11 @@ class Basis1D(abc.ABC, object):
         
         """
         self._check_eval_dims(coeffs, ls)
-        fls = self.eval_radon(coeffs, ls)
-        wls = self.eval_measure(ls)
+        fls = self._eval_radon(coeffs, ls)
+        wls = self._eval_measure(ls)
         return fls * wls[:, None]
         
-    def eval_deriv(self, coeffs: Tensor, ls: Tensor) -> Tensor:
+    def _eval_deriv(self, coeffs: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the gradient of the product of the approximated 
         function and the weighting function at a given vector of 
         points.
@@ -340,12 +325,12 @@ class Basis1D(abc.ABC, object):
         """
         self._check_eval_dims(coeffs, ls)
         # Compute first term of product rule
-        dpdls = self.eval_basis_deriv(ls)
-        wls = self.eval_measure(ls)[:, None]
+        dpdls = self._eval_basis_deriv(ls)
+        wls = self._eval_measure(ls)[:, None]
         gradfwls = dpdls @ coeffs * wls
         # Compute second term of product rule
-        if not self.constant_weight:
-            basis_vals = self.eval_basis(ls)
-            gradwls = self.eval_measure_deriv(ls)[:, None]
+        if not self._constant_weight:
+            basis_vals = self._eval_basis(ls)
+            gradwls = self._eval_measure_deriv(ls)[:, None]
             gradfwls = gradfwls + (basis_vals @ coeffs) * gradwls
         return gradfwls

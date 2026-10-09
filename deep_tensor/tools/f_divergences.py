@@ -10,8 +10,7 @@ def estimate_dhell(
     negloggxs: Tensor,
     negloghxs: Tensor | None = None
 ) -> Tensor:
-    """Estimates the Hellinger distance between two (unnormalised)
-    probability densities using an importance sampling estimate.
+    """Estimates the Hellinger distance between two (unnormalised) densities.
 
     Parameters
     ----------

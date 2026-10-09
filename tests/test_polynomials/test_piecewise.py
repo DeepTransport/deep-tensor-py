@@ -20,10 +20,10 @@ class TestPiecewisePolynomials(unittest.TestCase):
         ls = torch.linspace(-1.0, 1.0, 9)
         coeffs = torch.tensor([[2.0], [3.0], [2.0], [3.0], [2.0]])
 
-        basis_vals = poly.eval_basis(ls)
-        weights = poly.eval_measure(ls)
-        radon_vals = poly.eval_radon(coeffs, ls)
-        func_vals = poly.eval(coeffs, ls)
+        basis_vals = poly._eval_basis(ls)
+        weights = poly._eval_measure(ls)
+        radon_vals = poly._eval_radon(coeffs, ls)
+        func_vals = poly._eval(coeffs, ls)
 
         basis_vals_true = torch.tensor([
             [1.0, 0.0, 0.0, 0.0, 0.0],
@@ -68,10 +68,10 @@ class TestPiecewisePolynomials(unittest.TestCase):
         ls = torch.linspace(-0.75, 0.75, 4)
         coeffs = torch.tensor([[2.0], [3.0], [2.0], [3.0], [2.0]])
 
-        deriv_vals = poly.eval_basis_deriv(ls)
-        weights_deriv = poly.eval_measure_deriv(ls)
-        radon_deriv_vals = poly.eval_radon_deriv(coeffs, ls)
-        func_deriv_vals = poly.eval_deriv(coeffs, ls)
+        deriv_vals = poly._eval_basis_deriv(ls)
+        weights_deriv = poly._eval_measure_deriv(ls)
+        radon_deriv_vals = poly._eval_radon_deriv(coeffs, ls)
+        func_deriv_vals = poly._eval_deriv(coeffs, ls)
 
         deriv_vals_true = torch.tensor([
             [-2.0, 2.0, 0.0, 0.0, 0.0],

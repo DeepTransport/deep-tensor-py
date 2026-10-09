@@ -41,84 +41,75 @@ class Chebyshev1st(Spectral):
         device: torch.device = torch.get_default_device()
     ):
 
-        self.order = order
-        self.device = device
-        self.n = torch.arange(self.order+1, device=self.device)
-        nodes = torch.cos(torch.pi * (self.n+0.5) / (self.order+1))
-        self.nodes = nodes.sort().values
-        self.weights = torch.ones_like(self.nodes) / (self.order+1)
+        self._order = order
+        self._device = device
+        self._n = torch.arange(self._order+1, device=self._device)
+        nodes = torch.cos(torch.pi * (self._n+0.5) / (self._order+1))
+        self._nodes = nodes.sort().values
+        self._weights = torch.ones_like(self._nodes) / (self._order+1)
 
-        self.norm = torch.hstack((
-            torch.tensor([1.0], device=self.device), 
-            torch.full((self.order,), math.sqrt(2.0), device=self.device)
+        self._norm = torch.hstack((
+            torch.tensor([1.0], device=self._device), 
+            torch.full((self._order,), math.sqrt(2.0), device=self._device)
         ))
 
-        self.__post_init__(self.device)
+        self.__post_init__(self._device)
         return
     
     @property 
-    def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0], device=self.device)
+    def _domain(self) -> Tensor:
+        return torch.tensor([-1.0, 1.0], device=self._device)
     
-    @property 
-    def weights(self) -> Tensor:
-        return self._weights
-    
-    @weights.setter
-    def weights(self, value: Tensor) -> None:
-        self._weights = value 
-        return
-
     @property
-    def constant_weight(self) -> bool: 
+    def _constant_weight(self) -> bool: 
         return False
 
-    def eval_measure(self, ls: Tensor) -> Tensor:
+    def _eval_measure(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
         return 1.0 / (torch.pi * ts**0.5)
     
-    def eval_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_measure_deriv(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
         return (ls / torch.pi) * ts ** -1.5
 
-    def eval_log_measure(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
         return -0.5 * torch.log(ts) - math.log(torch.pi)
 
-    def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
         ts = 1.0 - ls.square()
         ts[ts < EPS] = EPS
         return ls / ts
 
-    def sample_measure(self, n: int) -> Tensor:
-        zs = torch.rand(n, device=self.device)
+    def _sample_measure(self, n: int) -> Tensor:
+        zs = torch.rand(n, device=self._device)
         samples = torch.sin(torch.pi * (zs - 0.5))
         return samples
     
-    def eval_basis(self, ls: Tensor) -> Tensor:
+    def _eval_basis(self, ls: Tensor) -> Tensor:
         self._check_in_domain(ls)
-        thetas = self.l2theta(ls)[:, None]
-        ps = self.norm * torch.cos(thetas * self.n)
+        thetas = self._l2theta(ls)[:, None]
+        ps = self._norm * torch.cos(thetas * self._n)
         return ps
     
-    def eval_basis_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_basis_deriv(self, ls: Tensor) -> Tensor:
 
         self._check_in_domain(ls)
 
-        thetas = self.l2theta(ls)[:, None]
+        thetas = self._l2theta(ls)[:, None]
         sin_thetas = thetas.sin()
         sin_thetas[sin_thetas.abs() < EPS] = EPS
 
-        dpdls = self.norm * torch.hstack((
+        dpdls = self._norm * torch.hstack((
             torch.zeros_like(thetas),
-            self.n[1:] * torch.sin(thetas * self.n[1:]) / sin_thetas
+            self._n[1:] * torch.sin(thetas * self._n[1:]) / sin_thetas
         ))
         check_finite(dpdls)
         return dpdls 

@@ -22,13 +22,13 @@ class TestLinearDomain(unittest.TestCase):
         domain = self.setup_domain()
 
         bounds_true = torch.tensor([-2.0, 4.0])
-        bounds = torch.tensor(domain.bounds)
+        bounds = torch.tensor(domain._bounds)
 
         self.assertTrue((bounds - bounds_true).abs().max() < 1e-8)
-        self.assertAlmostEqual(domain.dxdl, 3.)
-        self.assertAlmostEqual(domain.mean, 1.)
-        self.assertAlmostEqual(domain.left, -2.)
-        self.assertAlmostEqual(domain.right, 4.)
+        self.assertAlmostEqual(domain._dxdl, 3.)
+        self.assertAlmostEqual(domain._mean, 1.)
+        self.assertAlmostEqual(domain._left, -2.)
+        self.assertAlmostEqual(domain._right, 4.)
         return
     
     def test_approx2local(self):
@@ -39,7 +39,7 @@ class TestLinearDomain(unittest.TestCase):
         domain = self.setup_domain()
 
         xs = torch.tensor([-2., -1., 0., 1., 2., 3., 4.])
-        ls, dldxs = domain.approx2local(xs)
+        ls, dldxs = domain._approx2local(xs)
         
         ls_true = torch.tensor([-1., -2./3., -1./3., 0., 1./3., 2./3., 1.])
         dldxs_true = torch.full(ls_true.shape, 1./3.)
@@ -47,7 +47,7 @@ class TestLinearDomain(unittest.TestCase):
         self.assertTrue((ls - ls_true).abs().max() < 1e-8)
         self.assertTrue((dldxs - dldxs_true).abs().max() < 1e-8)
 
-        logdldxs, logdldx2s = domain.approx2local_log_density(xs)
+        logdldxs, logdldx2s = domain._approx2local_log_density(xs)
 
         logdldxs_true = torch.log(dldxs_true)
         logdldx2s_true = torch.zeros_like(xs)
@@ -64,7 +64,7 @@ class TestLinearDomain(unittest.TestCase):
         domain = self.setup_domain()
 
         ls = torch.tensor([-1., -0.5, 0., 0.5, 1.])
-        xs, dxdls = domain.local2approx(ls)
+        xs, dxdls = domain._local2approx(ls)
         
         xs_true = torch.tensor([-2., -0.5, 1., 2.5, 4.])
         dxdls_true = torch.full(xs_true.shape, 3.)
@@ -72,7 +72,7 @@ class TestLinearDomain(unittest.TestCase):
         self.assertTrue((xs - xs_true).abs().max() < 1e-8)
         self.assertTrue((dxdls - dxdls_true).abs().max() < 1e-8)
 
-        logdxdls, logdxdl2s = domain.local2approx_log_density(xs)
+        logdxdls, logdxdl2s = domain._local2approx_log_density(xs)
 
         logdxdls_true = torch.log(dxdls_true)
         logdxdl2s_true = torch.zeros_like(ls)

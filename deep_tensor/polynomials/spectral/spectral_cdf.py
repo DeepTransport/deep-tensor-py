@@ -9,29 +9,25 @@ from ...tools import check_finite
 
 
 class SpectralCDF(CDF1D, abc.ABC):
+    _node2basis: Tensor
 
     def __init__(self, error_tol: float, device: torch.device):
         CDF1D.__init__(self, error_tol)
-        self.device = device
-        n_sampling_nodes = 2 * self.cardinality
-        self.sampling_nodes = self.grid_measure(n_sampling_nodes)
-        self.cdf_basis2node = self.eval_int_basis(self.sampling_nodes)
+        self._device = device
+        n_sampling_nodes = 2 * self._cardinality
+        self._sampling_nodes = self._grid_measure(n_sampling_nodes)
+        self._cdf_basis2node = self._eval_int_basis(self._sampling_nodes)
         return
     
-    @property 
-    @abc.abstractmethod 
-    def node2basis(self) -> Tensor:
-        pass
-
     @abc.abstractmethod
-    def grid_measure(self, n: int) -> Tensor:
+    def _grid_measure(self, n: int) -> Tensor:
         """Returns the domain of the measure discretised on a grid of
         n points.
         """
         pass
 
     @abc.abstractmethod
-    def eval_int_basis(self, ls: Tensor) -> Tensor:
+    def _eval_int_basis(self, ls: Tensor) -> Tensor:
         """Computes the indefinite integral of the product of each
         basis function and the weight function at a set of points on 
         the interval [-1, 1].
@@ -54,7 +50,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         pass
         
     @abc.abstractmethod
-    def eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_int_basis_newton(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         """Computes the indefinite integral of the product of each 
         basis function and the weight function, and the product of the
         derivative of this integral with the weight function, at a set 
@@ -78,7 +74,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         """
         pass
     
-    def get_left_inds(
+    def _get_left_inds(
         self, 
         cdf_poly_nodes: Tensor, 
         zs_unnorm: Tensor
@@ -86,19 +82,19 @@ class SpectralCDF(CDF1D, abc.ABC):
         left_inds = cdf_poly_nodes >= zs_unnorm 
         left_inds[-1, :] = True
         left_inds = left_inds.int().argmax(dim=0) - 1
-        left_inds = left_inds.clamp(0, self.sampling_nodes.numel() - 2)
+        left_inds = left_inds.clamp(0, self._sampling_nodes.numel() - 2)
         return left_inds
     
-    def eval_int(self, coefs: Tensor, ls: Tensor) -> Tensor:
+    def _eval_int(self, coefs: Tensor, ls: Tensor) -> Tensor:
         """Returns the value of the integral of the polynomial basis 
         for the CDF (with respect to the weight function) at a set of 
         points.
         """
-        int_ps = self.eval_int_basis(ls)
+        int_ps = self._eval_int_basis(ls)
         fs = (int_ps * coefs.T).sum(dim=1)
         return fs
     
-    def eval_int_diff(
+    def _eval_int_diff(
         self,
         coefs: Tensor, 
         cdf_poly_base: Tensor,
@@ -108,10 +104,10 @@ class SpectralCDF(CDF1D, abc.ABC):
         """Returns the differences between the (unnormalised) values of 
         the CDF, and the target values of the CDF, at a set of points.
         """
-        dzs = self.eval_int(coefs, ls) - cdf_poly_base - zs_cdf
+        dzs = self._eval_int(coefs, ls) - cdf_poly_base - zs_cdf
         return dzs
 
-    def eval_int_newton(
+    def _eval_int_newton(
         self, 
         coef: Tensor, 
         cdf_poly_base: Tensor, 
@@ -119,7 +115,7 @@ class SpectralCDF(CDF1D, abc.ABC):
         ls: Tensor
     ) -> Tuple[Tensor, Tensor]: 
         
-        int_ps, ps = self.eval_int_basis_newton(ls)
+        int_ps, ps = self._eval_int_basis_newton(ls)
         check_finite(int_ps)
         check_finite(ps)
 
@@ -129,28 +125,28 @@ class SpectralCDF(CDF1D, abc.ABC):
         dzs = zs - cdf_poly_base - zs_cdf
         return dzs, dzdls
     
-    def eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
+    def _eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
 
-        self.check_pdf_positive(ps)
-        self.check_pdf_dims(ps, ls)
+        self._check_pdf_positive(ps)
+        self._check_pdf_dims(ps, ls)
         
-        coef = self.node2basis @ ps
+        coef = self._node2basis @ ps
 
         # Compute value of CDF at leftmost node and normalising constant
-        poly_base = self.cdf_basis2node[0] @ coef
-        poly_norm = self.cdf_basis2node[-1] @ coef - poly_base
+        poly_base = self._cdf_basis2node[0] @ coef
+        poly_norm = self._cdf_basis2node[-1] @ coef - poly_base
 
-        zs = (self.eval_int(coef, ls) - poly_base) / poly_norm
+        zs = (self._eval_int(coef, ls) - poly_base) / poly_norm
         zs = zs.clamp(0.0, 1.0)
         return zs
 
-    def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
-        coef = self.node2basis @ ps 
-        poly_base = self.cdf_basis2node[0] @ coef
-        zs = self.eval_int(coef, ls) - poly_base
+    def _eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
+        coef = self._node2basis @ ps 
+        poly_base = self._cdf_basis2node[0] @ coef
+        zs = self._eval_int(coef, ls) - poly_base
         return zs
     
-    def newton(
+    def _newton(
         self,
         coefs: Tensor, 
         cdf_poly_base: Tensor, 
@@ -160,22 +156,22 @@ class SpectralCDF(CDF1D, abc.ABC):
         l1s: Tensor
     ) -> Tensor:
         
-        z0s = self.eval_int_diff(coefs, cdf_poly_base, zs_unnorm, l0s)
-        z1s = self.eval_int_diff(coefs, cdf_poly_base, zs_unnorm, l1s)
-        self.check_initial_intervals(z0s, z1s)
+        z0s = self._eval_int_diff(coefs, cdf_poly_base, zs_unnorm, l0s)
+        z1s = self._eval_int_diff(coefs, cdf_poly_base, zs_unnorm, l1s)
+        self._check_initial_intervals(z0s, z1s)
 
         ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
 
-        for _ in range(self.n_newton):  
-            zs, dzs = self.eval_int_newton(coefs, cdf_poly_base, zs_unnorm, ls)
+        for _ in range(self._n_newton):  
+            zs, dzs = self._eval_int_newton(coefs, cdf_poly_base, zs_unnorm, ls)
             ls, dls = self._newton_step(ls, zs, dzs, l0s, l1s)
-            if self.converged(zs / cdf_poly_norm, dls / cdf_poly_norm):
+            if self._converged(zs / cdf_poly_norm, dls / cdf_poly_norm):
                 return ls
         
-        # self.print_unconverged(zs, dls, "Newton's method")
-        return self.regula_falsi(coefs, cdf_poly_base, cdf_poly_norm, zs_unnorm, l0s, l1s)
+        # self._print_unconverged(zs, dls, "Newton's method")
+        return self._regula_falsi(coefs, cdf_poly_base, cdf_poly_norm, zs_unnorm, l0s, l1s)
     
-    def regula_falsi(
+    def _regula_falsi(
         self, 
         coefs: Tensor,
         cdf_poly_base: Tensor,
@@ -185,15 +181,15 @@ class SpectralCDF(CDF1D, abc.ABC):
         l1s: Tensor
     ) -> Tensor:
         
-        z0s = self.eval_int_diff(coefs, cdf_poly_base, zs_cdf, l0s)
-        z1s = self.eval_int_diff(coefs, cdf_poly_base, zs_cdf, l1s)
-        self.check_initial_intervals(z0s, z1s)
+        z0s = self._eval_int_diff(coefs, cdf_poly_base, zs_cdf, l0s)
+        z1s = self._eval_int_diff(coefs, cdf_poly_base, zs_cdf, l1s)
+        self._check_initial_intervals(z0s, z1s)
 
-        for _ in range(self.n_regula_falsi):
+        for _ in range(self._n_regula_falsi):
 
             ls, dls = self._regula_falsi_step(z0s, z1s, l0s, l1s)
-            zs = self.eval_int_diff(coefs, cdf_poly_base, zs_cdf, ls)
-            if self.converged(zs / cdf_poly_norm, dls / cdf_poly_norm):
+            zs = self._eval_int_diff(coefs, cdf_poly_base, zs_cdf, ls)
+            if self._converged(zs / cdf_poly_norm, dls / cdf_poly_norm):
                 return ls 
 
             # Update intervals (note: the CDF is monotone increasing)
@@ -202,28 +198,28 @@ class SpectralCDF(CDF1D, abc.ABC):
             z0s[zs < 0] = zs[zs < 0]
             z1s[zs > 0] = zs[zs > 0]
             
-        self.print_unconverged(zs / cdf_poly_norm, dls / cdf_poly_norm, "Regula falsi")
+        self._print_unconverged(zs / cdf_poly_norm, dls / cdf_poly_norm, "Regula falsi")
         return ls
     
-    def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
+    def _invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
         
-        self.check_pdf_positive(ps)
-        self.check_pdf_dims(ps, zs)
+        self._check_pdf_positive(ps)
+        self._check_pdf_dims(ps, zs)
         
         # Compute coefficients of each basis function for each PDF
-        coefs = self.node2basis @ ps
+        coefs = self._node2basis @ ps
 
         # Evaluate sum of integrals of each basis function at each 
         # point on each grid for each PDF
-        cdf_poly_nodes = self.cdf_basis2node @ coefs
+        cdf_poly_nodes = self._cdf_basis2node @ coefs
         cdf_poly_base = cdf_poly_nodes[0]
         cdf_poly_nodes = cdf_poly_nodes - cdf_poly_base
         cdf_poly_norm = cdf_poly_nodes[-1]
         
         zs_cdf = zs * cdf_poly_norm
-        left_inds = self.get_left_inds(cdf_poly_nodes, zs_cdf)
-        l0s = self.sampling_nodes[left_inds]
-        l1s = self.sampling_nodes[left_inds+1]
+        left_inds = self._get_left_inds(cdf_poly_nodes, zs_cdf)
+        l0s = self._sampling_nodes[left_inds]
+        l1s = self._sampling_nodes[left_inds+1]
         
-        ls = self.newton(coefs, cdf_poly_base, cdf_poly_norm, zs_cdf, l0s, l1s)
+        ls = self._newton(coefs, cdf_poly_base, cdf_poly_norm, zs_cdf, l0s, l1s)
         return ls

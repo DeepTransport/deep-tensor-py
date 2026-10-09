@@ -122,13 +122,13 @@ class TestFourier(unittest.TestCase):
         omegas_true = torch.tensor([0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
         mass_R_true = torch.eye(6)
 
-        self.assertEqual(poly.order, 2)
-        self.assertTrue((poly.nodes - nodes_true).abs().max() < 1e-4)
-        self.assertTrue((poly.weights - weights_true).abs().max() < 1e-4)
-        self.assertTrue((poly.basis2node - basis2node_true).abs().max() < 1e-4)
-        self.assertTrue((poly.node2basis - node2basis_true).abs().max() < 1e-4)
-        self.assertTrue((poly.omegas - omegas_true).abs().max() < 1e-4)
-        self.assertTrue((poly.mass_R - mass_R_true).abs().max() < 1e-4)
+        self.assertEqual(poly._order, 2)
+        self.assertTrue((poly._nodes - nodes_true).abs().max() < 1e-4)
+        self.assertTrue((poly._weights - weights_true).abs().max() < 1e-4)
+        self.assertTrue((poly._basis2node - basis2node_true).abs().max() < 1e-4)
+        self.assertTrue((poly._node2basis - node2basis_true).abs().max() < 1e-4)
+        self.assertTrue((poly._omegas - omegas_true).abs().max() < 1e-4)
+        self.assertTrue((poly._mass_R - mass_R_true).abs().max() < 1e-4)
         return
 
 

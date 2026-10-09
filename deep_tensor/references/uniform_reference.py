@@ -19,8 +19,8 @@ class UniformReference(Reference):
     """
 
     def __init__(self):
-        self.domain = BoundedDomain([0.0, 1.0])
-        self.pdf = 1.0
+        self._domain = BoundedDomain([0.0, 1.0])
+        self._pdf = 1.0
         return
     
     def invert_cdf(self, zs: Tensor) -> Tensor:
@@ -44,5 +44,5 @@ class UniformReference(Reference):
         grad_neglogprs = torch.zeros_like(rs)
         return neglogprs, grad_neglogprs
     
-    def eval_potential_unnormalised(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
+    def _eval_potential_unnormalised(self, rs: Tensor) -> Tuple[Tensor, Tensor]:
         return self.eval_potential(rs)

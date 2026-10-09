@@ -9,29 +9,17 @@ from ..target_functions import TargetFunc
 
 
 class Bridge(abc.ABC):
-    
+    """Base class for all bridges. Generates a set of bridging 
+    densities to construct a DIRT approximation to.
+    """
+
+    _num_layers: int
+    _is_adaptive: bool
+
     @property
     @abc.abstractmethod
-    def is_last(self) -> bool:
+    def _is_last(self) -> bool:
         pass
-
-    @property 
-    def num_layers(self) -> int:
-        return self._num_layers
-    
-    @num_layers.setter
-    def num_layers(self, value: int) -> None:
-        self._num_layers = value
-        return
-    
-    @property
-    def is_adaptive(self) -> bool:
-        return self._is_adaptive
-    
-    @is_adaptive.setter 
-    def is_adaptive(self, value: bool) -> None:
-        self._is_adaptive = value 
-        return
 
     @abc.abstractmethod
     def _eval_neglogratio(
@@ -129,7 +117,7 @@ class Bridge(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def update(self, us: Tensor, neglogfus_dirt: Tensor) -> Tuple[Tensor, Tensor]:
+    def _update(self, us: Tensor, neglogfus_dirt: Tensor) -> Tuple[Tensor, Tensor]:
         """Evaluates the current bridging density, the next ratio 
         function and the ratio between the current bridging density and 
         the next bridging density at each of a set of samples.
@@ -157,28 +145,28 @@ class Bridge(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def reset(self) -> None:
+    def _reset(self) -> None:
         """Resets the parameters of the bridging density to those at 
         initialisation.
         """
         pass
 
-    def initialise(
+    def _initialise(
         self, 
         preconditioner: Preconditioner, 
         target_func: TargetFunc
     ) -> None:
-        self.reset()
-        self.preconditioner = preconditioner
-        self.reference = self.preconditioner.reference
-        self.target_func = target_func
+        self._reset()
+        self._preconditioner = preconditioner
+        self._reference = self._preconditioner.reference
+        self._target_func = target_func
         return
     
     def _check_grad(self) -> None:
         """Throws an error if no gradients are supplied for the target 
         function.
         """
-        if not self.target_func._has_grad:
+        if not self._target_func._has_grad:
             msg = "Gradients of the target function have not been supplied."
             raise Exception(msg)
         return
@@ -210,8 +198,8 @@ class Bridge(abc.ABC):
         """Evaluates the pullback of the target density under the 
         preconditioning mapping.
         """
-        xs, neglogdets = self.preconditioner.Q(us)
-        neglogfxs = self.target_func(xs)
+        xs, neglogdets = self._preconditioner.Q(us)
+        neglogfxs = self._target_func(xs)
         neglogfus = neglogfxs + neglogdets
         return neglogfus
     
@@ -219,8 +207,8 @@ class Bridge(abc.ABC):
         """Evaluates the pullback of the target density under the 
         preconditioning mapping, and its gradient.
         """
-        xs, neglogdets, dxdus = self.preconditioner.grad_Q(us)
-        neglogfxs, grad_neglogfxs = self.target_func.grad_func(xs)
+        xs, neglogdets, dxdus = self._preconditioner.grad_Q(us)
+        neglogfxs, grad_neglogfxs = self._target_func._grad_func(xs)
         neglogfus = neglogfxs + neglogdets
         grad_neglogfus = self._grad_chain(grad_neglogfxs, dxdus)
         return neglogfus, grad_neglogfus

@@ -3,6 +3,7 @@ import unittest
 import torch
 
 import deep_tensor as dt
+from deep_tensor.polynomials import Lagrange1CDF
 
 
 torch.manual_seed(0)
@@ -12,7 +13,7 @@ class TestPiecewiseCDF(unittest.TestCase):
 
     def setup_cdf(self):
         poly = dt.Lagrange1(num_elems=2)
-        cdf = dt.Lagrange1CDF(poly=poly, error_tol=1e-10)
+        cdf = Lagrange1CDF(poly=poly, error_tol=1e-10)
         return cdf
 
     def test_lagrange_1d_cdf(self):
@@ -35,9 +36,9 @@ class TestPiecewiseCDF(unittest.TestCase):
                                        [0., 0., 0., 1., 0.],
                                        [0., 0., 0., 0., 1.]])
 
-        self.assertTrue((cdf.nodes - nodes_true).abs().max() < 1e-8)
-        self.assertTrue((V_inv_true - cdf.V_inv).abs().max() < 1e-8)
-        self.assertTrue((node2elem_true - cdf.node2elem).abs().max() < 1e-8)
+        self.assertTrue((cdf._nodes - nodes_true).abs().max() < 1e-8)
+        self.assertTrue((V_inv_true - cdf._V_inv).abs().max() < 1e-8)
+        self.assertTrue((node2elem_true - cdf._node2elem).abs().max() < 1e-8)
         return
     
     def test_pdf2cdf(self):
@@ -57,7 +58,7 @@ class TestPiecewiseCDF(unittest.TestCase):
                                            [32./3.]])
         
         poly_norm_true = torch.tensor([32./3.])
-        cdf_data = cdf.pdf2cdf(ps)
+        cdf_data = cdf._pdf2cdf(ps)
 
         self.assertTrue(cdf_data.n_cdfs == 1)
         self.assertTrue((poly_coef_true - cdf_data.poly_coef).abs().max() < 1e-8)
@@ -77,12 +78,12 @@ class TestPiecewiseCDF(unittest.TestCase):
 
         # Test case where there is a single PDF for all samples
         pls = torch.tensor([1., 2., 3., 2.5, 2.]).square()
-        zs = cdf.eval_cdf(pls, ls)
+        zs = cdf._eval_cdf(pls, ls)
         self.assertTrue((zs - zs_true).abs().max() < 1e-8)
 
         # Test case where there is an individual PDF for each sample
         pls = torch.hstack((pls[:, None], pls[:, None]))
-        zs = cdf.eval_cdf(pls, ls)
+        zs = cdf._eval_cdf(pls, ls)
         self.assertTrue((zs - zs_true).abs().max() < 1e-8)
         return
 
@@ -98,12 +99,12 @@ class TestPiecewiseCDF(unittest.TestCase):
 
         # Test case where there is a single PDF for all samples
         pls = torch.tensor([1., 2., 3., 2.5, 2.]).square()
-        ls = cdf.invert_cdf(pls, zs)
+        ls = cdf._invert_cdf(pls, zs)
         self.assertTrue((ls - ls_true).abs().max() < 1e-4)
 
         # Test case where there is an individual PDF for each sample
         pls = torch.hstack((pls[:, None], pls[:, None]))
-        ls = cdf.invert_cdf(pls, zs)
+        ls = cdf._invert_cdf(pls, zs)
         self.assertTrue((ls - ls_true).abs().max() < 1e-4)
         return
 

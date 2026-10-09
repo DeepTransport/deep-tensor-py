@@ -34,11 +34,11 @@ class AffineMapping(Preconditioner):
             b = torch.zeros((A.shape[0],), device=A.device)
         if reference is None:
             reference = GaussianReference()
-        self.A = A
-        self.b = b.flatten()
+        self._A = A
+        self._b = b.flatten()
+        self._A_inv: Tensor = linalg.inv(self._A)
         self.reference = reference
-        self.A_inv: Tensor = linalg.inv(self.A)
-        self.dim = self.b.flatten().numel()
+        self.dim = self._b.flatten().numel()
         return
 
     def _check_shape(self, xs: Tensor) -> None:
@@ -50,15 +50,15 @@ class AffineMapping(Preconditioner):
 
     def Q(self, us: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
         self._check_shape(us)
-        xs = self.b + us @ self.A.T
-        neglogdet = -self.A.slogdet().logabsdet.item()
+        xs = self._b + us @ self._A.T
+        neglogdet = -self._A.slogdet().logabsdet.item()
         neglogdets = torch.full((us.shape[0],), neglogdet, device=us.device)
         return xs, neglogdets
     
     def Q_inv(self, xs: Tensor, subset: str = "first") -> Tuple[Tensor, Tensor]:
         self._check_shape(xs)
-        us = (xs - self.b) @ self.A_inv.T
-        neglogdet = -self.A_inv.slogdet().logabsdet.item()
+        us = (xs - self._b) @ self._A_inv.T
+        neglogdet = -self._A_inv.slogdet().logabsdet.item()
         neglogdets = torch.full((xs.shape[0],), neglogdet, device=xs.device)
         return us, neglogdets
 
@@ -66,5 +66,5 @@ class AffineMapping(Preconditioner):
         self._check_shape(us)
         num_us = us.shape[0]
         xs, neglogdets = self.Q(us, subset)
-        dxdus = self.A[:, None, :].repeat(1, num_us, 1)
+        dxdus = self._A[:, None, :].repeat(1, num_us, 1)
         return xs, neglogdets, dxdus

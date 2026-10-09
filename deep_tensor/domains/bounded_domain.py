@@ -25,35 +25,8 @@ class BoundedDomain(LinearDomain):
             bounds = [-1.0, 1.0]
         if isinstance(bounds, Tensor):
             bounds = bounds.tolist()
-        self.check_bounds(bounds)
-        self.bounds = bounds
-        self.mean = 0.5 * (bounds[0] + bounds[1])
-        self.dxdl = 0.5 * (bounds[1] - bounds[0])
-        return
-    
-    @property
-    def bounds(self) -> List:
-        return self._bounds
-    
-    @bounds.setter
-    def bounds(self, value: List) -> None:
-        self._bounds = value 
-        return
-
-    @property
-    def mean(self) -> float:
-        return self._mean
-    
-    @mean.setter
-    def mean(self, value: float) -> None:
-        self._mean = value 
-        return
-    
-    @property
-    def dxdl(self) -> float:
-        return self._dxdl
-    
-    @dxdl.setter
-    def dxdl(self, value: float) -> None:
-        self._dxdl = value 
+        self._check_bounds(bounds)
+        self._bounds = bounds
+        self._mean = 0.5 * (bounds[0] + bounds[1])
+        self._dxdl = 0.5 * (bounds[1] - bounds[0])
         return

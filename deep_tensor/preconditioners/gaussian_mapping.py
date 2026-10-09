@@ -41,17 +41,17 @@ class GaussianMapping(Preconditioner):
         elif not isinstance(reference, GaussianReference):
             msg = "Reference density must be Gaussian."
             raise Exception(msg)
-        self.mean = mean.flatten()
-        self.cov = cov 
+        self._mean = mean.flatten()
+        self._cov = cov 
+        self._diag = diag
+        self._L: Tensor = linalg.cholesky(cov)
+        self._R: Tensor = linalg.inv(self._L)
         self.reference = reference
-        self.diag = diag
-        self.L: Tensor = linalg.cholesky(cov)
-        self.R: Tensor = linalg.inv(self.L)
-        self.dim = self.mean.flatten().numel()
+        self.dim = self._mean.flatten().numel()
         return
 
     def _check_subset(self, subset: str) -> None:
-        if self.diag is False and subset == "last":
+        if self._diag is False and subset == "last":
             msg = ("Preconditioner is only well-defined when "
                     "subset='first', unless diag=True.")
             raise Exception(msg)
@@ -61,11 +61,11 @@ class GaussianMapping(Preconditioner):
         self._check_subset(subset)
         dim_us = us.shape[1]
         if subset == "first":
-            xs = self.mean[:dim_us] + (us @ self.L[:dim_us, :dim_us].T)
-            Ls = self.L.diag()[:dim_us]
+            xs = self._mean[:dim_us] + (us @ self._L[:dim_us, :dim_us].T)
+            Ls = self._L.diag()[:dim_us]
         else:
-            xs = self.mean[-dim_us:] + (us @ self.L[-dim_us:, -dim_us:].T)
-            Ls = self.L.diag()[-dim_us:]
+            xs = self._mean[-dim_us:] + (us @ self._L[-dim_us:, -dim_us:].T)
+            Ls = self._L.diag()[-dim_us:]
         neglogdet = -Ls.log().sum().item()
         neglogdets = torch.full((us.shape[0],), neglogdet, device=us.device)
         return xs, neglogdets
@@ -74,11 +74,11 @@ class GaussianMapping(Preconditioner):
         self._check_subset(subset)
         dim_xs = xs.shape[1]
         if subset == "first":
-            us = (xs - self.mean[:dim_xs]) @ self.R[:dim_xs, :dim_xs].T
-            Rs = self.R.diag()[:dim_xs]
+            us = (xs - self._mean[:dim_xs]) @ self._R[:dim_xs, :dim_xs].T
+            Rs = self._R.diag()[:dim_xs]
         else:
-            us = (xs - self.mean[-dim_xs:]) @ self.R[-dim_xs:, -dim_xs:].T
-            Rs = self.R.diag()[-dim_xs:]
+            us = (xs - self._mean[-dim_xs:]) @ self._R[-dim_xs:, -dim_xs:].T
+            Rs = self._R.diag()[-dim_xs:]
         neglogdet = -Rs.log().sum().item()
         neglogdets = torch.full((xs.shape[0],), neglogdet, device=xs.device)
         return us, neglogdets
@@ -88,7 +88,7 @@ class GaussianMapping(Preconditioner):
         num_us, dim_us = us.shape
         xs, neglogdets = self.Q(us, subset)
         if subset == "first":
-            dxdus = self.L[:dim_us, None, :dim_us].repeat(1, num_us, 1)
+            dxdus = self._L[:dim_us, None, :dim_us].repeat(1, num_us, 1)
         else:
-            dxdus = self.L[-dim_us:, None, -dim_us:].repeat(1, num_us, 1)
+            dxdus = self._L[-dim_us:, None, -dim_us:].repeat(1, num_us, 1)
         return xs, neglogdets, dxdus

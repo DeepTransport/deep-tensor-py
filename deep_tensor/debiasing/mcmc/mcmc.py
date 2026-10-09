@@ -24,42 +24,42 @@ class MarkovChain(object):
         dim: int, 
         device: torch.device
     ):
-        self.xs = torch.zeros((num_chains, num_steps, dim), device=device)
-        self.potentials = torch.zeros((num_chains, num_steps), device=device)
-        self.n = num_steps
-        self.num_steps = 0
-        self.num_acceptances = torch.zeros((num_chains,), device=device)
+        self._xs = torch.zeros((num_chains, num_steps, dim), device=device)
+        self._potentials = torch.zeros((num_chains, num_steps), device=device)
+        self._n = num_steps
+        self._num_steps = 0
+        self._num_acceptances = torch.zeros((num_chains,), device=device)
         return
     
     @property
-    def acceptance_rates(self) -> Tensor:
-        return self.num_acceptances / self.num_steps
+    def _acceptance_rates(self) -> Tensor:
+        return self._num_acceptances / self._num_steps
     
     @property 
-    def current_state(self) -> Tensor:
-        return self.xs[self.num_steps-1]
+    def _current_state(self) -> Tensor:
+        return self._xs[self._num_steps-1]
     
     @property 
-    def current_potential(self) -> Tensor:
-        return self.potentials[self.num_steps-1]
+    def _current_potential(self) -> Tensor:
+        return self._potentials[self._num_steps-1]
     
-    def add_state(
+    def _add_state(
         self, 
         xs: Tensor, 
         potentials: Tensor, 
         acceptances: Tensor
     ) -> None:
         """Adds a new state to the end of the Markov chain."""
-        self.xs[:, self.num_steps, :] = xs 
-        self.potentials[:, self.num_steps] = potentials 
-        self.num_acceptances += acceptances
-        self.num_steps += 1 
+        self._xs[:, self._num_steps, :] = xs 
+        self._potentials[:, self._num_steps] = potentials 
+        self._num_acceptances += acceptances
+        self._num_steps += 1 
         return
     
-    def print_progress(self) -> None:
+    def _print_progress(self) -> None:
         diagnostics = [
-            f"Iteration: {self.num_steps:>5f}", 
-            # f"Acceptance rate: {self.acceptance_rates}"
+            f"Iteration: {self._num_steps:>5f}", 
+            # f"Acceptance rate: {self._acceptance_rates}"
         ]
         print(" | ".join(diagnostics), end="\r")
         return
@@ -77,8 +77,8 @@ class MCMCResult(object):
         An $n$-dimensional vector containing the potential function 
         associated with the target density evaluated at each sample in 
         the chain.
-    acceptance_rate: float
-        The acceptance rate of the sampler.
+    acceptance_rates: Tensor
+        The acceptance rate of each chain.
     iacts: Tensor
         A $k$-dimensional vector containing estimates of the integrated 
         autocorrelation time (IACT) for each parameter.
@@ -98,12 +98,12 @@ class MCMCResult(object):
     
     """
     def __init__(self, chain: MarkovChain):
-        self.num_chains, self.num_steps, self.dim = chain.xs.shape
-        self.xs = chain.xs
-        self.potentials = chain.potentials
-        self.acceptance_rates = chain.acceptance_rates
+        self._num_chains, self._num_steps, self._dim = chain._xs.shape
+        self.xs = chain._xs
+        self.potentials = chain._potentials
+        self.acceptance_rates = chain._acceptance_rates
         self.iacts = torch.vstack([
-            estimate_iact(self.xs[i]) for i in range(self.num_chains)
+            estimate_iact(self.xs[i]) for i in range(self._num_chains)
         ])
         self.ess = 1.0 / self.iacts
         return
@@ -120,12 +120,12 @@ class MCMC(object):
     """
 
     def __init__(self, kernel: Kernel):
-        self.kernel = kernel
+        self._kernel = kernel
         return
     
     @property 
-    def acceptance_rates(self) -> Tensor:
-        return self.kernel.acceptance_rates
+    def _acceptance_rates(self) -> Tensor:
+        return self._kernel._acceptance_rates
     
     def run(
         self, 
@@ -151,27 +151,27 @@ class MCMC(object):
         
         """
         
-        self.r0s: Tensor = torch.atleast_2d(r0s)
-        self.device = self.r0s.device
-        self.num_chains = self.r0s.shape[0]
-        self.num_steps = num_steps
-        self.num_warmup = num_warmup
+        self._r0s: Tensor = torch.atleast_2d(r0s)
+        self._device = self._r0s.device
+        self._num_chains = self._r0s.shape[0]
+        self._num_steps = num_steps
+        self._num_warmup = num_warmup
 
-        self.kernel._initialise(self.r0s)
+        self._kernel._initialise(self._r0s)
         
-        for _ in range(self.num_warmup):
-            self.kernel._step()
+        for _ in range(self._num_warmup):
+            self._kernel._step()
 
-        self.chain = MarkovChain(
-            self.num_steps, 
-            self.num_chains, 
-            self.kernel.dim, 
-            device=self.device
+        self._chain = MarkovChain(
+            self._num_steps, 
+            self._num_chains, 
+            self._kernel._dim, 
+            device=self._device
         )
         
-        for _ in range(self.num_steps):
-            xs, potentials, acceptances = self.kernel._step()
-            self.chain.add_state(xs, potentials, acceptances)
+        for _ in range(self._num_steps):
+            xs, potentials, acceptances = self._kernel._step()
+            self._chain._add_state(xs, potentials, acceptances)
 
-        res = MCMCResult(self.chain)
+        res = MCMCResult(self._chain)
         return res

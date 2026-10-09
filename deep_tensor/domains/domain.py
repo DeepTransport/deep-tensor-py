@@ -7,24 +7,20 @@ from torch import Tensor
 class Domain(abc.ABC):
     """Parent class for all approximation domains."""
 
+    _bounds: List
+
     @property
-    @abc.abstractmethod
-    def bounds(self) -> List:
-        """The boundary of the approximation domain."""
-        pass
-    
-    @property
-    def left(self) -> float:
+    def _left(self) -> float:
         """The left-hand boundary of the approximation domain."""
-        return self.bounds[0]
+        return self._bounds[0]
     
     @property 
-    def right(self) -> float:
+    def _right(self) -> float:
         """The right-hand boundary of the approximation domain."""
-        return self.bounds[1]
+        return self._bounds[1]
 
     @abc.abstractmethod
-    def local2approx(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
+    def _local2approx(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         """Maps a set of points in the local domain to the 
         approximation domain.
         
@@ -48,7 +44,7 @@ class Domain(abc.ABC):
         pass
     
     @abc.abstractmethod
-    def approx2local(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
+    def _approx2local(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         """Maps a set of points in the approximation domain back to the 
         local domain.
         
@@ -72,7 +68,7 @@ class Domain(abc.ABC):
         pass
     
     @abc.abstractmethod
-    def local2approx_log_density(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
+    def _local2approx_log_density(self, ls: Tensor) -> Tuple[Tensor, Tensor]:
         """Computes the logarithm of the derivative of the mapping from 
         the local domain to the approximation domain and its
         gradient.
@@ -98,7 +94,7 @@ class Domain(abc.ABC):
         pass
     
     @abc.abstractmethod
-    def approx2local_log_density(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
+    def _approx2local_log_density(self, xs: Tensor) -> Tuple[Tensor, Tensor]:
         """Computes the logarithm of the derivative of the mapping from 
         the approximation domain to the local domain and its
         gradient.
@@ -124,7 +120,7 @@ class Domain(abc.ABC):
         pass
     
     @staticmethod
-    def check_bounds(bounds: List) -> None:
+    def _check_bounds(bounds: List) -> None:
         if bounds[0] >= bounds[1]:
             msg = "Left-hand bound must be less than right-hand bound."
             raise Exception(msg)

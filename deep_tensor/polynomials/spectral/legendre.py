@@ -46,42 +46,34 @@ class Legendre(Recurr):
         order: int, 
         device: torch.device = torch.get_default_device()
     ):
-        self.device = device
-        n = torch.arange(order+1, device=self.device)
+        self._device = device
+        n = torch.arange(order+1, device=self._device)
         a = (2*n + 1) / (n + 1)
         b = torch.zeros_like(n)
         c = n / (n + 1)
         norm = torch.sqrt(2*n + 1)
-        Recurr.__init__(self, order, a, b, c, norm, self.device)
+        Recurr.__init__(self, order, a, b, c, norm, self._device)
         return
 
     @property
-    def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0], device=self.device)
+    def _domain(self) -> Tensor:
+        return torch.tensor([-1.0, 1.0], device=self._device)
     
     @property
-    def constant_weight(self) -> bool:
+    def _constant_weight(self) -> bool:
         return True
     
-    @property 
-    def nodes(self) -> Tensor:
-        return self._nodes
+    def _sample_measure(self, n: int) -> Tensor:
+        return 2.0 * torch.rand(n, device=self._device) - 1.0
 
-    @property
-    def weights(self) -> Tensor:
-        return self._weights
-    
-    def sample_measure(self, n: int) -> Tensor:
-        return 2.0 * torch.rand(n, device=self.device) - 1.0
-
-    def eval_measure(self, ls: Tensor) -> Tensor:
+    def _eval_measure(self, ls: Tensor) -> Tensor:
         return torch.full_like(ls, 0.5)
     
-    def eval_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)
 
-    def eval_log_measure(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure(self, ls: Tensor) -> Tensor:
         return torch.full_like(ls, math.log(0.5))
         
-    def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)

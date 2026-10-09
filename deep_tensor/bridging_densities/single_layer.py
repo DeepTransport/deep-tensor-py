@@ -14,19 +14,19 @@ class SingleLayer(Bridge):
     """
 
     def __init__(self):
-        self.num_layers = 0
-        self.is_adaptive = False
+        self._num_layers = 0
+        self._is_adaptive = False
         return
     
     @property 
-    def is_last(self) -> bool:
+    def _is_last(self) -> bool:
         return True
     
-    def reset(self) -> None:
-        self.num_layers = 0
+    def _reset(self) -> None:
+        self._num_layers = 0
         return
 
-    def update(
+    def _update(
         self, 
         us: Tensor, 
         neglogfus_dirt: Tensor

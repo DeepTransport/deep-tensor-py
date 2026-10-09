@@ -15,41 +15,23 @@ class Piecewise(Basis1D, abc.ABC):
         num_elems: int,
         device: torch.device
     ):
-        self.order = order 
-        self.num_elems = num_elems
-        self.device = device
-        self.grid = torch.linspace(-1.0, 1.0, num_elems+1, device=self.device)
-        self.elem_size = self.grid[1] - self.grid[0]
-        self.domain_size = float(self.domain[1] - self.domain[0])
+        self._order = order 
+        self._num_elems = num_elems
+        self._device = device
+        self._grid = torch.linspace(-1.0, 1.0, num_elems+1, device=self._device)
+        self._elem_size = self._grid[1] - self._grid[0]
+        self._domain_size = float(self._domain[1] - self._domain[0])
         return
     
     @property
-    def domain(self) -> Tensor:
-        return torch.tensor([-1.0, 1.0], device=self.device)
+    def _domain(self) -> Tensor:
+        return torch.tensor([-1.0, 1.0], device=self._device)
     
     @property 
-    def grid(self) -> Tensor:
-        return self._grid
-    
-    @grid.setter 
-    def grid(self, value: Tensor) -> None:
-        self._grid = value 
-        return
-    
-    @property
-    def num_elems(self) -> int:
-        return self._num_elems
-    
-    @num_elems.setter 
-    def num_elems(self, value: int) -> None:
-        self._num_elems = value 
-        return
-    
-    @property 
-    def constant_weight(self) -> bool:
+    def _constant_weight(self) -> bool:
         return True
 
-    def get_left_hand_inds(self, ls: Tensor) -> Tensor:
+    def _get_left_hand_inds(self, ls: Tensor) -> Tensor:
         """Returns the indices of the nodes that are directly to the 
         left of each of a given set of points.
         
@@ -66,28 +48,28 @@ class Piecewise(Basis1D, abc.ABC):
         
         """
 
-        left_inds = ((ls-self.domain[0]) / self.elem_size).floor().int()
-        left_inds = left_inds.clamp(0, self.num_elems-1)
+        left_inds = ((ls-self._domain[0]) / self._elem_size).floor().int()
+        left_inds = left_inds.clamp(0, self._num_elems-1)
         return left_inds
     
-    def map_to_element(self, ls: Tensor, left_inds: Tensor) -> Tensor:
+    def _map_to_element(self, ls: Tensor, left_inds: Tensor) -> Tensor:
         """Maps from a set of points in the global space to the 
         positions of the points of the elements they lie on, 
         normalising into the range [0, 1].
         """
-        return (ls - self.grid[left_inds]) / self.elem_size
+        return (ls - self._grid[left_inds]) / self._elem_size
 
-    def sample_measure(self, n: int) -> Tensor:
-        return self.domain[0] + self.domain_size * torch.rand(n, device=self.device)
+    def _sample_measure(self, n: int) -> Tensor:
+        return self._domain[0] + self._domain_size * torch.rand(n, device=self._device)
 
-    def eval_measure(self, ls: Tensor) -> Tensor:
-        return torch.full_like(ls, 1.0 / self.domain_size)
+    def _eval_measure(self, ls: Tensor) -> Tensor:
+        return torch.full_like(ls, 1.0 / self._domain_size)
 
-    def eval_log_measure(self, ls: Tensor) -> Tensor:
-        return torch.full_like(ls, -math.log(self.domain_size))
+    def _eval_log_measure(self, ls: Tensor) -> Tensor:
+        return torch.full_like(ls, -math.log(self._domain_size))
 
-    def eval_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)
 
-    def eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
+    def _eval_log_measure_deriv(self, ls: Tensor) -> Tensor:
         return torch.zeros_like(ls)

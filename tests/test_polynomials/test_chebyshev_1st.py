@@ -76,7 +76,7 @@ class TestChebyshev1st(unittest.TestCase):
                 torch.tensor(4.0*torch.pi/12.0).cos(), 
                 torch.tensor(5.0*torch.pi/12.0).cos()
             ],
-        ]) * poly.norm
+        ]) * poly._norm
         norm_true = torch.tensor([
             1.0, 
             torch.tensor(2.0).sqrt(), 
@@ -86,11 +86,11 @@ class TestChebyshev1st(unittest.TestCase):
             torch.tensor(2.0).sqrt()
         ])
 
-        self.assertEqual(poly.order, 5)
-        self.assertTrue((poly.nodes - nodes_true).abs().max() < 1e-4)
-        self.assertTrue((poly.weights - weights_true).abs().max() < 1e-4)
-        self.assertTrue((poly.basis2node - basis2node_true).abs().max() < 1e-4)
-        self.assertTrue((poly.norm - norm_true).abs().max() < 1e-4)
+        self.assertEqual(poly._order, 5)
+        self.assertTrue((poly._nodes - nodes_true).abs().max() < 1e-4)
+        self.assertTrue((poly._weights - weights_true).abs().max() < 1e-4)
+        self.assertTrue((poly._basis2node - basis2node_true).abs().max() < 1e-4)
+        self.assertTrue((poly._norm - norm_true).abs().max() < 1e-4)
         return
     
     def test_eval_measure(self):
@@ -98,8 +98,8 @@ class TestChebyshev1st(unittest.TestCase):
         poly = dt.Chebyshev1st(order=5)
 
         ls = torch.tensor([-1.0, -0.5, 0.0, 0.5, 1.0])
-        ws = poly.eval_measure(ls)
-        logws = poly.eval_log_measure(ls)
+        ws = poly._eval_measure(ls)
+        logws = poly._eval_log_measure(ls)
 
         ws_true = torch.tensor([
             torch.tensor(1.0/EPS).sqrt(),
@@ -120,7 +120,7 @@ class TestChebyshev1st(unittest.TestCase):
         ls = torch.tensor([-0.5, 0.0, 0.5])
         thetas = ls.acos()
 
-        dpdls = poly.eval_basis_deriv(ls)
+        dpdls = poly._eval_basis_deriv(ls)
 
         dpdls_true = torch.tensor([
             [
@@ -141,7 +141,7 @@ class TestChebyshev1st(unittest.TestCase):
                 2.0 * torch.sin(2.0 * thetas[2]) / torch.sin(thetas[2]),
                 3.0 * torch.sin(3.0 * thetas[2]) / torch.sin(thetas[2])
             ]
-        ]) * poly.norm
+        ]) * poly._norm
 
         self.assertTrue((dpdls - dpdls_true).abs().max() < 1e-8)
         return

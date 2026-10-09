@@ -16,32 +16,25 @@ class CDF1D(abc.ABC):
     one-dimensional bases.
     """
 
+    _nodes: Tensor
+
     def __init__(
         self, 
         error_tol: float, 
         n_newton: int = 100,
         n_regula_falsi: int = 100
     ):
-        self.error_tol = error_tol
-        self.n_newton = n_newton
-        self.n_regula_falsi = n_regula_falsi
+        self._error_tol = error_tol
+        self._n_newton = n_newton
+        self._n_regula_falsi = n_regula_falsi
         return
 
     @property 
-    def nodes(self) -> Tensor:
-        return self._nodes 
-
-    @nodes.setter 
-    def nodes(self, value: Tensor) -> None:
-        self._nodes = value 
-        return
-    
-    @property 
-    def cardinality(self) -> int:
-        return self.nodes.numel()
+    def _cardinality(self) -> int:
+        return self._nodes.numel()
 
     @abc.abstractmethod
-    def invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
+    def _invert_cdf(self, ps: Tensor, zs: Tensor) -> Tensor:
         """Evaluates the inverse of the CDF of the target PDF at a 
         given set of values, by solving a set of root-finding problems 
         using Newton's method. If Newton's method does not converge, 
@@ -73,7 +66,7 @@ class CDF1D(abc.ABC):
         pass
         
     @abc.abstractmethod
-    def eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
+    def _eval_cdf(self, ps: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the CDF of the approximation to the target density 
         at a given set of values in the local domain.
         
@@ -102,7 +95,7 @@ class CDF1D(abc.ABC):
         pass
     
     @abc.abstractmethod
-    def eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
+    def _eval_int_deriv(self, ps: Tensor, ls: Tensor) -> Tensor:
         """Evaluates the integral of the product of the PDF and the 
         weighting function from the left-hand boundary of the local 
         domain to each element of ls.
@@ -137,7 +130,7 @@ class CDF1D(abc.ABC):
         pass
     
     @staticmethod
-    def check_pdf_positive(ps: Tensor) -> None:
+    def _check_pdf_positive(ps: Tensor) -> None:
         """Checks whether a set of evaluations of the target PDF are 
         positive.
         """
@@ -150,7 +143,7 @@ class CDF1D(abc.ABC):
         return
 
     @staticmethod
-    def check_initial_intervals(z0s: Tensor, z1s: Tensor) -> None:
+    def _check_initial_intervals(z0s: Tensor, z1s: Tensor) -> None:
         """Checks whether the function values at each side of the 
         initial interval of a rootfinding method have different signs.
 
@@ -176,7 +169,7 @@ class CDF1D(abc.ABC):
             logger.debug(msg)
         return
     
-    def check_pdf_dims(self, ps: Tensor, xs: Tensor) -> None:
+    def _check_pdf_dims(self, ps: Tensor, xs: Tensor) -> None:
         """Checks whether the dimensions of the evaluation of the 
         target PDF(s) on the nodes of the basis of the CDF are 
         correct.
@@ -188,7 +181,7 @@ class CDF1D(abc.ABC):
         
         n_k, n_ps = ps.shape
 
-        if n_k != self.cardinality:
+        if n_k != self._cardinality:
             msg = (
                 "Number of rows of PDF matrix must be equal to " 
                 "cardinality of polynomial basis for CDF."
@@ -233,7 +226,7 @@ class CDF1D(abc.ABC):
         ls = torch.clamp(ls, l0s, l1s)
         return ls, dls
     
-    def converged(self, fs: Tensor, dls: Tensor) -> bool:
+    def _converged(self, fs: Tensor, dls: Tensor) -> bool:
         """Returns a boolean that indicates whether a rootfinding 
         method has converged.
 
@@ -258,13 +251,13 @@ class CDF1D(abc.ABC):
         """
         error_fs = fs.abs()
         error_dls = dls.abs()
-        converged = torch.min(error_fs, error_dls).max().item() < self.error_tol
+        converged = torch.min(error_fs, error_dls).max().item() < self._error_tol
         return converged
     
-    def print_unconverged(self, fs: Tensor, dls: Tensor, method: str) -> None:
+    def _print_unconverged(self, fs: Tensor, dls: Tensor, method: str) -> None:
         error_fs = fs.abs()
         error_dls = dls.abs()
-        unconverged = (torch.min(error_fs, error_dls) >= self.error_tol)
+        unconverged = (torch.min(error_fs, error_dls) >= self._error_tol)
         max_residual = error_fs.abs().max()
         msg = (
             f"Rootfinding: {method} did not converge "
