@@ -46,6 +46,14 @@ Deep (squared) inverse Rosenblatt transport.
 
 ## Attributes {.doc-section .doc-section-attributes}
 
+<code>[**dim**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   The dimension of the target density.
+
+<code>[**reference**]{.parameter-name} [:]{.parameter-annotation-sep} []{.parameter-annotation}</code>
+
+:   The reference density.
+
 <code>[**num_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
 
 :   The number of layers of the approximation.
@@ -88,6 +96,7 @@ Deep (squared) inverse Rosenblatt transport.
 | --- | --- |
 | [eval_potential](#deep_tensor.DIRT.eval_potential) | Evaluates the potential function. |
 | [eval_potential_cond](#deep_tensor.DIRT.eval_potential_cond) | Evaluates the conditional potential function. |
+| [eval_pdf](#deep_tensor.DIRT.eval_pdf) | Evaluates the density function. |
 | [eval_rt](#deep_tensor.DIRT.eval_rt) | Evaluates the deep Rosenblatt transport. |
 | [eval_irt](#deep_tensor.DIRT.eval_irt) | Evaluates the deep inverse Rosenblatt transport. |
 | [eval_cirt](#deep_tensor.DIRT.eval_cirt) | Evaluates the conditional inverse Rosenblatt transport. |
@@ -174,6 +183,43 @@ at a set of samples in the approximation domain.
 <code>[**neglogfxs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
 :   An $n$-dimensional vector containing the potential function  of the approximation to the density of $X \textbar Y$  evaluated at each sample in `xs`.
+
+### eval_pdf { #deep_tensor.DIRT.eval_pdf }
+
+```python
+DIRT.eval_pdf(
+    xs: Tensor,
+    subset: str | None = None,
+    num_layers: int | None = None,
+)
+```
+
+Evaluates the density function.
+
+Returns the joint density function, or the marginal density 
+function for the first $k$ variables or the last $k$ variables,
+corresponding to the pullback of the reference measure under 
+a given number of layers of the DIRT.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times k$ matrix containing a set of samples drawn  from the DIRT approximation to the target density.
+
+<code>[**subset**]{.parameter-name} [:]{.parameter-annotation-sep} [str \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   If the samples contain a subset of the variables, (*i.e.,*  $k < d$), whether they correspond to the first $k$  variables (`subset='first'`) or the last $k$ variables  (`subset='last'`).
+
+<code>[**num_layers**]{.parameter-name} [:]{.parameter-annotation-sep} [int \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   The number of layers of the current DIRT construction to  use. If not specified, all layers will be used when  evaluating the density function.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**fxs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n$-dimensional vector containing the value of the  approximation to the target density evaluated at each  element in `xs`.
 
 ### eval_rt { #deep_tensor.DIRT.eval_rt }
 

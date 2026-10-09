@@ -99,7 +99,7 @@ quartodoc:
       contents:
         - name: DIRT
           members: [
-            eval_potential, eval_potential_cond, 
+            eval_potential, eval_potential_cond, eval_pdf,
             eval_rt, eval_irt, eval_cirt, 
             eval_irt_pullback, eval_cirt_pullback, 
             jac_rt, jac_irt, 
@@ -132,10 +132,12 @@ quartodoc:
     - title: Reference Densities
       desc: Product-form reference densities used as part of DIRT construction.
       contents:
+        - name: Reference
+          members: [eval_cdf, eval_pdf, invert_cdf, eval_potential, random, sobol]
         - name: GaussianReference
-          members: [random, sobol]
+          members: [eval_cdf, eval_pdf, invert_cdf, eval_potential, random, sobol]
         - name: UniformReference
-          members: [random, sobol]
+          members: [eval_cdf, eval_pdf, invert_cdf, eval_potential, random, sobol]
 
     - title: Domain Mappings
       desc: Mappings between the approximation domain and the basis functions used as part of the functional tensor trains.
@@ -204,3 +206,9 @@ quartodoc:
         - name: MCMC 
         - name: pCNKernel
         - name: MCMCResult
+
+    - title: Diagnostics
+      desc: Functions used to assess the quality of an approximation or a Markov chain.
+      contents:
+        - name: estimate_dhell
+        - name: estimate_iact

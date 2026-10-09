@@ -1,0 +1,32 @@
+# estimate_dhell { #deep_tensor.estimate_dhell }
+
+```python
+estimate_dhell(
+    neglogfxs: Tensor,
+    negloggxs: Tensor,
+    negloghxs: Tensor | None = None,
+)
+```
+
+Estimates the Hellinger distance between two (unnormalised)
+probability densities using an importance sampling estimate.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**neglogfxs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An n-dimensional vector containing evaluations of the negative  logarithm of the first (possibly unnormalised) density.
+
+<code>[**negloggxs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An n-dimensional vector containing evaluations of the negative  logarithm of the second (possibly unnormalised) density.
+
+<code>[**negloghxs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor \| None]{.parameter-annotation} [ = ]{.parameter-default-sep} [None]{.parameter-default}</code>
+
+:   An n-dimensional vector containing evaluations of the negative  logarithm of the (normalised) importance density. If this is  not supplied, instead neglogfxs will be assumed to be draws  from the (normalised) importance density.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[**dhell**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An importance sampling estimate of the Hellinger distance.

@@ -16,8 +16,44 @@ GaussianReference must be used.
 
 | Name | Description |
 | --- | --- |
+| [eval_cdf](#deep_tensor.UniformReference.eval_cdf) |  |
+| [eval_pdf](#deep_tensor.UniformReference.eval_pdf) |  |
+| [invert_cdf](#deep_tensor.UniformReference.invert_cdf) |  |
+| [eval_potential](#deep_tensor.UniformReference.eval_potential) |  |
 | [random](#deep_tensor.UniformReference.random) | Generates a set of random samples. |
 | [sobol](#deep_tensor.UniformReference.sobol) | Generates a set of QMC samples. |
+
+### eval_cdf { #deep_tensor.UniformReference.eval_cdf }
+
+```python
+UniformReference.eval_cdf(rs: Tensor)
+```
+
+
+
+### eval_pdf { #deep_tensor.UniformReference.eval_pdf }
+
+```python
+UniformReference.eval_pdf(rs: Tensor)
+```
+
+
+
+### invert_cdf { #deep_tensor.UniformReference.invert_cdf }
+
+```python
+UniformReference.invert_cdf(zs: Tensor)
+```
+
+
+
+### eval_potential { #deep_tensor.UniformReference.eval_potential }
+
+```python
+UniformReference.eval_potential(rs: Tensor)
+```
+
+
 
 ### random { #deep_tensor.UniformReference.random }
 

@@ -16,9 +16,9 @@ An object containing a constructed Markov chain.
 
 :   An $n$-dimensional vector containing the potential function  associated with the target density evaluated at each sample in  the chain.
 
-<code>[**acceptance_rate**]{.parameter-name} [:]{.parameter-annotation-sep} [float]{.parameter-annotation}</code>
+<code>[**acceptance_rates**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 
-:   The acceptance rate of the sampler.
+:   The acceptance rate of each chain.
 
 <code>[**iacts**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
 

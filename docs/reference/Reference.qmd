@@ -1,0 +1,171 @@
+# Reference { #deep_tensor.Reference }
+
+```python
+Reference(domain: Domain)
+```
+
+Parent class for all one-dimensional reference distributions.
+
+## Methods
+
+| Name | Description |
+| --- | --- |
+| [eval_cdf](#deep_tensor.Reference.eval_cdf) | Evaluates the CDF and PDF (i.e., the gradient of the CDF) of  |
+| [eval_pdf](#deep_tensor.Reference.eval_pdf) | Evaluates the PDF and gradient of the PDF of the reference  |
+| [invert_cdf](#deep_tensor.Reference.invert_cdf) | Returns the values of the reference distribution  |
+| [eval_potential](#deep_tensor.Reference.eval_potential) | Evaluates the potential function (i.e., negative logarithm)  |
+| [random](#deep_tensor.Reference.random) | Generates a set of random samples. |
+| [sobol](#deep_tensor.Reference.sobol) | Generates a set of QMC samples. |
+
+### eval_cdf { #deep_tensor.Reference.eval_cdf }
+
+```python
+Reference.eval_cdf(rs: Tensor)
+```
+
+Evaluates the CDF and PDF (i.e., the gradient of the CDF) of 
+the reference distribution at a set of values.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A matrix or vector containing a samples from the reference  density.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**zs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A matrix or vector of the same dimension as rs, containing  the CDF of the reference density evaluated at each element  of rs.
+
+<code>[**dzdrs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A matrix or vector of the same dimension as rs, containing  the PDF of the reference density evaluated at each element  of rs.
+
+### eval_pdf { #deep_tensor.Reference.eval_pdf }
+
+```python
+Reference.eval_pdf(rs: Tensor)
+```
+
+Evaluates the PDF and gradient of the PDF of the reference 
+distribution at a set of values.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A matrix or vector containing samples from the reference  density.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**pdfs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A matrix or vector of the same dimension as rs, containing  the PDF of the reference density evaluated at each element  of rs.
+
+<code>[**grad_pdfs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A matrix or vector of the same dimension as rs, containing  the gradient of the PDF of the reference density evaluated  at each element of rs.
+
+### invert_cdf { #deep_tensor.Reference.invert_cdf }
+
+```python
+Reference.invert_cdf(zs: Tensor)
+```
+
+Returns the values of the reference distribution 
+corresponding to a set of points on the CDF.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**zs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A matrix or vector containing points distributed according  to the CDF of the distribution.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A matrix or vector of the same dimension as zs, containing  the points from the reference density corresponding to each  element of zs.
+
+### eval_potential { #deep_tensor.Reference.eval_potential }
+
+```python
+Reference.eval_potential(rs: Tensor)
+```
+
+Evaluates the potential function (i.e., negative logarithm) 
+and the gradient of the potential function of the reference at 
+a set of points.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An n * d matrix containing points at which to evaluate the  potential function and its gradient.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**neglogrefs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An n-dimensional vector containing the potential function  evaluated at each sample in rs.
+
+<code>[**grad_neglogrefs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An n * d matrix where each row contains the gradient of the  potential function evaluated at the corresponding sample in  rs.
+
+### random { #deep_tensor.Reference.random }
+
+```python
+Reference.random(
+    n: int,
+    d: int,
+    device: torch.device = torch.get_default_device(),
+)
+```
+
+Generates a set of random samples.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The number of samples to draw.
+
+<code>[**d**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The dimension of the samples.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times d$ matrix containing the generated samples.
+
+### sobol { #deep_tensor.Reference.sobol }
+
+```python
+Reference.sobol(
+    n: int,
+    d: int,
+    device: torch.device = torch.get_default_device(),
+)
+```
+
+Generates a set of QMC samples.
+
+#### Parameters {.doc-section .doc-section-parameters}
+
+<code>[**n**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The number of samples to generate.
+
+<code>[**d**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation}</code>
+
+:   The dimension of the samples.
+
+#### Returns {.doc-section .doc-section-returns}
+
+<code>[**rs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   An $n \times d$ matrix containing the generated samples.

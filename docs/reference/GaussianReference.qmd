@@ -18,8 +18,44 @@ The density must be truncated to a bounded interval.
 
 | Name | Description |
 | --- | --- |
+| [eval_cdf](#deep_tensor.GaussianReference.eval_cdf) |  |
+| [eval_pdf](#deep_tensor.GaussianReference.eval_pdf) |  |
+| [invert_cdf](#deep_tensor.GaussianReference.invert_cdf) |  |
+| [eval_potential](#deep_tensor.GaussianReference.eval_potential) |  |
 | [random](#deep_tensor.GaussianReference.random) | Generates a set of random samples. |
 | [sobol](#deep_tensor.GaussianReference.sobol) | Generates a set of QMC samples. |
+
+### eval_cdf { #deep_tensor.GaussianReference.eval_cdf }
+
+```python
+GaussianReference.eval_cdf(rs: Tensor)
+```
+
+
+
+### eval_pdf { #deep_tensor.GaussianReference.eval_pdf }
+
+```python
+GaussianReference.eval_pdf(rs: Tensor)
+```
+
+
+
+### invert_cdf { #deep_tensor.GaussianReference.invert_cdf }
+
+```python
+GaussianReference.invert_cdf(zs: Tensor)
+```
+
+
+
+### eval_potential { #deep_tensor.GaussianReference.eval_potential }
+
+```python
+GaussianReference.eval_potential(rs: Tensor)
+```
+
+
 
 ### random { #deep_tensor.GaussianReference.random }
 

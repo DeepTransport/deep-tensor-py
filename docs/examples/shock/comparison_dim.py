@@ -131,8 +131,8 @@ for i, D in enumerate(Ds):
 
             dhells[i][j][k] = dhell 
             evals[i][j][k] = dirt.num_eval_construction
-            if isinstance(dirt.sirts[0].ftt, dt.EFTT):
-                max_tuckers[i][j][k] = dirt.sirts[0].ftt.basis_dims.max()
+            if isinstance(dirt._sirts[0]._ftt, dt.EFTT):
+                max_tuckers[i][j][k] = dirt._sirts[0]._ftt._basis_dims.max()
 
 fig, axes = plt.subplots(1, 3, figsize=(9, 3.2))
 

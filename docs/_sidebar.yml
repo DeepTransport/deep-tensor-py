@@ -18,6 +18,7 @@ website:
       - reference/DIRTMapping.qmd
       section: Preconditioners
     - contents:
+      - reference/Reference.qmd
       - reference/GaussianReference.qmd
       - reference/UniformReference.qmd
       section: Reference Densities
@@ -58,5 +59,9 @@ website:
       - reference/pCNKernel.qmd
       - reference/MCMCResult.qmd
       section: Debiasing
+    - contents:
+      - reference/estimate_dhell.qmd
+      - reference/estimate_iact.qmd
+      section: Diagnostics
     id: reference
   - id: dummy-sidebar

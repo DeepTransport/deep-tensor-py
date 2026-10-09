@@ -23,7 +23,7 @@ A functional tensor train, defined on $[-1, 1]^{d}$.
 
 <code>[**num_error_samples**]{.parameter-name} [:]{.parameter-annotation-sep} [int]{.parameter-annotation} [ = ]{.parameter-default-sep} [1000]{.parameter-default}</code>
 
-:   The number of samples to use to estimate the $L_{2}$ error of  the FTT during its construction.
+:   The number of samples to use to estimate the $L^{2}$ error of  the FTT during its construction.
 
 ## Methods
 

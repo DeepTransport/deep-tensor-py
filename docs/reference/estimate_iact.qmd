@@ -1,0 +1,24 @@
+# estimate_iact { #deep_tensor.estimate_iact }
+
+```python
+estimate_iact(xs: Tensor)
+```
+
+Estimates the integrated autocorrelation time of each parameter 
+within a simulated Markov chain.
+
+## Parameters {.doc-section .doc-section-parameters}
+
+<code>[**xs**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A num_steps * num_params matrix containing the simulated Markov  chain.
+
+## Returns {.doc-section .doc-section-returns}
+
+<code>[**taus**]{.parameter-name} [:]{.parameter-annotation-sep} [Tensor]{.parameter-annotation}</code>
+
+:   A vector containing the estimates of the IACT for each  parameter.
+
+## References {.doc-section .doc-section-references}
+
+https://mc-stan.org/docs/2_19/reference-manual/effective-sample-size-section.html

@@ -36,6 +36,7 @@ Product-form reference densities used as part of DIRT construction.
 
 | | |
 | --- | --- |
+| [Reference](Reference.qmd#deep_tensor.Reference) | Parent class for all one-dimensional reference distributions. |
 | [GaussianReference](GaussianReference.qmd#deep_tensor.GaussianReference) | The standard $d$-dimensional Gaussian density, $\mathcal{N}(\boldsymbol{0}_{d}, \boldsymbol{I}_{d})$. |
 | [UniformReference](UniformReference.qmd#deep_tensor.UniformReference) | The standard $d$-dimensional uniform density, $\mathcal{U}([0, 1]^{d})$. |
 
@@ -105,3 +106,12 @@ Functions used to remove the bias associated with the use of an approximation to
 | [MCMC](MCMC.qmd#deep_tensor.MCMC) | An object used to run an MCMC sampler. |
 | [pCNKernel](pCNKernel.qmd#deep_tensor.pCNKernel) | The preconditioned Crank-Nicolson proposal. |
 | [MCMCResult](MCMCResult.qmd#deep_tensor.MCMCResult) | An object containing a constructed Markov chain. |
+
+## Diagnostics
+
+Functions used to assess the quality of an approximation or a Markov chain.
+
+| | |
+| --- | --- |
+| [estimate_dhell](estimate_dhell.qmd#deep_tensor.estimate_dhell) | Estimates the Hellinger distance between two (unnormalised) |
+| [estimate_iact](estimate_iact.qmd#deep_tensor.estimate_iact) | Estimates the integrated autocorrelation time of each parameter  |
